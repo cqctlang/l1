@@ -132,7 +132,7 @@ l1_mkdlfcnns(VM *vm, Imm argc, Val *argv, Val *rv)
 	if(argc != 0)
 		vmerr(vm, "wrong number of arguments to mkdlfcnns");
 
-	r=myrootns(vm->top->env);
+	r=myrootns(vm->top);
 	rns=valns(r);
 
 	for(x=0;modes[x].name;x++);

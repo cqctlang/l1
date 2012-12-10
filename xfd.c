@@ -3,6 +3,8 @@
 #include "syscqct.h"
 #include "x/include/fmt.h"
 
+Xfd l1stdin, l1stdout, l1stderr;
+
 void
 xfdclose(Xfd *xfd)
 {
@@ -71,4 +73,19 @@ cprintf(Xfd *xfd, char *fmt, ...)
 	va_start(args, fmt);
 	cvprintf(xfd, fmt, args);
 	va_end(args);
+}
+
+void
+finiio()
+{
+}
+
+void
+initio(Xfd *in, Xfd *out, Xfd *err)
+{
+	if(!in || !out || !err)
+		bug();
+	l1stdin = *in;
+	l1stdout = *out;
+	l1stderr = *err;
 }

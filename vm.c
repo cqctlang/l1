@@ -78,10 +78,8 @@ Dom *litdom;
 static Closure *halt, *stkunderflow;
 Cval *cvalnull, *cval0, *cval1, *cvalminus1;
 
-/* garbage collector strives to treat vms as a generic
-   object that may or may not exist */
-VM *vms[1];
-unsigned nvm;
+VM *vms[1];			/* active VMs (at most one) */
+u32 nvm;			/* number of active VMs */
 
 static int lasterrno;
 
@@ -640,33 +638,10 @@ freeenv(Env *env)
 	efree(env);
 }
 
-Toplevel*
-mktoplevel(Xfd *in, Xfd *out, Xfd *err)
+Env*
+mktoplevel()
 {
-	Toplevel *top;
-
-	top = emalloc(sizeof(Toplevel));
-	top->env = mktopenv();
-
-	/* persistent storage for stdio xfds */
-	top->in = *in;
-	top->out = *out;
-	top->err = *err;
-
-	builtinfd(top->env, "stdin",
-		  mkfdfn(mkstr0("<stdin>"), Fread, &top->in));
-	builtinfd(top->env, "stdout",
-		  mkfdfn(mkstr0("<stdout>"), Fwrite, &top->out));
-	builtinfd(top->env, "stderr",
-		  mkfdfn(mkstr0("<stderr>"), Fwrite, &top->err));
-	return top;
-}
-
-void
-freetoplevel(Toplevel *top)
-{
-	freeenv(top->env);
-	efree(top);
+	return mktopenv();
 }
 
 Cval*
@@ -793,7 +768,7 @@ putval(VM *vm, Val v, Location *loc)
 			*dst = v;
 		break;
 	case Ltopl:
-		envput(vm->top->env, valcid(loc->v), v);
+		envput(vm->top, valcid(loc->v), v);
 		break;
 	case Ltopr:
 		setcdr(loc->v, v);
@@ -841,15 +816,10 @@ printsrc(Xfd *xfd, Code *c, Insn *pc)
 void
 printframe(VM *vm, Insn *pc, Code *c)
 {
-	Xfd *xfd;
-
-	xfd = &vm->top->out;
-
 	/* elide system functions on stack */
 	if(ciddata(c->id)[0] == '$')
 		return;
-
-	printsrc(xfd, c, pc);
+	printsrc(&l1stdout, c, pc);
 }
 
 void
@@ -915,23 +885,16 @@ kbacktrace(VM *vm, Cont *k)
 static void
 vvmerr(VM *vm, char *fmt, va_list args)
 {
-#if 1
 	static char buf[128];
 	Val argv[1];
 	Val err;
 	vsnprint(buf, sizeof(buf), fmt, args);
 	argv[0] = mkvalstr(mkstr0(buf));
-	err = envlookup(vm->top->env, "defaulterror");
+	err = envlookup(vm->top, "defaulterror");
 	if(err == 0)
 		fatal("no default error handler");
 	ccall(vm, valcl(err), 1, argv);
 	fatal("return from default error handler");
-#else
-	cprintf(&vm->top->out, "error: ");
-	cvprintf(&vm->top->out, fmt, args);
-	cprintf(&vm->top->out, "\n");
-	fvmbacktrace(vm);
-#endif
 }
 
 void
@@ -986,7 +949,7 @@ getval(VM *vm, Location *loc)
 		else
 			return p;
 	case Ltopl:
-		p = envget(vm->top->env, valcid(loc->v));
+		p = envget(vm->top, valcid(loc->v));
 		if(p == 0 || p == Xundef)
 			vmerr(vm, "reference to unbound variable: %s",
 			      ciddata(valcid(loc->v)));
@@ -1849,7 +1812,7 @@ ncallstat(VM *vm)
 	Val v, k;
 	Tab *t;
 	Env *env;
-	env = vm->top->env;
+	env = vm->top;
 	v = envlookup(env, "ncallstat");
 	if(v == 0){
 		t = mktab();
@@ -4158,7 +4121,7 @@ mknsraw(VM *vm, Ns *ons, Tab *rawtype, Tab *rawsym, Str *name)
 		for(i = 0; i < m; i++)
 			vecset(nvec, i, vecref(vec, i));
 		argv[0] = mkvalvec(nvec);
-		argv[1] = envlookup(vm->top->env, "typenamecmp");
+		argv[1] = envlookup(vm->top, "typenamecmp");
 		l1_sort(vm, 2, argv, &rv);
 		xprintf("warning: name space references undefined "
 			"type%s:\n", m > 1 ? "s" : "");
@@ -4285,9 +4248,9 @@ builtinfn(Env *env, char *name, Closure *cl)
 }
 
 void
-cqctbuiltinfn(Toplevel *top, char *name, Closure *cl)
+cqctbuiltinfn(Env *top, char *name, Closure *cl)
 {
-	builtinfn(top->env, name, cl);
+	builtinfn(top, name, cl);
 }
 
 static void
@@ -4340,7 +4303,7 @@ Fd*
 vmstdout(VM *vm)
 {
 	Val v;
-	v = envlookup(vm->top->env, "stdout");
+	v = envlookup(vm->top, "stdout");
 	if(v == 0)
 		vmerr(vm, "stdout is undefined");
 	if(Vkind(v) != Qfd)
@@ -5077,7 +5040,7 @@ l1_myrootns(VM *vm, Imm argc, Val *argv, Val *rv)
 {
 	USED(argc);
 	USED(argv);
-	*rv = myrootns(vm->top->env);
+	*rv = myrootns(vm->top);
 	if(*rv == Xnil)
 		vmerr(vm, "my root name space is undefined: %s", myroot());
 }
@@ -6651,24 +6614,6 @@ l1_instguard(VM *vm, Imm argc, Val *argv, Val *rv)
 	instguard(p);
 }
 
-static void
-l1_eval(VM *vm, Imm argc, Val *argv, Val *rv)
-{
-	Str *str;
-	Val cl;
-	char *s;
-
-	if(argc != 1)
-		vmerr(vm, "wrong number of arguments to eval");
-	checkarg(vm, argv, 0, Qstr);
-	str = valstr(argv[0]);
-	s = str2cstr(str);
-	cl = cqctcompile(vm, s, "<eval-input>", 1, vm->top, 0);
-	efree(s);
-	if(cl == 0)
-		return;
-	*rv = ccall(vm, valcl(cl), 0, 0);
-}
 #if 0
 /* ks[0] and ks[1] are success and failure continuations.
    they must be protected from collection, such as by
@@ -6748,8 +6693,8 @@ l1_resettop(VM *vm, Imm argc, Val *argv, Val *rv)
 {
 	USED(argc);
 	USED(argv);
-	freeenv(vm->top->env);
-	vm->top->env = mktopenv();
+	freeenv(vm->top);
+	vm->top = mktopenv();
 	USED(rv);
 }
 
@@ -6822,7 +6767,7 @@ l1_parse(VM *vm, Imm argc, Val *argv, Val *rv)
 		line = cvalu(valcval(argv[2]));
 	}
 	buf = str2cstr(valstr(argv[0]));
-	e = cqctparse(buf, vm->top, whence, line);
+	e = cqctparse(buf, whence, line);
 	efree(buf);
 	if(argc > 1)
 		efree(whence);
@@ -6843,7 +6788,7 @@ l1_compile(VM *vm, Imm argc, Val *argv, Val *rv)
 	e = valexpr(argv[0]);
 	/* wrap in "begin" just in case */
 	e = putsrc(Zcons(e, nullelist()), e->src);
-	v = compile(vm, e, vm->top, 0);
+	v = compile(vm, e, 0);
 	if(v != 0)
 		*rv = v;
 }
@@ -6941,7 +6886,7 @@ l1_gettoplevel(VM *vm, Imm argc, Val *argv, Val *rv)
 		vmerr(vm, "wrong number of arguments to gettoplevel");
 	checkarg(vm, argv, 0, Qcid);
 	id = valcid(argv[0]);
-	p = envget(vm->top->env, id);
+	p = envget(vm->top, id);
 	if(p == 0 || p == Xundef)
 		vmerr(vm, "reference to unbound variable: %s", ciddata(id));
 	*rv = p;
@@ -6953,7 +6898,7 @@ l1_settoplevel(VM *vm, Imm argc, Val *argv, Val *rv)
 	if(argc != 2)
 		vmerr(vm, "wrong number of arguments to settoplevel");
 	checkarg(vm, argv, 0, Qcid);
-	envput(vm->top->env, valcid(argv[0]), argv[1]);
+	envput(vm->top, valcid(argv[0]), argv[1]);
 	*rv = argv[1];
 }
 
@@ -7259,7 +7204,7 @@ cqctsprintval(VM *vm, Val v)
 
 	Str *s;
 	s = mkstrk("%a", 2, Sperm);
-	cl = envlookup(vm->top->env, "sprintfa");
+	cl = envlookup(vm->top, "sprintfa");
 	argv[0] = mkvalstr(s);
 	argv[1] = v;
 	if(0 > cqctcallfn(vm, cl, 2, argv, &rv))
@@ -7595,7 +7540,6 @@ mktopenv(void)
 	FN(eq);
 	FN(equal);
 	FN(eqv);
-	FN(eval);
 	FN(error);
 	FN(fault);
 	FN(fdname);
@@ -7704,6 +7648,10 @@ mktopenv(void)
 	builtinnil(env, "$$"); /* FIXME: get rid of this */
 	builtincode(env, "kresumecode", kresumecode());
 
+	builtinfd(env, "stdin", mkfdfn(mkstr0("<stdin>"), Fread, &l1stdin));
+	builtinfd(env, "stdout", mkfdfn(mkstr0("<stdout>"), Fwrite, &l1stdout));
+	builtinfd(env, "stderr", mkfdfn(mkstr0("<stderr>"), Fwrite, &l1stderr));
+
 	/* expanded source may call these magic functions */
 	builtinfn(env, "$put", mkcfn("$put", l1_put));
 	builtinfn(env, "$typeof", mkcfn("$typeof", l1_typeof));
@@ -7711,21 +7659,10 @@ mktopenv(void)
 	return env;
 }
 
-void
-boot(VM *vm)
-{
-	_cqcteval(vm, "@include <boot.cqct>", "<boot>", &rv);
-	cqcteval(vm, "@include <expand.cqct>", "<expand>", &rv);
-	cqcteval(vm, "@include <cpopt.cqct>", "<cpopt>", &rv);
-	cqcteval(vm, "@include <prelude.cqct>", "<prelude>", &rv);
-}
-
 VM*
-cqctmkvm(Toplevel *top)
+cqctmkvm(Env *top)
 {
 	VM *vm;
-	Val rv;
-	char ocqctflags[256];
 
 	if(nvm != 0)
 		bug();
@@ -7733,6 +7670,8 @@ cqctmkvm(Toplevel *top)
 	vm->top = top;
 	vmresetctl(vm);
 	vms[nvm++] = vm;
+
+	boot(vm);
 
 	return vm;
 }
@@ -7783,7 +7722,7 @@ cqctcallfn(VM *vm, Val cl, int argc, Val *argv, Val *rv)
 	Val call;
 	Val *xargv;
 
-	call = envlookup(vm->top->env, "callfn");
+	call = envlookup(vm->top, "callfn");
 	if(call == 0 || Vkind(call) == 0)
 		fatal("no way to call Cinquecento functions from C");
 	xargv = emalloc((1+argc)*sizeof(Val));

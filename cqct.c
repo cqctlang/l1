@@ -6,42 +6,25 @@ char **cqctloadpath;
 char cqctflags[256];
 
 Expr*
-cqctparse(char *s, Toplevel *top, char *src, unsigned line)
+cqctparse(char *s, char *src, unsigned line)
 {
 	U ctx;
 
 	if(src == 0)
 		src = "<stdin>";
-
 	memset(&ctx, 0, sizeof(ctx));
-	ctx.out = &top->err;
+	ctx.out = &l1stderr;
 	return doparse(&ctx, s, src, line);
 }
 
 Val
-cqctcompile(VM *vm, char *s, char *src, unsigned line, Toplevel *top,
-	    char *argsid)
+cqctcompile(VM *vm, char *s, char *src, unsigned line, char *argsid)
 {
 	Expr *e;
-	e = cqctparse(s, top, src, line);
+	e = cqctparse(s, src, line);
 	if(e == 0)
 		return 0;
-	return compile(vm, e, top, argsid);
-}
-
-/* dangerous: no clean-up if called code fails */
-int
-_cqcteval(VM *vm, char *s, char *src, Val *rv)
-{
-	Val v, cl;
-
-	cl = cqctcompile(vm, s, src, 1, vm->top, 0);
-	if(cl == 0)
-		return -1;
-	if(rv == 0)
-		rv = &v;
-	*rv = ccall(vm, valcl(cl), 0, 0);
-	return 0;
+	return compile(vm, e, argsid);
 }
 
 int
@@ -49,7 +32,7 @@ cqcteval(VM *vm, char *s, char *src, Val *rv)
 {
 	Val v, cl;
 
-	cl = cqctcompile(vm, s, src, 1, vm->top, 0);
+	cl = cqctcompile(vm, s, src, 1, 0);
 	if(cl == 0)
 		return -1;
 	if(rv == 0)
@@ -173,21 +156,15 @@ cqctfreecstr(char *s)
 }
 
 void
-cqctenvbind(Toplevel *top, char *name, Val v)
+cqctenvbind(Env *env, char *name, Val v)
 {
-	envbind(top->env, name, v);
+	envbind(env, name, v);
 }
 
 Val
-cqctenvlook(Toplevel *top, char *name)
+cqctenvlook(Env *env, char *name)
 {
-	return envget(top->env, mkcid0(name));
-}
-
-Val
-cqctlooktop(VM *vm, char *name)
-{
-	return cqctenvlook(vm->top, name);
+	return envget(env, mkcid0(name));
 }
 
 uint64_t
@@ -335,11 +312,12 @@ cqctrangelen(Val o)
 	return mkvalcval2(r->len);
 }
 
-Toplevel*
+Env*
 cqctinit(char **lp, Xfd *in, Xfd *out, Xfd *err)
 {
 	Xfd xfd[3];
 
+	cqctloadpath = copystrv(lp);
 	if(in == 0){
 		in = &xfd[0];
 		memset(in, 0, sizeof(Xfd));
@@ -358,7 +336,7 @@ cqctinit(char **lp, Xfd *in, Xfd *out, Xfd *err)
 		err->write = xfdwrite;
 		err->fd = 2;
 	}
-	cqctloadpath = copystrv(lp);
+	initio(in, out, err);
 	initmem();
 	initparse();
 	initcid();
@@ -366,18 +344,19 @@ cqctinit(char **lp, Xfd *in, Xfd *out, Xfd *err)
 	initcg();
 	initnc();
 	initvm();
-	return mktoplevel(in, out, err);
+	return mktoplevel();
 }
 
 void
-cqctfini(Toplevel *top)
+cqctfini(Env *top)
 {
 	efree(cqctloadpath);
-	freetoplevel(top);
+	freeenv(top);
 	finivm();
 	finicg();
 	finitype();
 	finicid();
 	finiparse();
 	finimem();
+	finiio();
 }

@@ -1,68 +1,26 @@
+@define defaulterror(msg)
+{
+     printf("boot error: %s\n", msg);
+     exit(1);
+}
+
 @include <callcc.cqct>
 @include <dynamicwind.cqct>
 
-@define defaultreturn(arg ...)
-{
-	printf("exiting l1\n");
-	exit(0);
-}
+/* once we have callcc, we can get a backtrace
+   on boot-time errors. */
 
-@define defaultabort(arg ...)
-{
-	printf("aborting l1\n");
-	exit(1);
-}
+callcc(@lambda(done){
 
 @define defaulterror(msg)
 {
-	callcc(@lambda(errk){
-			printf("error: %s\n", msg);
-			kbacktrace(continuationfr(errk));
-			defaultreset(nil);
-	       });
+     callcc(@lambda(errk){
+	       printf("boot error: %s\n", msg);
+	       kbacktrace(continuationfr(errk));
+	       done(nil);
+	  });
 }
+	  
+@include "bootmain.cqct"
 
-@define callfn(fn, args ...)
-{
-	return callcc(@lambda(k){
-			printf("setting default reset in callfn\n");
-			defaultreset = k;
-			return apply(fn, args);
-		      });
-}
-
-@define myeval(s)
-{
-	@local x, fn;
-	x = parse(s);
-	fn = compile(x);
-	fn();
-}
-
-@define repl()
-{
-	@defloc $loop()
-	{
-		@local s, v;
-		printf("; ");
-		s = read(stdin, 1024);
-		if(s == nil){
-			printf("\n");
-			defaultreturn(nil);
-		}
-		v = myeval(s);
-//		v = eval(s);
-		if(v != nil)
-			printf("%a\n", v);
-		$loop();
-	}
-
-	callcc(@lambda(done){
-			defaultreturn = done;
-			callcc(@lambda(reset){
-					printf("setting default reset in repl\n");
-					defaultreset = reset;
-			       });
-			$loop(); 
-	       });
-}
+});

@@ -15,12 +15,12 @@ fatal(char *fmt, ...)
 {
 	static char version[] = "$Format:%H %cd$";
 	va_list args;
-	xprintf("internal bug: ");
+	xprintf("L1 has failed: ");
 	va_start(args, fmt);
 	xvprintf(fmt, args);
 	va_end(args);
 	xprintf("\n");
-	xprintf("\nYou have found a bug in L1.  Please report it.\n");
+	xprintf("You found a bug in L1!  Please report it.\n");
 	if(version[0] != '$')
 		xprintf("L1 version %s\n", version);
 	xabort();

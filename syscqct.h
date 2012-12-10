@@ -223,7 +223,6 @@ enum {
 	Typepos=0,
 	Idpos=1,
 	Attrpos=2,
-	Maxvms=1024,
 	Errinitdepth=128,	/* initial max error stack */
 	Maxstk = 16384,
 	InsnAlloc = 10,
@@ -618,7 +617,7 @@ struct U {
 	Expr *el;		/* parser accumulator */
 	unsigned errors;
 	Xfd *out;
-	Toplevel *top;		/* toplevel (compiler) */
+	Env *top;		/* toplevel (compiler) */
 	char *argsid;		/* toplevel arguments identifier (compiler) */
 } U;
 
@@ -908,17 +907,9 @@ struct Xenv {
 	Xenv *link;
 };
 
-typedef
 struct Env {
 	Tab *var;		/* variable bindings */
 	HT *rd;			/* record descriptors */
-} Env;
-
-struct Toplevel {
-	struct Env *env;
-	Xfd in;
-	Xfd out;
-	Xfd err;
 };
 
 enum {
@@ -940,7 +931,7 @@ struct VM {
 	u32 stksz;
 	Cont *klink;
 	unsigned int flags;
-	Toplevel *top;
+	Env *top;
 	u32 level;
 	u64 gen;
 	u64 levgen[128];
@@ -949,13 +940,15 @@ struct VM {
 	u64 gctime, postgctime;
 };
 
+extern VM*		vms[];
+extern u32		nvm;
+
 extern char* S[];
 extern char* cbasename[];
 extern unsigned isfloat[Vnallbase];
 extern unsigned isunsigned[Vnallbase];
 extern Imm repsize[Rnrep];
 extern char* tkindstr[];
-extern VM*   vms[];
 extern Cval  *cvalnull, *cval0, *cval1, *cvalminus1;
 extern char  **cqctloadpath;
 extern char *qname[];
@@ -965,6 +958,7 @@ extern Val Xundef;
 extern Val Xnil;
 extern Code *kcode;
 extern NC *trampentry;
+extern Xfd l1stdin, l1stdout, l1stderr;
 
 /* top-level roots */
 extern Val syms;
@@ -1098,7 +1092,7 @@ int		issimple(Expr *e);
 /* cg.c */
 Code*		kresumecode();
 void		cgstatistics();
-Closure*	codegen(Expr *e);
+Closure*	codegen(Env *top, Expr *e);
 void		finicg(void);
 Closure*	haltthunk(void);
 void		initcg(void);
@@ -1163,7 +1157,7 @@ int		isnegcval(Cval *cv);
 int		iszerocval(Cval *cv);
 void		finivm(void);
 int		freeode(Head *hd);
-void		freetoplevel(Toplevel *top);
+void		freetoplevel(Env *top);
 void		heapfree(Head *p);
 int		iscomplete(Ctype *t);
 int		ismapped(VM *vm, As *as, Imm addr, Imm len);
@@ -1184,7 +1178,7 @@ Ns*		mknsraw(VM *vm, Ns *ons, Tab *rawtype,
 Ns*		mknstab(Tab *mtab, Str *name);
 Range*		mkrange(Cval *beg, Cval *len);
 As*		mksas(Str *s);
-Toplevel*	mktoplevel(Xfd *in, Xfd *out, Xfd *err);
+Env*		mktoplevel();
 Val		mkvalbox(Val boxed);
 Val		mkvalcval(Dom *dom, Ctype *t, Imm imm);
 Val		mkvalcval2(Cval *cv);
@@ -1269,6 +1263,8 @@ void		disx86(unsigned char *s, unsigned char *e, unsigned inc);
 /* xfd.c */
 void		cprintf(Xfd *xfd, char *fmt, ...);
 void		cvprintf(Xfd *xfd, char *fmt, va_list args);
+void		finiio();
+void		initio(Xfd *in, Xfd *out, Xfd *err);
 void		xfdclose(Xfd *xfd);
 Imm		xfdread(Xfd *xfd, char *buf, Imm len);
 Imm		xfdwrite(Xfd *xfd, char *buf, Imm len);
@@ -1558,8 +1554,8 @@ void		_vecset(Vec *vec, Imm idx, Val v);
 void		vecset(Vec *vec, Imm idx, Val v);
 
 /* qc.c */
-Val		compile(VM *vm, Expr *e, Toplevel *top, char *argsid);
-Expr*		compilex(VM *vm, Expr *e, Toplevel *top, char *argsid);
+Val		bootcompile(VM *vm, Expr *e);
+Val		compile(VM *vm, Expr *e, char *argsid);
 
 /* nc.c */
 void		emitu8(NC *nc, u8 w);
@@ -1572,8 +1568,11 @@ NC*		mknc();
 void		ncclr(NC *nc);
 void		initnc();
 
+/* boot.c */
+void		boot(VM *vm);
+
 /* cqct.c */
-Expr*		cqctparse(char *s, Toplevel *top, char *src, unsigned line);
+Expr*		cqctparse(char *s, char *src, unsigned line);
 int		_cqcteval(VM *vm, char *s, char *src, Val *rv);
 
 extern		void fns(Env*);

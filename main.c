@@ -417,7 +417,7 @@ main(int argc, char *argv[])
 	char *argv0, *root;
 	unsigned n, nlp;
 	char *lp[Maxloadpath+1];	/* extra one is final null */
-	Toplevel *top;
+	Env *top;
 	char *ename, *argsid;
 	struct memusage mu;
 	int rv;
@@ -667,7 +667,7 @@ main(int argc, char *argv[])
 
 	free(valv);
 #else
-	fn = cqctlooktop(vm, "repl");
+	fn = cqctenvlook(top, "repl");
 	if(fn == 0)
 		fatal("repl is not defined");
 	cqctcallfn(vm, fn, 0, 0, &v);

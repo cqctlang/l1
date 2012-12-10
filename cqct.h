@@ -88,7 +88,7 @@ enum Rkind {
 } Rkind;
 
 typedef struct Closure Closure;
-typedef struct Toplevel Toplevel;
+typedef struct Env Env;
 typedef struct VM VM;
 typedef struct Head Head;
 typedef struct Head* Val;
@@ -133,20 +133,20 @@ struct Xfd {
 
 #define CQCTFN(top,id)	cqctbuiltinfn(top, "%"#id, cqctmkcfn(#id, l1_##id))
 
-void		cqctbuiltinfn(Toplevel *top, char *name, Closure *cl);
+void		cqctbuiltinfn(Env *top, char *name, Closure *cl);
 int		cqctcallfn(VM *vm, Val cl, int argc, Val *argv, Val *rv);
 int		cqctcallthunk(VM *vm, Val cl, Val *rv);
 void		cqctcheckarg(VM *vm, Val *argv, unsigned arg, Qkind qkind);
 Val		cqctcompile(VM *vm, char *s, char *src, unsigned line,
-			    Toplevel *top, char *argsid);
+			    char *argsid);
 Val		cqctcstrnval(char *s, uint64_t len);
 Val		cqctcstrnvalshared(char *s, uint64_t len);
 Val		cqctcstrval(char *s);
 Val		cqctcstrvalshared(char *s);
-void		cqctenvbind(Toplevel *top, char *name, Val v);
-Val		cqctenvlook(Toplevel *top, char *name);
+void		cqctenvbind(Env *top, char *name, Val v);
+Val		cqctenvlook(Env *top, char *name);
 int		cqcteval(VM *vm, char *s, char *src, Val *rv);
-void		cqctfini(Toplevel *top);
+void		cqctfini(Env *top);
 void		cqctfreecstr(char *s);
 void		cqctfreevm(VM *vm);
 void		cqctgcdisable(VM *vm);
@@ -155,7 +155,7 @@ Val		cqctgcpersist(VM *vm, Val v);
 Val		cqctgcprotect(VM *vm, Val v);
 Val		cqctgcunpersist(VM *vm, Val v);
 Val		cqctgcunprotect(VM *vm, Val v);
-Toplevel*	cqctinit(char **lp, Xfd *in, Xfd *out, Xfd *err);
+Env*		cqctinit(char **lp, Xfd *in, Xfd *out, Xfd *err);
 Val		cqctint8val(int8_t);
 Val		cqctint16val(int16_t);
 Val		cqctint32val(int32_t);
@@ -173,7 +173,7 @@ Val		cqctmkfd(Xfd *xfd, char *name);
 Val		cqctmklist(uint64_t n);
 Val		cqctmkrange(Val b, Val l);
 Val		cqctmkvec(uint64_t n);
-VM*		cqctmkvm(Toplevel *top);
+VM*		cqctmkvm(Env *top);
 Val		cqctrangebeg(Val o);
 Val		cqctrangelen(Val o);
 char*		cqctsprintval(VM *vm, Val v);

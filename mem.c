@@ -2190,13 +2190,9 @@ _gc(u32 g, u32 tg)
 	}
 	stats.oldtime += usec()-b;
 
-	b = usec();
 	vmp = vms;
-	while(vmp < vms+Maxvms){
+	while(vmp < vms+nvm){
 		vm = *vmp++;
-		if(vm == 0)
-			continue;
-
 		switch(vm->cl->code->kind){
 		case Cvm:
 			/* e.g., via gcpoll insn in VM code */
@@ -2234,8 +2230,8 @@ _gc(u32 g, u32 tg)
 			bug();
 		}
 
-		copy((Val*)&vm->top->env->var);
-		hforeachp(vm->top->env->rd, toprd, 0);
+		copy((Val*)&vm->top->var);
+		hforeachp(vm->top->rd, toprd, 0);
 		copy(&vm->ac);
 	}
 	if(dbg)printf("copied vm roots\n");

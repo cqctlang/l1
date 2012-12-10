@@ -1,0 +1,93 @@
+/* bootmain.cqct -- bootstrap compiler and evaluator
+   this file expects to be included by boot.cqct.
+*/
+
+@global
+	eval,
+	load,
+	callfn,
+	repl
+	;
+
+/* compiler bootstrap goes here */
+
+@defloc _eval(str, whence, line)
+{
+	compile(parse(str, whence, line))();
+}
+
+@define eval(str)
+{
+	_eval(str, "<eval-input>", 1);
+}
+
+@defloc findfileinpath(file, path)
+{
+	@local try;
+	while(!isempty(path)){
+		try = pop(path)+"/"+file;
+		if(access(try, "r"))
+			return try;
+	}
+	return nil;
+}
+
+@define load(file)
+{
+	@local path, str;
+	if(file[0] == '/')
+		path = file;
+	else
+		path = findfileinpath(file, loadpath());
+	if(path == nil)
+		error("cannot find %s in load path", file);
+	str = mapfile(path);
+	_eval(str, path, 1);
+}
+
+load("expand.cqct");
+load("prelude.cqct");
+
+@define callfn(fn, args ...)
+{
+	callcc(@lambda(ret){
+			defaultreset = ret;
+			return apply(fn, args);
+    	       }); 
+}
+
+@define repl()
+{
+	@defloc replerror(msg)
+	{
+		callcc(@lambda(errk){
+				printf("error: %s\n", msg);
+				kbacktrace(continuationfr(errk));
+				defaultreset(nil);
+			});
+	}
+
+	@defloc $loop()
+	{
+		@local s, v;
+		printf("; ");
+		s = read(stdin, 1024);
+		if(s == nil){
+			printf("\n");
+			defaultreturn(nil);
+		}
+		v = _eval(s, "<stdin>", 1);
+		if(v != nil)
+			printf("%a\n", v);
+		$loop();
+	}
+
+	callcc(@lambda(done){
+			defaultreturn = done;
+			defaulterror = replerror;
+			callcc(@lambda(reset){
+					defaultreset = reset;
+			       });
+			$loop(); 
+	       });
+}

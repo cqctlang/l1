@@ -206,7 +206,7 @@ l1_news(VM *vm, Imm argc, Val *argv, Val *rv)
 
 	/* print news */
 	if(p)
-		cprintf(&vm->top->out, "%s", p);
+		cprintf(&l1stdout, "%s", p);
 
 	efree(news);
 	return;

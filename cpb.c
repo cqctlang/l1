@@ -472,15 +472,15 @@ docompileb(U *ctx, Expr *e)
 		return 0;	/* error */
 
 	e = defloc(ctx, e, 0);
-	e = globals(ctx, e, ctx->top->env);
+	e = globals(ctx, e, ctx->top);
 	if(ctx->argsid){
 		lex = mkxenv(0);
 		xenvbind(lex, ctx->argsid, ctx->argsid);
 	}else
 		lex = 0;
-	e = toplevel(ctx, e, ctx->top->env, lex);
+	e = toplevel(ctx, e, ctx->top, lex);
 	check(ctx, e, 0, 0);
-	e = resolve(ctx, e, ctx->top->env, lex, 0, 0);
+	e = resolve(ctx, e, ctx->top, lex, 0, 0);
 	if(lex)
 		freexenv(lex);
 

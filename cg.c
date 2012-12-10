@@ -1632,12 +1632,19 @@ cglambda(Expr *e, char *id)
 }
 
 Closure*
-codegen(Expr *e)
+codegen(Env *top, Expr *e)
 {
 	Lambda *l;
 	Closure *cl;
 	Code *code;
+	U ctx;
 
+	memset(&ctx, 0, sizeof(ctx));
+	ctx.out = &l1stderr;
+	ctx.top = top;
+	e = docompilev(&ctx, e);
+	if(e == 0)
+		return 0;
 	code = cglambda(e, "entry");
 	l = (Lambda*)e->xp;
 	cl = mkcl(code, l->ncap);

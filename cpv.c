@@ -1005,6 +1005,6 @@ docompilev(U *ctx, Expr *e)
 		printexpr(e);
 		xprintf("\n");
 	}
-	exloc(e, 0, ctx->top->env);
+	exloc(e, 0, ctx->top);
 	return e;
 }
