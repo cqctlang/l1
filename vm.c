@@ -883,6 +883,29 @@ kbacktrace(VM *vm, Cont *k)
 }
 
 static void
+vvmwarn(VM *vm, char *fmt, va_list args)
+{
+	static char buf[128];
+	Val argv[1];
+	Val err;
+	vsnprint(buf, sizeof(buf), fmt, args);
+	argv[0] = mkvalstr(mkstr0(buf));
+	err = envlookup(vm->top, "defaultwarning");
+	if(err == 0)
+		fatal("no default warning handler");
+	ccall(vm, valcl(err), 1, argv);
+}
+
+void
+vmwarn(VM *vm, char *fmt, ...)
+{
+	va_list args;
+	va_start(args, fmt);
+	vvmwarn(vm, fmt, args);
+	va_end(args);
+}
+
+static void
 vvmerr(VM *vm, char *fmt, va_list args)
 {
 	static char buf[128];
@@ -7177,6 +7200,15 @@ l1_defaulterror(VM *vm, Imm argc, Val *argv, Val *rv)
 }
 
 static void
+l1_defaultwarning(VM *vm, Imm argc, Val *argv, Val *rv)
+{
+	if(argc != 1)
+		vmerr(vm, "wrong number of arguments to warning");
+	checkarg(vm, argv, 0, Qstr);
+	cprintf(&l1stderr, "%s\n", strdata(valstr(argv[0])));
+}
+
+static void
 l1_defaultreset(VM *vm, Imm argc, Val *argv, Val *rv)
 {
 	noctl("reset");
@@ -7195,6 +7227,7 @@ fnctl(Env *env)
 	FN(defaulterror);
 	FN(defaultreset);
 	FN(defaultreturn);
+	FN(defaultwarning);
 }
 
 char*

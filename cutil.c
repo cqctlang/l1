@@ -15,38 +15,65 @@ isbinop(Kind k)
 	}
 }
 
+static void
+cvwarn(U *ctx, Expr *e, char *fmt, va_list args)
+{
+	static char buf[128];
+	u32 len;
+	if(e->src)
+		snprint(buf, sizeof(buf), "%s:%u: warning: ",
+			 srcfile(e->src), srcline(e->src));
+	else
+		snprint(buf, sizeof(buf), "<lost-location!>: warning: ");
+	len = strlen(buf);
+	vsnprint(buf+len, sizeof(buf)-len, fmt, args);
+	if(ctx->vm)
+		vmwarn(ctx->vm, "%s", mkstr0(buf));
+	else
+		cprintf(&l1stderr, "%s\n", buf);
+}
+
 void
 cwarn(U *ctx, Expr *e, char *fmt, ...)
 {
 	va_list args;
-	if(e->src)
-		cprintf(ctx->out, "%s:%u: warning: ",
-			srcfile(e->src), srcline(e->src));
-	else
-		cprintf(ctx->out, "<lost-location!>: warning: ");
 	va_start(args, fmt);
-	cvprintf(ctx->out, fmt, args);
-	cprintf(ctx->out, "\n");
+	cvwarn(ctx, e, fmt, args);
 	va_end(args);
+}
+
+static void
+cverror(U *ctx, Expr *e, char *fmt, va_list args)
+{
+	static char buf[128];
+	u32 len;
+	if(e->src)
+		snprint(buf, sizeof(buf), "%s:%u: ",
+			 srcfile(e->src), srcline(e->src));
+	else if(e)
+		snprint(buf, sizeof(buf), "<lost-location!>: ");
+	else
+		snprint(buf, sizeof(buf), "%s:%u: ",
+			ctx->inp->src.filename,
+			ctx->inp->src.line);
+	len = strlen(buf);
+	vsnprint(buf+len, sizeof(buf)-len, fmt, args);
+	if(ctx->vm)
+		vmerr(ctx->vm, "%s", mkstr0(buf));
+	else{
+		cprintf(&l1stderr, "%s\n", buf);
+		longjmp(ctx->jmp, 1);
+	}
 }
 
 void
 cerror(U *ctx, Expr *e, char *fmt, ...)
 {
 	va_list args;
-	if(e && e->src)
-		cprintf(ctx->out, "%s:%u: ", srcfile(e->src), srcline(e->src));
-	else if(e)
-		cprintf(ctx->out, "<lost-location!>: ");
-	else if(ctx->inp)
-		cprintf(ctx->out, "%s:%u: ",
-			ctx->inp->src.filename,
-			ctx->inp->src.line);
 	va_start(args, fmt);
-	cvprintf(ctx->out, fmt, args);
-	cprintf(ctx->out, "\n");
+	cverror(ctx, e, fmt, args);
 	va_end(args);
-	longjmp(ctx->jmp, 1);
+	fatal("cerror returned");
 }
 
 Src
