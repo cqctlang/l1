@@ -30,6 +30,27 @@ stxquote(Expr *e)
 Expr*
 docompileq(U *ctx, Expr *e)
 {
-	e = stxquote(e);
-	return e;
+	/*
+	 * resetlabels should happen before every
+	 * compile.  as the start of the first pass,
+	 * this is a convenient place to do it.
+	 */
+	resetlabels();
+
+	return stxquote(e);
+}
+
+void
+l1_cpq(VM *vm, Imm argc, Val *argv, Val *rv)
+{
+	U ctx;
+	Expr *e;
+
+	if(argc != 1)
+		vmerr(vm, "wrong number of arguments to cpq");
+	checkarg(vm, argv, 0, Qexpr);
+	initctx(&ctx, vm);
+	e = docompileq(&ctx, valexpr(argv[0]));
+	if(e)
+		*rv = mkvalexpr(e);
 }

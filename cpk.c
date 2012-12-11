@@ -88,8 +88,21 @@ xnil(U *ctx, Expr *e)
 Expr*
 docompilek(U *ctx, Expr *e)
 {
-	if(setjmp(ctx->jmp) != 0)
-		return 0;	/* error */
 	e = xnil(ctx, e);
 	return e;
+}
+
+void
+l1_cpk(VM *vm, Imm argc, Val *argv, Val *rv)
+{
+	U ctx;
+	Expr *e;
+
+	if(argc != 1)
+		vmerr(vm, "wrong number of arguments to cpk");
+	checkarg(vm, argv, 0, Qexpr);
+	initctx(&ctx, vm);
+	e = docompilek(&ctx, valexpr(argv[0]));
+	if(e)
+		*rv = mkvalexpr(e);
 }

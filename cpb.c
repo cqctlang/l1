@@ -468,9 +468,6 @@ docompileb(U *ctx, Expr *e)
 	Src s;
 	Xenv *lex;
 
-	if(setjmp(ctx->jmp) != 0)
-		return 0;	/* error */
-
 	e = defloc(ctx, e, 0);
 	e = globals(ctx, e, ctx->top);
 	if(ctx->argsid){
@@ -495,4 +492,19 @@ docompileb(U *ctx, Expr *e)
 		     Zret(Ztg("$$", Zblock(nullelist(), e, NULL))));
 	putsrc(e, s);
 	return e;
+}
+
+void
+l1_cpb(VM *vm, Imm argc, Val *argv, Val *rv)
+{
+	U ctx;
+	Expr *e;
+
+	if(argc != 1)
+		vmerr(vm, "wrong number of arguments to cpb");
+	checkarg(vm, argv, 0, Qexpr);
+	initctx(&ctx, vm);
+	e = docompileb(&ctx, valexpr(argv[0]));
+	if(e)
+		*rv = mkvalexpr(e);
 }

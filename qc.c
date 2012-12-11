@@ -46,9 +46,8 @@ printT(char *id, Imm t)
 }
 
 static Expr*
-dopasses(Expr *e, Env *top, char *argsid, Pass *ps, unsigned np)
+dopasses(U *ctx, Expr *e, Pass *ps, unsigned np)
 {
-	U ctx;
 	Pass *p;
 	Imm tv[1+Maxpass];
 	unsigned i;
@@ -63,14 +62,10 @@ dopasses(Expr *e, Env *top, char *argsid, Pass *ps, unsigned np)
 	}
 	if(cqctflags['K'])
 		checksrc("parse", e);
-	memset(&ctx, 0, sizeof(ctx));
-	ctx.top = top;
-	ctx.argsid = argsid;
-	ctx.out = &l1stderr;
 	for(i = 0, p = ps; i < np; i++, p++){
 		if(cqctflags['T'])
 			tv[i] = usec();
-		e = p->fn(&ctx, e);
+		e = p->fn(ctx, e);
 		if(e == 0)
 			return 0;
 		if(cqctflags['K'])
@@ -134,6 +129,7 @@ doexpand(VM *vm, Expr *e)
 
 #define CP(id)      { "cp"#id, docompile##id }
 #define NPASS(ps)   (sizeof(ps)/sizeof((ps)[0]))
+#define MKCP(id)    (mkvalcl(cqctmkcfn(#id, l1_##id)))
 
 static Pass all[] = {
 	CP(q),
@@ -153,38 +149,66 @@ static Pass all[] = {
 	CP(b),
 };
 
-Val
-compile(VM *vm, Expr *e, char *argsid)
+void
+l1_bootcompilerpasses(VM *vm, Imm argc, Val *argv, Val *rv)
 {
-	Imm tv[2];
-	Closure *cl;
+	List *l;
+	if(argc != 0)
+		vmerr(vm, "wrong number of arguments to bootcompilerpasses");
+	l = mklist();
+	_listappend(l, MKCP(cpq));
+	_listappend(l, MKCP(cpx));
+	_listappend(l, MKCP(cpn));
+	_listappend(l, MKCP(cpm));
+	_listappend(l, MKCP(cpw));
+	_listappend(l, MKCP(cpa));
+	_listappend(l, MKCP(cpc));
+	_listappend(l, MKCP(cp0));
+	_listappend(l, MKCP(cpg));
+	_listappend(l, MKCP(cpk));
+	_listappend(l, MKCP(cpl));
+	_listappend(l, MKCP(cpi));
+	_listappend(l, MKCP(cpr));
+	_listappend(l, MKCP(cp1));
+	_listappend(l, MKCP(cpb));
+	_listappend(l, MKCP(codegen));
+	*rv = mkvallist(l);
+}
 
-	resetlabels();
-	memset(tv, 0, sizeof(tv));
-//	e = doexpand(vm, e);
-//	if(e == 0)
-//		return 0;
-	e = dopasses(e, vm->top, argsid, all, NPASS(all));
-	if(e == 0)
-		return 0;
-	if(cqctflags['T'])
-		tv[0] = usec();
-	cl = codegen(vm->top, e);
-	if(cqctflags['T']){
-		tv[1] = usec();
-		printT("cg", tv[1]-tv[0]);
-	}
-	return mkvalcl(cl);
+void
+fncompile(Env *env)
+{
+	FN(bootcompilerpasses);
+}
+
+void
+initctxboot(U *ctx, Env *top)
+{
+	memset(ctx, 0, sizeof(U));
+	ctx->top = top;
+	ctx->out = &l1stderr;
+}
+
+void
+initctx(U *ctx, VM *vm)
+{
+	memset(ctx, 0, sizeof(U));
+	ctx->top = vm->top;
+	ctx->vm = vm;
 }
 
 Val
-bootcompile(VM *vm, Expr *e)
+bootcompile(Env *top, Expr *e)
 {
 	Closure *cl;
-	resetlabels();
-	e = dopasses(e, vm->top, 0, all, NPASS(all));
+	U ctx;
+
+	initctxboot(&ctx, top);
+	if(setjmp(ctx.jmp) != 0)
+		return 0;
+	e = dopasses(&ctx, e, all, NPASS(all));
 	if(e == 0)
 		return 0;
-	cl = codegen(vm->top, e);
+	cl = codegen(&ctx, e);
 	return mkvalcl(cl);
 }

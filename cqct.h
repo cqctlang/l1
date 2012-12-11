@@ -137,15 +137,12 @@ void		cqctbuiltinfn(Env *top, char *name, Closure *cl);
 int		cqctcallfn(VM *vm, Val cl, int argc, Val *argv, Val *rv);
 int		cqctcallthunk(VM *vm, Val cl, Val *rv);
 void		cqctcheckarg(VM *vm, Val *argv, unsigned arg, Qkind qkind);
-Val		cqctcompile(VM *vm, char *s, char *src, unsigned line,
-			    char *argsid);
 Val		cqctcstrnval(char *s, uint64_t len);
 Val		cqctcstrnvalshared(char *s, uint64_t len);
 Val		cqctcstrval(char *s);
 Val		cqctcstrvalshared(char *s);
 void		cqctenvbind(Env *top, char *name, Val v);
 Val		cqctenvlook(Env *top, char *name);
-int		cqcteval(VM *vm, char *s, char *src, Val *rv);
 void		cqctfini(Env *top);
 void		cqctfreecstr(char *s);
 void		cqctfreevm(VM *vm);

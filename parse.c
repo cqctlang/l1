@@ -74,7 +74,6 @@ parseerror(U *ctx, char *fmt, ...)
 	va_start(args, fmt);
 	vsnprint(buf+len, sizeof(buf)-len, fmt, args);
 	va_end(args);
-	ctx->errors++;
 	while(popyy(ctx))
 		;
 	yylex_destroy();
@@ -805,18 +804,14 @@ doparse(U *ctx, char *buf, char *whence, unsigned line)
 {
 	int yy;
 	Expr *rv;
-	if(setjmp(ctx->jmp) == 0){
-		pushyy(ctx, whence, line, buf, 0);
-		ctx->el = nullelistsrc(&ctx->inp->src);
-		ctx->errors = 0;
-		yy = yyparse(ctx);
-		if(yy == 1 || ctx->errors)
-			return 0;
-		if(yy != 0)
-			fatal("parser failure");
-	}else
-		return 0;
 
+	pushyy(ctx, whence, line, buf, 0);
+	ctx->el = nullelistsrc(&ctx->inp->src);
+	yy = yyparse(ctx);
+	if(yy == 1)
+		return 0;
+	if(yy != 0)
+		fatal("parser failure");
 	rv = invert(ctx->el);
 	ctx->el = 0;
 	popyy(ctx);

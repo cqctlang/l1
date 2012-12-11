@@ -25,14 +25,15 @@ boot(VM *vm)
 	}
 	if(src == 0)
 		fatal("boot: cannot read bootfile");
-	memset(&ctx, 0, sizeof(ctx));
-	ctx.out = &l1stderr;
+	initctxboot(&ctx, vm->top);
+	if(setjmp(ctx.jmp) != 0)
+		fatal("boot: parse error");
 	e = doparse(&ctx, src, p, 1);
 	efree(src);
 	efree(p);
 	if(e == 0)
 		fatal("boot: parse error");
-	fn = bootcompile(vm, e);
+	fn = bootcompile(vm->top, e);
 	if(fn == 0)
 		fatal("boot: compile error");
 	ccall(vm, valcl(fn), 0, 0);

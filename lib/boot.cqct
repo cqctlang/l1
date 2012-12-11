@@ -17,7 +17,7 @@ callcc(@lambda(done){
      callcc(@lambda(errk){
 	       printf("boot error: %s\n", msg);
 	       kbacktrace(continuationfr(errk));
-	       done(nil);
+	       exit(1);
 	  });
 }
 	  

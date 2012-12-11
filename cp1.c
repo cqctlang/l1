@@ -450,11 +450,21 @@ compile1(U *ctx, Expr *e)
 Expr*
 docompile1(U *ctx, Expr *e)
 {
- 	/* expr lists ensure we do not have to return a new root Expr */
-	if(e->kind != Eelist && e->kind != Enull)
-		fatal("bug");
-	if(setjmp(ctx->jmp) != 0)
-		return 0;	/* error */
 	compile1(ctx, e);
 	return e;
+}
+
+void
+l1_cp1(VM *vm, Imm argc, Val *argv, Val *rv)
+{
+	U ctx;
+	Expr *e;
+
+	if(argc != 1)
+		vmerr(vm, "wrong number of arguments to cp1");
+	checkarg(vm, argv, 0, Qexpr);
+	initctx(&ctx, vm);
+	e = docompile1(&ctx, valexpr(argv[0]));
+	if(e)
+		*rv = mkvalexpr(e);
 }

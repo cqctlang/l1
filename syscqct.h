@@ -616,7 +616,6 @@ struct U {
 	In in[MaxIn];
 	In *inp;
 	Expr *el;		/* parser accumulator */
-	unsigned errors;
 	Xfd *out;
 	Env *top;		/* toplevel (compiler) */
 	char *argsid;		/* toplevel arguments identifier (compiler) */
@@ -1024,54 +1023,73 @@ Imm		ra2size(void *ra, Code *code);
 /* compilee.c */
 Expr*		docompilee(U *ctx, Expr *e);
 
-/* compileq.c */
+/* cpq.c */
 Expr*		docompileq(U *ctx, Expr *e);
+void		l1_cpq(VM *vm, Imm argc, Val *argv, Val *rv);
 
-/* compilex.c */
+/* cpx.c */
 Expr*		docompilex(U *ctx, Expr *e);
+void		l1_cpx(VM *vm, Imm argc, Val *argv, Val *rv);
 
-/* compilen.c */
+/* cpn.c */
 Expr*		docompilen(U *ctx, Expr *e);
+void		l1_cpn(VM *vm, Imm argc, Val *argv, Val *rv);
 
-/* compilem.c */
+/* cpm.c */
 Expr*		docompilem(U *ctx, Expr *e);
+void		l1_cpm(VM *vm, Imm argc, Val *argv, Val *rv);
 
-/* compilew.c */
+/* cpw.c */
 Expr*		docompilew(U *ctx, Expr *e);
+void		l1_cpw(VM *vm, Imm argc, Val *argv, Val *rv);
 
-/* compilea.c */
+/* cpa.c */
 Expr*		docompilea(U *ctx, Expr *e);
+void		l1_cpa(VM *vm, Imm argc, Val *argv, Val *rv);
 
-/* compilec.c */
+/* cpc.c */
 Expr*		docompilec(U *ctx, Expr *e);
+void		l1_cpc(VM *vm, Imm argc, Val *argv, Val *rv);
 
-/* compile0.c */
+/* cp0.c */
 Expr*		docompile0(U *ctx, Expr *e);
+void		l1_cp0(VM *vm, Imm argc, Val *argv, Val *rv);
 
-/* compileg.c */
+/* cpg.c */
 Expr*		docompileg(U *ctx, Expr *e);
+void		l1_cpg(VM *vm, Imm argc, Val *argv, Val *rv);
 
-/* compilek.c */
+/* cpk.c */
 Expr*		docompilek(U *ctx, Expr *e);
+void		l1_cpk(VM *vm, Imm argc, Val *argv, Val *rv);
 
-/* compilel.c */
+/* cpl.c */
 Expr*		docompilel(U *ctx, Expr *e);
+void		l1_cpl(VM *vm, Imm argc, Val *argv, Val *rv);
 
-/* compilei.c */
+/* cpi.c */
 Expr*		docompilei(U *ctx, Expr *e);
 void		resetcpilabel();
+void		l1_cpi(VM *vm, Imm argc, Val *argv, Val *rv);
 
 /* cpr.c */
 Expr*		docompiler(U *ctx, Expr *e);
+void		l1_cpr(VM *vm, Imm argc, Val *argv, Val *rv);
 
-/* compile1.c */
+/* cp1.c */
 Expr*		docompile1(U *ctx, Expr *e);
+void		l1_cp1(VM *vm, Imm argc, Val *argv, Val *rv);
+
+/* cpb.c */
+Expr*		docompileb(U *ctx, Expr *e);
+void		l1_cpb(VM *vm, Imm argc, Val *argv, Val *rv);
+
+/* cpv.c */
+Expr*		docompilev(U *ctx, Expr *el);
+int		issimple(Expr *e);
 
 /* compileo.c */
 Expr*		docompileo(U *ctx, Expr *e);
-
-/* compileb.c */
-Expr*		docompileb(U *ctx, Expr *e);
 
 /* compileu.c */
 Expr*		docompileu(U *ctx, Expr *e);
@@ -1085,18 +1103,14 @@ Expr*		docompilec(U *ctx, Expr *e);
 /* compiles.c */
 Expr*		docompiles(U *ctx, Expr *e);
 
-/* compilev.c */
-Expr*		docompilev(U *ctx, Expr *el);
-void		freexp(Expr *e);
-int		issimple(Expr *e);
-
 /* cg.c */
 Code*		kresumecode();
 void		cgstatistics();
-Closure*	codegen(Env *top, Expr *e);
+Closure*	codegen(U *ctx, Expr *e);
 void		finicg(void);
 Closure*	haltthunk(void);
 void		initcg(void);
+void		l1_codegen(VM *vm, Imm argc, Val *argv, Val *rv);
 Closure*	mkkcapture(void);
 Closure*	mkapply(void);
 Code*		mkcode(Ckind kind, Imm nbytes);
@@ -1555,8 +1569,10 @@ void		_vecset(Vec *vec, Imm idx, Val v);
 void		vecset(Vec *vec, Imm idx, Val v);
 
 /* qc.c */
-Val		bootcompile(VM *vm, Expr *e);
-Val		compile(VM *vm, Expr *e, char *argsid);
+Val		bootcompile(Env *top, Expr *e);
+void		fncompile(Env *env);
+void		initctx(U *ctx, VM *vm);
+void		initctxboot(U *ctx, Env *top);
 
 /* nc.c */
 void		emitu8(NC *nc, u8 w);
@@ -1571,10 +1587,6 @@ void		initnc();
 
 /* boot.c */
 void		boot(VM *vm);
-
-/* cqct.c */
-Expr*		cqctparse(char *s, char *src, unsigned line);
-int		_cqcteval(VM *vm, char *s, char *src, Val *rv);
 
 extern		void fns(Env*);
 

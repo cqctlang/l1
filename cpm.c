@@ -54,19 +54,23 @@ expandm(Expr *e)
 	}
 }
 
-static Expr*
-compilem(U *ctx, Expr* e)
+Expr*
+docompilem(U *ctx, Expr *e)
 {
 	return expandm(e);
 }
 
-Expr*
-docompilem(U *ctx, Expr *e)
+void
+l1_cpm(VM *vm, Imm argc, Val *argv, Val *rv)
 {
-	if(e->kind != Eelist && e->kind != Enull)
-		fatal("bug");
-	if(setjmp(ctx->jmp) != 0)
-		return 0;
-	compilem(ctx, e);
-	return e;
+	U ctx;
+	Expr *e;
+
+	if(argc != 1)
+		vmerr(vm, "wrong number of arguments to cpm");
+	checkarg(vm, argv, 0, Qexpr);
+	initctx(&ctx, vm);
+	e = docompilem(&ctx, valexpr(argv[0]));
+	if(e)
+		*rv = mkvalexpr(e);
 }

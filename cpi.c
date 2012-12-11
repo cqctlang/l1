@@ -819,15 +819,25 @@ loops(U *ctx, Expr* e, char *lb, char *lc)
 Expr*
 docompilei(U *ctx, Expr *e)
 {
- 	/* expr lists ensure we do not have to return a new root Expr */
-	if(e->kind != Eelist && e->kind != Enull)
-		fatal("bug");
-	if(setjmp(ctx->jmp) != 0)
-		return 0;	/* error */
 	loops(ctx, e, 0, 0);
 	collapse(ctx, e, 0);
         coalesce(ctx, e, 0);
 	cases(ctx, e, 0);
 	swtch(ctx, e, 0);
 	return e;
+}
+
+void
+l1_cpi(VM *vm, Imm argc, Val *argv, Val *rv)
+{
+	U ctx;
+	Expr *e;
+
+	if(argc != 1)
+		vmerr(vm, "wrong number of arguments to cpi");
+	checkarg(vm, argv, 0, Qexpr);
+	initctx(&ctx, vm);
+	e = docompilei(&ctx, valexpr(argv[0]));
+	if(e)
+		*rv = mkvalexpr(e);
 }

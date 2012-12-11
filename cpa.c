@@ -762,15 +762,24 @@ expanda(Expr *e, u32 d)
 Expr*
 docompilea(U *ctx, Expr *e)
 {
- 	/* expr lists ensure we do not have to return a new root Expr */
-	if(e->kind != Eelist && e->kind != Enull)
-		fatal("bug");
-	if(setjmp(ctx->jmp) != 0)
-		return 0;
 	e = markup(e);
 	e = stupid(e);
-//	printcqct(e);
 	expanda(e, 0);
 	e = clear(e);
 	return e;
+}
+
+void
+l1_cpa(VM *vm, Imm argc, Val *argv, Val *rv)
+{
+	U ctx;
+	Expr *e;
+
+	if(argc != 1)
+		vmerr(vm, "wrong number of arguments to cpa");
+	checkarg(vm, argv, 0, Qexpr);
+	initctx(&ctx, vm);
+	e = docompilea(&ctx, valexpr(argv[0]));
+	if(e)
+		*rv = mkvalexpr(e);
 }

@@ -6791,28 +6791,11 @@ l1_parse(VM *vm, Imm argc, Val *argv, Val *rv)
 		line = cvalu(valcval(argv[2]));
 	}
 	buf = strdata(valstr(argv[0]));
-	memset(&ctx, 0, sizeof(ctx));
-	ctx.vm = vm;
+	initctx(&ctx, vm);
 	e = doparse(&ctx, buf, whence, line);
 	if(e == 0)
 		return;
 	*rv = mkvalexpr(e);
-}
-
-static void
-l1_compile(VM *vm, Imm argc, Val *argv, Val *rv)
-{
-	Expr *e;
-	Val v;
-	if(argc != 1)
-		vmerr(vm, "wrong number of arguments to compile");
-	checkarg(vm, argv, 0, Qexpr);
-	e = valexpr(argv[0]);
-	/* wrap in "begin" just in case */
-	e = putsrc(Zcons(e, nullelist()), e->src);
-	v = compile(vm, e, 0);
-	if(v != 0)
-		*rv = v;
 }
 
 static void
@@ -7559,7 +7542,6 @@ mktopenv(void)
 	FN(compact);
 	FN(cntrget);
 	FN(cntrput);
-	FN(compile);
 	FN(concat);
 	FN(copy);
 	FN(count);
@@ -7654,6 +7636,7 @@ mktopenv(void)
 	fnalu(env);
 	fnch(env);
 	fncid(env);
+	fncompile(env);
 	fnctl(env);
 	fnctype(env);
 	fncval(env);

@@ -44,11 +44,21 @@ expandc(U *ctx, Expr *e)
 Expr*
 docompilec(U *ctx, Expr *e)
 {
- 	/* expr lists ensure we do not have to return a new root Expr */
-	if(e->kind != Eelist && e->kind != Enull)
-		fatal("bug");
-	if(setjmp(ctx->jmp) != 0)
-		return 0;
 	expandc(ctx, e);
 	return e;
+}
+
+void
+l1_cpc(VM *vm, Imm argc, Val *argv, Val *rv)
+{
+	U ctx;
+	Expr *e;
+
+	if(argc != 1)
+		vmerr(vm, "wrong number of arguments to cpc");
+	checkarg(vm, argv, 0, Qexpr);
+	initctx(&ctx, vm);
+	e = docompilec(&ctx, valexpr(argv[0]));
+	if(e)
+		*rv = mkvalexpr(e);
 }

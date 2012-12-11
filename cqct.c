@@ -5,43 +5,6 @@
 char **cqctloadpath;
 char cqctflags[256];
 
-Expr*
-cqctparse(char *s, char *src, unsigned line)
-{
-	U ctx;
-
-	if(src == 0)
-		src = "(stdin)";
-	memset(&ctx, 0, sizeof(ctx));
-	ctx.out = &l1stderr;
-	return doparse(&ctx, s, src, line);
-}
-
-Val
-cqctcompile(VM *vm, char *s, char *src, unsigned line, char *argsid)
-{
-	Expr *e;
-	e = cqctparse(s, src, line);
-	if(e == 0)
-		return 0;
-	return compile(vm, e, argsid);
-}
-
-int
-cqcteval(VM *vm, char *s, char *src, Val *rv)
-{
-	Val v, cl;
-
-	cl = cqctcompile(vm, s, src, 1, 0);
-	if(cl == 0)
-		return -1;
-	if(rv == 0)
-		rv = &v;
-	if(cqctcallfn(vm, cl, 0, 0, rv))
-		return -1;
-	return 0;
-}
-
 void
 cqctgcenable(VM *vm)
 {

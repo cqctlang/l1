@@ -1004,8 +1004,6 @@ mkctypes(U *ctx, Expr *e)
 Expr*
 docompilen(U *ctx, Expr *e)
 {
-	if(setjmp(ctx->jmp) != 0)
-		return 0;
 	e = enumincs(ctx, e);
 	e = enumsub(ctx, 0, e);
 	if(cqctflags['p']){
@@ -1028,4 +1026,19 @@ docompilen(U *ctx, Expr *e)
 	e = names(ctx, e);   /* load names tables */
 	e = mkctypes(ctx, e); /* translate type names and specs to types */
 	return e;
+}
+
+void
+l1_cpn(VM *vm, Imm argc, Val *argv, Val *rv)
+{
+	U ctx;
+	Expr *e;
+
+	if(argc != 1)
+		vmerr(vm, "wrong number of arguments to cpn");
+	checkarg(vm, argv, 0, Qexpr);
+	initctx(&ctx, vm);
+	e = docompilen(&ctx, valexpr(argv[0]));
+	if(e)
+		*rv = mkvalexpr(e);
 }

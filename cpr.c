@@ -96,11 +96,21 @@ record(U *ctx, Expr *e, Expr *s)
 Expr*
 docompiler(U *ctx, Expr *e)
 {
- 	/* expr lists ensure we do not have to return a new root Expr */
-	if(e->kind != Eelist && e->kind != Enull)
-		fatal("bug");
-	if(setjmp(ctx->jmp) != 0)
-		return 0;	/* error */
 	record(ctx, e, 0);
 	return e;
+}
+
+void
+l1_cpr(VM *vm, Imm argc, Val *argv, Val *rv)
+{
+	U ctx;
+	Expr *e;
+
+	if(argc != 1)
+		vmerr(vm, "wrong number of arguments to cpr");
+	checkarg(vm, argv, 0, Qexpr);
+	initctx(&ctx, vm);
+	e = docompiler(&ctx, valexpr(argv[0]));
+	if(e)
+		*rv = mkvalexpr(e);
 }

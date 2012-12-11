@@ -4,12 +4,27 @@
 
 @global
 	eval,
+	expand,
 	load,
+	compile,
 	callfn,
 	repl
 	;
 
-/* compiler bootstrap goes here */
+@defloc mkcompiler(passes)
+{
+	@local npass;
+	npass = length(passes);
+	@define compile(e)
+	{
+		@local i;
+		for(i = 0; i < npass; i++)
+			e = passes[i](e);
+		return e;
+	}
+}
+
+mkcompiler(bootcompilerpasses());
 
 @defloc _eval(str, whence, line)
 {
@@ -46,6 +61,7 @@
 }
 
 load("expand.cqct");
+mkcompiler(push(bootcompilerpasses(), expand));
 load("prelude.cqct");
 
 @define callfn(fn, args ...)
