@@ -946,10 +946,6 @@ tn_type_specifier_tick
 	| _id
 	{ $$ = doticktsrc(&ctx->inp->src, 0,
 			  newexprsrc(&ctx->inp->src, Etypedef, $1, 0, 0, 0)); }
-	| '`' _id
-	{ cwarnln(ctx, $2, "deprecated use of backtick on unqualified type name");
-	  $$ = doticktsrc(&ctx->inp->src, 0,
-			  newexprsrc(&ctx->inp->src, Etypedef, $2, 0, 0, 0)); }
 	| struct_or_union_or_enum id
 	{ $$ = newexprsrc(&ctx->inp->src, $1, $2, 0, 0, 0); }
 	| struct_or_union_or_enum id '`' id

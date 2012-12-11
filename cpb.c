@@ -169,9 +169,9 @@ resolve1(U *ctx, Expr *e, Env *top, Xenv *lex, Expr *scope, Xenv *slex)
 		}else if(!envbinds(top, idcid(e->e1)) && scope){
 			/* create binding in innermost lexical scope */
 			if(cqctflags['w'] && strcmp(id, "_") != 0)
-				cwarnln(ctx,
-					e, "assignment to unbound variable: %s",
-					id);
+				cwarn(ctx,
+				      e, "assignment to unbound variable: %s",
+				      id);
 			newlocal(scope->e1, e->e1);
 			xenvbind(slex, id, e);
 			sete2(e, resolve1(ctx, e->e2, top, lex, scope, slex));
@@ -241,8 +241,8 @@ resolve2(U *ctx, Expr *e, Env *top, Xenv *lex, Expr *scope, Xenv *slex)
 		if(cqctflags['w']
 		   && !envbinds(top, idcid(e))
 		   && strcmp(id, "_") != 0)
-			cwarnln(ctx, e,
-				"reference to unbound variable: %s", id);
+			cwarn(ctx, e,
+			      "reference to unbound variable: %s", id);
 		se = Ztid(id);
 		putsrc(se, e->src);
 		return se;
@@ -327,10 +327,10 @@ wbindids(U *ctx, Xenv *xe, Expr *e, char *what)
 		}
 		vu = xenvlook(xe, idsym(p->e1));
 		if(vu){
-			cwarnln(ctx, vu->e,
-				"multiple declarations of %s %s",
-				what,
-				idsym(p->e1));
+			cwarn(ctx, vu->e,
+			      "multiple declarations of %s %s",
+			      what,
+			      idsym(p->e1));
 			p = p->e2;
 			continue;
 		}
@@ -349,15 +349,15 @@ checkbvar(void *u, char *id, void *v)
 	if(!strcmp(id, "_"))
 		return;
 	if(vu->shadows)
-		cwarnln(ctx, vu->e, "variable shadows parameter: %s", id);
+		cwarn(ctx, vu->e, "variable shadows parameter: %s", id);
 	if(vu->ref == 0 && vu->def == 0)
-		cwarnln(ctx, vu->e, "unused variable: %s", id);
+		cwarn(ctx, vu->e, "unused variable: %s", id);
 	else if(vu->ref == 0)
-		cwarnln(ctx, vu->e, "variable defined but not referenced: %s",
-			id);
+		cwarn(ctx, vu->e, "variable defined but not referenced: %s",
+		      id);
 	else if(vu->def == 0)
-		cwarnln(ctx, vu->e, "variable referenced but not defined: %s",
-			id);
+		cwarn(ctx, vu->e, "variable referenced but not defined: %s",
+		      id);
 }
 
 static void
@@ -368,7 +368,7 @@ checkfnvar(void *u, char *id, void *v)
 //	ctx = u;
 //	vu = v;
 //	if(vu->ref == 0 && vu->def == 0)
-//		cwarnln(ctx, vu->e, "unused parameter: %s", id);
+//		cwarn(ctx, vu->e, "unused parameter: %s", id);
 }
 
 static void

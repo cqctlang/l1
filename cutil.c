@@ -26,20 +26,6 @@ cwarn(U *ctx, Expr *e, char *fmt, ...)
 		cprintf(ctx->out, "<lost-location!>: warning: ");
 	va_start(args, fmt);
 	cvprintf(ctx->out, fmt, args);
-	va_end(args);
-}
-
-void
-cwarnln(U *ctx, Expr *e, char *fmt, ...)
-{
-	va_list args;
-	if(e->src)
-		cprintf(ctx->out, "%s:%u: warning: ",
-			srcfile(e->src), srcline(e->src));
-	else
-		cprintf(ctx->out, "<lost-location!>: warning: ");
-	va_start(args, fmt);
-	cvprintf(ctx->out, fmt, args);
 	cprintf(ctx->out, "\n");
 	va_end(args);
 }

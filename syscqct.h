@@ -1272,7 +1272,6 @@ Imm		xfdwrite(Xfd *xfd, char *buf, Imm len);
 /* cutil.c */
 void		cerror(U *ctx, Expr *e, char *fmt, ...) NORETURN;
 void		cwarn(U *ctx, Expr *e, char *fmt, ...);
-void		cwarnln(U *ctx, Expr *e, char *fmt, ...);
 Expr*		doid(char*);
 Expr*		doidnsrc(Ysrc *src, char *s, unsigned long len);
 unsigned	elistlen(Expr *l);

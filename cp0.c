@@ -611,7 +611,7 @@ check1label(void *u, char *k, void *q)
 	USED(k);
 	p = q;
 	if(p->attr == Unusedlabel)
-		cwarnln((U*)u, p, "unused label: %s", idsym(p->e1));
+		cwarn((U*)u, p, "unused label: %s", idsym(p->e1));
 }
 
 static void
