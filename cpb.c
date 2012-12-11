@@ -465,32 +465,29 @@ check(U *ctx, Expr *e, Xenv *fn, Xenv *lex)
 Expr*
 docompileb(U *ctx, Expr *e)
 {
-	Src s;
 	Xenv *lex;
-
+	
 	e = defloc(ctx, e, 0);
 	e = globals(ctx, e, ctx->top);
-	if(ctx->argsid){
+
+	if(e->kind != Elambda)
+		cerror(ctx, e, "expression must begin with #lambda");
+	if(e->e1 == 0 || (e->e1->kind != Eelist && e->e1->kind != Enull))
+		cerror(ctx, e, "expression begins with malformed #lambda");
+	if(elistlen(e->e1) != 0){
+		if(e->e1->kind != Eid)
+			cerror(ctx, e,
+			       "expression begins with malformed #lambda");
 		lex = mkxenv(0);
-		xenvbind(lex, ctx->argsid, ctx->argsid);
+		xenvbind(lex, idsym(e->e1), idsym(e->e1));
 	}else
 		lex = 0;
-	e = toplevel(ctx, e, ctx->top, lex);
-	check(ctx, e, 0, 0);
-	e = resolve(ctx, e, ctx->top, lex, 0, 0);
+	sete2(e, toplevel(ctx, e->e2, ctx->top, lex));
+	/* FIXME: is the restriction to e->e2 really necessary for either? */
+	check(ctx, e->e2, 0, 0); 
+	sete2(e, resolve(ctx, e->e2, ctx->top, lex, 0, 0));
 	if(lex)
 		freexenv(lex);
-
-	/*
-	 * convert expression to function.  wrap the
-	 * body in an assignment to avoid tail call
-	 * optimization, to preserve presentation of
-	 * top-level source line info in errors.
-	 */
-	s = e->src;
-	e = Zlambda(ctx->argsid ? Zvararg(doid(ctx->argsid)) : nullelist(),
-		     Zret(Ztg("$$", Zblock(nullelist(), e, NULL))));
-	putsrc(e, s);
 	return e;
 }
 

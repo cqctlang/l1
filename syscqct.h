@@ -618,7 +618,6 @@ struct U {
 	Expr *el;		/* parser accumulator */
 	Xfd *out;
 	Env *top;		/* toplevel (compiler) */
-	char *argsid;		/* toplevel arguments identifier (compiler) */
 } U;
 
 typedef

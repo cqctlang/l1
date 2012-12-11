@@ -8,7 +8,8 @@
 	load,
 	compile,
 	callfn,
-	repl
+	repl,
+	$l1start
 	;
 
 @defloc mkcompiler(passes)
@@ -26,9 +27,14 @@
 
 mkcompiler(bootcompilerpasses());
 
+@defloc topwrap(e)
+{
+	return #lambda(#[], #ret(#g(#id('$$), #block(#[], e))), stxsrc(e));
+}
+
 @defloc _eval(str, whence, line)
 {
-	compile(parse(str, whence, line))();
+	compile(topwrap(parse(str, whence, line)))();
 }
 
 @define eval(str)
@@ -106,4 +112,12 @@ load("prelude.cqct");
 			       });
 			$loop(); 
 	       });
+}
+
+@define $l1start(arg ...)
+{
+	if(length(arg) == 0)
+		repl();
+	else
+		load(arg[0]);
 }

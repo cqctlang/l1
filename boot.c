@@ -11,6 +11,7 @@ boot(VM *vm)
 	Expr *e;
 	Val fn;
 	u32 len;
+	Src s;
 
 	lp = cqctloadpath;
 	while(*lp){
@@ -33,6 +34,10 @@ boot(VM *vm)
 	efree(p);
 	if(e == 0)
 		fatal("boot: parse error");
+	s = e->src;
+	e = Zlambda(nullelist(),
+		    Zret(Zset(doid("$$"), Zblock(nullelist(), e, NULL))));
+	putsrc(e, s);
 	fn = bootcompile(vm->top, e);
 	if(fn == 0)
 		fatal("boot: compile error");

@@ -424,6 +424,8 @@ main(int argc, char *argv[])
 	Xfd *xfd, devnull;
 	int status;
 	struct sigaction sa;
+	unsigned xargc;
+	Val xargv[128];
 
 	argv0 = argv[0];
 	memset(opt, 0, sizeof(opt));
@@ -667,10 +669,15 @@ main(int argc, char *argv[])
 
 	free(valv);
 #else
-	fn = cqctenvlook(top, "repl");
+	xargc = 0;
+	if(filename){
+		xargc = 1;
+		xargv[0] = cqctcstrval(filename);
+	}
+	fn = cqctenvlook(top, "$l1start");
 	if(fn == 0)
-		fatal("repl is not defined");
-	cqctcallfn(vm, fn, 0, 0, &v);
+		fatal("$l1start is not defined");
+	cqctcallfn(vm, fn, xargc, xargv, &v);
 #endif
 	cqctfreevm(vm);
 	cqctfini(top);
