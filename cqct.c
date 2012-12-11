@@ -11,7 +11,7 @@ cqctparse(char *s, char *src, unsigned line)
 	U ctx;
 
 	if(src == 0)
-		src = "<stdin>";
+		src = "(stdin)";
 	memset(&ctx, 0, sizeof(ctx));
 	ctx.out = &l1stderr;
 	return doparse(&ctx, s, src, line);

@@ -59,7 +59,7 @@ cverror(U *ctx, Expr *e, char *fmt, va_list args)
 	len = strlen(buf);
 	vsnprint(buf+len, sizeof(buf)-len, fmt, args);
 	if(ctx->vm)
-		vmerr(ctx->vm, "%s", mkstr0(buf));
+		vmerr(ctx->vm, "%s", buf);
 	else{
 		cprintf(&l1stderr, "%s\n", buf);
 		longjmp(ctx->jmp, 1);

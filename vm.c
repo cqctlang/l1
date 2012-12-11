@@ -6775,28 +6775,27 @@ l1_parse(VM *vm, Imm argc, Val *argv, Val *rv)
 	char *whence;
 	char *buf;
 	unsigned line;
+	U ctx;
 
 	if(argc != 1 && argc != 2 && argc != 3)
 		vmerr(vm, "wrong number of arguments to parse");
 	checkarg(vm, argv, 0, Qstr);
-	whence = "<stdin>";
+	whence = "(stdin)";
 	line = 1;
 	if(argc > 1){
 		checkarg(vm, argv, 1, Qstr);
-		whence = str2cstr(valstr(argv[1]));
+		whence = strdata(valstr(argv[1]));
 	}
 	if(argc > 2){
 		checkarg(vm, argv, 2, Qcval);
 		line = cvalu(valcval(argv[2]));
 	}
-	buf = str2cstr(valstr(argv[0]));
-	e = cqctparse(buf, whence, line);
-	efree(buf);
-	if(argc > 1)
-		efree(whence);
+	buf = strdata(valstr(argv[0]));
+	memset(&ctx, 0, sizeof(ctx));
+	ctx.vm = vm;
+	e = doparse(&ctx, buf, whence, line);
 	if(e == 0)
 		return;
-	/* FIXME: symbolify E */
 	*rv = mkvalexpr(e);
 }
 
@@ -7681,9 +7680,9 @@ mktopenv(void)
 	builtinnil(env, "$$"); /* FIXME: get rid of this */
 	builtincode(env, "kresumecode", kresumecode());
 
-	builtinfd(env, "stdin", mkfdfn(mkstr0("<stdin>"), Fread, &l1stdin));
-	builtinfd(env, "stdout", mkfdfn(mkstr0("<stdout>"), Fwrite, &l1stdout));
-	builtinfd(env, "stderr", mkfdfn(mkstr0("<stderr>"), Fwrite, &l1stderr));
+	builtinfd(env, "stdin", mkfdfn(mkstr0("(stdin)"), Fread, &l1stdin));
+	builtinfd(env, "stdout", mkfdfn(mkstr0("(stdout)"), Fwrite, &l1stdout));
+	builtinfd(env, "stderr", mkfdfn(mkstr0("(stderr)"), Fwrite, &l1stderr));
 
 	/* expanded source may call these magic functions */
 	builtinfn(env, "$put", mkcfn("$put", l1_put));

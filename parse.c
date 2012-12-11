@@ -47,13 +47,15 @@ void
 parseerror(U *ctx, char *fmt, ...)
 {
 	va_list args;
+	static char buf[256];
+	u32 len;
 
 	if(ctx == 0){
-		/* we're here because of a bison limitation.
+		/* 
+		 * we're here because of a bison limitation.
 		 * the caller is yyerror from one of our GLR merge
-		 * resolvers, which do not convey %parse-param's
-		 * abort hard because there is no way to recover,
-		 * and yyerror from a resolver is a serious bug.
+		 * resolvers, which do not convey %parse-params.
+		 * abort because there is no way to recover.
 		 */
 		va_start(args, fmt);
 		xvprintf(fmt, args);
@@ -62,32 +64,27 @@ parseerror(U *ctx, char *fmt, ...)
 		abort();
 	}
 
-	if(ctx->inp){
-		if(cqctflags['k'])
-			cprintf(ctx->out,
-				"%s:%u:%u ",
-				ctx->inp->src.filename
-				? ctx->inp->src.filename : "<stdin>",
-				ctx->inp->src.line, ctx->inp->src.col);
-		else
-			cprintf(ctx->out,
-				"%s:%u ",
-				ctx->inp->src.filename
-				? ctx->inp->src.filename : "<stdin>",
-				ctx->inp->src.line);
-	}
+	buf[0] = 0;
+	if(ctx->inp)
+		snprintf(buf, sizeof(buf), "%s:%u:%u: ",
+			 ctx->inp->src.filename,
+			 ctx->inp->src.line,
+			 ctx->inp->src.col);
+	len = strlen(buf);
 	va_start(args, fmt);
-	cvprintf(ctx->out, fmt, args);
+	vsnprint(buf+len, sizeof(buf)-len, fmt, args);
 	va_end(args);
-	cprintf(ctx->out, "\n");
 	ctx->errors++;
-
-	if(cqctflags['k'])
-		return;
 	while(popyy(ctx))
 		;
 	yylex_destroy();
-	longjmp(ctx->jmp, 1);
+	if(ctx->vm)
+		vmerr(ctx->vm, "%s", buf);
+	else{
+		cprintf(&l1stderr, "%s\n", buf);
+		longjmp(ctx->jmp, 1);
+	}
+	fatal("direct return from parseerror");
 }
 
 Expr*

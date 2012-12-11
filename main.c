@@ -579,7 +579,7 @@ main(int argc, char *argv[])
 			}
 		}else{
 			if(!strcmp(filename, "-")){
-				filename = "<stdin>";
+				filename = "(stdin)";
 				inbuf = readfd(0);
 			}else
 				inbuf = readfile(filename);

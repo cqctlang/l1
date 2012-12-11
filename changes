@@ -16,6 +16,7 @@ interactive overhaul:
 - reader has always been problematic.
   a scheme reader 
 
+- trapping exceptions and warnings
 
 disassembler:
 

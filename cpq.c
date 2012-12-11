@@ -30,8 +30,6 @@ stxquote(Expr *e)
 Expr*
 docompileq(U *ctx, Expr *e)
 {
-	if(setjmp(ctx->jmp) != 0)
-		return 0;	/* error */
 	e = stxquote(e);
 	return e;
 }

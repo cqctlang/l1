@@ -76,7 +76,7 @@ load("prelude.cqct");
 			printf("\n");
 			defaultreturn(nil);
 		}
-		v = _eval(s, "<stdin>", 1);
+		v = _eval(s, "(stdin)", 1);
 		if(v != nil)
 			printf("%a\n", v);
 		$loop();
