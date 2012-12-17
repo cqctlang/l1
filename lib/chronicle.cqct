@@ -39,12 +39,16 @@ rdsetfmt(@record interval { beg, end },
 	@defloc initpaths()
 	{
 		chvalgrpath = chroot+"bin/valgrind";
-		chquerypath = chroot+"/bin/chronicle-query";
+		chquerypath = chroot+"bin/chronicle-query";
 	}
 
 	@define setchroot(path)
 	{
+		if(path[strlen(path)-1] != '/')
+			path += "/";
 		chroot = path;
+		initpaths();
+		printf("chquerypath is %s\n", chquerypath);
 	}
 
 	chroot = getenv("HOME")+"/ch/";
@@ -636,8 +640,10 @@ rdsetfmt(@record interval { beg, end },
 		rs = map(@lambda(t){
 				@local r;
 				r = exe.findret(t);
-				if(r == nil)
-					error("cannot find return time for %a\n", t);
+				if(r == nil){
+					printf("cannot find return time for %a; using interval end %a\n", t, i.end);
+					return i.end;
+				}
 				return r;
 			}, ts);
 		return map(@lambda(t, r) { interval(t,r); }, ts, rs);
