@@ -2124,6 +2124,8 @@ getalloc(MT mt, Gen g)
 {
 	if(H.m[mt][g].h == 0)
 		resetalloc(mt, g);
+	else
+		minsert(&H.m[mt][g], allocseg(mt, g));
 }
 
 /*
