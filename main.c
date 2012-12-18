@@ -494,6 +494,7 @@ main(int argc, char *argv[])
 	if(ename && dorepl)
 		fatal("-e requires a script");
 
+	lp[nlp++] = xstrdup(".");
 	if(opt['s']){
 #ifdef LIBDIR
 		s = xstrdup(LIBDIR);
