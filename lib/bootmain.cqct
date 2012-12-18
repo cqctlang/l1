@@ -58,12 +58,14 @@ mkcompiler(bootcompilerpasses());
 	@local path, str;
 	if(file[0] == '/')
 		path = file;
+	else if(file[0] == '.')
+		path = file;
 	else
 		path = findfileinpath(file, loadpath());
 	if(path == nil)
 		error("cannot find %s in load path", file);
 	str = mapfile(path);
-	_eval(str, path, 1);
+	_eval(str, file, 1);
 }
 
 load("expand.cqct");
