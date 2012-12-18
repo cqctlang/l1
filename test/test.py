@@ -21,8 +21,7 @@ else:
 for m in run:
     print m,
     sys.stdout.flush()
-#    cmd = '../l1 -w -K '+m
-    cmd = '../l1 '+m
+    cmd = '../l1 -w -K '+m
     p = popen2.Popen4(cmd);
     out = p.fromchild.read()
     rv = p.wait()
