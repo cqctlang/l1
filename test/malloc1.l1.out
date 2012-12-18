@@ -10,5 +10,4 @@
 9
 error: address space access out of bounds
               masput	(builtin closure)
-                $put	(builtin function)
                entry	(malloc1.l1:6)
