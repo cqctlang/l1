@@ -387,9 +387,7 @@ itercl(Head *hd, Ictx *ictx)
 	return &cldisp(cl)[ictx->n++];
 }
 
-/* order matters: copy the stack before the closure, so
-   that k->cl->code move ahead of the closure return
-   address */
+/* order matters: copy the stack before the closure. */
 static Val*
 itercont(Head *hd, Ictx *ictx)
 {
@@ -1739,11 +1737,6 @@ toprd(void *u, void *k, void *v)
 	copy(v);
 }
 
-/*
-  fpo: offset from base to fp.
-       either fpo == stxsz (saved continuations)
-       or     fpo < stxsz  (current continuation)
-*/
 static void
 copykstack(Cont *k)
 {
