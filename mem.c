@@ -2200,19 +2200,15 @@ _gc(u32 g, u32 tg)
 			/* e.g., via gcpoll insn in VM code */
 			fsz = ra2size(vm->pc, vm->cl->code);
 			vm->fp += fsz;
-			ra = vm->pc;
-			cl = vm->cl;
 			fpo = (void*)vm->fp-vm->stk;
-			copystack(&vm->stk, vm->stksz, &ra, cl, fpo);
+			copystack(&vm->stk, vm->stksz, (void**)&vm->pc, vm->cl, fpo);
+			copy((Val*)&vm->cl);
 			copy((Val*)&vm->klink);
-			copy((Val*)&cl);
 			vm->fp = vm->stk+fpo;
 			vm->fp -= fsz;
-			vm->pc = ra;
-			vm->cl = cl;
-			if(ra < codeinsn(curaddr(mkvalcode(cl->code))))
+			if((void*)vm->pc < codeinsn(curaddr(mkvalcode(vm->cl->code))))
 				bug();
-			if(ra >= codeend(curaddr(mkvalcode(cl->code))))
+			if((void*)vm->pc >= codeend(curaddr(mkvalcode(vm->cl->code))))
 				bug();
 			break;
 		case Ccfn:
@@ -2220,10 +2216,11 @@ _gc(u32 g, u32 tg)
 			/* e.g., via C builtin like gc() */
 			ra = vm->fp[Ora];
 			cl = valcl(vm->fp[Ocl]);
-			copy((Val*)&cl);
 			fpo = (void*)vm->fp-vm->stk;
 			copystack(&vm->stk, vm->stksz, &ra, cl, fpo);
+			copy((Val*)&vm->cl);
 			copy((Val*)&vm->klink);
+			copy((Val*)&cl);
 			vm->fp = vm->stk+fpo;
 			vm->fp[Ora] = (Val)(uptr)ra;
 			vm->fp[Ocl] = mkvalcl(cl);
