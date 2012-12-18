@@ -29,7 +29,7 @@ boot(VM *vm)
 	initctxboot(&ctx, vm->top);
 	if(setjmp(ctx.jmp) != 0)
 		fatal("boot: parse error");
-	e = doparse(&ctx, src, p, 1);
+	e = doparse(&ctx, src, strlen(src), p, strlen(p), 1);
 	efree(src);
 	efree(p);
 	if(e == 0)

@@ -235,11 +235,11 @@ mkyystate(FILE *fp)
 }
 
 YYstate*
-mkyystatestr(char *buf)
+mkyystatestr(char *buf, u64 len)
 {
 	YYstate *yy;
 	yy = emalloc(sizeof(YYstate));
-	yy->yy = yy_scan_string(buf);
+	yy->yy = yy_scan_bytes(buf, len);
 	return yy;
 }
 

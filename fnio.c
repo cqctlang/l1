@@ -302,7 +302,7 @@ l1_mapfile(VM *vm, Imm argc, Val *argv, Val *rv)
 	f = 0;
 	if(argc == 2){
 		checkarg(vm, argv, 1, Qstr);
-		f = strdata(valstr(argv[1]));
+		f = str2cstr(valstr(argv[1]));
 	}
 	names = valstr(argv[0]);
 	name = str2cstr(names);
@@ -334,6 +334,8 @@ l1_mapfile(VM *vm, Imm argc, Val *argv, Val *rv)
 			omode = O_RDONLY;
 		else if(omode&Fwrite)
 			omode = O_WRONLY;
+
+		efree(f);
 	}else{
 		omode = O_RDONLY;
 		prot |= PROT_READ|PROT_WRITE;

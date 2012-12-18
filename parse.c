@@ -689,14 +689,16 @@ internfilename(char *s, unsigned len)
 	char *keyed;
 	keyed = hgets(filenames, s, len);
 	if(!keyed){
-		keyed = xstrdup(s);
+		keyed = emalloc(len+1);
+		memcpy(keyed, s, len);
 		hputs(filenames, keyed, len, keyed);
 	}
 	return keyed;
 }
 
 static void
-pushyy(U *ctx, char *filename, unsigned line, char *buf, int dofree)
+pushyy(U *ctx, char *filename, u32 flen, unsigned line, char *buf, u64 blen,
+       int dofree)
 {
 	char *keyed;
 
@@ -708,9 +710,9 @@ pushyy(U *ctx, char *filename, unsigned line, char *buf, int dofree)
 		fatal("maximum include depth exceeded");
 	keyed = 0;
 	if(filename)
-		keyed = internfilename(filename, strlen(filename));
+		keyed = internfilename(filename, flen);
 	ctx->inp->src.filename = keyed;
-	ctx->inp->yy = mkyystatestr(buf);
+	ctx->inp->yy = mkyystatestr(buf, blen);
 	ctx->inp->src.line = line;
 	ctx->inp->src.col = 0;
 	ctx->inp->dofree = dofree;
@@ -795,17 +797,17 @@ tryinclude(U *ctx, char *raw)
 	}
 	if(buf == 0)
 		parseerror(ctx, "cannot @include %s: %s", p, strerror(errno));
-	pushyy(ctx, full, 1, buf, 1);
+	pushyy(ctx, full, strlen(full), 1, buf, strlen(buf), 1);
 	efree(full);
 }
 
 Expr*
-doparse(U *ctx, char *buf, char *whence, unsigned line)
+doparse(U *ctx, char *buf, u64 len, char *whence, u32 wlen, unsigned line)
 {
 	int yy;
 	Expr *rv;
 
-	pushyy(ctx, whence, line, buf, 0);
+	pushyy(ctx, whence, wlen, line, buf, len, 0);
 	ctx->el = nullelistsrc(&ctx->inp->src);
 	yy = yyparse(ctx);
 	if(yy == 1)

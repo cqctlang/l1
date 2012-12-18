@@ -6772,27 +6772,27 @@ static void
 l1_parse(VM *vm, Imm argc, Val *argv, Val *rv)
 {
 	Expr *e;
-	char *whence;
-	char *buf;
 	unsigned line;
 	U ctx;
+	Str *buf, *whence;
 
 	if(argc != 1 && argc != 2 && argc != 3)
 		vmerr(vm, "wrong number of arguments to parse");
 	checkarg(vm, argv, 0, Qstr);
-	whence = "(stdin)";
-	line = 1;
 	if(argc > 1){
 		checkarg(vm, argv, 1, Qstr);
-		whence = strdata(valstr(argv[1]));
-	}
+		whence = valstr(argv[1]);
+	}else
+		whence = mkstr0("(stdin)");
 	if(argc > 2){
 		checkarg(vm, argv, 2, Qcval);
 		line = cvalu(valcval(argv[2]));
-	}
-	buf = strdata(valstr(argv[0]));
+	}else
+		line = 1;
+	buf = valstr(argv[0]);
 	initctx(&ctx, vm);
-	e = doparse(&ctx, buf, whence, line);
+	e = doparse(&ctx, strdata(buf), buf->len,
+		    strdata(whence), whence->len, line);
 	if(e == 0)
 		return;
 	*rv = mkvalexpr(e);
@@ -7184,10 +7184,12 @@ l1_defaulterror(VM *vm, Imm argc, Val *argv, Val *rv)
 static void
 l1_defaultwarning(VM *vm, Imm argc, Val *argv, Val *rv)
 {
+	Str *s;
 	if(argc != 1)
 		vmerr(vm, "wrong number of arguments to warning");
 	checkarg(vm, argv, 0, Qstr);
-	cprintf(&l1stderr, "%s\n", strdata(valstr(argv[0])));
+	s = valstr(argv[0]);
+	cprintf(&l1stderr, "%.*s\n", s->len, strdata(s));
 }
 
 static void

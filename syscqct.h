@@ -966,7 +966,7 @@ extern Val typecache;
 /* c.l */
 void		freeyystate(YYstate *yy);
 YYstate*	mkyystate(FILE *fp);
-YYstate*	mkyystatestr(char *buf);
+YYstate*	mkyystatestr(char *buf, u64 len);
 void		setyystate(YYstate *yy);
 
 /* parse.c */
@@ -974,7 +974,8 @@ Expr*		G(char *s);
 Expr*		copyexpr(Expr *e);
 Expr*		doconst(U *ctx, char*, unsigned long len);
 Expr*		dostr(char*, unsigned long len);
-Expr*		doparse(U*, char *buf, char *whence, unsigned line);
+Expr*		doparse(U*, char *buf, u64 len,
+			char *whence, u32 wlen, unsigned line);
 Expr*		dosym(char *s, unsigned long len);
 Expr*		dotickesrc(Ysrc *src, Expr*, Expr*);
 Expr*		doticktsrc(Ysrc *src, Expr*, Expr*);
