@@ -80,17 +80,26 @@ load("prelude.cqct");
     	       }); 
 }
 
+@defloc replerror(msg)
+{
+	callcc(@lambda(errk){
+			printf("error: %s\n", msg);
+			kbacktrace(continuationfr(errk));
+			defaultreset(nil);
+		});
+}
+
+@defloc loaderror(msg)
+{
+	callcc(@lambda(errk){
+			printf("error: %s\n", msg);
+			kbacktrace(continuationfr(errk));
+			exit(1);
+		});
+}
+
 @define repl()
 {
-	@defloc replerror(msg)
-	{
-		callcc(@lambda(errk){
-				printf("error: %s\n", msg);
-				kbacktrace(continuationfr(errk));
-				defaultreset(nil);
-			});
-	}
-
 	@defloc $loop()
 	{
 		@local s, v;
@@ -120,6 +129,11 @@ load("prelude.cqct");
 {
 	if(length(arg) == 0)
 		repl();
-	else
-		load(arg[0]);
+	else{
+		callcc(@lambda(done){
+				defaultreturn = done;
+				defaulterror = loaderror;
+				load(arg[0]);
+		       });
+	}
 }
