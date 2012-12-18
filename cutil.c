@@ -28,7 +28,7 @@ cvwarn(U *ctx, Expr *e, char *fmt, va_list args)
 	len = strlen(buf);
 	vsnprint(buf+len, sizeof(buf)-len, fmt, args);
 	if(ctx->vm)
-		vmwarn(ctx->vm, "%s", mkstr0(buf));
+		vmwarn(ctx->vm, "%s", buf);
 	else
 		cprintf(&l1stderr, "%s\n", buf);
 }
