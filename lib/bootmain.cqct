@@ -18,10 +18,27 @@
 	npass = length(passes);
 	@define compile(e)
 	{
-		@local i;
-		for(i = 0; i < npass; i++)
-			e = passes[i](e);
-		return e;
+		@local err;
+		callcc(@lambda(done){
+				@defloc myerr(msg)
+				{
+					printf("%s\n", msg);
+					done(nil);
+				}
+				dynamicwind(@lambda(){
+						err = defaulterror;
+						defaulterror = myerr;
+					    },
+					    @lambda(){
+						    @local i;
+						    for(i = 0; i < npass; i++)
+							    e = passes[i](e);
+						    return e;
+					    },
+					    @lambda(){
+						    defaulterror = err;
+					    });
+			});
 	}
 }
 
@@ -34,7 +51,14 @@ mkcompiler(bootcompilerpasses());
 
 @defloc _eval(str, whence, line)
 {
-	compile(topwrap(parse(str, whence, line)))();
+	@local fn, in;
+	in = parse(str, whence, line);
+	if(in == nil)
+		return nil;
+	fn = compile(topwrap(in));
+	if(fn == nil)
+		return nil;
+	fn();
 }
 
 @define eval(str)
