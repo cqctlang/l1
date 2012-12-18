@@ -16,17 +16,18 @@
 	@defloc commontail(x, y)
 	{
 		@local lx, ly;
+
 		lx = length(x);
 		ly = length(y);
 
 		@defloc loop(x, y)
 		{
-			x = (lx > ly) ? listtail(x, lx-ly) : cdr(x);
-			y = (ly > lx) ? listtail(y, ly-lx) : cdr(y);
+			x = (lx > ly) ? listtail(x, lx-ly) : x;
+			y = (ly > lx) ? listtail(y, ly-lx) : y;
 			if(eq(x, y))
 				return x;
 			else
-				return loop(x, y);
+				return loop(cdr(x), cdr(y));
 		}
 		return loop(x, y);
 	}
