@@ -12,6 +12,11 @@
 	$l1start
 	;
 
+@defloc topwrap(e)
+{
+	return #lambda(#[], #ret(#g(#id('$$), #block(#[], e))), stxsrc(e));
+}
+
 @defloc mkcompiler(passes)
 {
 	@local npass;
@@ -19,6 +24,7 @@
 	@define compile(e)
 	{
 		@local err;
+		e = topwrap(e);
 		callcc(@lambda(done){
 				@defloc myerr(msg)
 				{
@@ -44,18 +50,13 @@
 
 mkcompiler(bootcompilerpasses());
 
-@defloc topwrap(e)
-{
-	return #lambda(#[], #ret(#g(#id('$$), #block(#[], e))), stxsrc(e));
-}
-
 @defloc _eval(str, whence, line)
 {
 	@local fn, in;
 	in = parse(str, whence, line);
 	if(in == nil)
 		return nil;
-	fn = compile(topwrap(in));
+	fn = compile(in);
 	if(fn == nil)
 		return nil;
 	fn();
