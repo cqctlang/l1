@@ -4372,6 +4372,7 @@ dovm(VM *vm)
 		gotab[Ibox0]	= &&Ibox0;
 		gotab[Icall]	= &&Icall;
 		gotab[Icallt]	= &&Icallt;
+		gotab[Ichkcl]	= &&Ichkcl;
 		gotab[Ichksp]	= &&Ichksp;
 		gotab[Icmpeq] 	= &&Icmpeq;
 		gotab[Icmpgt] 	= &&Icmpgt;
@@ -4446,6 +4447,11 @@ dovm(VM *vm)
 		LABEL Iaddfp:
 			vm->fp += i->scnt;
 			continue;
+		LABEL Ichkcl:
+			val = getvalrand(vm, &i->op1);
+			if(Vkind(val) != Qcl)
+				vmerr(vm, "attempt to call non-procedure");
+			continue;
 		LABEL Ichksp:
 			m = getimmrand(&i->op1); /* max frame size */
 			checkoverflow(vm, m);
@@ -4480,16 +4486,12 @@ dovm(VM *vm)
 			continue;
 		LABEL Icall:
 			val = getvalrand(vm, &i->op1);
-			if(Vkind(val) != Qcl)
-				vmerr(vm, "attempt to call non-procedure");
-			vm->cl = valcl(val);
 			vm->fp[Ora] = (Val)(uptr)vm->pc;
+			vm->cl = valcl(val);
 			vcall(vm);
 			continue;
 		LABEL Icallt:
 			val = getvalrand(vm, &i->op1);
-			if(Vkind(val) != Qcl)
-				vmerr(vm, "attempt to call non-procedure");
 			vm->cl = valcl(val);
 			vcall(vm);
 			continue;

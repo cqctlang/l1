@@ -631,6 +631,7 @@ enum {
 	Ibox0,
 	Icall,
 	Icallt,
+	Ichkcl,
 	Ichksp,
 	Iclo,
 	Icmpeq,

@@ -430,10 +430,11 @@ setreloc(Code *c)
 			setrelocrand(c, &i->op1);
 			setrelocrand(c, &i->dst);
 			break;
-		case Icall:
-		case Icallt:
 		case Ibox:
 		case Ibox0:
+		case Icall:
+		case Icallt:
+		case Ichkcl:
 			setrelocrand(c, &i->op1);
 			break;
 		case Iadd:
@@ -577,6 +578,10 @@ printinsn(Insn *i)
 		printrand(&i->op2);
 		xprintf(" ");
 		printrand(&i->dst);
+		break;
+	case Ichkcl:
+		xprintf("chkcl ");
+		printrand(&i->op1);
 		break;
 	case Ichksp:
 		xprintf("chksp ");
@@ -1331,6 +1336,9 @@ cg(Expr *e, Ode *code, CGEnv *p, Location *loc, Ctl *ctl, Ctl *prv, Ctl *nxt,
 				randloc(&i->dst, AC);
 			}
 			i = nextinsn(code, e->src);
+			i->kind = Ichkcl;
+			randloc(&i->op1, AC);
+			i = nextinsn(code, e->src);
 			i->kind = Imovvc;
 			randimm(&i->op1, narg);
 			i = nextinsn(code, e->src);
@@ -1363,6 +1371,9 @@ cg(Expr *e, Ode *code, CGEnv *p, Location *loc, Ctl *ctl, Ctl *prv, Ctl *nxt,
 				i->op1 = r1;
 				randloc(&i->dst, AC);
 			}
+			i = nextinsn(code, e->src);
+			i->kind = Ichkcl;
+			randloc(&i->op1, AC);
 			/* move arguments to base of frame.
 			   FIXME:
 			      it would be nice to emit a block move;
