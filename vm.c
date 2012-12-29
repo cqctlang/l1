@@ -2610,7 +2610,7 @@ static void
 kunderflow(VM *vm)
 {
 	Cont *k, *nk;
-	static u32 lim = 128; /* arbitrary bound on continutation copy */
+	static u32 lim = 1024; /* arbitrary bound on continuation copy */
 	Val *fp;
 	void *top;
 	u32 fsz;
@@ -2668,7 +2668,7 @@ kunderflow(VM *vm)
 		ra = k->ra;
 		cl = k->cl;
 		fsz = ra2size(ra, cl->code);
-		if(fsz >= lim)
+		if(fsz*sizeof(Val) >= lim)
 			/* we assume frame size never exceeds limit */
 			bug();
 		while(top - (void*)(fp-fsz) < lim){
