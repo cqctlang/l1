@@ -20,11 +20,8 @@ cqctgcdisable(VM *vm)
 void
 cqctinterrupt(VM *vm)
 {
-	if(vm->flags&VMirq)
-		fatal("hard interrupt");
 	vm->flags |= VMirq;
 }
-
 
 Cbase
 cqctvalcbase(Val v)

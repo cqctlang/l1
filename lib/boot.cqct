@@ -10,6 +10,16 @@
 /* once we have callcc, we can get a backtrace
    on boot-time errors. */
 
+/* V comes from the runtime.  it is the value of the AC
+   register.  by passing and returning it, we preserve
+   it without hand-rolling a call frame in the runtime
+   or some other special mechanism.  */
+@define $raiseinterrupt(v)
+{
+	defaultinterrupt();
+	return v;
+}
+
 callcc(@lambda(done){
 
 @define defaulterror(msg)
@@ -19,6 +29,15 @@ callcc(@lambda(done){
 	       kbacktrace(continuationfr(errk));
 	       exit(1);
 	  });
+}
+
+@define defaultinterrupt()
+{
+     callcc(@lambda(k){
+     	     printf("boot interrupted\n");
+     	     kbacktrace(continuationfr(k));
+	     exit(1);
+            });
 }
 	  
 @include "bootmain.cqct"

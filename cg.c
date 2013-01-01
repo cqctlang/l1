@@ -408,6 +408,7 @@ setreloc(Code *c)
 		case Iapply:
 		case Iret:
 		case Ihalt:
+		case Ichkint:
 		case Igcpoll:
 		case Iunderflow:
 		case Ikg:
@@ -578,6 +579,9 @@ printinsn(Insn *i)
 		printrand(&i->op2);
 		xprintf(" ");
 		printrand(&i->dst);
+		break;
+	case Ichkint:
+		xprintf("chkint");
 		break;
 	case Ichkcl:
 		xprintf("chkcl ");
@@ -848,8 +852,12 @@ cgjmp(Ode *code, CGEnv *p, Ctl *ctl, Ctl *nxt, Src src)
 
 	if(ctl == p->Return){
 		i = nextinsn(code, src);
+		i->kind = Ichkint;
+		i = nextinsn(code, src);
 		i->kind = Iret;
 	}else if(ctl != nxt){
+		i = nextinsn(code, src);
+		i->kind = Ichkint;
 		i = nextinsn(code, src);
 		i->kind = Ijmp;
 		i->dstlabel = ctl;
@@ -931,12 +939,16 @@ cgbranch(Ode *code, CGEnv *p, Ctl *ctl, Ctl *nxt, Src src)
 	   be return; otherwise, i'm not sure that it matters. */
 	if(returnlabel(p, l2) || (l2 == nxt && !returnlabel(p, l1))){
 		i = nextinsn(code, src);
+		i->kind = Ichkint;
+		i = nextinsn(code, src);
 		i->kind = Ijnz;
 		randloc(&i->op1, AC);
 		i->dstlabel = l1;
 		l1->used = 1;
 		cgjmp(code, p, l2, nxt, src);
 	}else{
+		i = nextinsn(code, src);
+		i->kind = Ichkint;
 		i = nextinsn(code, src);
 		i->kind = Ijz;
 		randloc(&i->op1, AC);

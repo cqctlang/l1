@@ -114,6 +114,14 @@ load("prelude.cqct");
 		});
 }
 
+@defloc replinterrupt()
+{
+	callcc(@lambda(k){
+		printf("\ninterrupted\n");
+		debug(k);
+	});
+}
+
 @defloc loaderror(msg)
 {
 	callcc(@lambda(errk){
@@ -121,6 +129,65 @@ load("prelude.cqct");
 			kbacktrace(continuationfr(errk));
 			exit(1);
 		});
+}
+
+@defloc loadinterrupt()
+{
+	callcc(@lambda(k){
+		printf("\ninterrupted\n");
+		kbacktrace(continuationfr(k));
+	});
+}
+
+@defloc debug(k)
+{
+	@defloc help()
+	{
+		printf("l1 debugger commands\n");
+		printf("help, h, ?         display this help\n");
+		printf("bt                 display current backtrace\n");
+		printf("r, reset           reset repl\n");
+		printf("new                start new repl\n");
+		printf("EOF, exit, quit, q resume execution\n");
+	}
+
+	@defloc $loop()
+	{
+		@local s, tok;
+		printf("debug> ");
+		s = read(stdin, 1024);
+		if(s == nil){
+			printf("\n");
+			return;
+		}
+		tok = split(s);
+		switch(tok[0]){
+		case "h":
+		case "?":
+		case "help":
+			help();
+			break;
+		case "bt":
+			kbacktrace(continuationfr(k));
+			break;
+		case "r":
+		case "reset":
+			defaultreset(nil);
+			break;
+		case "new":
+			repl();
+			break;
+		case "q":
+		case "exit":
+		case "quit":
+			return;
+		default:
+			printf("unrecognized command\n");
+			break;
+		}
+		$loop();
+	}
+	$loop();
 }
 
 @define repl()
@@ -141,12 +208,27 @@ load("prelude.cqct");
 	}
 
 	callcc(@lambda(done){
-			defaultreturn = done;
-			defaulterror = replerror;
-			callcc(@lambda(reset){
-					defaultreset = reset;
-			       });
-			$loop(); 
+			@local oldret, olderr, oldint, oldreset;
+			dynamicwind(
+				@lambda(){
+					oldret = defaultreturn;
+					olderr = defaulterror;
+					oldint = defaultinterrupt;
+					oldreset = defaultreset;
+					defaultreturn = done;
+					defaulterror = replerror;
+					defaultinterrupt = replinterrupt;
+				},
+				@lambda(){
+					callcc(@lambda(reset){ defaultreset = reset; });
+					$loop(); 
+				},
+				@lambda(){
+					defaultreturn = oldret;
+					defaulterror = olderr;
+					defaultinterrupt = oldint;
+					defaultreset = oldreset;
+				});
 	       });
 }
 
@@ -158,7 +240,8 @@ load("prelude.cqct");
 		callcc(@lambda(done){
 				defaultreturn = done;
 				defaulterror = loaderror;
+				defaultinterrupt = loadinterrupt;
 				load(arg[0]);
-		       });
+			});
 	}
 }

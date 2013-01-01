@@ -883,6 +883,17 @@ kbacktrace(VM *vm, Cont *k)
 }
 
 static void
+vmint(VM *vm)
+{
+	Val h;
+	h = envlookup(vm->top, "$raiseinterrupt");
+	if(h == 0)
+		fatal("no default interrupt handler");
+	vm->flags &= ~VMirq;
+	vm->ac = ccall(vm, valcl(h), 1, &vm->ac);
+}
+
+static void
 vvmwarn(VM *vm, char *fmt, va_list args)
 {
 	static char buf[128];
@@ -4373,6 +4384,7 @@ dovm(VM *vm)
 		gotab[Icall]	= &&Icall;
 		gotab[Icallt]	= &&Icallt;
 		gotab[Ichkcl]	= &&Ichkcl;
+		gotab[Ichkint]	= &&Ichkint;
 		gotab[Ichksp]	= &&Ichksp;
 		gotab[Icmpeq] 	= &&Icmpeq;
 		gotab[Icmpgt] 	= &&Icmpgt;
@@ -4452,6 +4464,10 @@ dovm(VM *vm)
 			if(Vkind(val) != Qcl)
 				vmerr(vm, "attempt to call non-procedure");
 			continue;
+		LABEL Ichkint:
+			if(vm->flags&VMirq)
+				vmint(vm);
+			continue;
 		LABEL Ichksp:
 			m = getimmrand(&i->op1); /* max frame size */
 			checkoverflow(vm, m);
@@ -4508,25 +4524,17 @@ dovm(VM *vm)
 		LABEL Iret:
 			vm->cl = valcl(vm->fp[Ocl]);
 			vm->pc = stkp(vm->fp[Ora]);
-			if(vm->flags&VMirq)
-				vmerr(vm, "interrupted");
 			continue;
 		LABEL Ijmp:
 			vm->pc += i->scnt;
-			if(vm->flags&VMirq)
-				vmerr(vm, "interrupted");
 			continue;
 		LABEL Ijnz:
 			if(!isfalse(getvalrand(vm, &i->op1)))
 				vm->pc += i->scnt;
-			if(vm->flags&VMirq)
-				vmerr(vm, "interrupted");
 			continue;
 		LABEL Ijz:
 			if(isfalse(getvalrand(vm, &i->op1)))
 				vm->pc += i->scnt;
-			if(vm->flags&VMirq)
-				vmerr(vm, "interrupted");
 			continue;
 		LABEL Ikg:
 			vkcapture(vm);
@@ -7184,6 +7192,12 @@ l1_defaulterror(VM *vm, Imm argc, Val *argv, Val *rv)
 }
 
 static void
+l1_defaultinterrupt(VM *vm, Imm argc, Val *argv, Val *rv)
+{
+	noctl("interrupt");
+}
+
+static void
 l1_defaultwarning(VM *vm, Imm argc, Val *argv, Val *rv)
 {
 	Str *s;
@@ -7211,6 +7225,7 @@ fnctl(Env *env)
 {
 	FN(defaultabort);
 	FN(defaulterror);
+	FN(defaultinterrupt);
 	FN(defaultreset);
 	FN(defaultreturn);
 	FN(defaultwarning);
