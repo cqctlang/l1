@@ -645,6 +645,7 @@ enum {
 	Igcpoll,
 	Ihalt,
 	Iinv,
+	Iiret,
 	Ijmp,
 	Ijnz,
 	Ijz,
@@ -1116,6 +1117,8 @@ void		l1_codegen(VM *vm, Imm argc, Val *argv, Val *rv);
 Closure*	mkkcapture(void);
 Closure*	mkapply(void);
 Code*		mkcode(Ckind kind, Imm nbytes);
+Closure*	mkraiseinterrupt(void);
+void		printcode(Code *c);
 void		printinsn(Insn *i);
 void		printval(Val v);
 void		resetlabels();

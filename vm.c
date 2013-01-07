@@ -817,8 +817,8 @@ void
 printframe(VM *vm, Insn *pc, Code *c)
 {
 	/* elide system functions on stack */
-	if(ciddata(c->id)[0] == '$')
-		return;
+//	if(ciddata(c->id)[0] == '$')
+//		return;
 	printsrc(&l1stdout, c, pc);
 }
 
@@ -870,6 +870,7 @@ kbacktrace(VM *vm, Cont *k)
 		return;
 	while((void*)fp > k->base){
 		cp = cl->code;
+		printf("printing frame for pc %p cl %p\n", pc, cl);
 		printframe(vm, pc, cp);
 		sz = ra2size(pc, cp);
 		fp -= sz;
@@ -878,19 +879,43 @@ kbacktrace(VM *vm, Cont *k)
 		if(cl == 0)
 			break;
 	}
-	if(k->link)
+	if(k->link){
+		printf("%20s\n", "--- continuation boundary ---");
 		kbacktrace(vm, k->link);
+	}
 }
 
 static void
 vmint(VM *vm)
 {
-	Val h;
-	h = envlookup(vm->top, "$raiseinterrupt");
-	if(h == 0)
+	Val v;
+	Closure *cl;
+	Imm fsz;
+
+	v = envlookup(vm->top, "$raiseinterrupt");
+	if(v == 0)
 		fatal("no default interrupt handler");
+	if(Vkind(v) != Qcl)
+		bug();
+	cl = valcl(v);
+	v = envlookup(vm->top, "defaultinterrupt");
+	if(v == 0)
+		fatal("no default interrupt handler");
+	/* FIXME: need to check type of default interrupt handler */
+	
+	printf("saving pc %p cl %p into raiseinterrupt frame\n",
+		vm->pc, vm->cl);
+
 	vm->flags &= ~VMirq;
-	vm->ac = ccall(vm, valcl(h), 1, &vm->ac);
+	fsz = ra2size(vm->pc, vm->cl->code);
+	vm->fp += fsz;
+	vm->fp[Ora] = (Val)(uptr)vm->pc;
+	vm->fp[Ocl] = mkvalcl(vm->cl);
+	vm->fp[Oarg0] = (Val)(uptr)fsz;
+	vm->fp[Oarg0+1] = v;
+
+	vm->pc = codeentry(cl->code);
+	vm->cl = cl;
 }
 
 static void
@@ -2663,6 +2688,8 @@ kunderflow(VM *vm)
 	   vm->fp updated
 	*/
 
+	printf("enter kunderflow\n");
+
 	k = vm->klink;
 	if(k == 0)
 		/* when this happens, we should return to the os.
@@ -2670,7 +2697,8 @@ kunderflow(VM *vm)
 		   this may explain the ikarus exec loop */
 		bug();
 	if(k->gen != vm->levgen[k->level])
-		vmerr(vm, "attempt to return to stale context");
+		vmerr(vm, "attempt to return to stale context (k->gen = %d, k->level = %d, vm->levgen[k->level] = %d",
+		      k->gen, k->level, vm->levgen[k->level]);
 
 	/* split the continuation if it exceeds our copy limit */
 	if(k->sz > lim){
@@ -4396,6 +4424,7 @@ dovm(VM *vm)
 		gotab[Igcpoll] 	= &&Igcpoll;
 		gotab[Ihalt] 	= &&Ihalt;
 		gotab[Iinv] 	= &&Iinv;
+		gotab[Iiret] 	= &&Iiret;
 		gotab[Ijmp] 	= &&Ijmp;
 		gotab[Ijnz] 	= &&Ijnz;
 		gotab[Ijz] 	= &&Ijz;
@@ -4524,6 +4553,11 @@ dovm(VM *vm)
 		LABEL Iret:
 			vm->cl = valcl(vm->fp[Ocl]);
 			vm->pc = stkp(vm->fp[Ora]);
+			continue;
+		LABEL Iiret:
+			vm->cl = valcl(vm->fp[Ocl]);
+			vm->pc = stkp(vm->fp[Ora]);
+			vm->fp -= (Imm)(uptr)vm->fp[Oarg0];
 			continue;
 		LABEL Ijmp:
 			vm->pc += i->scnt;
@@ -6856,6 +6890,30 @@ l1_clref(VM *vm, Imm argc, Val *argv, Val *rv)
 }
 
 static void
+l1_clcode(VM *vm, Imm argc, Val *argv, Val *rv)
+{
+	Closure *cl;
+
+	if(argc != 1)
+		vmerr(vm, "wrong number of arguments to clcode");
+	checkarg(vm, argv, 0, Qcl);
+	cl = valcl(argv[0]);
+	*rv = mkvalcode(cl->code);
+}
+
+/* FIXME: this is crap; rewrite or ditch */
+static void
+l1_printcode(VM *vm, Imm argc, Val *argv, Val *rv)
+{
+	Code *c;
+	if(argc != 1)
+		vmerr(vm, "wrong number of arguments to printcode");
+	checkarg(vm, argv, 0, Qcode);
+	c = valcode(argv[0]);
+	printcode(c);
+}
+
+static void
 l1_cvalcmp(VM *vm, Imm argc, Val *argv, Val *rv)
 {
 	int r;
@@ -7550,6 +7608,7 @@ mktopenv(void)
 	builtinfn(env, "halt", halt);
 	builtinfn(env, "kcapture", mkkcapture());
 	builtinfn(env, "apply", mkapply());
+	builtinfn(env, "$raiseinterrupt", mkraiseinterrupt());
 
 	FN(asof);
 	FN(backtrace);
@@ -7557,6 +7616,7 @@ mktopenv(void)
 	FN(callmethod);
 	FN(callmethodx);
 	FN(close);
+	FN(clcode);
 	FN(clref);
 	FN(compact);
 	FN(cntrget);
@@ -7639,6 +7699,7 @@ mktopenv(void)
 	FN(parse);
 	FN(pop);
 	FN(pp);
+	FN(printcode);
 	FN(putbytes);
 	FN(rangebeg);
 	FN(rangelen);

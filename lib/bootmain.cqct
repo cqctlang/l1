@@ -9,7 +9,9 @@
 	compile,
 	callfn,
 	repl,
-	$l1start
+	$l1start,
+	dumpk,
+	withnullcont
 	;
 
 @defloc topwrap(e)
@@ -149,9 +151,10 @@ load("prelude.cqct");
 		printf("r, reset           reset repl\n");
 		printf("new                start new repl\n");
 		printf("EOF, exit, quit, q resume execution\n");
+		printf("a, abort           abort l1\n");
 	}
 
-	@defloc $loop()
+	@defloc debugloop()
 	{
 		@local s, tok;
 		printf("debug> ");
@@ -176,18 +179,29 @@ load("prelude.cqct");
 			break;
 		case "new":
 			repl();
+			printf("return from \"new\"\n");
 			break;
 		case "q":
 		case "exit":
 		case "quit":
 			return;
+		case "a":
+		case "abort":
+			/* FIXME: call abort handler */
+			exit(1);
+		        break;
 		default:
 			printf("unrecognized command\n");
 			break;
 		}
-		$loop();
+		debugloop();
 	}
-	$loop();
+	debugloop();
+}
+
+@define dumpk(k)
+{
+	kbacktrace(continuationfr(k));
 }
 
 @define repl()
@@ -199,7 +213,9 @@ load("prelude.cqct");
 		s = read(stdin, 1024);
 		if(s == nil){
 			printf("\n");
+			printf("calling default return\n");
 			defaultreturn(nil);
+			error("unexpected return from return\n");
 		}
 		v = _eval(s, "(stdin)", 1);
 		if(v != nil)
@@ -209,39 +225,50 @@ load("prelude.cqct");
 
 	callcc(@lambda(done){
 			@local oldret, olderr, oldint, oldreset;
-			dynamicwind(
-				@lambda(){
-					oldret = defaultreturn;
-					olderr = defaulterror;
-					oldint = defaultinterrupt;
-					oldreset = defaultreset;
-					defaultreturn = done;
-					defaulterror = replerror;
-					defaultinterrupt = replinterrupt;
-				},
-				@lambda(){
-					callcc(@lambda(reset){ defaultreset = reset; });
-					$loop(); 
-				},
-				@lambda(){
-					defaultreturn = oldret;
-					defaulterror = olderr;
-					defaultinterrupt = oldint;
-					defaultreset = oldreset;
+			printf("about to pop null continuation\n");
+			printf("done is:\n");
+			kbacktrace(continuationfr(done));
+			withnullcont(@lambda(){
+					dynamicwind(
+						@lambda(){
+							printf("set defaultreturn\n");
+							oldret = defaultreturn;
+							olderr = defaulterror;
+							oldint = defaultinterrupt;
+							oldreset = defaultreset;
+							defaultreturn = done;
+							defaulterror = replerror;
+							defaultinterrupt = replinterrupt;
+						},
+						@lambda(){
+							callcc(@lambda(reset){ defaultreset = reset; });
+							$loop();
+						},
+						@lambda(){
+							printf("reset defaultreturn\n");
+							defaultreturn = oldret;
+							defaulterror = olderr;
+							defaultinterrupt = oldint;
+							defaultreset = oldreset;
+						});
 				});
 	       });
 }
 
 @define $l1start(arg ...)
 {
-	if(length(arg) == 0)
-		repl();
-	else{
-		callcc(@lambda(done){
-				defaultreturn = done;
-				defaulterror = loaderror;
-				defaultinterrupt = loadinterrupt;
-				load(arg[0]);
-			});
-	}
+	callcc(@lambda(root){
+			withnullcont = root;
+			return @lambda(){
+				if(length(arg) == 0)
+					repl();
+				else{
+					callcc(@lambda(done){
+							defaultreturn = done;
+							defaulterror = loaderror;
+							defaultinterrupt = loadinterrupt;
+							load(arg[0]);
+						});
+				}
+			};})();
 }

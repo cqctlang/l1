@@ -407,6 +407,7 @@ setreloc(Code *c)
 		switch(i->kind){
 		case Iapply:
 		case Iret:
+		case Iiret:
 		case Ihalt:
 		case Ichkint:
 		case Igcpoll:
@@ -619,6 +620,9 @@ printinsn(Insn *i)
 		break;
 	case Iret:
 		xprintf("ret");
+		break;
+	case Iiret:
+		xprintf("iret");
 		break;
 	case Ihalt:
 		xprintf("halt");
@@ -1780,6 +1784,93 @@ stkunderflowthunk(void)
 	femit(&f, ode);
 	i = nextinsn(ode, 0);
 	i->kind = Iunderflow;
+	code = mkvmcode(ode, 0);
+	cl = mkcl(code, 0);
+
+	return cl;
+}
+
+Closure*
+mkraiseinterrupt(void)
+{
+	Ctl *L;
+	Insn *i;
+	Ode *ode;
+	Code *code;
+	Closure *cl;
+	Frame f;
+	Imm nfp;
+
+	finit(&f, 2, 1, 0);
+	fset(&f, Ocl);
+	
+	/* frame is:
+
+	   	ra
+	   	cl
+	   	"caller's" fsz
+	   	handler
+	   	saved AC
+
+	   we might consider saving VC as well.
+	*/
+	nfp = Onfrhd+3;
+
+	ode = mkode("$raiseinterrupt");
+	L = genlabel(ode, "$raiseinterrupt");
+	L->used = 1;
+	emitlabel(L, 0);
+	femit(&f, ode);
+	fpushlm(&f);
+
+	i = nextinsn(ode, 0);
+	i->kind = Imov;
+	randloc(&i->op1, AC);
+	randframeloc(&i->dst, Oarg0+2);
+	fset(&f, Oarg0);
+	femit(&f, ode);
+	
+	/* set up call to handler (arg 1) */
+
+	i = nextinsn(ode, 0);
+	i->kind = Imov;
+	randloc(&i->op1, CL);
+	randframeloc(&i->dst, nfp+Ocl);
+	fbumpfsz(&f, Onfrhd);
+	fset(&f, nfp+Ocl);
+	femit(&f, ode);
+
+	i = nextinsn(ode, 0);
+	i->kind = Imovvc;
+	randimm(&i->op1, 0);
+
+	i = nextinsn(ode, 0);
+	i->kind = Imov;
+	randframeloc(&i->op1, Oarg0+1);
+	randloc(&i->dst, AC);
+
+	i = nextinsn(ode, 0);
+	i->kind = Iaddfp;
+	i->scnt = nfp;
+
+	i = nextinsn(ode, 0);
+	i->kind = Icall;
+	randloc(&i->op1, AC);
+	fpoplm(&f);
+	femit(&f, ode);
+	
+	i = nextinsn(ode, 0);
+	i->kind = Iaddfp;
+	i->scnt = -nfp;
+
+	i = nextinsn(ode, 0);
+	i->kind = Imov;
+	randframeloc(&i->op1, Oarg0+2);
+	randloc(&i->dst, AC);
+
+	i = nextinsn(ode, 0);
+	i->kind = Iiret; /* reads fsz from Oarg0 */
+
 	code = mkvmcode(ode, 0);
 	cl = mkcl(code, 0);
 
