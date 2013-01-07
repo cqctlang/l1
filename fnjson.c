@@ -311,7 +311,7 @@ static void jsmn_init(jsmn_parser *parser) {
 }
 
 static Val
-convert(char *s, jsmntok_t *t, u32 *ndx)
+convert(VM *vm, char *s, jsmntok_t *t, u32 *ndx)
 {
 	Val rv, k, v;
 	u32 ti, i, isneg;
@@ -329,8 +329,8 @@ convert(char *s, jsmntok_t *t, u32 *ndx)
 		if(tp->size%2)
 			bug();
 		for(i = 0; i < tp->size/2; i++){
-			k = convert(s, t, &ti);
-			v = convert(s, t, &ti);
+			k = convert(vm, s, t, &ti);
+			v = convert(vm, s, t, &ti);
 			tabput(tab, k, v);
 		}
 		rv = mkvaltab(tab);
@@ -338,7 +338,7 @@ convert(char *s, jsmntok_t *t, u32 *ndx)
 	case JSMN_ARRAY:
 		l = mklist();
 		for(i = 0; i < tp->size; i++)
-			_listappend(l, convert(s, t, &ti));
+			_listappend(l, convert(vm, s, t, &ti));
 		rv = mkvallist(l);
 		break;
 	case JSMN_PRIMITIVE:
@@ -380,6 +380,10 @@ convert(char *s, jsmntok_t *t, u32 *ndx)
 			else
 				rv = mkvallitcval(Vuvlong, n);
 			break;
+		default:
+			vmerr(vm, "invalid json primitive: %.*s",
+			      tp->end-tp->start, s+tp->start);
+			return 0;
 		}
 		break;
 	case JSMN_STRING:
@@ -440,7 +444,7 @@ retry:
 	}
 	ndx = 0;
 
-	*rv = convert(s, tok, &ndx);
+	*rv = convert(vm, s, tok, &ndx);
 	efree(tok);
 	efree(s);
 }
