@@ -179,7 +179,6 @@ load("prelude.cqct");
 			break;
 		case "new":
 			repl();
-			printf("return from \"new\"\n");
 			break;
 		case "q":
 		case "exit":
@@ -213,7 +212,6 @@ load("prelude.cqct");
 		s = read(stdin, 1024);
 		if(s == nil){
 			printf("\n");
-			printf("calling default return\n");
 			defaultreturn(nil);
 			error("unexpected return from return\n");
 		}
@@ -224,14 +222,10 @@ load("prelude.cqct");
 	}
 
 	callcc(@lambda(done){
-			@local oldret, olderr, oldint, oldreset;
-			printf("about to pop null continuation\n");
-			printf("done is:\n");
-			kbacktrace(continuationfr(done));
+			@local oldret, olderr, oldint, oldreset, thisreset;
 			withnullcont(@lambda(){
 					dynamicwind(
 						@lambda(){
-							printf("set defaultreturn\n");
 							oldret = defaultreturn;
 							olderr = defaulterror;
 							oldint = defaultinterrupt;
@@ -239,13 +233,15 @@ load("prelude.cqct");
 							defaultreturn = done;
 							defaulterror = replerror;
 							defaultinterrupt = replinterrupt;
+							defaultreset = thisreset;
 						},
-						@lambda(){
-							callcc(@lambda(reset){ defaultreset = reset; });
+						@lambda(){ 
+							callcc(@lambda(reset){
+									defaultreset = thisreset = reset;
+								});
 							$loop();
 						},
 						@lambda(){
-							printf("reset defaultreturn\n");
 							defaultreturn = oldret;
 							defaulterror = olderr;
 							defaultinterrupt = oldint;

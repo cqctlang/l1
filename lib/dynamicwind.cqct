@@ -1,4 +1,4 @@
-@global dynamicwind, syscallcc;
+@global dynamicwind, $dynamicwind, syscallcc;
 
 {
 	@local winders;
@@ -68,16 +68,13 @@
 						   @lambda(val){
 							   if(!eq(save, winders))
 								   dowind(save);
-							   printf("dynamicwind callcc: finished dowind\n");
-							   printf("invoking:\n");
-							   dumpk(k);
 							   continuationfn(k)(val);
 						   });
 				f(r);
 			});
 	}
 
-	@define dynamicwind(in, body, out)
+	@define $dynamicwind(in, body, out)
 	{
 		@local rv;
 		in();
@@ -87,4 +84,6 @@
 		out();
 		return rv;
 	}
+
+	dynamicwind = $dynamicwind;
 }

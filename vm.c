@@ -816,9 +816,9 @@ printsrc(Xfd *xfd, Code *c, Insn *pc)
 void
 printframe(VM *vm, Insn *pc, Code *c)
 {
-	/* elide system functions on stack */
-//	if(ciddata(c->id)[0] == '$')
-//		return;
+	/* elide system functions */
+	if(ciddata(c->id)[0] == '$')
+		return;
 	printsrc(&l1stdout, c, pc);
 }
 
@@ -870,7 +870,6 @@ kbacktrace(VM *vm, Cont *k)
 		return;
 	while((void*)fp > k->base){
 		cp = cl->code;
-		printf("printing frame for pc %p cl %p\n", pc, cl);
 		printframe(vm, pc, cp);
 		sz = ra2size(pc, cp);
 		fp -= sz;
@@ -880,7 +879,7 @@ kbacktrace(VM *vm, Cont *k)
 			break;
 	}
 	if(k->link){
-		printf("%20s\n", "--- continuation boundary ---");
+//		printf("%20s\n", "--- continuation boundary ---");
 		kbacktrace(vm, k->link);
 	}
 }
@@ -901,10 +900,8 @@ vmint(VM *vm)
 	v = envlookup(vm->top, "defaultinterrupt");
 	if(v == 0)
 		fatal("no default interrupt handler");
+
 	/* FIXME: need to check type of default interrupt handler */
-	
-	printf("saving pc %p cl %p into raiseinterrupt frame\n",
-		vm->pc, vm->cl);
 
 	vm->flags &= ~VMirq;
 	fsz = ra2size(vm->pc, vm->cl->code);
@@ -2687,8 +2684,6 @@ kunderflow(VM *vm)
 	   vm->stk, vm->stksz, vm->kcont also updated
 	   vm->fp updated
 	*/
-
-	printf("enter kunderflow\n");
 
 	k = vm->klink;
 	if(k == 0)
