@@ -1,7 +1,7 @@
 /* capture a continuation, save it, then pop it later, twice */
 
 thek = nil;
-lim = 2;
+lim = 20;
 
 @define bar(k)
 {
