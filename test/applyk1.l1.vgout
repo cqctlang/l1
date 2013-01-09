@@ -5,6 +5,5 @@ applyk1.l1:9: warning: assignment to unbound variable: x
 okay
 error: hi
                error	(builtin function)
-              applyk	(builtin function)
                entry	(applyk1.l1:12)
 fail!

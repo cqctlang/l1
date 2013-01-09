@@ -1,4 +1,4 @@
-@global dynamicwind, $dynamicwind, syscallcc;
+@global dynamicwind, $dynamicwind, syscallcc, applyk, evalk;
 
 {
 	@local winders;
@@ -86,4 +86,41 @@
 	}
 
 	dynamicwind = $dynamicwind;
+
+	@define applyk(fn, succ, fail, arg ...)
+	{
+		@local olderr, done;
+
+		@defloc err(msg)
+		{
+			callcc(@lambda(k){
+					printf("error: %s\n", msg);
+					kbacktrace(continuationfr(k));
+					done(fail());
+				});
+		}
+
+		@defloc $doit()
+		{
+			succ(apply(apply, fn, arg));
+		}
+
+		callcc(@lambda(k){
+				done = k;
+				dynamicwind(
+					@lambda(){
+						olderr = defaulterror;
+						defaulterror = err;
+					},
+					$doit,
+					@lambda(){
+						defaulterror = olderr;
+					});
+			});
+	}
+
+	@define evalk(s, succ, fail)
+	{
+		applyk(@lambda(arg ...) { eval(s); }, succ, fail, []);
+	}
 }

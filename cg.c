@@ -1761,6 +1761,12 @@ mkapply(void)
 	femit(&f, ode);
 	i = nextinsn(ode, 0);
 	i->kind = Iapply;
+
+	/* not reached: this extra insn
+	   is for unwinding errors in apply */
+	i = nextinsn(ode, 0);
+	i->kind = Iret;
+
 	code = mkvmcode(ode, 0);
 	return mkcl(code, 0);
 }
