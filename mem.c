@@ -1821,64 +1821,6 @@ copystack(void **basep, u32 stxsz, void **rap, Closure *cl, u32 fpo)
 		if(cl == 0)
 			break;
 	}
-
-
-#if 0
-	Imm i;
-	Val *fp, *ofp, *rap, *m, vcl;
-	Insn *ra;
-	u64 sz, lm, *mp, o;
-	uptr coff;
-	Closure *cl;
-	Code *cp;
-
-	bug();
-
-	fp = vm->fp;
-
-	/* FIXME: invalid termination, right? */
-	if(fp == 0)
-		return;
-
-	copy(fp+Ocl);
-	while(1){
-		rap = fp+Ora;
-		ra = stkp(*rap);
-		vcl = fp[Ocl];
-		if(vcl == 0)
-			break;
-		cl = curaddr(vcl);
-		cp = ra2code(ra, cl);
-		sz = ra2size(ra, cl);
-		lm = ra2mask(ra, cl);
-
-		/* copy locations in live mask */
-		ofp = fp;
-		fp -= sz;
-		m = fp;
-		if((lm>>(mwbits-1))&1){
-			o = lm&~(1ULL<<(mwbits-1));
-			mp = (u64*)strdata(cp->lm)+o;
-			while(sz > 0){
-				lm = *mp++;
-				for(i = 0; sz > 0 && i < mwbits; i++, sz--, m++)
-					if((lm>>i)&1)
-						copy(m);
-			}
-		}else
-			for(i = 0; i < sz; i++, m++)
-				if((lm>>i)&1)
-					copy(m);
-
-		if(cp){
-			/* copy code and update ra on stack */
-			coff = (uptr)ra-(uptr)cp;
-			copy((Val*)&cp);
-			ra = (Insn*)((uptr)cp+coff);
-			*rap = (Val)(uptr)ra;
-		}
-	}
-#endif
 }
 
 static void

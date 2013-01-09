@@ -1206,7 +1206,7 @@ Val		mkvallitcval(Cbase base, Imm imm);
 Val		mkvallitcvalenc(Cbase base, Enc v);
 As*		mkzas(Imm len);
 Val		myrootns(Env *env);
-void		printvmac(VM *vm);
+void		printframe(VM *vm, Insn *pc, Code *c);
 jmp_buf*	_pusherror(VM *vm);
 void		setgo(Code *c);
 void		setlasterrno(int no);

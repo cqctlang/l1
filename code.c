@@ -100,3 +100,47 @@ addreloc(Code *code, uptr coff)
 	r = (Reloc*)strdata(code->reloc)+code->nreloc++;
 	r->coff = coff;
 }
+
+Src
+addr2line(Code *code, Insn *pc)
+{
+	return (Src)vecref(code->src, pc-(Insn*)codeinsn(code));
+}
+
+static void
+printsrc(Xfd *xfd, Code *c, Insn *pc)
+{
+	Src src;
+
+	switch(c->kind){
+	case Ccfn:
+		cprintf(xfd, "%20s\t(builtin function)\n", ciddata(c->id));
+		break;
+	case Cccl:
+		cprintf(xfd, "%20s\t(builtin closure)\n", ciddata(c->id));
+		break;
+	case Cxfn:
+		cprintf(xfd, "%20s\t(native code)\n", ciddata(c->id));
+		break;
+	case Cvm:
+		src = addr2line(c, pc);
+		if(srclineval(src) == Xnil)
+			cprintf(xfd, "%20s\t(%s)\n",
+				ciddata(c->id), srcfile(src));
+		else
+			cprintf(xfd, "%20s\t(%s:%u)\n", ciddata(c->id),
+				srcfile(src), srcline(src));
+		break;
+	default:
+		bug();
+	}
+}
+
+void
+printframe(VM *vm, Insn *pc, Code *c)
+{
+	/* elide system functions */
+	if(ciddata(c->id)[0] == '$')
+		return;
+	printsrc(&l1stdout, c, pc);
+}

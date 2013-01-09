@@ -778,50 +778,6 @@ putval(VM *vm, Val v, Location *loc)
 	}
 }
 
-Src
-addr2line(Code *code, Insn *pc)
-{
-	return (Src)vecref(code->src, pc-(Insn*)codeinsn(code));
-}
-
-static void
-printsrc(Xfd *xfd, Code *c, Insn *pc)
-{
-	Src src;
-
-	switch(c->kind){
-	case Ccfn:
-		cprintf(xfd, "%20s\t(builtin function)\n", ciddata(c->id));
-		break;
-	case Cccl:
-		cprintf(xfd, "%20s\t(builtin closure)\n", ciddata(c->id));
-		break;
-	case Cxfn:
-		cprintf(xfd, "%20s\t(native code)\n", ciddata(c->id));
-		break;
-	case Cvm:
-		src = addr2line(c, pc);
-		if(srclineval(src) == Xnil)
-			cprintf(xfd, "%20s\t(%s)\n",
-				ciddata(c->id), srcfile(src));
-		else
-			cprintf(xfd, "%20s\t(%s:%u)\n", ciddata(c->id),
-				srcfile(src), srcline(src));
-		break;
-	default:
-		bug();
-	}
-}
-
-void
-printframe(VM *vm, Insn *pc, Code *c)
-{
-	/* elide system functions */
-	if(ciddata(c->id)[0] == '$')
-		return;
-	printsrc(&l1stdout, c, pc);
-}
-
 static void
 kbacktrace(VM *vm, Cont *k)
 {
@@ -1263,7 +1219,6 @@ _rerep(Enc v, Ctype *old, Ctype *new)
 	}
  	return v;
 }
-
 
 static Enc
 rerep(Enc v, Ctype *old, Ctype *new)
@@ -1772,11 +1727,11 @@ vapply(VM *vm)
           shuffle stack and vm state.
 
 	  program did
-	
+
 	  	apply(fn, arg0, ..., argn-1)
-	
+
 	  vm on entry:
-	
+
 	    ac = unused
 	    cl = apply builtin
 	    pc = non-existent insn after Iapply in apply builtin
@@ -1787,9 +1742,9 @@ vapply(VM *vm)
 	          arg0
 	          ...
 	          argn-1 (must be list of k >= 0 elements)
-	
+
 	  vm on exit (when fn is bytecode):
-	
+
 	    ac = unchanged
 	    cl = fn
 	    pc = codeentry(fn->code)
@@ -2562,31 +2517,6 @@ vkcapture(VM *vm)
 {
 	Cont *c;
 
-	/*
-	  program did
-	  	kcapture(fn)
-
-	  vm on entry:
-
-	  ac = unused
-	  cl = kcapture builtin
-	  pc = non-existent insn after Ikg in kcapture builtin
-	  vc = 1 (should be checked)
-	  fp -> ra  (kcapture caller)
-                cl  (kcapture caller)
-                fn  (to be applied to new cont)
-
-	  vm on exit:
-
-          ac = unchanged
-          cl = fn
-          pc = codeentry(fn->code)
-          vc = 1
-          fp -> ra (kcapture caller) [logically - actually points to underflow ]
-                cl (kcapture caller) [logically - actually points to underflow ]
-                k  new continuation
-	 */
-
 	if(vm->vc != 1)
 		vmerr(vm, "wrong number of arguments to kcapture");
 	if(Vkind(vm->fp[Oarg0]) != Qcl)
@@ -2634,50 +2564,11 @@ kunderflow(VM *vm)
 	Insn *ra;
 	Closure *cl;
 
-	/*
-	   program has just returned to underflow handler:
-
-	   vm on entry:
-
-	   vm->klink = continuation to reinstate
-	   ac = value to return to continuation
-	   vc = unused
-
-	   normal underflow (ret insn execution)
-           ----------------
-	   pc = ra underflow
-           cl = cl underflow
-	   fp -> ra underflow
-                 cl underflow
-
-
-	   continuation invocation (continuation template Ikp execution)
-	   -----------------------
-	   pc = Ikp + 1
-	   cl = continuation template
-	   fp -> ra continuation invoker
-                 cl continuation invoker
-
-	   vm on exit:
-
-	   ac = unchanged return value
-	   vc = unused
-	   pc = k->ra
-	   cl = k->cl
-	   
-	   vm->stk, vm->stksz, vm->kcont also updated
-	   vm->fp updated
-	*/
-
 	k = vm->klink;
 	if(k == 0)
-		/* when this happens, we should return to the os.
-		   FIXME: how to implement this control transfer?
-		   this may explain the ikarus exec loop */
 		bug();
 	if(k->gen != vm->levgen[k->level])
-		vmerr(vm, "attempt to return to stale context (k->gen = %d, k->level = %d, vm->levgen[k->level] = %d",
-		      k->gen, k->level, vm->levgen[k->level]);
+		vmerr(vm, "attempt to return to stale context");
 
 	/* split the continuation if it exceeds our copy limit */
 	if(k->sz > lim){
@@ -2687,11 +2578,14 @@ kunderflow(VM *vm)
 		cl = k->cl;
 		fsz = ra2size(ra, cl->code);
 		if(fsz*sizeof(Val) >= lim)
-			/* we assume frame size never exceeds limit */
+			/* FIXME: we assume frame size never exceeds limit, but
+			   this should be enforced by the compiler */
 			bug();
 		while(top - (void*)(fp-fsz) < lim){
 			if(ishalt(cl))
-				/* don't split across non-vm frames */
+				/* don't split across non-vm frames -- we don't
+				   have a strategy for updating vm level in the
+				   split continuation. */
 				break;
 			fp -= fsz;
 			ra = stkp(fp[Ora]);
@@ -2725,7 +2619,7 @@ kunderflow(VM *vm)
 	/* reinstate */
 	vm->pc = k->ra;
 	vm->cl = k->cl;
-	vm->fp = vm->stk+k->sz;	/* returned-to code shall first reset fp */ 
+	vm->fp = vm->stk+k->sz;	/* returned-to code shall first reset fp */
 	vm->klink = k->link;
 	vm->level = k->level;
 	longjmp(vm->dovm[vm->level], 0);
@@ -3062,7 +2956,7 @@ l1_sizeof(VM *vm, Imm argc, Val *argv, Val *rv)
 		t = valctype(argv[0]);
 		break;
 	default:
-		vmerr(vm, "operand 1 to sizeof must be a type or cvalue"); 
+		vmerr(vm, "operand 1 to sizeof must be a type or cvalue");
 	}
 	imm = typesize(vm, t);
 	*rv = mkvalcval(litdom, litdom->ns->base[Vuint], imm);
