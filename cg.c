@@ -405,6 +405,7 @@ setreloc(Code *c)
 	e = codeend(c);
 	for(; i < e; i++){
 		switch(i->kind){
+		case Iabort:
 		case Iapply:
 		case Iret:
 		case Iiret:
@@ -668,6 +669,9 @@ printinsn(Insn *i)
 		break;
 	case Inop:
 		xprintf("nop");
+		break;
+	case Iabort:
+		xprintf("abort");
 		break;
 	default:
 		fatal("printinsn: unrecognized insn %d", i->kind);
@@ -1734,9 +1738,13 @@ mkkcapture(void)
 	femit(&f, ode);
 	i = nextinsn(ode, 0);
 	i->kind = Ikg;
+
+	/* one extra insn for ra2size in case Ikg throws an error */
+	i = nextinsn(ode, 0);
+	i->kind = Iabort;
+
 	code = mkvmcode(ode, 0);
 	cl = mkcl(code, 0);
-
 	return cl;
 }
 
@@ -1762,10 +1770,9 @@ mkapply(void)
 	i = nextinsn(ode, 0);
 	i->kind = Iapply;
 
-	/* not reached: this extra insn
-	   is for unwinding errors in apply */
+	/* one extra insn for ra2size in case Iapply throws an error */
 	i = nextinsn(ode, 0);
-	i->kind = Iret;
+	i->kind = Iabort;
 
 	code = mkvmcode(ode, 0);
 	return mkcl(code, 0);
@@ -1790,9 +1797,13 @@ stkunderflowthunk(void)
 	femit(&f, ode);
 	i = nextinsn(ode, 0);
 	i->kind = Iunderflow;
+
+	/* one extra insn for ra2size in case Iunderflow throws an error */
+	i = nextinsn(ode, 0);
+	i->kind = Iabort;
+
 	code = mkvmcode(ode, 0);
 	cl = mkcl(code, 0);
-
 	return cl;
 }
 
@@ -1954,13 +1965,12 @@ kresumecode(void)
 
 	i = nextinsn(ode, 0);
 	i->kind = Ikp;
-	code = mkvmcode(ode, 0);
 
 	/* one extra insn for ra2size in case Ikp throws an error */
 	i = nextinsn(ode, 0);
-	i->kind = Inop;
-	code = mkvmcode(ode, 0);
+	i->kind = Iabort;
 
+	code = mkvmcode(ode, 0);
 	return code;
 }
 

@@ -4381,6 +4381,7 @@ dovm(VM *vm)
 
 #ifdef THREADED
 	if(!vm){
+		gotab[Iabort] 	= &&Iabort;
 		gotab[Iadd]	= &&Iadd;
 		gotab[Iaddfp]	= &&Iaddfp;
 		gotab[Iand]	= &&Iand;
@@ -4434,6 +4435,8 @@ dovm(VM *vm)
 	setjmp(vm->dovm[vm->level]);
 	while(1){
 		NEXTLABEL(i = vm->pc++){
+		LABEL Iabort:
+			fatal("vm reached abort instruction");
 		LABEL Inop:
 			continue;
 		LABEL Iinv:

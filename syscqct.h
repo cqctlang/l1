@@ -622,7 +622,8 @@ struct U {
 
 typedef
 enum {
-	Iadd = 0,
+	Iabort = 0,
+	Iadd,
 	Iaddfp,
 	Iand,
 	Iapply,
@@ -657,8 +658,8 @@ enum {
 	Imul,
 	Ineg,
 	Inot,
-	Ior,
 	Inop,
+	Ior,
 	Iret,
 	Ishl,
 	Ishr,
