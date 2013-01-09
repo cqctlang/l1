@@ -1109,6 +1109,7 @@ Expr*		docompiles(U *ctx, Expr *e);
 
 /* cg.c */
 Code*		kresumecode();
+Closure*	abortthunk(void);
 void		cgstatistics();
 Closure*	codegen(U *ctx, Expr *e);
 void		finicg(void);

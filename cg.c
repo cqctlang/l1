@@ -1646,6 +1646,7 @@ cglambda(Expr *e, char *id)
 
 	/* FIXME: is this redundant wrt p.Return?
 	   (I bet not always; I bet we've tried this before.) */
+
 	emitlabel(p.Return, e->e2);
 	femit(&f, ode);
 	i = nextinsn(ode, e->src);
@@ -1712,6 +1713,31 @@ haltthunk(void)
 	femit(&f, ode);
 	i = nextinsn(ode, 0);
 	i->kind = Ihalt;
+	code = mkvmcode(ode, 0);
+	cl = mkcl(code, 0);
+
+	return cl;
+}
+
+Closure*
+abortthunk(void)
+{
+	Ctl *L;
+	Insn *i;
+	Ode *ode;
+	Code *code;
+	Closure *cl;
+	Frame f;
+
+	finit(&f, 0, 0, 0);
+	fset(&f, Ocl);
+	ode = mkode("$abort");
+	L = genlabel(ode, "$abort");
+	L->used = 1;
+	emitlabel(L, 0);
+	femit(&f, ode);
+	i = nextinsn(ode, 0);
+	i->kind = Iabort;
 	code = mkvmcode(ode, 0);
 	cl = mkcl(code, 0);
 

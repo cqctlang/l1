@@ -75,7 +75,7 @@ void *GCiterdone;
 Val Xundef;
 Val Xnil;
 Dom *litdom;
-static Closure *halt, *stkunderflow;
+static Closure *halt, *vabort, *stkunderflow;
 Cval *cvalnull, *cval0, *cval1, *cvalminus1;
 
 VM *vms[1];			/* active VMs (at most one) */
@@ -787,23 +787,20 @@ kbacktrace(VM *vm, Cont *k)
 	Code *cp;
 	u64 sz;
 
+	if(k == 0)
+		return;
 	pc = k->ra;
 	cl = k->cl;
 	fp = k->base+k->sz;
-	if(pc == 0)
-		return;
-	while((void*)fp > k->base){
+	while((void*)fp >= k->base){
 		cp = cl->code;
-		printframe(vm, pc, cp);
 		sz = ra2size(pc, cp);
+		printframe(vm, pc, cp);
 		fp -= sz;
 		pc = stkp(fp[Ora]);
 		cl = valcl(fp[Ocl]);
-		if(cl == 0)
-			break;
 	}
-	if(k->link)
-		kbacktrace(vm, k->link);
+	kbacktrace(vm, k->link);
 }
 
 static void
@@ -4230,8 +4227,8 @@ vmresetctl(VM *vm)
 	vm->ac = Xnil;
 	vm->cl = 0;
 	vm->vc = 0;
-	vm->fp[Ocl] = 0;
-	vm->fp[Ora] = 0;
+	vm->fp[Ocl] = mkvalcl(vabort);
+	vm->fp[Ora] = (Val)(uptr)codeentry(vabort->code);
 }
 
 Fd*
@@ -7554,11 +7551,10 @@ cqctmkvm(Env *top)
 		bug();
 	vm = emalloc(sizeof(VM));
 	vm->top = top;
-	vmresetctl(vm);
 	vms[nvm++] = vm;
-
+	vmresetctl(vm);
 	boot(vm);
-
+	vmresetctl(vm);
 	return vm;
 }
 
@@ -7583,6 +7579,7 @@ initvm()
 	cval0 = gclock(mkcval(litdom, litdom->ns->base[Vint], 0));
 	cval1 = gclock(mkcval(litdom, litdom->ns->base[Vint], 1));
 	cvalminus1 = gclock(mkcval(litdom, litdom->ns->base[Vint], -1));
+	vabort = gclock(abortthunk());
 	halt = gclock(haltthunk());
 	stkunderflow = gclock(stkunderflowthunk());
 	GCiterdone = emalloc(1); /* unique pointer */
@@ -7598,6 +7595,7 @@ finivm(void)
 	gcunlock(cval1);
 	gcunlock(cvalminus1);
 	gcunlock(halt);
+	gcunlock(vabort);
 	gcunlock(stkunderflow);
 	efree(GCiterdone);
 }
