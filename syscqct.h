@@ -1164,7 +1164,6 @@ int		eqval(Val v1, Val v2);
 int		eqvval(Val v1, Val v2);
 Val		expr2syntax(Expr *e);
 void		freeenv(Env *env);
-void		fvmbacktrace(VM *vm);
 Str*		getbytes(VM *vm, Cval *addr, Imm n);
 int		getlasterrno();
 u32		hashval(Val v);

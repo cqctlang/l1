@@ -822,38 +822,6 @@ printframe(VM *vm, Insn *pc, Code *c)
 	printsrc(&l1stdout, c, pc);
 }
 
-void
-fvmbacktrace(VM *vm)
-{
-	Val *fp;
-	Insn *pc;
-	Closure *cl;
-	Val *base;
-
-	pc = vm->pc;
-	fp = vm->fp;
-	cl = vm->cl;
-	base = vm->stk;
-
-	if(pc == 0)
-		return;
-	printframe(vm, pc-1, cl->code);
-	while(fp > base){
-		pc = stkp(fp[Ora]);
-		cl = valcl(fp[Ocl]);
-		if(cl == 0)
-			break;
-		fp -= ra2size(pc, cl->code);
-		printframe(vm, pc-1, cl->code);
-	}
-}
-
-static void
-vmbacktrace(VM *vm)
-{
-	fvmbacktrace(vm);
-}
-
 static void
 kbacktrace(VM *vm, Cont *k)
 {
@@ -878,10 +846,8 @@ kbacktrace(VM *vm, Cont *k)
 		if(cl == 0)
 			break;
 	}
-	if(k->link){
-//		printf("%20s\n", "--- continuation boundary ---");
+	if(k->link)
 		kbacktrace(vm, k->link);
-	}
 }
 
 static void
@@ -893,15 +859,34 @@ vmint(VM *vm)
 
 	v = envlookup(vm->top, "$raiseinterrupt");
 	if(v == 0)
-		fatal("no default interrupt handler");
+		bug();
 	if(Vkind(v) != Qcl)
 		bug();
 	cl = valcl(v);
 	v = envlookup(vm->top, "defaultinterrupt");
 	if(v == 0)
-		fatal("no default interrupt handler");
+		vmerr(vm, "no default interrupt handler");
+	if(Vkind(v) != Qcl)
+		vmerr(vm, "default interrupt handler is not a function");
 
-	/* FIXME: need to check type of default interrupt handler */
+	/* $raiseinterrupt expects the following stack:
+
+	  ofp->	ra0
+	        cl0
+	   	locals
+           fp->	ra1
+	   	cl1
+	   	fsz
+	   	v
+
+           the depicted stack grows down.
+	   the frame labeled by ofp is that of the interrupted activation.
+	   e.g., ra0/cl0 is the return address for that call.
+	   ra1/cl1 is one past the interrupt insn.
+	   fsz is the size of the ofp frame at that insn.
+	   it is passed to $raiseinterrupt so that it can restore ofp.
+	   v is the user's defaultinterrupt handler.
+	*/
 
 	vm->flags &= ~VMirq;
 	fsz = ra2size(vm->pc, vm->cl->code);
@@ -910,7 +895,6 @@ vmint(VM *vm)
 	vm->fp[Ocl] = mkvalcl(vm->cl);
 	vm->fp[Oarg0] = (Val)(uptr)fsz;
 	vm->fp[Oarg0+1] = v;
-
 	vm->pc = codeentry(cl->code);
 	vm->cl = cl;
 }
@@ -5065,16 +5049,6 @@ ismapped(VM *vm, As *as, Imm addr, Imm len)
 }
 
 static void
-l1_backtrace(VM *vm, Imm argc, Val *argv, Val *rv)
-{
-	if(argc != 0)
-		vmerr(vm, "wrong number of arguments to backtrace");
-	USED(argv);
-	vmbacktrace(vm);
-	USED(rv);
-}
-
-static void
 l1_kbacktrace(VM *vm, Imm argc, Val *argv, Val *rv)
 {
 	if(argc != 1)
@@ -7532,7 +7506,6 @@ mktopenv(void)
 	builtinfn(env, "$raiseinterrupt", mkraiseinterrupt());
 
 	FN(asof);
-	FN(backtrace);
 	FN(bsearch);
 	FN(callmethod);
 	FN(callmethodx);
