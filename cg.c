@@ -1544,7 +1544,7 @@ static Code*
 cglambda(Expr *e, char *id)
 {
 	Lambda *l;
-	Ctl *L, *top;
+	Ctl *top;
 	Ode *ode;
 	Code *code;
 	Insn *i;
@@ -1566,8 +1566,6 @@ cglambda(Expr *e, char *id)
 	fset(&f, Ocl);
 	for(m = 0; m < l->narg; m++)
 		fsetarg(&f, l->arg[m].idx);
-	L = genlabel(ode);
-	emitlabel(L);
 	femit(&f, ode);
 	memset(&p, 0, sizeof(p));
 
@@ -1666,7 +1664,6 @@ l1_codegen(VM *vm, Imm argc, Val *argv, Val *rv)
 Closure*
 haltthunk(void)
 {
-	Ctl *L;
 	Insn *i;
 	Ode *ode;
 	Code *code;
@@ -1676,8 +1673,6 @@ haltthunk(void)
 	finit(&f, 0, 0, 0);
 	fset(&f, Ocl);
 	ode = mkode("$halt");
-	L = genlabel(ode);
-	emitlabel(L);
 	femit(&f, ode);
 	i = nextinsn(ode, 0);
 	i->kind = Ihalt;
@@ -1690,7 +1685,6 @@ haltthunk(void)
 Closure*
 abortthunk(void)
 {
-	Ctl *L;
 	Insn *i;
 	Ode *ode;
 	Code *code;
@@ -1700,8 +1694,6 @@ abortthunk(void)
 	finit(&f, 0, 0, 0);
 	fset(&f, Ocl);
 	ode = mkode("$abort");
-	L = genlabel(ode);
-	emitlabel(L);
 	femit(&f, ode);
 	i = nextinsn(ode, 0);
 	i->kind = Iabort;
@@ -1714,7 +1706,6 @@ abortthunk(void)
 Closure*
 mkkcapture(void)
 {
-	Ctl *L;
 	Insn *i;
 	Ode *ode;
 	Code *code;
@@ -1725,8 +1716,6 @@ mkkcapture(void)
 	fset(&f, Ocl);
 	fsetarg(&f, 0);
 	ode = mkode("kcapture");
-	L = genlabel(ode);
-	emitlabel(L);
 	femit(&f, ode);
 	i = nextinsn(ode, 0);
 	i->kind = Ikg;
@@ -1743,7 +1732,6 @@ mkkcapture(void)
 Closure*
 mkapply(void)
 {
-	Ctl *L;
 	Insn *i;
 	Ode *ode;
 	Code *code;
@@ -1755,8 +1743,6 @@ mkapply(void)
 	fsetarg(&f, 0);
 	fsetarg(&f, 1);
 	ode = mkode("apply");
-	L = genlabel(ode);
-	emitlabel(L);
 	femit(&f, ode);
 	i = nextinsn(ode, 0);
 	i->kind = Iapply;
@@ -1772,7 +1758,6 @@ mkapply(void)
 Closure*
 stkunderflowthunk(void)
 {
-	Ctl *L;
 	Insn *i;
 	Ode *ode;
 	Code *code;
@@ -1782,8 +1767,6 @@ stkunderflowthunk(void)
 	finit(&f, 0, 0, 0);
 	fset(&f, Ocl);
 	ode = mkode("$stkunderflow");
-	L = genlabel(ode);
-	emitlabel(L);
 	femit(&f, ode);
 	i = nextinsn(ode, 0);
 	i->kind = Iunderflow;
@@ -1800,7 +1783,6 @@ stkunderflowthunk(void)
 Closure*
 mkraiseinterrupt(void)
 {
-	Ctl *L;
 	Insn *i;
 	Ode *ode;
 	Code *code;
@@ -1824,8 +1806,6 @@ mkraiseinterrupt(void)
 	nfp = Onfrhd+3;
 
 	ode = mkode("$raiseinterrupt");
-	L = genlabel(ode);
-	emitlabel(L);
 	femit(&f, ode);
 	fpushlm(&f);
 
