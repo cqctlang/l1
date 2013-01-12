@@ -801,7 +801,6 @@ struct Insn {
 	Operand op1, op2, dst;
 	union{
 		Ctl *dstlabel;
-		u64 cnt;
 		s64 scnt;
 	};
 };
