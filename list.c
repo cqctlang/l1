@@ -2,17 +2,6 @@
 #include "util.h"
 #include "syscqct.h"
 
-Val*
-iterlist(Head *hd, Ictx *ictx)
-{
-	List *l;
-	l = (List*)hd;
-	if(ictx->n > 0)
-		return GCiterdone;
-	ictx->n++;
-	return (Val*)&l->v;
-}
-
 Imm
 listlen(List *x)
 {

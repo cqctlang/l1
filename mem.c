@@ -184,7 +184,7 @@ struct Qtype
 	u32 sz;
 	u32 clearit;
 	Freeheadfn free1;
-	Val* (*iter)(Head *hd, Ictx *ictx);
+	u8 (*scan)(Head *hd);
 } Qtype;
 
 typedef
@@ -247,50 +247,54 @@ struct Stats
 static int	freefd(Head*);
 static int	freestr(Head*);
 
-static Val*	iteras(Head*, Ictx*);
-static Val*	iterbox(Head*, Ictx*);
-static Val*	itercl(Head*, Ictx*);
-static Val*	itercont(Head*, Ictx*);
-static Val*	itercval(Head*, Ictx*);
-static Val*	iterdom(Head*, Ictx*);
-static Val*	iterexpr(Head*, Ictx*);
-static Val*	iterfd(Head*, Ictx*);
-static Val*	iterns(Head*, Ictx*);
-static Val*	iterode(Head*, Ictx*);
-static Val*	iterpair(Head*, Ictx*);
-static Val*	iterrange(Head*, Ictx*);
-static Val*	iterrd(Head*, Ictx*);
-static Val*	iterrec(Head*, Ictx*);
-static Val*	itertab(Head*, Ictx*);
-static Val*	itervec(Head*, Ictx*);
+static u8	scanas(Head*);
+static u8	scanbox(Head*);
+static u8	scancl(Head*);
+static u8	scancode(Head*);
+static u8	scancont(Head*);
+static u8	scanctype(Head*);
+static u8	scancval(Head*);
+static u8	scandom(Head*);
+static u8	scanexpr(Head*);
+static u8	scanfd(Head*);
+static u8	scanlist(Head*);
+static u8	scanns(Head*);
+static u8	scanode(Head*);
+static u8	scanpair(Head*);
+static u8	scanrange(Head*);
+static u8	scanrd(Head*);
+static u8	scanrec(Head*);
+static u8	scantab(Head*);
+static u8	scanvec(Head*);
 
-static void	copykstack(Cont *k);
-static void	copystack(void **basep, u32 sz, void **rap, Closure *cl, u32 fpo);
+static void	copykstack(Cont *k, u8 *min);
+static void	copystack(void **basep, u32 sz, void **rap, Closure *cl, u32 fpo, u8 *min);
+static void	gcopy(Val *v, u8 *min);
 
 static Qtype qs[Qnkind] = {
-	[Qas]	 = { "as", sizeof(As), 1, 0, iteras },
-	[Qbox]	 = { "box", sizeof(Box), 0, 0, iterbox },
+	[Qas]	 = { "as", sizeof(As), 1, 0, scanas },
+	[Qbox]	 = { "box", sizeof(Box), 0, 0, scanbox },
 	[Qcid]   = { "cid", sizeof(Cid), 1, 0, 0 },
-	[Qcl]	 = { "closure", sizeof(Closure), 1, 0, itercl },
-	[Qcode]	 = { "code", sizeof(Code), 1, 0, 0 },
-	[Qcont]	 = { "cont", sizeof(Cont), 1, 0, itercont },
-	[Qctype] = { "ctype", sizeof(Ctype), 1, 0, iterctype },
-	[Qcval]  = { "cval", sizeof(Cval), 0, 0, itercval },
-	[Qdom]	 = { "domain", sizeof(Dom), 0, 0, iterdom },
-	[Qexpr]	 = { "expr", sizeof(Expr), 1, 0, iterexpr },
-	[Qfd]	 = { "fd", sizeof(Fd), 0, freefd, iterfd },
-	[Qlist]	 = { "list", sizeof(List), 0, 0, iterlist },
+	[Qcl]	 = { "closure", sizeof(Closure), 1, 0, scancl },
+	[Qcode]	 = { "code", sizeof(Code), 1, 0, scancode },
+	[Qcont]	 = { "cont", sizeof(Cont), 1, 0, scancont },
+	[Qctype] = { "ctype", sizeof(Ctype), 1, 0, scanctype },
+	[Qcval]  = { "cval", sizeof(Cval), 0, 0, scancval },
+	[Qdom]	 = { "domain", sizeof(Dom), 0, 0, scandom },
+	[Qexpr]	 = { "expr", sizeof(Expr), 1, 0, scanexpr },
+	[Qfd]	 = { "fd", sizeof(Fd), 0, freefd, scanfd },
+	[Qlist]	 = { "list", sizeof(List), 0, 0, scanlist },
 	[Qnil]	 = { "nil", sizeof(Head), 0, 0, 0 },
-	[Qns]	 = { "ns", sizeof(Ns), 1, 0, iterns },
-	[Qode]	 = { "ode", sizeof(Ode), 1, freeode, iterode },
-	[Qpair]	 = { "pair", sizeof(Pair), 0, 0, iterpair },
-	[Qrange] = { "range", sizeof(Range), 0, 0, iterrange },
-	[Qrd]    = { "rd", sizeof(Rd), 0, 0, iterrd },
-	[Qrec]	 = { "record", sizeof(Rec), 0, 0, iterrec },
+	[Qns]	 = { "ns", sizeof(Ns), 1, 0, scanns },
+	[Qode]	 = { "ode", sizeof(Ode), 1, freeode, scanode },
+	[Qpair]	 = { "pair", sizeof(Pair), 0, 0, scanpair },
+	[Qrange] = { "range", sizeof(Range), 0, 0, scanrange },
+	[Qrd]    = { "rd", sizeof(Rd), 0, 0, scanrd },
+	[Qrec]	 = { "record", sizeof(Rec), 0, 0, scanrec },
 	[Qstr]	 = { "string", sizeof(Str), 1, freestr, 0 },
-	[Qtab]	 = { "table",  sizeof(Tab), 1, 0, itertab },
+	[Qtab]	 = { "table",  sizeof(Tab), 1, 0, scantab },
 	[Qundef] = { "undef", sizeof(Head), 0, 0, 0 },
-	[Qvec]	 = { "vector", sizeof(Vec), 0, 0, itervec },
+	[Qvec]	 = { "vector", sizeof(Vec), 0, 0, scanvec },
 };
 
 static Segmap	segmap;
@@ -334,307 +338,370 @@ freestr(Head *hd)
 	return 1;
 }
 
-static Val*
-iteras(Head *hd, Ictx *ictx)
+static u8
+scanas(Head *hd)
 {
-	/* FIXME: is it really necessary
-	   to mark dispatch and the other
-	   cached functions? */
+	u8 min;
 	As *as;
+
+	min = Clean;
 	as = (As*)hd;
-	switch(ictx->n++){
-	case 0:
-		return (Val*)&as->mtab;
-	case 1:
-		return (Val*)&as->name;
-	case 2:
-		return (Val*)&as->get;
-	case 3:
-		return (Val*)&as->put;
-	case 4:
-		return (Val*)&as->ismapped;
-	case 5:
-		return (Val*)&as->map;
-	case 6:
-		return (Val*)&as->dispatch;
-	default:
-		return GCiterdone;
-	}
+	gcopy((Val*)&as->mtab, &min);
+	gcopy((Val*)&as->name, &min);
+	gcopy((Val*)&as->get, &min);
+	gcopy((Val*)&as->put, &min);
+	gcopy((Val*)&as->ismapped, &min);
+	gcopy((Val*)&as->map, &min);
+	gcopy((Val*)&as->dispatch, &min);
+	return min;
 }
 
-static Val*
-iterbox(Head *hd, Ictx *ictx)
+static u8
+scanbox(Head *hd)
 {
+	u8 min;
 	Box *box;
+
+	min = Clean;
 	box = (Box*)hd;
-	if(ictx->n > 0)
-		return GCiterdone;
-	ictx->n = 1;
-	return &box->v;
+	gcopy((Val*)&box->v, &min);
+	return min;
 }
 
-static Val*
-itercl(Head *hd, Ictx *ictx)
+static u8
+scancl(Head *hd)
 {
+	u8 min;
+	unsigned i;
 	Closure *cl;
+
+	min = Clean;
 	cl = (Closure*)hd;
-	if(ictx->n > cl->dlen)
-		return GCiterdone;
-	if(ictx->n == cl->dlen){
-		ictx->n++;
-		return (Val*)&cl->code;
+	gcopy((Val*)&cl->code, &min);
+	for(i = 0; i < cl->dlen; i++)
+		gcopy(&cldisp(cl)[i], &min);
+	return min;
+}
+
+static u8
+scancode(Head *h)
+{
+	u8 min;
+	Imm i;
+	Reloc *r;
+	void *v, **cp;
+	void *p;
+	Code *c;
+
+	min = Clean;
+	c = (Code*)h;
+	gcopy((Val*)&c->id, &min);
+	gcopy((Val*)&c->reloc, &min);
+	gcopy((Val*)&c->lm, &min);
+	gcopy((Val*)&c->dbg, &min);
+	gcopy((Val*)&c->src, &min);
+	if(c->kind == Cxfn)
+		gcopy(&c->xfn, &min);
+	if(c->reloc == 0)
+		return min;
+	r = (Reloc*)strdata(c->reloc);
+	p = c+1;
+	for(i = 0; i < c->nreloc; i++, r++){
+		cp = (void**)(p+r->coff);
+		v = *cp;
+		gcopy((Val*)&v, &min);
+		*cp = v;
 	}
-	return &cldisp(cl)[ictx->n++];
+	return min;
 }
 
 /* order matters: copy the stack before the closure. */
-static Val*
-itercont(Head *hd, Ictx *ictx)
+static u8
+scancont(Head *hd)
 {
+	u8 min;
 	Cont *k;
+
+	min = Clean;
 	k = (Cont*)hd;
-	switch(ictx->n++){
-	case 0:
-		return (Val*)&k->link;
-	case 1:
-		copykstack(k);
-		return (Val*)&k->cl;
+	gcopy((Val*)&k->link, &min);
+	copykstack(k, &min);
+	gcopy((Val*)&k->cl, &min);
+	return min;
+}
+
+static u8
+scanode(Head *hd)
+{
+	u8 min;
+	Ode *ode;
+	u32 i;
+
+	min = Clean;
+	ode = (Ode*)hd;
+	for(i = 0; i < ode->ninsn; i++)
+		gcopy((Val*)&ode->src[i], &min);
+	gcopy((Val*)&ode->id, &min);
+	return min;
+}
+
+static u8
+scanctype(Head *hd)
+{
+	u8 min;
+	Ctype *t;
+	Ctypearr *ta;
+	Ctypeconst *tc;
+	Ctypedef *td;
+	Ctypeenum *te;
+	Ctypefunc *tf;
+	Ctypesu *ts;
+	Ctypeptr *tp;
+	Ctypeundef *tu;
+	Ctypebitfield *tw;
+
+	min = Clean;
+	t = (Ctype*)hd;
+	switch(t->tkind){
+	case Tvoid:
+	case Tbase:
+		break;
+	case Tstruct:
+	case Tunion:
+		ts = (Ctypesu*)t;
+		gcopy((Val*)&ts->tag, &min);
+		gcopy((Val*)&ts->field, &min);
+		gcopy(&ts->attr, &min);
+		break;
+	case Tenum:
+		te = (Ctypeenum*)t;
+		gcopy((Val*)&te->tag, &min);
+		gcopy((Val*)&te->sub, &min);
+		gcopy((Val*)&te->konst, &min);
+		break;
+	case Ttypedef:
+		td = (Ctypedef*)t;
+		gcopy((Val*)&td->sub, &min);
+		gcopy((Val*)&td->tid, &min);
+		break;
+	case Tundef:
+		tu = (Ctypeundef*)t;
+		gcopy((Val*)&tu->sub, &min);
+		break;
+	case Tconst:
+		tc = (Ctypeconst*)t;
+		gcopy((Val*)&tc->sub, &min);
+		break;
+	case Tptr:
+		tp = (Ctypeptr*)t;
+		gcopy((Val*)&tp->sub, &min);
+		break;
+	case Tarr:
+		ta = (Ctypearr*)t;
+		gcopy(&ta->cnt, &min);
+		gcopy((Val*)&ta->sub, &min);
+		break;
+	case Tfun:
+		tf = (Ctypefunc*)t;
+		gcopy((Val*)&tf->sub, &min);
+		gcopy((Val*)&tf->param, &min);
+		break;
+	case Tbitfield:
+		tw = (Ctypebitfield*)t;
+		gcopy(&tw->cnt, &min);
+		gcopy(&tw->bit0, &min);
+		gcopy((Val*)&tw->sub, &min);
+		break;
 	default:
-		return GCiterdone;
+		bug();
 	}
+	return min;
 }
 
-static Val*
-iterode(Head *hd, Ictx *ictx)
+static u8
+scancval(Head *hd)
 {
-	Ode *code;
-	u32 n;
-	code = (Ode*)hd;
-	n = ictx->n++;
-	if(n < code->ninsn)
-		return (Val*)&code->src[n];
-	else if(n == code->ninsn)
-		return (Val*)&code->id;
-	else
-		return GCiterdone;
-}
-
-static Val*
-itercval(Head *hd, Ictx *ictx)
-{
+	u8 min;
 	Cval *cval;
+
+	min = Clean;
 	cval = (Cval*)hd;
-
-	switch(ictx->n++){
-	case 0:
-		return (Val*)&cval->dom;
-	case 1:
-		return (Val*)&cval->type;
-	default:
-		return GCiterdone;
-	}
+	gcopy((Val*)&cval->dom, &min);
+	gcopy((Val*)&cval->type, &min);
+	return min;
 }
 
-static Val*
-iterdom(Head *hd, Ictx *ictx)
+static u8
+scandom(Head *hd)
 {
+	u8 min;
 	Dom *dom;
+
+	min = Clean;
 	dom = (Dom*)hd;
-	switch(ictx->n++){
-	case 0:
-		return (Val*)&dom->as;
-	case 1:
-		return (Val*)&dom->ns;
-	case 2:
-		return (Val*)&dom->name;
-	default:
-		return GCiterdone;
-	}
+	gcopy((Val*)&dom->as, &min);
+	gcopy((Val*)&dom->ns, &min);
+	gcopy((Val*)&dom->name, &min);
+	return min;
 }
 
-static Val*
-iterexpr(Head *hd, Ictx *ictx)
+static u8
+scanexpr(Head *hd)
 {
+	u8 min;
 	Expr *e;
+
+	min = Clean;
 	e = (Expr*)hd;
-	switch(ictx->n++){
-	case 0:
-		return (Val*)&e->e1;
-	case 1:
-		return (Val*)&e->e2;
-	case 2:
-		return (Val*)&e->e3;
-	case 3:
-		return (Val*)&e->e4;
-	case 4:
-		return (Val*)&e->aux;
-	case 5:
-		return (Val*)&e->skind;
-	case 6:
-		return (Val*)&e->src;
-	default:
-		return GCiterdone;
-	}
+	gcopy((Val*)&e->e1, &min);
+	gcopy((Val*)&e->e2, &min);
+	gcopy((Val*)&e->e3, &min);
+	gcopy((Val*)&e->e4, &min);
+	gcopy((Val*)&e->aux, &min);
+	gcopy((Val*)&e->skind, &min);
+	gcopy((Val*)&e->src, &min);
+	return min;
 }
 
-static Val*
-iterfd(Head *hd, Ictx *ictx)
+static u8
+scanfd(Head *hd)
 {
+	u8 min;
 	Fd *fd;
+
+	min = Clean;
 	fd = (Fd*)hd;
-	switch(ictx->n++){
-	case 0:
-		return (Val*)&fd->name;
-	case 1:
-		if(fd->flags&Ffn)
-			return GCiterdone;
-		return (Val*)&fd->u.cl.close;
-	case 2:
-		return (Val*)&fd->u.cl.read;
-	case 3:
-		return (Val*)&fd->u.cl.write;
-	default:
-		return GCiterdone;
-	}
+	gcopy((Val*)&fd->name, &min);
+	if(fd->flags&Ffn)
+		return min;
+	gcopy((Val*)&fd->u.cl.close, &min);
+	gcopy((Val*)&fd->u.cl.read, &min);
+	gcopy((Val*)&fd->u.cl.write, &min);
+	return min;
 }
 
-static Val*
-iterns(Head *hd, Ictx *ictx)
+static u8
+scanlist(Head *hd)
 {
-	/* FIXME: is it really necessary
-	   to mark dispatch and the other
-	   cached functions? */
+	u8 min;
+	List *l;
+
+	min = Clean;
+	l = (List*)hd;
+	gcopy((Val*)&l->v, &min);
+	return min;
+}
+
+static u8
+scanns(Head *hd)
+{
+	u8 min;
 	Ns *ns;
-	unsigned n;
+	unsigned i;
 	enum { lastfield = 7 };
 
+	min = Clean;
 	ns = (Ns*)hd;
-	n = ictx->n++;
-	switch(n){
-	case 0:
-		return (Val*)&ns->lookaddr;
-	case 1:
-		return (Val*)&ns->looksym;
-	case 2:
-		return (Val*)&ns->looktype;
-	case 3:
-		return (Val*)&ns->enumtype;
-	case 4:
-		return (Val*)&ns->enumsym;
-	case 5:
-		return (Val*)&ns->name;
-	case 6:
-		return (Val*)&ns->dispatch;
-	case lastfield:
-		return (Val*)&ns->mtab;
-	}
-	n -= lastfield;
-	if(n >= Vnallbase)
-		return GCiterdone;
-	return (Val*)&ns->base[n];
+	gcopy((Val*)&ns->lookaddr, &min);
+	gcopy((Val*)&ns->looksym, &min);
+	gcopy((Val*)&ns->looktype, &min);
+	gcopy((Val*)&ns->enumtype, &min);
+	gcopy((Val*)&ns->enumsym, &min);
+	gcopy((Val*)&ns->name, &min);
+	gcopy((Val*)&ns->dispatch, &min);
+	gcopy((Val*)&ns->mtab, &min);
+	for(i = 0; i < Vnallbase; i++)
+		gcopy((Val*)&ns->base[i], &min);
+	return min;
 }
 
-static Val*
-iterpair(Head *hd, Ictx *ictx)
+static u8
+scanpair(Head *hd)
 {
+	u8 min;
 	Pair *pair;
+
+	min = Clean;
 	pair = (Pair*)hd;
-
-	switch(ictx->n++){
-	case 0:
-		return &pair->cdr;
-	case 1:
-		if(isweak(hd))
-			return GCiterdone;
-		else
-			return &pair->car;
-	default:
-		return GCiterdone;
-	}
+	gcopy(&pair->cdr, &min);
+	if(isweak(hd))
+		return min;
+	gcopy(&pair->car, &min);
+	return min;
 }
 
-static Val*
-iterrange(Head *hd, Ictx *ictx)
+static u8
+scanrange(Head *hd)
 {
+	u8 min;
 	Range *range;
+
+	min = Clean;
 	range = (Range*)hd;
-
-	switch(ictx->n++){
-	case 0:
-		return (Val*)&range->beg;
-	case 1:
-		return (Val*)&range->len;
-	default:
-		return GCiterdone;
-	}
+	gcopy((Val*)&range->beg, &min);
+	gcopy((Val*)&range->len, &min);
+	return min;
 }
 
-static Val*
-iterrd(Head *hd, Ictx *ictx)
+static u8
+scanrd(Head *hd)
 {
+	u8 min;
 	Rd *rd;
+
+	min = Clean;
 	rd = (Rd*)hd;
-	switch(ictx->n++){
-	case 0:
-		return (Val*)&rd->name;
-	case 1:
-		return (Val*)&rd->fname;
-	case 2:
-		return (Val*)&rd->is;
-	case 3:
-		return (Val*)&rd->mk;
-	case 4:
-		return (Val*)&rd->fmt;
-	case 5:
-		return (Val*)&rd->get;
-	case 6:
-		return (Val*)&rd->set;
-	default:
-		return GCiterdone;
-	}
+	gcopy((Val*)&rd->name, &min);
+	gcopy((Val*)&rd->fname, &min);
+	gcopy((Val*)&rd->is, &min);
+	gcopy((Val*)&rd->mk, &min);
+	gcopy((Val*)&rd->fmt, &min);
+	gcopy((Val*)&rd->get, &min);
+	gcopy((Val*)&rd->set, &min);
+	return min;
 }
 
-static Val*
-iterrec(Head *hd, Ictx *ictx)
+static u8
+scanrec(Head *hd)
 {
+	u8 min;
+	u32 i;
 	Rec *r;
+
+	min = Clean;
 	r = (Rec*)hd;
-	if(ictx->n < r->nf)
-		return &recdata(r)[ictx->n++];
-	switch(ictx->n-r->nf){
-	case 0:
-		ictx->n++;
-		return (Val*)&r->rd;
-	default:
-		return GCiterdone;
-	}
+	gcopy((Val*)&r->rd, &min);
+	for(i = 0; i < r->nf; i++)
+		gcopy((Val*)&recdata(r)[i], &min);
+	return min;
 }
 
-static Val*
-itertab(Head *hd, Ictx *ictx)
+static u8
+scantab(Head *hd)
 {
+	u8 min;
 	Tab *t;
+
+	min = Clean;
 	t = (Tab*)hd;
-	switch(ictx->n++){
-	case 0:
-		return (Val*)&t->ht;
-	case 1:
-		return (Val*)&t->tg;
-	case 2:
-		return (Val*)&t->def;
-	default:
-		return GCiterdone;
-	}
+	gcopy((Val*)&t->ht, &min);
+	gcopy((Val*)&t->tg, &min);
+	gcopy((Val*)&t->def, &min);
+	return min;
 }
 
-static Val*
-itervec(Head *hd, Ictx *ictx)
+static u8
+scanvec(Head *hd)
 {
+	u8 min;
 	Vec *vec;
+	Imm i;
+
+	min = Clean;
 	vec = (Vec*)hd;
-	if(ictx->n >= vec->len)
-		return GCiterdone;
-	return &vecdata(vec)[ictx->n++];
+	for(i = 0; i < vec->len; i++)
+		gcopy(&vecdata(vec)[i], &min);
+	return min;
 }
 
 static void*
@@ -1407,60 +1474,14 @@ gcopy(Val *v, u8 *min)
 }
 
 static u8
-scan1code(Code *c)
-{
-	u8 min;
-	Imm i;
-	Reloc *r;
-	void *h, **cp;
-	void *p;
-
-	min = Clean;
-	gcopy((Val*)&c->id, &min);
-	gcopy((Val*)&c->reloc, &min);
-	gcopy((Val*)&c->lm, &min);
-	gcopy((Val*)&c->dbg, &min);
-	gcopy((Val*)&c->src, &min);
-	if(c->kind == Cxfn)
-		gcopy(&c->xfn, &min);
-	if(c->reloc == 0)
-		return min;
-	r = (Reloc*)strdata(c->reloc);
-	p = c+1;
-	for(i = 0; i < c->nreloc; i++, r++){
-		cp = (void**)(p+r->coff);
-		h = *cp;
-		gcopy((Val*)&h, &min);
-		*cp = h;
-	}
-	return min;
-}
-
-static u8
 scan1(Head *h)
 {
-	Ictx ictx;
-	Head **c;
-	u8 min, g;
-	unsigned dbg = alldbg;
+	u8 min;
 
 	min = Clean;
-	if(Vkind(h) == Qcode)
-		return scan1code((Code*)h);
-	if(qs[Vkind(h)].iter == 0)
+	if(qs[Vkind(h)].scan == 0)
 		return min;
-	memset(&ictx, 0, sizeof(ictx));
-	while(1){
-		c = qs[Vkind(h)].iter(h, &ictx);
-		if(c == (Val*)GCiterdone)
-			break;
-		if(dbg)printf("scan1 %p (%s) iter %p %p\n",
-			    h, qs[Vkind(h)].id,
-			    c, *c);
-		g = copy(c);
-		if(g < min)
-			min = g;
-	}
+	min = qs[Vkind(h)].scan(h);
 	return min;
 }
 
@@ -1738,13 +1759,13 @@ toprd(void *u, void *k, void *v)
 }
 
 static void
-copykstack(Cont *k)
+copykstack(Cont *k, u8 *min)
 {
-	copystack(&k->base, k->sz, &k->ra, k->cl, k->sz);
+	copystack(&k->base, k->sz, &k->ra, k->cl, k->sz, min);
 }
 
 static void
-copystack(void **basep, u32 stxsz, void **rap, Closure *cl, u32 fpo)
+copystack(void **basep, u32 stxsz, void **rap, Closure *cl, u32 fpo, u8 *min)
 {
 	void *p, *ra, *base;
 	Seg *s;
@@ -1797,17 +1818,17 @@ copystack(void **basep, u32 stxsz, void **rap, Closure *cl, u32 fpo)
 				    sz > 0 && i < mwbits;
 				    i++, sz--, lp++)
 					if((lm>>i)&1)
-						copy(lp);
+						gcopy(lp, min);
 			}
 		}else
 			for(i = 0; i < sz; i++, lp++)
 				if((lm>>i)&1)
-					copy(lp);
+					gcopy(lp, min);
 
 		/* copy code and update ra */
 		if(cp){
 			coff = (void*)ra-(void*)cp;
-			copy((Val*)&cp);
+			gcopy((Val*)&cp, min);
 			ra = (void*)cp+coff;
 			*rap = ra;
 		}
@@ -2081,6 +2102,7 @@ _gc(u32 g, u32 tg)
 	Closure *cl;
 	u32 fpo;
 	Imm fsz;
+	u8 min;
 
 //	memset(&stats, 0, sizeof(stats));
 	b = usec();
@@ -2136,7 +2158,7 @@ _gc(u32 g, u32 tg)
 			fsz = ra2size(vm->pc, vm->cl->code);
 			vm->fp += fsz;
 			fpo = (void*)vm->fp-vm->stk;
-			copystack(&vm->stk, vm->stksz, (void**)&vm->pc, vm->cl, fpo);
+			copystack(&vm->stk, vm->stksz, (void**)&vm->pc, vm->cl, fpo, &min);
 			copy((Val*)&vm->cl);
 			copy((Val*)&vm->klink);
 			vm->fp = vm->stk+fpo;
@@ -2152,7 +2174,7 @@ _gc(u32 g, u32 tg)
 			ra = vm->fp[Ora];
 			cl = valcl(vm->fp[Ocl]);
 			fpo = (void*)vm->fp-vm->stk;
-			copystack(&vm->stk, vm->stksz, &ra, cl, fpo);
+			copystack(&vm->stk, vm->stksz, &ra, cl, fpo, &min);
 			copy((Val*)&vm->cl);
 			copy((Val*)&vm->klink);
 			copy((Val*)&cl);

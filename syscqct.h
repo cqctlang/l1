@@ -696,11 +696,6 @@ enum {
 };
 
 typedef
-struct Ictx {
-	u32 n;
-} Ictx;
-
-typedef
 struct Vs
 {
 	Expr *vs;
@@ -1424,7 +1419,6 @@ void		fnctype(Env *env);
 u32		hashctype(Ctype *t);
 u32		hashqvctype(Ctype *t);
 void		inittype();
-Val*		iterctype(Head *hd, Ictx *ictx);
 Ctype*		mkctypearr(Ctype *sub, Val cnt);
 Ctype*		mkctypebase(Cbase cbase, Rkind rep);
 Ctype*		mkctypebitfield(Ctype *sub, Val cnt, Val bit0);
@@ -1460,7 +1454,6 @@ void		fncval(Env *env);
 int		equallist(List *a, List *b);
 void		fnlist(Env *env);
 u32		hashlist(List *l);
-Val*		iterlist(Head *hd, Ictx *ictx);
 void		l1_listref(VM *vm, Imm argc, Val *argv, Val *rv);
 void		l1_listset(VM *vm, Imm argc, Val *argv, Val *rv);
 void		_listappend(List *lst, Val v);
@@ -1476,7 +1469,6 @@ List*		listset(List *lst, Imm idx, Val v);
 List*		mklist(void);
 List*		mklistinit(Imm len, Val v);
 List*		mklistn(Imm sz);
-
 
 /* tab.c */
 void		fntab(Env *env);
