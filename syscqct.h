@@ -800,7 +800,6 @@ struct Insn {
 	ikind kind;
 	Operand op1, op2, dst;
 	union{
-		Insn *targ;
 		Ctl *dstlabel;
 		u64 cnt;
 		s64 scnt;
