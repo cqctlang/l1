@@ -786,7 +786,6 @@ struct Ctl {
 
 	/* ckind == Clabel */
 	char *label;		/* for humans, only; (duplicates in code ok) */
-	int used;
 	unsigned long insn;
 
 	/* ckind == Clabelpair */

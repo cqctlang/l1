@@ -87,7 +87,6 @@ genlabel(Ode *code, char *s)
 		snprint(buf, sizeof(buf), "L%d", labelseed++);
 		ctl->label = xstrdup(buf);
 	}
-	ctl->used = 0;
 	return ctl;
 }
 
@@ -856,7 +855,6 @@ cgjmp(Ode *code, CGEnv *p, Ctl *ctl, Ctl *nxt, Src src)
 		i = nextinsn(code, src);
 		i->kind = Ijmp;
 		i->dstlabel = ctl;
-		ctl->used = 1;
 	}
 }
 
@@ -939,7 +937,6 @@ cgbranch(Ode *code, CGEnv *p, Ctl *ctl, Ctl *nxt, Src src)
 		i->kind = Ijnz;
 		randloc(&i->op1, AC);
 		i->dstlabel = l1;
-		l1->used = 1;
 		cgjmp(code, p, l2, nxt, src);
 	}else{
 		i = nextinsn(code, src);
@@ -948,7 +945,6 @@ cgbranch(Ode *code, CGEnv *p, Ctl *ctl, Ctl *nxt, Src src)
 		i->kind = Ijz;
 		randloc(&i->op1, AC);
 		i->dstlabel = l2;
-		l2->used = 1;
 		cgjmp(code, p, l1, nxt, src);
 	}
 }
@@ -1584,7 +1580,6 @@ cglambda(Expr *e, char *id)
 	for(m = 0; m < l->narg; m++)
 		fsetarg(&f, l->arg[m].idx);
 	L = genlabel(ode, id);
-	L->used = 1;
 	emitlabel(L, e);
 	femit(&f, ode);
 	memset(&p, 0, sizeof(p));
@@ -1695,7 +1690,6 @@ haltthunk(void)
 	fset(&f, Ocl);
 	ode = mkode("$halt");
 	L = genlabel(ode, "$halt");
-	L->used = 1;
 	emitlabel(L, 0);
 	femit(&f, ode);
 	i = nextinsn(ode, 0);
@@ -1720,7 +1714,6 @@ abortthunk(void)
 	fset(&f, Ocl);
 	ode = mkode("$abort");
 	L = genlabel(ode, "$abort");
-	L->used = 1;
 	emitlabel(L, 0);
 	femit(&f, ode);
 	i = nextinsn(ode, 0);
@@ -1746,7 +1739,6 @@ mkkcapture(void)
 	fsetarg(&f, 0);
 	ode = mkode("kcapture");
 	L = genlabel(ode, "kcapture");
-	L->used = 1;
 	emitlabel(L, 0);
 	femit(&f, ode);
 	i = nextinsn(ode, 0);
@@ -1777,7 +1769,6 @@ mkapply(void)
 	fsetarg(&f, 1);
 	ode = mkode("apply");
 	L = genlabel(ode, "apply");
-	L->used = 1;
 	emitlabel(L, 0);
 	femit(&f, ode);
 	i = nextinsn(ode, 0);
@@ -1805,7 +1796,6 @@ stkunderflowthunk(void)
 	fset(&f, Ocl);
 	ode = mkode("$stkunderflow");
 	L = genlabel(ode, "$stkunderflow");
-	L->used = 1;
 	emitlabel(L, 0);
 	femit(&f, ode);
 	i = nextinsn(ode, 0);
@@ -1848,7 +1838,6 @@ mkraiseinterrupt(void)
 
 	ode = mkode("$raiseinterrupt");
 	L = genlabel(ode, "$raiseinterrupt");
-	L->used = 1;
 	emitlabel(L, 0);
 	femit(&f, ode);
 	fpushlm(&f);
