@@ -17,7 +17,7 @@
 		if(((p->bits>>5)&7) == 3)
 			mf += esize(p);
 		else{
-			ml += szcode((`Code*)p, tab);
+			ml += szcode((Code*)p, tab);
 			nl++;
 		}
 		p = p->alink;
@@ -109,21 +109,21 @@
 	dom = domof(e);
 	switch(e->kind){
 	case dom`Eid:
-		v = (`Var*)e->xp;
+		v = (Var*)e->xp;
 		if(v->where == dom`Vtop)
 			/* other wheres point to lambda/block vars  */
 			m += esize(v);
 		break;
 	case dom`Elambda:
-		m += szlambda((`Lambda*)e->xp);
+		m += szlambda((Lambda*)e->xp);
 		break;
 	case dom`Eblock:
-		m += szblock((`Block*)e->xp);
+		m += szblock((Block*)e->xp);
 		break;
 	case dom`Etypedef:
 	case dom`Edecl:
 	case dom`Edecls:
-		m += szdecl((`Decl*)e->xp);
+		m += szdecl((Decl*)e->xp);
 		break;
 	default:
 		break;
@@ -191,7 +191,7 @@
 	@local m, dom;
 	m = 0;
 	dom = domof(en);
-	if(en == (`Enum*)dom`EmptyDecl)
+	if(en == (Enum*)dom`EmptyDecl)
 		return 0;
 	while(en){
 		m += szexpr(en->val);
@@ -238,7 +238,7 @@
 		return 0;
 	p = (void*)p;
 	p -= sizeof(dom`size_t);
-	p = (`size_t*)p;
+	p = (size_t*)p;
 	x = *p;
 	return sizeof(dom`size_t)+x;
 }
