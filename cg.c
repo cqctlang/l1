@@ -1996,7 +1996,7 @@ kresumecode(void)
 	i = nextinsn(ode, 0);
 	i->kind = Iabort;
 
-	code = mkvmcode(ode, 0);
+	code = mkvmcode(ode, 2);
 	return code;
 }
 

@@ -6653,6 +6653,8 @@ l1_mkcl(VM *vm, Imm argc, Val *argv, Val *rv)
 	checkarg(vm, argv, 0, Qcode);
 	c = valcode(argv[0]);
 	dlen = argc-1;
+	if(dlen != c->nfree)
+		vmerr(vm, "wrong number of free variables");
 	cl = mkcl(c, dlen);
 	for(i = 0; i < dlen; i++)
 		cldisp(cl)[i] = argv[i+1];
