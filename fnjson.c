@@ -417,8 +417,8 @@ l1_json2val(VM *vm, Imm argc, Val *argv, Val *rv)
 	mtok = 1024;
 
 	jsmn_init(&jsmn);
-retry:
 	tok = emalloc(mtok*sizeof(jsmntok_t));
+retry:
 	r = jsmn_parse(&jsmn, s, tok, mtok);
 
 	switch(r){
