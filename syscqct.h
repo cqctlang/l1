@@ -823,9 +823,8 @@ struct Dbg {
 struct Ode {
 	Head hd;
 	unsigned long ninsn, maxinsn;
-	Insn *insn;
+	Str *insn;
 	Cid *id;
-	Ctl **labels;
 	Src *src;
 	Ctl *clist;
 	u64 *lm;

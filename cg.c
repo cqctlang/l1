@@ -114,11 +114,6 @@ emitlabel(Ctl *ctl, Expr *e)
 		fatal("attempt to emit label pair");
 
 	ctl->insn = code->ninsn;
-	if(code->labels[code->ninsn])
-		return;
-//		fatal("multiple labels %s,%s", ctl->label,
-//		      code->labels[code->ninsn]->label);
-	code->labels[code->ninsn] = ctl;
 }
 
 static Ode*
@@ -128,8 +123,7 @@ mkode(char *id)
 	code = (Ode*)malode();
 	code->id = mkcid0(id);
 	code->maxinsn = InsnAlloc;
-	code->insn = emalloc(code->maxinsn*sizeof(Insn));
-	code->labels = emalloc(code->maxinsn*sizeof(Ctl*));
+	code->insn = mkstrn(code->maxinsn*sizeof(Insn));
 	code->src = emalloc(code->maxinsn*sizeof(Src));
 	code->ninsn = 0;
 	code->lm = emalloc(128*sizeof(u64));
@@ -155,8 +149,6 @@ freeode(Head *hd)
 		freelabel(p);
 		p = q;
 	}
-	efree(code->insn);
-	efree(code->labels);
 	efree(code->lm);
 	efree(code->dbg);
 	efree(code->src);
@@ -169,18 +161,13 @@ nextinsn(Ode *code, Src src)
 	Insn *in;
 	/* plan for one extra instruction for emitlabel */
 	if(code->ninsn+1 >= code->maxinsn){
-		code->insn = erealloc(code->insn,
-				      code->maxinsn*sizeof(Insn),
-				      2*code->maxinsn*sizeof(Insn));
-		code->labels = erealloc(code->labels,
-					code->maxinsn*sizeof(Ctl*),
-					2*code->maxinsn*sizeof(Ctl*));
+		code->insn = strrealloc(code->insn, 2*code->maxinsn*sizeof(Insn));
 		code->src = erealloc(code->src,
 				     code->maxinsn*sizeof(Src),
 				     2*code->maxinsn*sizeof(Src));
 		code->maxinsn *= 2;
 	}
-	in = &code->insn[code->ninsn];
+	in = &((Insn*)strdata(code->insn))[code->ninsn];
 	if(src == 0)
 		src = mksrcfake("system code");
 	code->src[code->ninsn] = src;
@@ -516,7 +503,7 @@ mkvmcode(Ode *o, u32 nfree)
 	c = mkcode(Cvm, trampsize+n*sizeof(Insn));
 	c->id = o->id;
 	memcpy(codetramp(c), trampentry->buf, trampentry->n);
-	memcpy(codeinsn(c), o->insn, o->ninsn*sizeof(Insn));
+	memcpy(codeinsn(c), strdata(o->insn), o->ninsn*sizeof(Insn));
 	c->lm = mkstr((char*)o->lm, o->nlm*sizeof(u64));
 	c->dbg = mkstr((char*)o->dbg, o->ndbg*sizeof(Dbg));
 	c->ndbg = o->ndbg;
@@ -1641,7 +1628,7 @@ cglambda(Expr *e, char *id)
 	cg(e->e2, ode, &p, AC, p.Return, top, p.Return, &f);
 
 	/* finish Ichksp */
-	i = &ode->insn[idx];
+	i = &((Insn*)strdata(ode->insn))[idx];
 	randimm(&i->op1, f.maxfsz);
 
 	/* FIXME: is this redundant wrt p.Return?
