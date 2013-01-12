@@ -13,7 +13,7 @@ struct CGstats
 
 typedef
 struct CGEnv {
-	Ctl *Return;
+	Ctlidx Return;
 	HT *labels;
 } CGEnv;
 
@@ -45,58 +45,61 @@ newloc(Location *loc, unsigned kind, unsigned idx, unsigned indirect)
 	loc->loc = LOC(idx,indirect,kind);
 }
 
-static Ctl*
+static Ctlidx
 mklabel(Ode *code)
 {
 	Ctl *ctl;
 	ctl = emalloc(sizeof(Ctl));
-	ctl->link = code->clist;
-	ctl->ode = code;
-	code->clist = ctl;
-	return ctl;
+	if(code->nctl >= code->mctl){
+		code->ctl = strrealloc(code->ctl, 2*code->mctl*sizeof(Ctl));
+		code->mctl *= 2;
+	}
+	return code->nctl++;
 }
 
-static void
-freelabel(Ctl *ctl)
+static Ctl*
+idx2ctl(Ode *code, Ctlidx idx)
 {
-	efree(ctl);
+	return ((Ctl*)strdata(code->ctl))+idx;
 }
-
-static unsigned labelseed = 0;
 
 void
 resetlabels()
 {
-	labelseed = 0;
 	resetcpilabel();
 }
 
-static Ctl*
+static Ctlidx
 genlabel(Ode *code)
 {
+	Ctlidx idx;
 	Ctl *ctl;
 
-	ctl = mklabel(code);
+	idx = mklabel(code);
+	ctl = idx2ctl(code, idx);
 	ctl->ckind = Clabel;
-	return ctl;
+	return idx;
 }
 
-static Ctl*
-genlabelpair(Ode *code, Ctl *l1, Ctl *l2)
+static Ctlidx
+genlabelpair(Ode *code, Ctlidx l1, Ctlidx l2)
 {
+	Ctlidx idx;
 	Ctl *ctl;
-	ctl = mklabel(code);
+
+	idx = mklabel(code);
+	ctl = idx2ctl(code, idx);
 	ctl->ckind = Clabelpair;
 	ctl->l1 = l1;
 	ctl->l2 = l2;
-	return ctl;
+	return idx;
 }
 
 static void
-emitlabel(Ctl *ctl)
+emitlabel(Ode *code, Ctlidx idx)
 {
-	Ode *code;
-	code = ctl->ode;
+	Ctl *ctl;
+	ctl = idx2ctl(code, idx);
 	if(ctl->ckind != Clabel)
 		fatal("attempt to emit label pair");
 	ctl->insn = code->ninsn;
@@ -108,16 +111,19 @@ mkode(char *id)
 	Ode *code;
 	code = (Ode*)malode();
 	code->id = mkcid0(id);
+	code->ninsn = 0;
 	code->maxinsn = InsnAlloc;
 	code->insn = mkstrn(code->maxinsn*sizeof(Insn));
+	code->nctl = 0;
+	code->mctl = 128;
+	code->ctl = mkstrn(code->mctl*sizeof(Ctl));
 	code->src = emalloc(code->maxinsn*sizeof(Src));
-	code->ninsn = 0;
-	code->lm = emalloc(128*sizeof(u64));
 	code->nlm = 0;
 	code->mlm = 128;
-	code->dbg = emalloc(128*sizeof(Dbg));
+	code->lm = emalloc(code->mlm*sizeof(u64));
 	code->ndbg = 0;
 	code->mdbg = 128;
+	code->dbg = emalloc(code->mdbg*sizeof(Dbg));
 	quard((Val)code);
 	return code;
 }
@@ -126,15 +132,7 @@ int
 freeode(Head *hd)
 {
 	Ode *code;
-	Ctl *p, *q;
-
 	code = (Ode*)hd;
-	p = code->clist;
-	while(p){
-		q = p->link;
-		freelabel(p);
-		p = q;
-	}
 	efree(code->lm);
 	efree(code->dbg);
 	efree(code->src);
@@ -439,17 +437,19 @@ setreloc(Code *c)
 }
 
 static void
-setinsn(Code *c)
+setinsn(Ode *c)
 {
-	Insn *i, *t, *e;
-	i = codeinsn(c);
-	e = codeend(c);
-	for(; i < e; i++)
+	Ctl *ctl;
+	Insn *i, *s, *t, *e;
+	s = (Insn*)strdata(c->insn);
+	e = s+c->ninsn;
+	for(i = s; i < e; i++)
 		switch(i->kind){
 		case Ijmp:
 		case Ijnz:
 		case Ijz:
-			t = (Insn*)codeinsn(c)+i->dstlabel->insn;
+			ctl = idx2ctl(c, i->dstidx);
+			t = s+ctl->insn;
 			i->scnt = t-(i+1);
 			break;
 		default:
@@ -485,6 +485,7 @@ mkvmcode(Ode *o, u32 nfree)
 	Code *c;
 	Imm n;
 
+	setinsn(o);
 	n = o->ninsn;
 	c = mkcode(Cvm, trampsize+n*sizeof(Insn));
 	c->id = o->id;
@@ -499,7 +500,6 @@ mkvmcode(Ode *o, u32 nfree)
 	c->nfree = nfree;
 	memcpy(vecdata(c->src), o->src, n*sizeof(Src));
 
-	setinsn(c);
 	setreloc(c);
 	setgo(c);
 	return c;
@@ -690,7 +690,7 @@ reclabels(Expr *e, Ode *code, HT *ls)
 		break;
 	case Elabel:
 		id = idsym(e->e1);
-		hputs(ls, id, strlen(id), genlabel(code));
+		hputs(ls, id, strlen(id), (void*)(uptr)genlabel(code));
 		break;
 	case Eelist:
 		p = e;
@@ -827,7 +827,7 @@ cgrand(Frame *f, Operand *rand, Expr *e)
 }
 
 static void
-cgjmp(Ode *code, CGEnv *p, Ctl *ctl, Ctl *nxt, Src src)
+cgjmp(Ode *code, CGEnv *p, Ctlidx ctl, Ctlidx nxt, Src src)
 {
 	Insn *i;
 
@@ -841,12 +841,12 @@ cgjmp(Ode *code, CGEnv *p, Ctl *ctl, Ctl *nxt, Src src)
 		i->kind = Ichkint;
 		i = nextinsn(code, src);
 		i->kind = Ijmp;
-		i->dstlabel = ctl;
+		i->dstidx = ctl;
 	}
 }
 
 static int
-returnlabel(CGEnv *p, Ctl *ctl)
+returnlabel(CGEnv *p, Ctlidx ctl)
 {
 	return ctl == p->Return;
 }
@@ -883,10 +883,10 @@ nextstmt(Expr *e)
 }
 #endif
 
-static Ctl*
+static Ctlidx
 escapectl(Expr *e, CGEnv *p)
 {
-	Ctl *rv;
+	Ctlidx rv;
 	Expr *kind;
 
 	rv = 0;
@@ -897,20 +897,22 @@ escapectl(Expr *e, CGEnv *p)
 	// FIXME harder: is the above still relevant now that box init
 	//               is emitted in cpv?
 	else if(kind->kind == Egoto)
-		rv = hgets(p->labels, idsym(kind), strlen(idsym(kind)));
+		rv = (Ctlidx)(uptr)hgets(p->labels, idsym(kind), strlen(idsym(kind)));
 	else
 		fatal("not an escaping expression");
-	if(rv == 0)
-		fatal("escaping expression has undefined target");
+//	if(rv == 0)
+//		fatal("escaping expression has undefined target");
 	return rv;
 }
 
 static void
-cgbranch(Ode *code, CGEnv *p, Ctl *ctl, Ctl *nxt, Src src)
+cgbranch(Ode *code, CGEnv *p, Ctlidx idx, Ctlidx nxt, Src src)
 {
 	Insn *i;
-	Ctl *l1, *l2;
+	Ctlidx l1, l2;
+	Ctl *ctl;
 
+	ctl = idx2ctl(code, idx);
 	l1 = ctl->l1;
 	l2 = ctl->l2;
 
@@ -923,7 +925,7 @@ cgbranch(Ode *code, CGEnv *p, Ctl *ctl, Ctl *nxt, Src src)
 		i = nextinsn(code, src);
 		i->kind = Ijnz;
 		randloc(&i->op1, AC);
-		i->dstlabel = l1;
+		i->dstidx = l1;
 		cgjmp(code, p, l2, nxt, src);
 	}else{
 		i = nextinsn(code, src);
@@ -931,18 +933,20 @@ cgbranch(Ode *code, CGEnv *p, Ctl *ctl, Ctl *nxt, Src src)
 		i = nextinsn(code, src);
 		i->kind = Ijz;
 		randloc(&i->op1, AC);
-		i->dstlabel = l2;
+		i->dstidx = l2;
 		cgjmp(code, p, l1, nxt, src);
 	}
 }
 
 static void
-cgctl(Ode *code, CGEnv *p, Ctl *ctl, Ctl *nxt, Src src)
+cgctl(Ode *code, CGEnv *p, Ctlidx idx, Ctlidx nxt, Src src)
 {
+	Ctl *ctl;
+	ctl = idx2ctl(code, idx);
 	if(ctl->ckind == Clabel)
-		cgjmp(code, p, ctl, nxt, src);
+		cgjmp(code, p, idx, nxt, src);
 	else if(ctl->ckind == Clabelpair)
-		cgbranch(code, p, ctl, nxt, src);
+		cgbranch(code, p, idx, nxt, src);
 	else
 		fatal("bad control destination");
 }
@@ -1112,10 +1116,10 @@ femit(Frame *f, Ode *c)
 }
 
 static void
-cg(Expr *e, Ode *code, CGEnv *p, Location *loc, Ctl *ctl, Ctl *nxt,
+cg(Expr *e, Ode *code, CGEnv *p, Location *loc, Ctlidx ctl, Ctlidx nxt,
    Frame *f)
 {
-	Ctl *L0, *L, *Lthen, *Lelse, *lpair;
+	Ctlidx L0, L, Lthen, Lelse, lpair;
 	Operand r1, r2;
 	Expr *q, *ep;
 	Insn *i;
@@ -1143,7 +1147,7 @@ cg(Expr *e, Ode *code, CGEnv *p, Location *loc, Ctl *ctl, Ctl *nxt,
 			}
 			L = genlabel(code);
 			cg(ep->e1, code, p, Effect, L, L, f);
-			emitlabel(L);
+			emitlabel(code, L);
 			femit(f, code);
 			ep = ep->e2;
 		}
@@ -1158,7 +1162,7 @@ cg(Expr *e, Ode *code, CGEnv *p, Location *loc, Ctl *ctl, Ctl *nxt,
 		if(loc != Effect){
 			L = genlabel(code);
 			cg(e->e2, code, p, &dst, L, L, f);
-			emitlabel(L);
+			emitlabel(code, L);
 			femit(f, code);
 			i = nextinsn(code, e->src);
 			i->kind = Imov;
@@ -1176,7 +1180,7 @@ cg(Expr *e, Ode *code, CGEnv *p, Location *loc, Ctl *ctl, Ctl *nxt,
 		if(loc != Effect){
 			L = genlabel(code);
 			cg(e->e2, code, p, &dst, L, L, f);
-			emitlabel(L);
+			emitlabel(code, L);
 			femit(f, code);
 			i = nextinsn(code, e->src);
 			i->kind = Imov;
@@ -1197,7 +1201,7 @@ cg(Expr *e, Ode *code, CGEnv *p, Location *loc, Ctl *ctl, Ctl *nxt,
 		else{
 			L = genlabel(code);
 			cg(e->e1, code, p, AC, L, L, f);
-			emitlabel(L);
+			emitlabel(code, L);
 			femit(f, code);
 			randloc(&r1, AC);
 		}
@@ -1217,13 +1221,13 @@ cg(Expr *e, Ode *code, CGEnv *p, Location *loc, Ctl *ctl, Ctl *nxt,
 			cgrand(f, &r1, e->e1);
 			L = genlabel(code);
 			cg(e->e2, code, p, AC, L, L, f);
-			emitlabel(L);
+			emitlabel(code, L);
 			femit(f, code);
 			randloc(&r2, AC);
 		}else if(issimple(e->e2)){
 			L = genlabel(code);
 			cg(e->e1, code, p, AC, L, L, f);
-			emitlabel(L);
+			emitlabel(code, L);
 			femit(f, code);
 			randloc(&r1, AC);
 			cgrand(f, &r2, e->e2);
@@ -1231,7 +1235,7 @@ cg(Expr *e, Ode *code, CGEnv *p, Location *loc, Ctl *ctl, Ctl *nxt,
 			L0 = genlabel(code);
 			randframeloc(&r1, f->tmp);
 			cg(e->e1, code, p, &r1.u.loc, L0, L0, f);
-			emitlabel(L0);
+			emitlabel(code, L0);
 			femit(f, code);
 			L = genlabel(code);
 			fpushlm(f);
@@ -1239,7 +1243,7 @@ cg(Expr *e, Ode *code, CGEnv *p, Location *loc, Ctl *ctl, Ctl *nxt,
 			cg(e->e2, code, p, AC, L, L, f);
 			f->tmp--;
 			fpoplm(f);
-			emitlabel(L);
+			emitlabel(code, L);
 			femit(f, code);
 			randloc(&r2, AC);
 		}
@@ -1285,7 +1289,7 @@ cg(Expr *e, Ode *code, CGEnv *p, Location *loc, Ctl *ctl, Ctl *nxt,
 			}else{
 				L = genlabel(code);
 				cg(q->e1, code, p, AC, L, L, f);
-				emitlabel(L);
+				emitlabel(code, L);
 				femit(f, code);
 				i = nextinsn(code, q->e1->src);
 				i->kind = Imov;
@@ -1304,7 +1308,7 @@ cg(Expr *e, Ode *code, CGEnv *p, Location *loc, Ctl *ctl, Ctl *nxt,
 			femit(f, code);
 			L = genlabel(code);
 			cg(e->e1, code, p, AC, L, L, f);
-			emitlabel(L);
+			emitlabel(code, L);
 			femit(f, code);
 		}
 
@@ -1453,7 +1457,7 @@ cg(Expr *e, Ode *code, CGEnv *p, Location *loc, Ctl *ctl, Ctl *nxt,
 				lpair = genlabelpair(code, escapectl(e->e2, p),
 						     Lelse);
 				cg(e->e1, code, p, AC, lpair, Lelse, f);
-				emitlabel(Lelse);
+				emitlabel(code, Lelse);
 				femit(f, code);
 				cg(e->e3, code, p, loc, ctl,
 				   nxt, f);
@@ -1462,7 +1466,7 @@ cg(Expr *e, Ode *code, CGEnv *p, Location *loc, Ctl *ctl, Ctl *nxt,
 				lpair = genlabelpair(code, Lthen,
 						     escapectl(e->e3, p));
 				cg(e->e1, code, p, AC, lpair, Lthen, f);
-				emitlabel(Lthen);
+				emitlabel(code, Lthen);
 				femit(f, code);
 				cg(e->e2, code, p, loc, ctl,
 				   nxt, f);
@@ -1475,11 +1479,11 @@ cg(Expr *e, Ode *code, CGEnv *p, Location *loc, Ctl *ctl, Ctl *nxt,
 				Lelse = genlabel(code);
 				lpair = genlabelpair(code, Lthen, Lelse);
 				cg(e->e1, code, p, AC, lpair, Lthen, f);
-				emitlabel(Lthen);
+				emitlabel(code, Lthen);
 				femit(f, code);
 				cg(e->e2, code, p, loc, ctl,
 				   Lelse, f);
-				emitlabel(Lelse);
+				emitlabel(code, Lelse);
 				femit(f, code);
 				cg(e->e3, code, p, loc, ctl,
 				   nxt, f);
@@ -1493,7 +1497,7 @@ cg(Expr *e, Ode *code, CGEnv *p, Location *loc, Ctl *ctl, Ctl *nxt,
 				Lthen = genlabel(code);
 				lpair = genlabelpair(code, Lthen, ctl);
 				cg(e->e1, code, p, AC, lpair, Lthen, f);
-				emitlabel(Lthen);
+				emitlabel(code, Lthen);
 				femit(f, code);
 				cg(e->e2, code, p, loc, ctl,
 				   nxt, f);
@@ -1515,16 +1519,16 @@ cg(Expr *e, Ode *code, CGEnv *p, Location *loc, Ctl *ctl, Ctl *nxt,
 		femit(f, code);
 		break;
 	case Egoto:
-		L = hgets(p->labels, idsym(e->e1), strlen(idsym(e->e1)));
-		if(L == 0)
-			fatal("goto bug");
+		L = (Ctlidx)(uptr)hgets(p->labels, idsym(e->e1), strlen(idsym(e->e1)));
+//		if(L == 0)
+//			fatal("goto bug");
 		cgjmp(code, p, L, nxt, e->src);
 		break;
 	case Elabel:
-		L = hgets(p->labels, idsym(e->e1), strlen(idsym(e->e1)));
-		if(L == 0)
-			fatal("goto bug");
-		emitlabel(L);
+		L = (Ctlidx)(uptr)hgets(p->labels, idsym(e->e1), strlen(idsym(e->e1)));
+//		if(L == 0)
+//			fatal("goto bug");
+		emitlabel(code, L);
 		femit(f, code);
 		break;
 	default:
@@ -1604,7 +1608,7 @@ cglambda(Expr *e, char *id)
 	/* FIXME: is this redundant wrt p.Return?
 	   (I bet not always; I bet we've tried this before.) */
 
-	emitlabel(p.Return);
+	emitlabel(ode, p.Return);
 	femit(&f, ode);
 	i = nextinsn(ode, e->src);
 	i->kind = Iret;

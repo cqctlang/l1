@@ -781,6 +781,8 @@ enum {
 	Clabelpair,
 } Ctlkind;
 
+typedef u32 Ctlidx;
+
 struct Ctl {
 	Ctlkind ckind;
 
@@ -788,10 +790,7 @@ struct Ctl {
 	unsigned long insn;
 
 	/* ckind == Clabelpair */
-	Ctl *l1, *l2;
-
-	Ctl *link;
-	Ode *ode;
+	Ctlidx l1, l2;
 };
 
 struct Insn {
@@ -799,7 +798,7 @@ struct Insn {
 	ikind kind;
 	Operand op1, op2, dst;
 	union{
-		Ctl *dstlabel;
+		Ctlidx dstidx;
 		s64 scnt;
 	};
 };
@@ -822,7 +821,8 @@ struct Ode {
 	Str *insn;
 	Cid *id;
 	Src *src;
-	Ctl *clist;
+	Str *ctl;
+	u32 nctl, mctl;
 	u64 *lm;
 	u32 nlm, mlm;
 	Dbg *dbg;
