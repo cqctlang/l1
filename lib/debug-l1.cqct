@@ -496,6 +496,224 @@ rdsetfmt(@record malevent { time, addr },
 	}
 }
 
+@define headbits(o)  { ((Head*)o)->bits; }
+@define Vfwd(o)      { (headbits(o)>>0)&1; }
+@define Vfwdaddr(o)  { headbits(o)&~1ULL; }
+@define Vkind(o)     { headbits(o)>>1&0x1f; }
+@define codekind(c)  { return c->kind; }
+@define _codeinsn(c) { (void*)(c+1); }
+@define codeinsn(c)
+{
+	if(codekind(c) == 0) /* Cvm */
+		return _codeinsn(c)+64; /* FIXME: trampsize */
+	else
+		return _codeinsn(c);
+}
+@define codeend(c)  { (void*)c + c->sz; }
+
+@define codeid(c)   { ciddata(c->id); }
+
+@define pcinrange(pc, c)
+{
+	@local b, e;
+	b = codeinsn(c);
+	e = codeend(c);
+//	printf(" b = %p\n", b);
+//	printf("pc = %p\n", pc);
+//	printf(" e = %p\n", e);
+	return pc >= b && pc < e;
+}
+
+@define strdata(s)
+{
+	switch(s->skind){
+	case 1: /* Sheap */
+		return (char*)(s+1);
+	case 0: /* Sperm */
+		s = (Strperm*)s;
+		return s->s;
+	case 2: /* Smalloc */
+		s = (Strmalloc*)s;
+		return s->s;
+	case 3: /* Smmap */
+		s = (Strmmap*)s;
+		return s->s;
+	default:
+		error("unrecognized string kind (%d)", s->kind);
+	}
+}
+
+@define lookdbg(c, off)
+{
+	@local d, e, n;
+	d = (Dbg*)strdata(c->dbg);
+	e = d+c->ndbg;
+	if(d->off > off)
+		error("cannot find pc offset (%x) in code debug info", off);
+	while(d < e-1){
+		n = d+1;
+		if(n->off > off)
+			return d;
+		d = n;
+	}
+	return d;
+}
+
+@define ra2size(ra, cp)
+{
+	@local off, d;
+	switch(codekind(cp)){
+	case 0: /* Cvm */
+		if(!pcinrange(ra, cp))
+			error("pc (%p) lies outside text (%p - %p)",
+			      ra, codeinsn(cp), codeend(cp));
+		off = (void*)ra-codeinsn(cp);
+		d = lookdbg(cp, off);
+		return d->fsz;
+		break;
+	case 1: /* Ccfn */
+	case 2: /* Cccl */
+		return (u64)ra;
+		break;
+	case 3: /* Cxfn */
+		error("unimplemented for Cxfn");
+	default:
+		error("unrecognized code kind (%d)", cp->kind);
+	}
+}
+
+@define ciddata(cid)
+{
+	return (char*)(cid+1);
+}
+
+@define printframe(fp, ra, cp)
+{
+	printf("\t%p\t%p\t%20s\n", fp, ra, ciddata(cp->id));
+}
+
+/* FIXME: walk through $halt, e.g.,
+ in debug-stx9.2/l1/l1.db:
+before @670039772:
+	6d26c80	            kcapture
+	7a00640	               $halt
+	7a00640	               $halt
+error: no bytes -- what do i do?
+ */
+@define vmbacktrace(exe, t)
+{
+	@local dom, vm;
+	@local ra, cl, fp, cp;
+
+	dom = exe.dom(t);
+	vm = dom`vms[0];
+	
+	printf("vmbacktrace: vm->stk = %p vm->fp = %p vm->klink = %p\n",
+               vm->stk, vm->fp, vm->klink);
+
+	ra = vm->pc;
+	cl = vm->cl;
+	fp = vm->fp; /* Val* */
+	if(fp < vm->stk)
+		error("vmbacktrace: fp is below stack (stack = %p - %p, fp = %p)\n",
+		      vm->stk, vm->stk+vm->stksz, fp);
+	if(fp >= vm->stk+vm->stksz)
+		error("vmbacktrace: fp is above stack (stack = %p - %p, fp = %p)\n",
+		      vm->stk, vm->stk+vm->stksz, fp);
+	if(ra == 0)
+		return;
+	cp = cl->code;
+	printframe(0, ra, cp);
+	while(fp > vm->stk){
+		ra = fp[0];
+		cl = (Closure*)fp[1];
+		if(cl == 0){
+		      printf("leaving for cl==0\n");
+		      return;
+		}
+		cp = cl->code;
+		printframe(fp, ra, cp);
+		fp -= ra2size(ra, cp);
+//		if((char*)(cl->code->id+1) == "$halt"){
+//		      printf("leaving for $halt\n");
+//		      return;
+//              }
+	}
+	if(fp < vm->stk){
+		printf("fp fell off stack! (fp = %p, stk = %p)\n",
+		       fp, vm->stk);
+		return;
+	}
+	cl = (Closure*)fp[1];
+	ra = fp[0];
+	if(cl == 0){
+	      printf("leaving for cl==0\n");
+	      return;
+	}
+	cp = cl->code;
+	printframe(fp, ra, cp);
+	vmkbacktrace(vm->klink);
+}
+
+@define vmkbacktrace(k)
+{
+	@local base;
+	@local ra, cl, fp, cp, sz;
+
+	if(k == 0)
+		return;
+
+	ra = k->ra;
+	cl = k->cl;
+	base = k->base;
+	sz = k->sz;
+	fp = (Val*)(base+k->sz);
+
+	printf("vmkbacktrace: k = %p, k->base = %p, k->sz = %d, k->base+sz = %p k->link = %p\n",
+	       k, k->base, k->sz, k->base+k->sz, k->link);
+
+	if(fp < base)
+		error("vmkbacktrace: fp is below stack (stack = %p - %p, fp = %p)\n",
+		      base, base+sz, fp);
+	if(fp > base+sz)
+		error("vmkbacktrace: fp is above stack (stack = %p - %p, fp = %p)\n",
+		      base, base+sz, fp);
+	if(ra == 0)
+		return;
+	cp = cl->code;
+	printframe(0, ra, cp);
+	fp -= ra2size(ra, cp);
+	while(fp > base){
+		ra = fp[0];
+		cl = (Closure*)fp[1];
+		if(cl == 0){
+		      printf("leaving for cl==0\n");
+		      return;
+		}
+		cp = cl->code;
+		printframe(fp, ra, cp);
+		fp -= ra2size(ra, cp);
+//		if((char*)(cl->code->id+1) == "$halt"){
+//		      printf("leaving for $halt\n");
+//		      return;
+//                }
+	}
+	if(fp < base){
+		printf("fp fell off stack! (fp = %p, stk = %p)\n",
+		       fp, base);
+		return;
+	}
+	cl = (Closure*)fp[1];
+	ra = fp[0];
+	if(cl == 0){
+	      printf("leaving for cl==0\n");
+	      return;
+	}
+	cp = cl->code;
+	printframe(fp, ra, cp);
+	vmkbacktrace(k->link);
+}
+
 @define l1demo1()
 {
 	@local exe, exedom, ldom;
