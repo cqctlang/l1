@@ -162,6 +162,7 @@ found:
 static int jsmn_parse_string(jsmn_parser *parser, const char *js,
 		jsmntok_t *tokens, size_t num_tokens) {
 	jsmntok_t *token;
+	unsigned i;
 
 	int start = parser->pos;
 
@@ -192,7 +193,14 @@ static int jsmn_parse_string(jsmn_parser *parser, const char *js,
 					break;
 				/* Allows escaped symbol \uXXXX */
 				case 'u':
-					/* TODO */
+					for(i = 0; i < 4; i++){
+						parser->pos++;
+						if(!isxdigit(js[parser->pos])){
+							parser->pos = start;
+							printf("u error\n");
+							return JSMN_ERROR_INVAL;
+						}
+					}
 					break;
 				/* Unexpected symbol */
 				default:
@@ -311,6 +319,89 @@ static void jsmn_init(jsmn_parser *parser) {
 }
 
 static Val
+expands(char *s, unsigned long len)
+{
+	int c;
+	char *r, *w, *z;
+	unsigned long nlen;
+	unsigned short u;
+	unsigned i;
+	Str *rv;
+
+	rv = mkstr(s, len);
+	r = s;
+	w = strdata(rv);
+	z = s+len;
+	while(r < z){
+		if(r[0] != '\\'){
+			*w++ = *r++;
+			continue;
+		}
+
+		/* escape sequence */
+		r++;
+		switch(*r){
+		case '"':
+			c = '\"';
+			r++;
+			break;
+		case '\\':
+			c = '\\';
+			r++;
+			break;
+		case '/':
+			c = '/';
+			r++;
+			break;
+		case 'b':
+			c = '\b';
+			r++;
+			break;
+		case 'f':
+			c = '\f';
+			r++;
+			break;
+ 		case 'n':
+			c = '\n';
+			r++;
+			break;
+		case 'r':
+			c = '\r';
+			r++;
+			break;
+		case 't':
+			c = '\t';
+			r++;
+			break;
+		case 'u':
+			/* assume jsmn_parse verified we have 4 hex digits */
+			r++;
+			u = 0;
+			for(i = 0; i < 4; i++){
+				u <<= 4;
+				if(*r >= 'A' && *r <= 'F')
+					u += *r-'A'+10;
+				else if(*r >= 'a' && *r <= 'f')
+					u += *r-'a'+10;
+				else
+					u += *r-'0';
+				r++;
+			}
+			if(u > 127)
+				return 0;
+			c = (char)u;
+			break;
+		default:
+			break;
+		}
+		*w++ = c;
+	}
+	nlen = w-strdata(rv);
+	rv = mkstr(strdata(rv), nlen);
+	return mkvalstr(rv);
+}
+
+static Val
 convert(VM *vm, char *s, jsmntok_t *t, u32 *ndx)
 {
 	Val rv, k, v;
@@ -387,12 +478,15 @@ convert(VM *vm, char *s, jsmntok_t *t, u32 *ndx)
 		}
 		break;
 	case JSMN_STRING:
-		rv = mkvalstr(mkstr(s+tp->start, tp->end-tp->start));
+		rv = expands(s+tp->start, tp->end-tp->start);
+		if(rv == 0)
+			vmerr(vm, "invalid json string: %.*s",
+			      tp->end-tp->start, s+tp->start);
 		break;
 	default:
 		bug();
 	}
-	
+
 	*ndx = ti;
 	return rv;
 }
@@ -417,8 +511,8 @@ l1_json2val(VM *vm, Imm argc, Val *argv, Val *rv)
 	mtok = 1024;
 
 	jsmn_init(&jsmn);
-retry:
 	tok = emalloc(mtok*sizeof(jsmntok_t));
+retry:
 	r = jsmn_parse(&jsmn, s, tok, mtok);
 
 	switch(r){
