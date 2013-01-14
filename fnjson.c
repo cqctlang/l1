@@ -162,6 +162,7 @@ found:
 static int jsmn_parse_string(jsmn_parser *parser, const char *js,
 		jsmntok_t *tokens, size_t num_tokens) {
 	jsmntok_t *token;
+	unsigned i;
 
 	int start = parser->pos;
 
@@ -192,7 +193,14 @@ static int jsmn_parse_string(jsmn_parser *parser, const char *js,
 					break;
 				/* Allows escaped symbol \uXXXX */
 				case 'u':
-					/* TODO */
+					for(i = 0; i < 4; i++){
+						parser->pos++;
+						if(!isxdigit(js[parser->pos])){
+							parser->pos = start;
+							printf("u error\n");
+							return JSMN_ERROR_INVAL;
+						}
+					}
 					break;
 				/* Unexpected symbol */
 				default:
@@ -316,6 +324,8 @@ expands(char *s, unsigned long len)
 	int c;
 	char *r, *w, *z;
 	unsigned long nlen;
+	unsigned short u;
+	unsigned i;
 	Str *rv;
 
 	rv = mkstr(s, len);
@@ -362,6 +372,24 @@ expands(char *s, unsigned long len)
 		case 't':
 			c = '\t';
 			r++;
+			break;
+		case 'u':
+			/* assume jsmn_parse verified we have 4 hex digits */
+			r++;
+			u = 0;
+			for(i = 0; i < 4; i++){
+				u <<= 4;
+				if(*r >= 'A' && *r <= 'F')
+					u += *r-'A'+10;
+				else if(*r >= 'a' && *r <= 'f')
+					u += *r-'a'+10;
+				else
+					u += *r-'0';
+				r++;
+			}
+			if(u > 127)
+				return 0;
+			c = (char)u;
 			break;
 		default:
 			break;
