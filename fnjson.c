@@ -311,6 +311,69 @@ static void jsmn_init(jsmn_parser *parser) {
 }
 
 static Val
+expands(char *s, unsigned long len)
+{
+	int c;
+	char *r, *w, *z;
+	unsigned long nlen;
+	Str *rv;
+
+	rv = mkstr(s, len);
+	r = s;
+	w = strdata(rv);
+	z = s+len;
+	while(r < z){
+		if(r[0] != '\\'){
+			*w++ = *r++;
+			continue;
+		}
+
+		/* escape sequence */
+		r++;
+		switch(*r){
+		case '"':
+			c = '\"';
+			r++;
+			break;
+		case '\\':
+			c = '\\';
+			r++;
+			break;
+		case '/':
+			c = '/';
+			r++;
+			break;
+		case 'b':
+			c = '\b';
+			r++;
+			break;
+		case 'f':
+			c = '\f';
+			r++;
+			break;
+ 		case 'n':
+			c = '\n';
+			r++;
+			break;
+		case 'r':
+			c = '\r';
+			r++;
+			break;
+		case 't':
+			c = '\t';
+			r++;
+			break;
+		default:
+			break;
+		}
+		*w++ = c;
+	}
+	nlen = w-strdata(rv);
+	rv = mkstr(strdata(rv), nlen);
+	return mkvalstr(rv);
+}
+
+static Val
 convert(VM *vm, char *s, jsmntok_t *t, u32 *ndx)
 {
 	Val rv, k, v;
@@ -387,12 +450,15 @@ convert(VM *vm, char *s, jsmntok_t *t, u32 *ndx)
 		}
 		break;
 	case JSMN_STRING:
-		rv = mkvalstr(mkstr(s+tp->start, tp->end-tp->start));
+		rv = expands(s+tp->start, tp->end-tp->start);
+		if(rv == 0)
+			vmerr(vm, "invalid json string: %.*s",
+			      tp->end-tp->start, s+tp->start);
 		break;
 	default:
 		bug();
 	}
-	
+
 	*ndx = ti;
 	return rv;
 }
