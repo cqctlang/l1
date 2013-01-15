@@ -1,6 +1,7 @@
 
 #include <stdio.h>
 #include <fcntl.h>
+#include <termios.h>
 #include <sys/types.h>
 #include <sys/mman.h>
 #include <sys/socket.h>
@@ -27,10 +28,10 @@ print_enum(const char *name,struct enum_entry entries[]) {
 	struct enum_entry *cursor;
 
 	printf("enum %s {\n", name);
-        cursor=entries;
-        for(cursor=entries;*(void **)cursor && cursor->name;cursor++) {
-		printf("\t%s\t= 0x%x,\n",cursor->name,cursor->value);
-        }
+	cursor=entries;
+	for(cursor=entries;*(void **)cursor && cursor->name;cursor++) {
+		printf("\t%s\t= 0x%lx,\n",cursor->name,cursor->value);
+	}
 	printf("};\n");
 }
 
@@ -38,7 +39,7 @@ int
 main(int argc,char **argv) {
 
 	struct enum_entry oflags[]={
-        	{ "O_RDONLY",	O_RDONLY },
+		{ "O_RDONLY",	O_RDONLY },
 		{ "O_WRONLY",	O_WRONLY },
 		{ "O_RDWR", 	O_RDWR },	
 		{ "O_CREAT", 	O_CREAT },	
@@ -46,7 +47,7 @@ main(int argc,char **argv) {
 		{ "O_APPEND", 	O_APPEND },	
 		{ "O_NONBLOCK", O_NONBLOCK },	
 		{ NULL },
-        };
+	};
 
 	struct enum_entry waitflags[]={
 		{ "WNOHANG",	WNOHANG },
@@ -168,6 +169,122 @@ main(int argc,char **argv) {
 #ifdef __APPLE__
 		{ "DKIOCGETBLOCKCOUNT", DKIOCGETBLOCKCOUNT },
 #endif
+		{ NULL },
+	};
+
+	struct enum_entry termios_nr[]={
+		/* c_cc characters */
+		{ "VINTR",	VINTR},
+		{ "VQUIT",	VQUIT},
+		{ "VERASE",	VERASE},
+		{ "VKILL",	VKILL},
+		{ "VEOF",	VEOF},
+		{ "VTIME",	VTIME},
+		{ "VMIN",	VMIN},
+		{ "VSWTC",	VSWTC},
+		{ "VSTART",	VSTART},
+		{ "VSTOP",	VSTOP},
+		{ "VSUSP",	VSUSP},
+		{ "VEOL",	VEOL},
+		{ "VREPRINT",	VREPRINT},
+		{ "VDISCARD",	VDISCARD},
+		{ "VWERASE",	VWERASE},
+		{ "VLNEXT",	VLNEXT},
+		{ "VEOL2",	VEOL2},
+		/* c_iflag bits */
+		{ "IGNBRK",	IGNBRK},
+		{ "BRKINT",	BRKINT},
+		{ "IGNPAR",	IGNPAR},
+		{ "PARMRK",	PARMRK},
+		{ "INPCK",	INPCK},
+		{ "ISTRIP",	ISTRIP},
+		{ "INLCR",	INLCR},
+		{ "IGNCR",	IGNCR},
+		{ "ICRNL",	ICRNL},
+		{ "IUCLC",	IUCLC},
+		{ "IXON",	IXON},
+		{ "IXANY",	IXANY},
+		{ "IXOFF",	IXOFF},
+		{ "IMAXBEL",	IMAXBEL},
+		{ "IUTF8",	IUTF8},
+		/* c_oflag bits */
+		{ "OPOST",	OPOST},
+		{ "OLCUC",	OLCUC},
+		{ "ONLCR",	ONLCR},
+		{ "OCRNL",	OCRNL},
+		{ "ONOCR",	ONOCR},
+		{ "ONLRET",	ONLRET},
+		{ "OFILL",	OFILL},
+		{ "OFDEL",	OFDEL},
+		/* c_cflag bit meaning */
+		{ "CBAUD",	CBAUD},
+		{ "B0",		B0},
+		{ "B50",	B50},
+		{ "B75",	B75},
+		{ "B110",	B110},
+		{ "B134",	B134},
+		{ "B150",	B150},
+		{ "B200",	B200},
+		{ "B300",	B300},
+		{ "B600",	B600},
+		{ "B1200",	B1200},
+		{ "B1800",	B1800},
+		{ "B2400",	B2400},
+		{ "B4800",	B4800},
+		{ "B9600",	B9600},
+		{ "B19200",	B19200},
+		{ "B38400",	B38400},
+		{ "CSIZE",	CSIZE},
+		{ "CS5",	CS5},
+		{ "CS6",	CS6},
+		{ "CS7",	CS7},
+		{ "CS8",	CS8},
+		{ "CSTOPB",	CSTOPB},
+		{ "CREAD",	CREAD},
+		{ "PARENB",	PARENB},
+		{ "PARODD",	PARODD},
+		{ "HUPCL",	HUPCL},
+		{ "CLOCAL",	CLOCAL},
+		{ "B57600",	B57600},
+		{ "B115200",	B115200},
+		{ "B230400",	B230400},
+		{ "B460800",	B460800},
+		{ "B500000",	B500000},
+		{ "B576000",	B576000},
+		{ "B921600",	B921600},
+		{ "B1000000",	B1000000},
+		{ "B1152000",	B1152000},
+		{ "B1500000",	B1500000},
+		{ "B2000000",	B2000000},
+		{ "B2500000",	B2500000},
+		{ "B3000000",	B3000000},
+		{ "B3500000",	B3500000},
+		{ "B4000000",	B4000000},
+		{ "__MAX_BAUD",	__MAX_BAUD},
+		/* c_lflag bits */
+		{ "ISIG",	ISIG},
+		{ "ICANON",	ICANON},
+		{ "ECHO",	ECHO},
+		{ "ECHOE",	ECHOE},
+		{ "ECHOK",	ECHOK},
+		{ "ECHONL",	ECHONL},
+		{ "NOFLSH",	NOFLSH},
+		{ "TOSTOP",	TOSTOP},
+		{ "IEXTEN",	IEXTEN},
+
+		{ "TCOOFF",	TCOOFF},
+		{ "TCOON",	TCOON},
+		{ "TCIOFF",	TCIOFF},
+		{ "TCION",	TCION},
+
+		{ "TCIFLUSH",	TCIFLUSH},
+		{ "TCOFLUSH",	TCOFLUSH},
+		{ "TCIOFLUSH",	TCIOFLUSH},
+
+		{ "TCSANOW",	TCSANOW},
+		{ "TCSADRAIN",	TCSADRAIN},
+		{ "TCSAFLUSH",	TCSAFLUSH},
+
 		{ NULL },
 	};
 
@@ -674,6 +791,7 @@ main(int argc,char **argv) {
 	print_enum("sockopts",sockopts);
 	print_enum("tcp_sockopt",tcp_sockopt);
 	print_enum("ioctl_nr",ioctl_nr);
+	print_enum("termios_nr",termios_nr);
 	print_enum("syscall_nr",syscall_nr);
 
 	return 0;
