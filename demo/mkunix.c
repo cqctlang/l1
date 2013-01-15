@@ -169,6 +169,8 @@ main(int argc,char **argv) {
 #ifdef __APPLE__
 		{ "DKIOCGETBLOCKCOUNT", DKIOCGETBLOCKCOUNT },
 #endif
+		{ "TCGETS",		TCGETS },
+		{ "TCSETSW",		TCSETSW },
 		{ NULL },
 	};
 
