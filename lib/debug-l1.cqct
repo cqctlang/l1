@@ -95,16 +95,22 @@ Segsize = 1ULL<<20;
 
 @define _fmtseg(s)
 {
-	@local r, dom, o, a;
-	dom = domof(s);
-	if(s == 0)
-		return "no segment!";
-	o = (Seg*)s-dom`segmap.map;
-	a = dom`segmap.lo+o*Segsize;
+	@local r, a;
+	a = s2a(s);
 	r = sprintfa("seg %p (%p-%p) %s %s", s,
 		     a, a+Segsize,
 		     genname(s->gen), mtname(s->mt));
 	return r;
+}
+
+@define s2a(s)
+{
+	@local dom, o, a, segmap;
+	dom = domof(s);
+	segmap = &dom`segmap;
+	o = s-segmap->map;
+	a = segmap->lo+o*Segsize;
+	return a;
 }
 
 @define a2s(a)
@@ -152,10 +158,17 @@ Segsize = 1ULL<<20;
 }
 
 rdsetfmt(@record copyevent { time, from, to },
-	 @lambda(r) { sprintfa("<copy @%d %p -> %p", r.time, r.from, r.to); });
+	 @lambda(r) { sprintfa("<copy @%d %p -> %p>", r.time, r.from, r.to); });
+
+rdsetfmt(@record freesegevent { time, range },
+	 @lambda(r) { sprintfa("<freeseg @%d %a >", r.time, r.range); });
 
 rdsetfmt(@record malevent { time, addr },
-	 @lambda(r) { sprintfa("<mal @%d of %p", r.time, r.addr); });
+	 @lambda(r) { sprintfa("<mal @%d of %p>", r.time, r.addr); });
+
+rdsetfmt(@record valinterval { val, interval },
+	 @lambda(r) { sprintfa("%a %a", r.interval, r.val); });
+
 
 @define dumpvalpath(exe, cs)
 {
@@ -169,12 +182,29 @@ rdsetfmt(@record malevent { time, addr },
 				printf("@%d mal %p\n", c.time, c.addr);
 			else if(iscopyevent(c)){
 				ndx = indexof(is, c.time);
-				printf("@%d (gc #%d) copy %p -> %p\n", c.time, ndx, c.from, c.to);
+				printf("@%d (gc #%d) %a\n", c.time, ndx, c);
 //				dumpstack(exe, c.time);
 //				uncovercopy(exe, c);
+			}else if(isfreesegevent(c)){
+				ndx = indexof(is, c.time);
+				printf("@%d (gc #%d) %a\n", c.time, ndx, c);
 			}else
-				error("bug");
+				printf("unknown event %a\n", c);
+			ndx = 0;
 		}, cs);
+}
+
+/* T should be time of a call to freeseg in EXE.
+   return range specifying range of addresses freed.
+*/
+@define freesegrange(exe, t)
+{
+	@local s, ctx, dom, a;
+	dom = exe.dom(t);
+	ctx = exe.ctx(t);
+	s = (Seg*){dom}ctx->rdi;
+	a = s2a(s);
+	return mkrange(a, Segsize);
 }
 
 /* determine the future of the value at ADDR at time T */
@@ -216,6 +246,28 @@ rdsetfmt(@record malevent { time, addr },
 		return wi;
 	}
 
+	@defloc findfreeseg(addr, t)
+	{
+		@local is, rv;
+		is = clipbeg(gcs, t);
+		foreach(@lambda(gc){
+				@local xs;
+				if(rv)
+					return;
+				xs = exe.scan('exec, &exedom`freeseg, gc.beg, gc.end);
+				if(length(xs) == 0)
+					return;
+				foreach(@lambda(t){
+						@local r;
+						r = freesegrange(exe, t);
+						if(rangebeg(r) <= addr && addr < rangebeg(r)+rangelen(r))
+							rv = freesegevent(t, r);
+					}, xs);
+			}, is);
+		return rv;
+	}
+
+	/* find the sequence of copies of this value */
 	rvs = [];
 	while(copyt = findcopy(addr, t)){
 		@local fwd, ldom, ev;
@@ -227,7 +279,10 @@ rdsetfmt(@record malevent { time, addr },
 		t = copyt;
 	}
 
-	dumpvalpath(exe, rvs);
+	/* find the freeseg containing ADDR after T */
+	append(rvs, findfreeseg(addr, t));
+
+//	dumpvalpath(exe, rvs);
 
 	return rvs;
 }
@@ -741,4 +796,137 @@ error: no bytes -- what do i do?
 	_fmtseg({exedom.ns}ldom`s);
 	dumplocked(exe, rett);
 //	dumpguards(exe, rett);   /* long! */
+}
+
+/* TI is an interval.
+   IVS is a list of intervals, disjoint and in increasing order.
+   return list of intervals representing subintervals
+   of TI not in IVS. */
+@define maskspan(ti, ivs)
+{
+	@local b, e, iv, rv, i;
+
+	rv = [];
+	b = ti.beg;
+	e = ti.end;
+	for(i = 0; i < length(ivs); i++){
+		iv = ivs[i];
+		if(e <= iv.beg){
+			append(rv, interval(b, e));
+			break;
+		}else if(b >= iv.end)
+			continue;
+		else if(b >= iv.beg && e <= iv.end)
+			break;
+		else if(b < iv.beg && e <= iv.end){
+			append(rv, interval(b, iv.beg));
+			break;
+		}else if(b < iv.beg && e > iv.end){
+			append(rv, interval(b, iv.beg));
+			b = iv.end;
+			continue;
+		}else if(b <= iv.end && e > iv.end){
+			b = iv.end;
+			continue;
+		}else
+			error("confusion");
+	}
+	return rv;
+}
+
+@define mkspans(ch, mvs)
+{
+	@local b, v, rs;
+	if(length(mvs) == 0)
+		error("cannot deal with empty move list\n");
+	rs = [];
+	foreach(@lambda(e){
+			switch(e){
+			@match malevent(t, a):
+				b = t;
+				v = a;
+				break;
+			@match copyevent(t, old, new):
+				append(rs, valinterval(v, interval(b, t)));
+				b = t;
+				v = new;
+				break;
+			@match freesegevent(t, r):
+				append(rs, valinterval(v, interval(b, t)));
+				break;
+			}
+		}, mvs);
+	return rs;
+}
+
+/* l is a list of interval lists, each disjoint and in increasing order.
+   return single flattened interval list */
+@define megamergeivs(ls)
+{
+	@local acc;
+	acc = [];
+	foreach(@lambda(l){
+			acc = mergeivs(acc, l);
+		}, ls);
+	return acc;
+}
+
+@define flatten(ls)
+{
+	@local acc;
+	acc = [];
+	foreach(@lambda(l){
+			acc = concat(acc, l);
+		}, ls);
+	return acc;
+}
+
+@define watchlist(ch)
+{
+	@local is, exe, os, mvs, gcs;
+	exe = ch.exedom;
+	is = callintervals(ch, ch.intvl(), &exe`_mklist);
+	printf("%d calls to _mklist\n", length(is));
+	gcs = gcintervals(ch);
+	os = map(@lambda(i){
+			@local ctx, rv;
+			ctx = ch.ctx(i.end);
+			rv = (exe`Val){ch.dom(i.end)}ctx->rax;
+			return [rv,i.end];
+		}, is);
+	foreach(@lambda(o){
+			@local p, t, rs, vs;
+			p = o[0];
+			t = o[1];
+			printf("** list created @%d **\n", t);
+			printf("location:\n");
+			mvs = valfuture(ch, p, t);
+			push(mvs, malevent(t, p));
+			rs = mkspans(ch, mvs);
+			rs = flatten(map(@lambda(r){
+						map(@lambda(iv) { valinterval(r.val, iv); }, maskspan(r.interval, gcs));
+					}, rs));
+			foreach(@lambda(r) { printf("%a\n", r); }, rs);
+
+			printf("backing store (l->v):\n");
+			vs = [];
+			foreach(@lambda(r) {
+					@local l, b, e, d, ws, a;
+					b = r.interval.beg;
+					e = r.interval.end;
+					d = ch.dom(b);
+					l = (List*){d}r.val;
+					a = l->v;
+					ws = ch.scan('write, &l->v, sizeof(l->v), b, e);
+					foreach(@lambda(w){
+							append(vs, valinterval(a, interval(b, w+1)));
+							b = w+1;
+							d = ch.dom(b);
+							l = (List*){d}r.val;
+							a = l->v;
+						}, ws);
+					append(vs, valinterval(a, interval(b, e)));
+				}, rs);
+			foreach(@lambda(r) { printf("%a\n", r); }, vs);
+		}, os);
 }
