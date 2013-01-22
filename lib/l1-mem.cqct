@@ -1,0 +1,68 @@
+/* chronicle assisted analyses of L1 memory management */
+
+@global
+	valpast
+;
+
+{
+
+@define valpast(db, addr, t)
+{
+	@local ct, gcs, dom, bgcs, gc, past, ws;
+
+	dom = db.exedom;
+
+	ct = @typeof(addr);
+	addr = (dom`Head*)addr;
+	gcs = callintervals(db, db.interval(), &dom`_gc);
+
+	if(ivseqlook(gcs, t))
+		error("cannot begin search from within a collection");
+
+	past = [];
+
+	// search backward for chain of calls to copy
+
+	[bgcs, _] = ivseqsplit(gcs, t);
+	bgcs = reverse(bgcs);
+	while(gc = pop(bgcs)){
+		@local ws, xs, args;
+
+		ws = db.scan('lastwrite, addr, sizeof(*addr), gc.beg, gc.end);
+		if(length(ws) == 0)
+			continue;
+
+		// we should be in an active call to 'copy'.
+		// it would be nice to verify this with an o'callahan stack walk,
+		// from which we could directly read the 'from' pointer,
+		// but that would be expensive.
+		// just go back to the last call to 'copy'.
+		
+		xs = db.scan('lastexec, &dom`copy, gc.beg, ws[0]);
+		if(length(xs) != 1)
+			return nil;
+		t = xs[0];
+		push(past, instant(t, {ct}{db.dom(t)}addr));
+
+		//  note that T is the time of call to
+		// 'copy', which actually precedes the
+		//  allocation of ADDR.
+
+		args = chgetargs(db, 1, t); /* FIXME: harmonize chgetargs with returns */
+		addr = {@typeof(addr)}args[0];
+	}
+
+	// search backward for last write to header, which we
+	// presume allocation
+
+	ws = db.scan('lastwrite, addr, sizeof(*addr), 0, t);
+	if(length(ws) == 0)
+		return nil;
+	t = ws[0];
+
+	push(past, instant(t, {ct}{db.dom(t)}addr));
+
+	return past;
+}
+
+}

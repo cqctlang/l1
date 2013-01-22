@@ -2,7 +2,6 @@
 @include <elf.cqct>
 @include <dwarf.cqct>
 @include <debugutil.cqct>
-@include <json.cqct>
 
 @global 
 	chverbose,
@@ -11,13 +10,7 @@
 	setchroot,
 	chgetargs,
 	callintervals,
-	invert,
-	clip,
-	clipbeg,
-	clipend,
-	indexof,
-	lookinterval,
-	mergeivs,
+	returns,
 	callstack,
 
 	/* these should be unified with debug library */
@@ -29,9 +22,6 @@
 ;
 
 chverbose = 0;
-
-rdsetfmt(@record interval { beg, end },
-	 @lambda(r) { sprintfa("<@%d - @%d>", r.beg, r.end); });
 
 {
 	@local chroot, chvalgrpath, chquerypath, ns;
@@ -240,7 +230,7 @@ rdsetfmt(@record interval { beg, end },
 	}
 
 
-	@record chctl { intvl, exedom, scan, findret, mem, ctx, nsmap, ns, dom, ldom, unwind, looksrc };
+	@record chctl { interval, exedom, scan, findret, mem, ctx, nsmap, ns, dom, ldom, unwind, looksrc };
 
 	@defloc mkchctl(db)
 	{
@@ -558,13 +548,13 @@ rdsetfmt(@record interval { beg, end },
 			n.looksrc(addr);
 		}
 
-		@defloc intvl()
+		@defloc _interval()
 		{
-			return interval(0, endtstamp);
+			return interval(0, endtstamp, nil);
 		}
 
 		exedom = dom(1); /* hack */
-		return chctl(intvl, exedom, scan, findret, mem, ctx, nsmap, _ns, dom, ldom, unwind, looksrc);
+		return chctl(_interval, exedom, scan, findret, mem, ctx, nsmap, _ns, dom, ldom, unwind, looksrc);
 	}
 
 	@define chgetargs(exe, n, t)
@@ -600,148 +590,24 @@ rdsetfmt(@record interval { beg, end },
 				}
 				return r;
 			}, ts);
-		return map(@lambda(t, r) { interval(t,r); }, ts, rs);
+		return map(@lambda(t, r) { interval(t, r, nil); }, ts, rs);
 	}
 
-	/* assume is is contained in iv */
-	@define invert(is, iv)
+	@define returns(db, iv, fptr)
 	{
-		@local rv, b, e;
-		b = iv.beg;
-		e = iv.end;
-		rv = [];
-		foreach(@lambda(i){
-				if(i.beg < b)
-					error("bug");
-				if(i.end > e)
-					error("bug");
-				if(i.beg == b)
-					b = i.end;
-				else{
-					append(rv, interval(b, i.beg));
-					b = i.end;
-				}
-			}, is);
-		if(b < e)
-			append(rv, interval(b, e));
-		return rv;
-	}
+		@local ivs, ct, rt;
 
-	@define clip(is, iv)
-	{
-		@local rv, b, e;
-		b = iv.beg;
-		e = iv.end;
-		rv = [];
-		foreach(@lambda(i){
-				/* draw a picture; there are six cases */
-				if(i.end <= b)
-					return;
-				if(i.beg >= e)
-					return;
-				if(i.beg >= b && i.end <= e)
-					append(rv, i);
-				else if(i.beg <= b && i.end >= e)
-					append(rv, interval(b, e));
-				else if(i.beg <= b && i.end < e)
-					append(rv, interval(b, i.end));
-				else if(i.beg < e && i.end >= e)
-					append(rv, interval(i.beg, e));
-				else
-					error("confusion");
-			}, is);
-		return rv;
-	}
-
-	@define clipend(is, t)
-	{
-		@local rv;
-		rv = [];
-		foreach(@lambda(i){
-				if(i.beg > t)
-					return;
-				else if(i.end >= t)
-					append(rv, interval(i.beg, t));
-				else
-					append(rv, i);
-			}, is);
-		return rv;
-	}
-
-	@define clipbeg(is, t)
-	{
-		@local rv;
-		rv = [];
-		foreach(@lambda(i){
-				if(i.end <= t)
-					return;
-				if(i.beg < t)
-					append(rv, interval(t, i.end));
-				else
-					append(rv, i);
-			}, is);
-		return rv;
-	}
-
-	@define indexof(is, t)
-	{
-		@defloc loop(is, n)
-		{
-			@local iv;
-			if(length(is) == 0)
-				return nil;
-			iv = pop(is);
-			if(t >= iv.beg && t < iv.end)
-				return n;
-			loop(is, n+1);
-		}
-		loop(copy(is), 0);
-	}
-
-	@define lookinterval(is, t)
-	{
-		@local i, iv, m;
-		m = length(is);
-		for(i = 0; i < m; i++){
-			iv = is[i];
-			if(t < iv.beg)
-				continue;
-			if(t >= iv.beg && t < iv.end)
-				return iv;
-			if(t >= iv.end)
-				continue;
-		}
-		return nil;
-	}
-
-	/* this function assumes the intervals are disjoint */
-	@define mergeivs(as, bs)
-	{
-		@local rv, a, b;
-	
-		as = copy(as);
-		bs = copy(bs);
-		rv = [];
-		a = pop(as);
-		b = pop(bs);
-		while(a && b){
-			if(a.beg < b.beg){
-				append(rv, a);
-				a = pop(as);
-			}else{
-				append(rv, b);
-				b = pop(bs);
-			}
-		}
-		while(a){
-			append(rv, a);
-			a = pop(as);
-		}
-		while(b){
-			append(rv, b);
-			b = pop(bs);
-		}
-		return rv;
+		ct = @typeof(fptr);
+		if(!isptr(ct) || !isfunc(subtype(ct)))
+			error("cannot determine function return type");
+		rt = rettype(subtype(ct));
+		ivs = callintervals(db, iv, fptr);
+		return map(@lambda(iv){
+				@local t, ctx;
+				t = iv.end;
+				ctx = db.ctx(t);
+				return instant(t, {rt}{db.dom(t)}ctx->rax);
+			}, ivs);
 	}
 
 	@define fmtframe(ctl, ctx, t)
