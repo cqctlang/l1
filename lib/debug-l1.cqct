@@ -254,33 +254,42 @@ rdsetfmt(@record valinterval { val, interval },
 				@local xs;
 				if(rv)
 					return;
+//				printf("scanning freesegs in %a\n", gc);
 				xs = exe.scan('exec, &exedom`freeseg, gc.beg, gc.end);
 				if(length(xs) == 0)
 					return;
+//				printf("%d freesegs in gc %a\n", length(xs), gc);
 				foreach(@lambda(t){
 						@local r;
 						r = freesegrange(exe, t);
 						if(rangebeg(r) <= addr && addr < rangebeg(r)+rangelen(r))
 							rv = freesegevent(t, r);
 					}, xs);
+//				printf("scanned freesegs ranges\n");
 			}, is);
 		return rv;
 	}
 
 	/* find the sequence of copies of this value */
 	rvs = [];
+	printf("1. finding copy of %p\n", addr);
 	while(copyt = findcopy(addr, t)){
 		@local fwd, ldom, ev;
+//		printf("found copy %d\n", t);
 		ldom = exe.ldom(copyt);
 		fwd = ldom`nh;
+//		printf("read domain %d\n", t);
 		ev = copyevent(copyt, addr, fwd);
 		append(rvs, ev);
 		addr = fwd;
 		t = copyt;
+		printf("i. finding copies of %p\n", addr);
 	}
 
+//	printf("finding freeseg\n");
 	/* find the freeseg containing ADDR after T */
 	append(rvs, findfreeseg(addr, t));
+//	printf("found freeseg\n");
 
 //	dumpvalpath(exe, rvs);
 
@@ -299,7 +308,7 @@ rdsetfmt(@record valinterval { val, interval },
 
 	/* find all intervals of gc execution */
 	gcs = callintervals(exe, exe.intvl(), &exedom`_gc);
-	printf("%d calls to _gc\n", length(gcs));
+//	printf("%d calls to _gc\n", length(gcs));
 
 	@defloc findcopy(addr, t)
 	{
@@ -370,11 +379,29 @@ rdsetfmt(@record valinterval { val, interval },
 	   over the entire execution prefix */
 	ms = exe.scan('lastwrite, orig, sizeof(exedom`Head), 0, origt);
 	if(length(ms) != 1)
-		error("no original write event!");
+		return nil;
 	push(evs, malevent(ms[0], orig));
-	printf("found mal event for %p\n", orig);
-	dumpstack(exe, ms[0]);
+//	printf("found mal event for %p\n", orig);
+//	dumpstack(exe, ms[0]);
 	return evs;
+}
+
+@define vallife(ch, addr, t)
+{
+	@local h, f, a, m;
+	h = valhistory(ch, addr, t);
+	if(h == nil)
+		return nil;
+	if(!ismalevent(h[0]))
+		error("unexpected history element %a", h[0]);
+	m = h[0];
+	a = m.addr;
+	t = m.time;
+	f = valfuture(ch, a, t);
+	if(f == nil || length(f) == 0)
+		return nil;
+	push(f, h[0]);
+	return mkspans(f);
 }
 
 @define gcintervals(exe)
@@ -596,6 +623,12 @@ rdsetfmt(@record valinterval { val, interval },
 	default:
 		error("unrecognized string kind (%d)", s->kind);
 	}
+}
+
+/* v must be Vec* */
+@define vecdata(v)
+{
+	return (Val*)(v+1);
 }
 
 @define lookdbg(c, off)
@@ -834,7 +867,85 @@ error: no bytes -- what do i do?
 	return rv;
 }
 
-@define mkspans(ch, mvs)
+/* AVS and BVS are value intervals.
+   subdivide so that no interval in AVS overlaps with
+   one in BVS and vice-versa. */
+@define shred(avs, bvs)
+{
+	@defloc loop(avs, bvs, navs, nbvs, cnt)
+	{
+		@local av, bv;
+		@local ab, ae, bb, be;
+		if(length(avs) == 0)
+			return [navs, concat(nbvs, bvs)];
+		else if(length(bvs) == 0)
+			return [concat(navs, avs), nbvs];
+		else{
+			av = avs[0];
+			bv = bvs[0];
+			ab = av.interval.beg;
+			ae = av.interval.end;
+			bb = bv.interval.beg;
+			be = bv.interval.end;
+
+			if(ae <= bb){
+				append(navs, pop(avs));
+				loop(avs, bvs, navs, nbvs, cnt);
+			}else if(ab < bb && ae <= be){
+				pop(avs);
+				pop(bvs);
+				append(navs, valinterval(av.val, interval(ab, bb)));
+				append(navs, valinterval(av.val, interval(bb, ae)));
+				append(nbvs, valinterval(bv.val, interval(bb, ae)));
+				if(ae < be)
+					push(bvs, valinterval(bv.val, interval(ae, be)));
+				loop(avs, bvs, navs, nbvs, cnt);
+			}else if(ab <= bb && ae <= be){
+				if(ab == bb && ae == be){
+					append(navs, pop(avs));
+					append(nbvs, pop(bvs));
+					loop(avs, bvs, navs, nbvs, cnt);
+				}else if(ab == bb && ae < be){
+					pop(bvs);
+					append(navs, pop(avs));
+					append(nbvs, valinterval(bv.val, interval(bb, ae)));
+					push(bvs, valinterval(bv.val, interval(ae, be))); 
+					loop(avs, bvs, navs, nbvs, cnt);
+				}else if(ab > bb && ae <= be){
+					pop(avs);
+					pop(bvs);
+					append(nbvs, valinterval(bv.val, interval(bb, ab)));
+					append(navs, valinterval(av.val, interval(ab, ae)));
+					if(ae < be)
+						push(bvs, valinterval(bv.val, interval(ae, be)));
+					loop(avs, bvs, navs, nbvs, cnt);
+				}else
+					error("confusion");
+			}else{
+				printf("symmetry: a = %d - %d; b = %d - %d\n", ab, ae, bb, be);
+				/* the remaining cases are symmetric */
+				[nbvs, navs] = loop(bvs, avs, nbvs, navs, cnt+1);
+				return [navs, nbvs];
+			}
+		}
+	}
+	return loop(copy(avs), copy(bvs), [], [], 0);
+}
+
+@define mix(avs, bvs, m)
+{
+	if(length(avs) != length(bvs))
+		error("incompatible arguments");
+	return map(@lambda(av, bv){
+			if(av.interval.beg != bv.interval.beg)
+				error("incompatible arguments");
+			if(av.interval.end != bv.interval.end)
+				error("incompatible arguments");
+			valinterval(m(av.val, bv.val), av.interval);
+		}, avs, bvs);
+}
+
+@define mkspans(mvs)
 {
 	@local b, v, rs;
 	if(length(mvs) == 0)
@@ -881,9 +992,45 @@ error: no bytes -- what do i do?
 	return acc;
 }
 
+/* VS is a list of valintervals.
+   return valinterval in which t is defined
+   or nil if no such valinterval. */
+@define lookval(vs, t)
+{
+	@local i, m, r, iv;
+	m = length(vs);
+	for(i = 0; i < m; i++){
+		r = vs[i];
+		iv = r.interval;
+		if(iv.beg <= t && t < iv.end)
+			return r;
+	}
+	return nil;
+}
+
+/*
+  out: remove the subintervals of intervals or
+  valintervals in IVS that are in the intervals in MVS.
+*/
+
+@define out(ivs, mvs)
+{
+	if(length(ivs) == 0)
+		return [];
+	if(isvalinterval(ivs[0]))
+		return flatten(map(@lambda(r){
+					map(@lambda(iv){ valinterval(r.val, iv); },
+					    maskspan(r.interval, mvs));
+				}, ivs));
+	else if(isinterval(ivs[0]))
+		return flatten(map(@lambda(iv){maskspan(iv, mvs);}, ivs));
+	else
+		error("invalid intervals argument");
+}
+
 @define watchlist(ch)
 {
-	@local is, exe, os, mvs, gcs;
+	@local is, exe, os, mvs, gcs, vi;
 	exe = ch.exedom;
 	is = callintervals(ch, ch.intvl(), &exe`_mklist);
 	printf("%d calls to _mklist\n", length(is));
@@ -895,17 +1042,15 @@ error: no bytes -- what do i do?
 			return [rv,i.end];
 		}, is);
 	foreach(@lambda(o){
-			@local p, t, rs, vs;
+			@local p, t, rs, vs, hs, ts, hts, htvs, es;
 			p = o[0];
 			t = o[1];
 			printf("** list created @%d **\n", t);
 			printf("location:\n");
 			mvs = valfuture(ch, p, t);
 			push(mvs, malevent(t, p));
-			rs = mkspans(ch, mvs);
-			rs = flatten(map(@lambda(r){
-						map(@lambda(iv) { valinterval(r.val, iv); }, maskspan(r.interval, gcs));
-					}, rs));
+			rs = mkspans(mvs);
+			rs = out(rs, gcs);
 			foreach(@lambda(r) { printf("%a\n", r); }, rs);
 
 			printf("backing store (l->v):\n");
@@ -928,5 +1073,154 @@ error: no bytes -- what do i do?
 					append(vs, valinterval(a, interval(b, e)));
 				}, rs);
 			foreach(@lambda(r) { printf("%a\n", r); }, vs);
+
+			printf("list head (l->h):\n");
+			hs = [];
+			foreach(@lambda(r){
+					@local l, b, e, d, ws, h;
+					b = r.interval.beg;
+					e = r.interval.end;
+					vi = lookval(rs, b);
+					if(vi == nil)
+						error("no list address @%d", b);
+					d = ch.dom(b);
+					l = (List*){d}vi.val;
+					h = l->h;
+					ws = ch.scan('write, &l->h, sizeof(l->h), b, e);
+					foreach(@lambda(w){
+							append(hs, valinterval(h, interval(b, w+1)));
+							b = w+1;
+							vi = lookval(rs, b);
+							if(vi == nil)
+								error("no list address @%d", b);
+							d = ch.dom(b);
+							l = (List*){d}vi.val;
+							h = l->h;
+						}, ws);
+					append(hs, valinterval(h, interval(b, e)));
+				}, vs);
+			foreach(@lambda(r) { printf("%a\n", r); }, hs);
+
+
+			printf("list tail (l->t):\n");
+			ts = [];
+			foreach(@lambda(r){
+					@local l, b, e, d, ws, t;
+					b = r.interval.beg;
+					e = r.interval.end;
+					vi = lookval(rs, b);
+					if(vi == nil)
+						error("no list address @%d", b);
+					d = ch.dom(b);
+					l = (List*){d}vi.val;
+					t = l->t;
+					ws = ch.scan('write, &l->t, sizeof(l->t), b, e);
+					foreach(@lambda(w){
+							append(ts, valinterval(t, interval(b, w+1)));
+							b = w+1;
+							vi = lookval(rs, b);
+							if(vi == nil)
+								error("no list address @%d", b);
+							d = ch.dom(b);
+							l = (List*){d}vi.val;
+							t = l->t;
+						}, ws);
+					append(ts, valinterval(t, interval(b, e)));
+				}, vs);
+			foreach(@lambda(r) { printf("%a\n", r); }, ts);
+
+			[hs, ts] = shred(hs, ts);
+
+			printf("shreded list head (l->h):\n");
+			foreach(@lambda(r) { printf("%a\n", r); }, hs);
+			printf("shreded list tail (l->t):\n");
+			foreach(@lambda(r) { printf("%a\n", r); }, ts);
+
+			hts = mix(hs, ts, list);
+			printf("mixed l->h, l->t:\n");
+			foreach(@lambda(r) { printf("%a\n", r); }, hts);
+
+			htvs = flatten(map(@lambda(ht){
+						@local l, b, e, d, ws, rv, sa, ea;
+						b = ht.interval.beg;
+						e = ht.interval.end;
+						vi = lookval(rs, b);
+						if(vi == nil)
+							error("no list address @%d", b);
+						d = ch.dom(b);
+						l = (List*){d}vi.val;
+						sa = (void*)(vecdata(l->v)+l->h);
+						ea = (void*)(vecdata(l->v)+l->t);
+						ws = ch.scan('write, sa, ea-sa, b, e);
+						rv = [];
+						foreach(@lambda(w){ append(rv, interval(b, w+1)); b = w+1; }, ws);
+						append(rv, interval(b, e));
+					}, hts));
+
+			@defloc lt(t)
+			{
+				@local d, vi;
+				vi = lookval(rs, t);
+				if(vi == nil)
+					error("no list defined @%d", t);
+				d = ch.dom(t);
+				return (List*){d}vi.val;
+			}
+
+			@defloc dumpelements(l)
+			{
+				@local h, t, v;
+				h = l->h;
+				t = l->t;
+				v = vecdata(l->v);
+				while(h < t)
+					printf(" %p", v[h++]);
+			}
+
+			@defloc elementsat(t)
+			{
+				@local l, h, v, rv;
+				l = lt(t);
+				h = l->h;
+				t = l->t;
+				v = vecdata(l->v);
+				rv = [];
+				while(h < t)
+					append(rv, v[h++]);
+				return rv;
+			}
+
+			printf("intervals of stable elements:\n");
+			es = [];
+			es = flatten(map(@lambda(r){
+						@local es;
+						es = elementsat(r.beg);
+						printf("%a (%d elements)\n", r, length(es));
+						return map(@lambda(e){valinterval(e, r);}, es);
+					}, htvs));
+			printf("%d stable elements total\n", length(es));
+
+			@defloc containsinterval(s, t)
+			{
+				return s.beg <= t.beg && s.end >= t.end;
+			}
+
+			if(0)foreach(@lambda(e){
+					@local vl, vi;
+					printf("calling vallife %a\n", e);
+					vl = vallife(ch, e.val, e.interval.beg);
+					if(vl == nil){
+						printf("no value for element %a\n", e);
+						return;
+					}
+					vi = lookval(vl, e.interval.beg);
+					if(vi == nil)
+						error("bug");
+					if(!containsinterval(vi.interval, e.interval)){
+						printf("stable element %a extends beyond stable object %a\n", e, vi);
+						return;
+					}
+					printf("stable element %a is contained in stable object %a\n", e, vi);
+				}, es);
 		}, os);
 }
