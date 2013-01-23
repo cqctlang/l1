@@ -163,6 +163,8 @@ load("prelude.cqct");
 			printf("\n");
 			return;
 		}
+		if(s == "")
+			debugloop();
 		tok = split(s);
 		switch(tok[0]){
 		case "h":

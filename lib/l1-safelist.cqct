@@ -2,24 +2,88 @@
 @include <l1-debug.cqct>
 @include <l1-mem.cqct>
 
-@define safelist(db, l)
+@define anycalls(db, fns)
 {
+	ivsequnionall(map(@lambda(fn){ callintervals(db, db.interval(), fn); }, fns), nil);
 }
 
-@define listallocs(db)
+@define assertunwritten(db, what, iv, f)
+{
+	@local addr, len, ws;
+
+	printf("assertunwritten %a %a\n", what, iv);
+	[addr, len] = f(iv.val);
+	ws = db.scan('write, addr, len, iv.beg, iv.end);
+	if(length(ws) != 0)
+		error("found %a writes: %a", ws);
+}
+
+@define checklist(db, addr, t)
+{
+	@local dom, livs, exclude, xivs;
+
+	dom = db.exedom;
+	exclude = [
+		&dom`_gc,
+		&dom`_mklist,
+		&dom`listset,
+		&dom`listpop,
+		&dom`listexpand,
+		&dom`listdel,
+		&dom`listins,
+		&dom`_listappend
+	];
+	
+	livs = vallifetime(db, addr, t);
+	xivs = anycalls(db, exclude);
+	livs = ivseqout(livs, xivs);
+
+	ivseqdump(livs, "residual intervals\n");
+
+	@defloc hrange(l) { return [&l->h, sizeof(l->h)]; }
+	@defloc trange(l) { return [&l->t, sizeof(l->t)]; }
+	@defloc vrange(l) { return [&l->v, sizeof(l->v)]; }
+
+	@defloc erange(l)
+	{
+		@local sa, ea;
+		sa = (void*)(vecdata(l->v)+l->h);
+		ea = (void*)(vecdata(l->v)+l->t);
+		return [sa, ea-sa];
+	}
+
+	@defloc assertconfig(iv)
+	{
+		assertunwritten(db, 'h, iv, hrange);
+		assertunwritten(db, 't, iv, trange);
+		assertunwritten(db, 'v, iv, vrange);
+		assertunwritten(db, 'e, iv, erange);
+	}
+
+	foreach(assertconfig, livs);
+}
+
+@define safelist(db)
 {
 	@local dom, lists;
 
 	dom = db.exedom;
 	lists = returns(db, db.interval(), &dom`_mklist);
-	printf("%d calls to _mklist\n", length(lists));
-	printf("return values are:\n");
-	foreach(@lambda(it){
-			@local vl;
-			vl = vallife(db, it.val, it.t);
-			printf("\t%a (%t): %a\n", it, it.val, vl);
-			foreach(@lambda(it){
-					dumpstack(db, it.t);
-				}, vl);
-		}, lists);
+
+//	foreach(@lambda(it){
+//			@local addr, time;
+//			addr = it.val;
+//			time = it.t;
+//			printf("list %p allocated @%d\n", addr, time);
+//			checklist(db, addr, time);
+//		}, lists);
+
+	{
+		@local it, addr, time;
+		it = lists[2];
+		addr = it.val;
+		time = it.t;
+		printf("list %p allocated @%d\n", addr, time);
+		checklist(db, addr, time);
+	}
 }

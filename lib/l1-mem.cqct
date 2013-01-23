@@ -2,7 +2,7 @@
 
 @global
 	valfuture,
-	vallife,
+	vallifetime,
 	valpast
 ;
 
@@ -135,7 +135,7 @@
 	return nil;
 }
 
-@define vallife(db, addr, t)
+@define vallifetime(db, addr, t)
 {
 	@local past, future;
 	past = valpast(db, addr, t);
@@ -144,7 +144,7 @@
 	future = valfuture(db, addr, t);
 	if(future == nil)
 		return nil;
-	return concat(past, future);
+	return it2ivseq(concat(past, future));
 }
 
 }

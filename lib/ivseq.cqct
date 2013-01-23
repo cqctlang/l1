@@ -1,9 +1,13 @@
 @global
+	it2ivseq,
+	ivseqdump,
 	ivseqshred,
-	ivseqout,
 	ivseqjoin,
 	ivseqlook,
-	ivseqsplit
+	ivseqout,
+	ivseqsplit,
+	ivsequnion,
+	ivsequnionall
 ;
 
 rdsetfmt(@record instant { t, val },
@@ -11,12 +15,29 @@ rdsetfmt(@record instant { t, val },
 			       r.val == nil ? "" :
 			       sprintfa(" %a", r.val)); });
 rdsetfmt(@record interval { beg, end, val },
-	 @lambda(r) { sprintfa("<@%d - @d%s>", r.beg, r.end,
+	 @lambda(r) { sprintfa("<@%d - @%d%s>", r.beg, r.end,
 			       r.val == nil ? "" :
 			       isprocedure(r.val) ? " *" :
 			       sprintfa(" %a", r.val)); });
-
 {
+
+@define it2ivseq(its)
+{
+	@local it, nit, i, m, rv;
+	m = length(its);
+	if(m == 0)
+		return [];
+	if(m == 1)
+		error("only one instant");
+	it = its[0];
+	rv = [];
+	for(i = 1; i < m; i++){
+		nit = its[i];
+		append(rv, interval(it.t, nit.t, it.val));
+		it = nit;
+	}
+	return rv;
+}
 
 /* split interval sequence into two sequences, before and after.
    before contains intervals before T (i.e., that end no later than T).
@@ -118,7 +139,7 @@ rdsetfmt(@record interval { beg, end, val },
 
 			if(ae <= bb){
 				append(navs, pop(avs));
-				loop(avs, bvs, navs, nbvs, cnt);
+				return loop(avs, bvs, navs, nbvs, cnt);
 			}else if(ab < bb && ae <= be){
 				pop(avs);
 				pop(bvs);
@@ -127,26 +148,27 @@ rdsetfmt(@record interval { beg, end, val },
 				append(nbvs, interval(bb, ae, bv.val));
 				if(ae < be)
 					push(bvs, interval(ae, be, bv.val));
-				loop(avs, bvs, navs, nbvs, cnt);
-			}else if(ab <= bb && ae <= be){
+				return loop(avs, bvs, navs, nbvs, cnt);
+			}else if(ae <= be){
 				if(ab == bb && ae == be){
 					append(navs, pop(avs));
 					append(nbvs, pop(bvs));
-					loop(avs, bvs, navs, nbvs, cnt);
+					return loop(avs, bvs, navs, nbvs, cnt);
 				}else if(ab == bb && ae < be){
 					pop(bvs);
 					append(navs, pop(avs));
 					append(nbvs, interval(bb, ae, bv.val));
 					push(bvs, interval(ae, be, bv.val)); 
-					loop(avs, bvs, navs, nbvs, cnt);
+					return loop(avs, bvs, navs, nbvs, cnt);
 				}else if(ab > bb && ae <= be){
 					pop(avs);
 					pop(bvs);
-					append(nbvs, interval(bb, ab, bv.val));
 					append(navs, interval(ab, ae, av.val));
+					append(nbvs, interval(bb, ab, bv.val));
+					append(nbvs, interval(ab, ae, bv.val));
 					if(ae < be)
 						push(bvs, interval(ae, be, bv.val));
-					loop(avs, bvs, navs, nbvs, cnt);
+					return loop(avs, bvs, navs, nbvs, cnt);
 				}else
 					error("confusion");
 			}else{
@@ -158,6 +180,97 @@ rdsetfmt(@record interval { beg, end, val },
 	}
 	return loop(copy(avs), copy(bvs), [], [], 0);
 }
+
+@define ivsequnion(avs, bvs, f)
+{
+	@defloc loop(avs, bvs, rv)
+	{
+		if(length(avs) == 0)
+			return concat(rv, bvs);
+		else if(length(bvs) == 0)
+			return concat(rv, avs);
+		else{
+			@local av, bv;
+			av = avs[0];
+			bv = bvs[0];
+			if(av.beg < bv.beg){
+				if(av.end > bv.beg)
+					error("bug");
+				pop(avs);
+				append(rv, av);
+				return loop(avs, bvs, rv);
+			}else if(av.beg > bv.beg){
+				if(bv.end > av.beg)
+					error("bug");
+				pop(bvs);
+				append(rv, bv);
+				return loop(avs, bvs, rv);
+			}else{
+				@local val;
+				if(av.end != bv.end)
+					error("bug");
+				pop(avs);
+				pop(bvs);
+				val = f ? f(av.val, bv.val) : nil;
+				append(rv, interval(av.beg, av.end, val));
+				return loop(avs, bvs, rv);
+			}
+		}
+	}
+	[avs, bvs] = ivseqshred(avs, bvs);
+	return loop(avs, bvs, []);
+}
+
+@define ivseqout(avs, bvs)
+{
+	@defloc loop(avs, bvs, rv)
+	{
+		if(length(avs) == 0)
+			return rv;
+		else if(length(bvs) == 0)
+			return concat(rv, avs);
+		else{
+			@local av, bv;
+			av = avs[0];
+			bv = bvs[0];
+			if(av.beg < bv.beg){
+				if(av.end > bv.beg)
+					error("bug");
+				pop(avs);
+				append(rv, av);
+				return loop(avs, bvs, rv);
+			}else if(av.beg > bv.beg){
+				if(bv.end > av.beg)
+					error("bug");
+				pop(bvs);
+				return loop(avs, bvs, rv);
+			}else{
+				if(av.end != bv.end)
+					error("bug");
+				pop(avs);
+				pop(bvs);
+				return loop(avs, bvs, rv);				
+			}
+		}
+	}
+	[avs, bvs] = ivseqshred(avs, bvs);
+	return loop(avs, bvs, []);
+}
+
+@define ivsequnionall(all, f)
+{
+	@local rv;
+	rv = [];
+	foreach(@lambda(ivs){ rv = ivsequnion(rv, ivs, f); }, all);
+	return rv;
+}
+
+@define ivseqdump(ivs, fmt, args ...)
+{
+	apply(printf, fmt, args);
+	foreach(@lambda(iv){ printf("\t%a\n", iv); }, ivs);
+}
+
 
 }
 
@@ -207,36 +320,6 @@ rdsetfmt(@record interval { beg, end, val },
 //					append(rv, interval(i.beg, e));
 //				else
 //					error("confusion");
-//			}, is);
-//		return rv;
-//	}
-//
-//	@define clipend(is, t)
-//	{
-//		@local rv;
-//		rv = [];
-//		foreach(@lambda(i){
-//				if(i.beg > t)
-//					return;
-//				else if(i.end >= t)
-//					append(rv, interval(i.beg, t));
-//				else
-//					append(rv, i);
-//			}, is);
-//		return rv;
-//	}
-//
-//	@define clipbeg(is, t)
-//	{
-//		@local rv;
-//		rv = [];
-//		foreach(@lambda(i){
-//				if(i.end <= t)
-//					return;
-//				if(i.beg < t)
-//					append(rv, interval(t, i.end));
-//				else
-//					append(rv, i);
 //			}, is);
 //		return rv;
 //	}
