@@ -21,37 +21,62 @@ rdsetfmt(@record interval { beg, end, val },
 /* split interval sequence into two sequences, before and after.
    before contains intervals before T (i.e., that end no later than T).
    after contains intervals at or after T.
-   if T occurs within an interval [B,E,V],
-   it is split into [B,T,V] (which goes into before)
-   and [T,E,V] (which goes into after).
+   optional third argument MODE determines what happens
+   if T occurs within an interval [B,E,V]:
+
+   	'split :    it is split into [B,T,V] (which goes into before)
+	            and [T,E,V] (which goes into after).
+	'before :   [B,E,V] is added to before
+	'after :    [B,E,V] is added to after
+	'fail :     the call returns nil
 */
-@define ivseqsplit(ivs, t)
+@define ivseqsplit(ivs, t, rest ...)
 {
-	@local before, after;
+	@local before, mode;
 
 	before = [];
-	after = [];
+
+	if(length(rest) > 0){
+		if(length(rest) > 1)
+			error("too many arguments");
+		mode = rest[0];
+		if(!ismember(['split, 'before, 'after, 'fail], mode))
+			error("unknown mode: %a", mode);
+	}else
+		mode = 'split;
 
 	@defloc loop(ivs)
 	{
 		@local iv;
 		if(length(ivs) == 0)
-			return [before, after];
+			return [before, []];
 		iv = ivs[0];
 		if(iv.beg >= t)
-			return [before, concat(after, ivs)];
+			return [before, ivs];
 		else if(iv.end <= t){
+			pop(ivs);
 			append(before, iv);
-			pop(ivs);
 			return loop(ivs);
-		}else{
-			pop(ivs);
-			append(before, interval(iv.beg, t, iv.val));
-			push(ivs, interval(t, iv.end, iv.val));
-			return loop(ivs);
-		}
+		}else
+			switch(mode){
+			case 'split:
+				pop(ivs);
+				append(before, interval(iv.beg, t, iv.val));
+				push(ivs, interval(t, iv.end, iv.val));
+				return loop(ivs);
+			case 'before:
+				pop(ivs);
+				append(before, iv);
+				return loop(ivs);
+			case 'after:
+				return [before, ivs];
+			case 'fail:
+				return [nil, nil];
+			default:
+				error("bug");
+			}
 	}
-	return loop(ivs);
+	return loop(copy(ivs));
 }
 
 @define ivseqlook(ivs, t)

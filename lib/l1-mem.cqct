@@ -1,10 +1,50 @@
 /* chronicle assisted analyses of L1 memory management */
 
 @global
+	valfuture,
+	vallife,
 	valpast
 ;
 
 {
+
+@defloc findcopyto(db, addr, gc)
+{
+	@local dom, ws, xs, args, t;
+
+	dom = db.exedom;
+
+	ws = db.scan('lastwrite, addr, sizeof(*addr), gc.beg, gc.end);
+	if(length(ws) == 0)
+		return [nil, nil];
+
+	// we should be in an active call to 'copy'.
+	// it would be nice to verify this with an o'callahan stack walk,
+	// from which we could directly read the 'from' pointer,
+	// but that would be expensive.
+	// just go back to the last call to 'copy'.
+		
+	xs = db.scan('lastexec, &dom`copy, gc.beg, ws[0]);
+	if(length(xs) != 1)
+		return ['confusion, nil];
+	t = xs[0];
+	args = chgetargs(db, 1, t);  /* FIXME: want calls-like interface */
+	return [t, {@typeof(addr)}args[0]];
+}
+
+@defloc findcopyfrom(db, addr, gc)
+{
+	@local ws, t, ldom;
+
+	// look forward a forward pointer write
+
+	ws = db.scan('firstwrite, addr, sizeof(*addr), gc.beg, gc.end);
+	if(length(ws) == 0)
+		return [nil, nil];
+	t = ws[0];
+	ldom = db.ldom(t);
+	return [t, {@typeof(addr)}ldom`nh];
+}
 
 @define valpast(db, addr, t)
 {
@@ -16,40 +56,22 @@
 	addr = (dom`Head*)addr;
 	gcs = callintervals(db, db.interval(), &dom`_gc);
 
-	if(ivseqlook(gcs, t))
-		error("cannot begin search from within a collection");
-
 	past = [];
 
-	// search backward for chain of calls to copy
+	// search backward for chain of calls to copy.
 
 	[bgcs, _] = ivseqsplit(gcs, t);
 	bgcs = reverse(bgcs);
 	while(gc = pop(bgcs)){
-		@local ws, xs, args;
-
-		ws = db.scan('lastwrite, addr, sizeof(*addr), gc.beg, gc.end);
-		if(length(ws) == 0)
+		@local copyt, from;
+		[copyt, from] = findcopyto(db, addr, gc);
+		if(copyt == nil)
 			continue;
-
-		// we should be in an active call to 'copy'.
-		// it would be nice to verify this with an o'callahan stack walk,
-		// from which we could directly read the 'from' pointer,
-		// but that would be expensive.
-		// just go back to the last call to 'copy'.
-		
-		xs = db.scan('lastexec, &dom`copy, gc.beg, ws[0]);
-		if(length(xs) != 1)
+		if(copyt == 'confusion)
 			return nil;
-		t = xs[0];
-		push(past, instant(t, {ct}{db.dom(t)}addr));
-
-		//  note that T is the time of call to
-		// 'copy', which actually precedes the
-		//  allocation of ADDR.
-
-		args = chgetargs(db, 1, t); /* FIXME: harmonize chgetargs with returns */
-		addr = {@typeof(addr)}args[0];
+		push(past, instant(copyt, {ct}{db.dom(t)}addr));
+		t = copyt;
+		addr = from;
 	}
 
 	// search backward for last write to header, which we
@@ -63,6 +85,66 @@
 	push(past, instant(t, {ct}{db.dom(t)}addr));
 
 	return past;
+}
+
+@define valfuture(db, addr, t)
+{
+	@local ct, gcs, dom, agcs, gc, future;
+
+	dom = db.exedom;
+
+	ct = @typeof(addr);
+	addr = (dom`Head*)addr;
+	gcs = callintervals(db, db.interval(), &dom`_gc);
+	
+	future = [];
+
+	// search forward for chain of calls to copy.
+
+	[_, agcs] = ivseqsplit(gcs, t);
+	while(gc = pop(agcs)){
+		@local copyt, to;
+		[copyt, to] = findcopyfrom(db, addr, gc);
+		if(copyt == nil)
+			continue;
+		if(copyt == 'confusion)
+			return nil;
+		append(future, instant(copyt, {ct}{db.dom(t)}to));
+		t = copyt;
+		addr = to;
+	}
+
+	// search forward for freeseg of Seg containing addr
+
+	[_, agcs] = ivseqsplit(gcs, t);
+	while(gc = pop(agcs)){
+		@local xs, it;
+		xs = calls(db, gc, &dom`freeseg);
+		while(it = pop(xs)){
+			@local s, a;
+			s = it.val[0]; // Seg*
+			a = s2a(s);
+			if(a <= addr && a+Segsize < addr){
+				append(future, instant(it.t, {ct}{db.dom(t)}addr));
+				return future;
+			}
+		}
+	}
+	
+	// error -- could not find freeseg.
+	return nil;
+}
+
+@define vallife(db, addr, t)
+{
+	@local past, future;
+	past = valpast(db, addr, t);
+	if(past == nil)
+		return nil;
+	future = valfuture(db, addr, t);
+	if(future == nil)
+		return nil;
+	return concat(past, future);
 }
 
 }

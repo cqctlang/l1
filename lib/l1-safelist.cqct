@@ -14,5 +14,12 @@
 	lists = returns(db, db.interval(), &dom`_mklist);
 	printf("%d calls to _mklist\n", length(lists));
 	printf("return values are:\n");
-	foreach(@lambda(it){ printf("\t%a (%t): %a\n", it, it.val, valpast(db, it.val, it.t)); }, lists);
+	foreach(@lambda(it){
+			@local vl;
+			vl = vallife(db, it.val, it.t);
+			printf("\t%a (%t): %a\n", it, it.val, vl);
+			foreach(@lambda(it){
+					dumpstack(db, it.t);
+				}, vl);
+		}, lists);
 }

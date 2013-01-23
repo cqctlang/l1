@@ -4,6 +4,7 @@
 @include <debugutil.cqct>
 
 @global 
+	calls,
 	chverbose,
 	chronicledb,
 	runchronicle,
@@ -334,6 +335,30 @@ chverbose = 0;
 						   "ranges" : [ [ "start" : addr, "length" : len ] ] ]);
 				rs = chfilter(rs, @lambda(t) { @local v; v = t["type"]; return v && v == "normal"; });
 				return chcollect(rs, "TStamp");
+			case 'firstwrite:
+				addr = pop(rest);
+				len = pop(rest);
+				defrange(rest);
+				rs = chquery(lb, [ "cmd" : "scan",
+						   "map" : "MEM_WRITE",
+						   "beginTStamp" : beg,
+						   "endTStamp" : end,
+						   "termination" : "findFirst",
+						   "ranges" : [ [ "start" : addr, "length" : len ] ] ]);
+				rs = chfilter(rs, @lambda(t) { @local v; v = t["type"]; return v && v == "normal"; });
+				return chcollect(rs, "TStamp");
+			case 'firstread:
+				addr = pop(rest);
+				len = pop(rest);
+				defrange(rest);
+				rs = chquery(lb, [ "cmd" : "scan",
+						   "map" : "MEM_READ",
+						   "beginTStamp" : beg,
+						   "endTStamp" : end,
+						   "termination" : "findFirst",
+						   "ranges" : [ [ "start" : addr, "length" : len ] ] ]);
+				rs = chfilter(rs, @lambda(t) { @local v; v = t["type"]; return v && v == "normal"; });
+				return chcollect(rs, "TStamp");
 			case 'lastwrite:
 				addr = pop(rest);
 				len = pop(rest);
@@ -562,6 +587,9 @@ chverbose = 0;
 		@local ctx, rs, rv, i;
 		ctx = exe.ctx(t);
 
+		if(n > 6)
+			error("function has too many arguments");
+
 		rv = [];
 		rs = [ ctx->rdi,
 		       ctx->rsi,
@@ -577,20 +605,38 @@ chverbose = 0;
 
 	@define callintervals(exe, i, func)
 	{
-		@local ts, rs;
+		@local ts;
 		ts = exe.scan('exec, func, i.beg, i.end);
 		if(length(ts) == 0)
 			return [];
-		rs = map(@lambda(t){
+		map(@lambda(t){
 				@local r;
 				r = exe.findret(t);
-				if(r == nil){
-					printf("cannot find return time for %a; using interval end %a\n", t, i.end);
-					return i.end;
-				}
-				return r;
+				if(r == nil)
+					error("cannot find return time for %a\n", t);
+				return interval(t, r, nil);
 			}, ts);
-		return map(@lambda(t, r) { interval(t, r, nil); }, ts, rs);
+	}
+
+	@define calls(db, iv, fptr)
+	{
+		@local ct, xs, ps, n;
+
+		ct = @typeof(fptr);
+		if(!isptr(ct) || !isfunc(subtype(ct)))
+			error("cannot determine function argument types");
+		ps = params(subtype(ct));
+		n = length(ps);
+		xs = db.scan('exec, fptr, iv.beg, iv.end);
+		map(@lambda(t){
+				@local args, as, i, dom;
+				dom = db.dom(t);
+				args = chgetargs(db, n, t);
+				as = [];
+				for(i = 0; i < n; i++)
+					append(as, {paramtype(ps[i])}{dom}args[i]);
+				return instant(t, as);
+			}, xs);
 	}
 
 	@define returns(db, iv, fptr)
