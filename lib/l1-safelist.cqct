@@ -11,11 +11,10 @@
 {
 	@local addr, len, ws;
 
-	printf("assertunwritten %a %a\n", what, iv);
-	[addr, len] = f(iv.val);
+	[addr, len] = f(iv);
 	ws = db.scan('write, addr, len, iv.beg, iv.end);
 	if(length(ws) != 0)
-		error("found %a writes: %a", ws);
+		error("found %a %a writes: %a", length(ws), what, ws);
 }
 
 @define checklist(db, addr, t)
@@ -31,22 +30,22 @@
 		&dom`listexpand,
 		&dom`listdel,
 		&dom`listins,
-		&dom`_listappend
+		&dom`_listappend,
+		&dom`dosort
 	];
 	
 	livs = vallifetime(db, addr, t);
 	xivs = anycalls(db, exclude);
 	livs = ivseqout(livs, xivs);
 
-	ivseqdump(livs, "residual intervals\n");
+	@defloc hrange(iv) { @local l; l = {db.dom(iv.beg)}iv.val; return [&l->h, sizeof(l->h)]; }
+	@defloc trange(iv) { @local l; l = {db.dom(iv.beg)}iv.val; return [&l->t, sizeof(l->t)]; }
+	@defloc vrange(iv) { @local l; l = {db.dom(iv.beg)}iv.val; return [&l->v, sizeof(l->v)]; }
 
-	@defloc hrange(l) { return [&l->h, sizeof(l->h)]; }
-	@defloc trange(l) { return [&l->t, sizeof(l->t)]; }
-	@defloc vrange(l) { return [&l->v, sizeof(l->v)]; }
-
-	@defloc erange(l)
+	@defloc erange(iv)
 	{
-		@local sa, ea;
+		@local l, sa, ea;
+		l = {db.dom(iv.beg)}iv.val;
 		sa = (void*)(vecdata(l->v)+l->h);
 		ea = (void*)(vecdata(l->v)+l->t);
 		return [sa, ea-sa];
@@ -70,20 +69,11 @@
 	dom = db.exedom;
 	lists = returns(db, db.interval(), &dom`_mklist);
 
-//	foreach(@lambda(it){
-//			@local addr, time;
-//			addr = it.val;
-//			time = it.t;
-//			printf("list %p allocated @%d\n", addr, time);
-//			checklist(db, addr, time);
-//		}, lists);
-
-	{
-		@local it, addr, time;
-		it = lists[2];
-		addr = it.val;
-		time = it.t;
-		printf("list %p allocated @%d\n", addr, time);
-		checklist(db, addr, time);
-	}
+	foreach(@lambda(it){
+			@local addr, time;
+			addr = it.val;
+			time = it.t;
+			printf("list %p allocated @%d\n", addr, time);
+			checklist(db, addr, time);
+		}, lists);
 }
