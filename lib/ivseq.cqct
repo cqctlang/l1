@@ -100,20 +100,43 @@ rdsetfmt(@record interval { beg, end, val },
 	return loop(copy(ivs));
 }
 
-@define ivseqlook(ivs, t)
+@define ivseqlook(ivs, ivort)
 {
-	@local i, iv, m;
-	m = length(ivs);
-	for(i = 0; i < m; i++){
-		iv = ivs[i];
-		if(t < iv.beg)
-			continue;
-		if(t >= iv.beg && t < iv.end)
-			return iv;
-		if(t >= iv.end)
-			continue;
+	@defloc lookt(t)
+	{
+		@local i, iv, m;
+		m = length(ivs);
+		for(i = 0; i < m; i++){
+			iv = ivs[i];
+			if(t < iv.beg)
+				continue;
+			if(t >= iv.beg && t < iv.end)
+				return iv;
+			if(t >= iv.end)
+				continue;
+		}
+		return nil;
 	}
-	return nil;
+
+	@defloc lookiv(iv)
+	{
+		@local x;
+		x = ivseqlook(ivs, iv.beg);
+		if(x == nil)
+			return nil;
+		if(x.end < iv.end)
+			return nil;
+		return x;
+	}
+
+	if(isinterval(ivort))
+		return lookiv(ivort);
+	else if(isinstant(ivort))
+		return lookt(ivort.t);
+	else if(iscvalue(ivort))
+		return lookt(ivort);
+	else
+		error("invalid second argument");
 }
 
 /* AVS and BVS are ivseqs.

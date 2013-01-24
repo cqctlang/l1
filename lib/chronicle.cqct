@@ -19,7 +19,8 @@
 	fmtldom,
 	dumpstack,
 	dumpstacklocs,
-	rocdumpstack
+	rocdumpstack,
+	uniqstacks
 ;
 
 chverbose = 0;
@@ -689,6 +690,43 @@ chverbose = 0;
 					      l);
 			}, ldom.enumsym());
 		return s;
+	}
+
+	@define uniqstacks(ctl, ts)
+	{
+		@local pcht, stkht, rv;
+
+		@defloc dofmt(t)
+		{
+			@local ctxs, ss;
+			ctxs = ctl.unwind(t);
+			ss = map(@lambda(ctx){ "\t"+fmtframe(ctl, ctx, t)+"\n"; }, ctxs);
+			return join(ss);
+		}
+
+		pcht = mktab(mklist);
+		foreach(@lambda(t){
+				@local ctx;
+				ctx = ctl.ctx(t);
+				append(pcht[ctx->pc], t);
+			}, ts);		
+
+		stkht = mktab(mklist);
+		foreach(@lambda(pc, ts){
+				@local ctxs, t, pcs;
+				t = ts[0];
+				ctxs = ctl.unwind(t);
+				pcs = map(@lambda(ctx){ ctx->pc; }, ctxs);
+				stkht[pcs] = concat(stkht[pcs], ts);
+			}, pcht);
+		rv = [];
+		foreach(@lambda(pcs, ts){
+				@local t, fmt;
+				t = ts[0];
+				fmt = dofmt(t);
+				append(rv, [ts, fmt]);
+			}, stkht);
+		return rv;
 	}
 
 	@define dumpstack(ctl, t)

@@ -2,24 +2,46 @@
 @include <l1-debug.cqct>
 @include <l1-mem.cqct>
 
+@global lists, db;
+
 @define anycalls(db, fns)
 {
 	ivsequnionall(map(@lambda(fn){ callintervals(db, db.interval(), fn); }, fns), nil);
 }
 
-@define assertunwritten(db, what, iv, f)
+@define dumpreport(db, iv, addr, len, ws)
+{
+	@local stks;
+	printf("... %d unexpected writes in interval @%d-@%d\n",
+	       length(ws), iv.beg, iv.end);
+	printf("...... object %p (%t), range %p-%p\n",
+	       iv.val, iv.val, addr, (void*)addr+len);
+	stks = uniqstacks(db, ws);
+	printf("...... %d unique context%s\n", length(stks),
+	       length(stks) > 1 ? "s" : "");
+	foreach(@lambda(e){
+			printf("...... %d writes occurred here (example @%d)\n",
+			       length(e[0]), e[0][0]);
+			printf("%s", e[1]);
+		}, stks);
+}
+
+@define assertunwritten(db, iv, al)
 {
 	@local addr, len, ws;
 
-	[addr, len] = f(iv);
+	[addr, len] = al;
 	ws = db.scan('write, addr, len, iv.beg, iv.end);
+
 	if(length(ws) != 0)
-		error("found %a %a writes: %a", length(ws), what, ws);
+		dumpreport(db, iv, addr, len, ws);
 }
 
-@define checklist(db, addr, t)
+@define checklist(lit)
 {
 	@local dom, livs, exclude, xivs;
+
+	printf("checking list allocated @%d\n", lit.t);
 
 	dom = db.exedom;
 	exclude = [
@@ -34,18 +56,18 @@
 		&dom`dosort
 	];
 	
-	livs = vallifetime(db, addr, t);
+	livs = vallifetime(db, lit.val, lit.t);
 	xivs = anycalls(db, exclude);
 	livs = ivseqout(livs, xivs);
 
-	@defloc hrange(iv) { @local l; l = {db.dom(iv.beg)}iv.val; return [&l->h, sizeof(l->h)]; }
-	@defloc trange(iv) { @local l; l = {db.dom(iv.beg)}iv.val; return [&l->t, sizeof(l->t)]; }
-	@defloc vrange(iv) { @local l; l = {db.dom(iv.beg)}iv.val; return [&l->v, sizeof(l->v)]; }
+	@defloc liv2list(iv) { return {db.dom(iv.beg)}iv.val; }
 
-	@defloc erange(iv)
+	@defloc hrange(l) { return [&l->h, sizeof(l->h)]; }
+	@defloc trange(l) { return [&l->t, sizeof(l->t)]; }
+	@defloc vrange(l) { return [&l->v, sizeof(l->v)]; }
+	@defloc erange(l)
 	{
-		@local l, sa, ea;
-		l = {db.dom(iv.beg)}iv.val;
+		@local sa, ea;
 		sa = (void*)(vecdata(l->v)+l->h);
 		ea = (void*)(vecdata(l->v)+l->t);
 		return [sa, ea-sa];
@@ -53,13 +75,42 @@
 
 	@defloc assertconfig(iv)
 	{
-		assertunwritten(db, 'h, iv, hrange);
-		assertunwritten(db, 't, iv, trange);
-		assertunwritten(db, 'v, iv, vrange);
-		assertunwritten(db, 'e, iv, erange);
+		@local l;
+		l = liv2list(iv);
+		assertunwritten(db, iv, hrange(l));
+		assertunwritten(db, iv, trange(l));
+		assertunwritten(db, iv, vrange(l));
+		assertunwritten(db, iv, erange(l));
 	}
 
+	@defloc listcontents(iv)
+	{
+		@local l, addr, len, p, ep, rv;
+		l = liv2list(iv);
+		[addr, len] = erange(l);
+		p = (Val*)addr;
+		ep = (Val*)(addr+len);
+		rv = [];
+		while(p < ep)
+			append(rv, interval(iv.beg, iv.end, *p++));
+		return rv;
+	}
+
+	@defloc assertlive(iv)
+	{
+		printf("...... assertlive: %a\n", iv);
+		if(!ivseqlook(vallifetime(db, iv.val, iv.beg), iv))
+			printf("... object %p is stale in interval @%d-@%d\n",
+			       iv.val, iv.beg, iv.end);
+	}
+
+	printf("... verifying %d subintervals are invariant\n", length(livs));
 	foreach(assertconfig, livs);
+
+	printf("... verifying %d subintervals have live contents\n", length(livs));
+	foreach(@lambda(iv){ foreach(assertlive, listcontents(iv)); }, livs);
+
+	printf("\n");
 }
 
 @define safelist(db)
@@ -70,10 +121,21 @@
 	lists = returns(db, db.interval(), &dom`_mklist);
 
 	foreach(@lambda(it){
-			@local addr, time;
-			addr = it.val;
-			time = it.t;
-			printf("list %p allocated @%d\n", addr, time);
-			checklist(db, addr, time);
+			printf("list %p allocated @%d\n", it.val, it.time);
+			checklist(db, it);
 		}, lists);
+}
+
+@define l1db(file)
+{
+	@local dom, n;
+	printf("'db':\n");
+	db = chronicledb(file);
+	printf("\n");
+	dom = db.exedom;
+	lists = returns(db, db.interval(), &dom`_mklist);
+	printf("'lists': %d lists allocated\n", length(lists));
+	n = 0;
+	foreach(@lambda(it){ printf("\t#%-3d %a\n", n++, it); }, lists);
+	printf("\n");
 }
