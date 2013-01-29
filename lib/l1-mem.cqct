@@ -1,6 +1,7 @@
 /* chronicle assisted analyses of L1 memory management */
 
 @global
+	checkfreelist,
 	valfuture,
 	vallifetime,
 	valpast
@@ -145,6 +146,49 @@
 	if(future == nil)
 		return nil;
 	return it2ivseq(concat(past, future));
+}
+
+@define checkfreelist(db)
+{
+	@local dom, exclude, init, fini, stivs;
+
+	printf("checking free list\n");
+
+	dom = db.exedom;
+	exclude = [
+		&dom`_gc,
+		&dom`nextfree,
+		&dom`freeseg,
+		&dom`freerange,
+	];
+
+	init = firstreturn(db, db.interval(), &dom`initmem);
+	fini = lastcall(db, db.interval(), &dom`finimem);
+
+	stivs = [interval(init.t, fini.t, nil)];
+	stivs = ivseqout(stivs, anycalls(db, exclude));
+				 
+	@defloc freesegs(iv)
+	{
+		@local f, rvs;
+		rvs = [];
+		dom = db.dom(iv.beg);
+		f = dom`segmap.free;
+		while(f){
+			append(rvs, interval(iv.beg, iv.end, [f, Segsize]));
+			f = *(void**)f;
+		}
+		printf("scanning %d segments in %a\n", length(rvs), iv);
+		return rvs;
+	}
+
+	@defloc assertsafe(iv)
+	{
+		foreach(@lambda(s){assertunwritten(db, s, s.val);}, freesegs(iv));
+	}
+
+	printf("scanning %d stable intervals\n", length(stivs));
+	foreach(assertsafe, stivs);
 }
 
 }

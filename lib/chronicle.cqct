@@ -7,12 +7,16 @@
 	calls,
 	chverbose,
 	chronicledb,
+	firstcall,
+	firstreturn,
 	runchronicle,
 	setchroot,
 	chgetargs,
 	callintervals,
 	returns,
 	callstack,
+	lastcall,
+	lastreturn,
 
 	/* these should be unified with debug library */
 	fmtframe,
@@ -619,6 +623,45 @@ chverbose = 0;
 			}, ts);
 	}
 
+	@define firstcall(db, iv, fptr)
+	{
+		@local its;
+		its = calls(db, iv, fptr);
+		if(length(its) == 0)
+			error("no call");
+		return its[0];
+	}
+
+	@define lastcall(db, iv, fptr)
+	{
+		@local its;
+		its = calls(db, iv, fptr);
+		if(length(its) == 0)
+			error("no call");
+		return its[length(its)-1];
+	}
+
+	/* FIXME: redefine firstreturn and lastreturn
+	   to search only for desired return time */
+
+	@define firstreturn(db, iv, fptr)
+	{
+		@local its;
+		its = returns(db, iv, fptr);
+		if(length(its) == 0)
+			error("no return");
+		return its[0];
+	}
+
+	@define lastreturn(db, iv, fptr)
+	{
+		@local its;
+		its = returns(db, iv, fptr);
+		if(length(its) == 0)
+			error("no return");
+		return its[length(its)-1];
+	}
+
 	@define calls(db, iv, fptr)
 	{
 		@local ct, xs, ps, n;
@@ -628,6 +671,10 @@ chverbose = 0;
 			error("cannot determine function argument types");
 		ps = params(subtype(ct));
 		n = length(ps);
+		if(n == 1 && paramtype(ps[0]) == @typeof(void))
+			n = 0;
+		else
+			n = length(ps);
 		xs = db.scan('exec, fptr, iv.beg, iv.end);
 		map(@lambda(t){
 				@local args, as, i, dom;
@@ -648,12 +695,14 @@ chverbose = 0;
 		if(!isptr(ct) || !isfunc(subtype(ct)))
 			error("cannot determine function return type");
 		rt = rettype(subtype(ct));
+		if(rt == @typeof(void))
+			rt = nil;
 		ivs = callintervals(db, iv, fptr);
 		return map(@lambda(iv){
 				@local t, ctx;
 				t = iv.end;
 				ctx = db.ctx(t);
-				return instant(t, {rt}{db.dom(t)}ctx->rax);
+				return instant(t, rt ? {rt}{db.dom(t)}ctx->rax : nil);
 			}, ivs);
 	}
 
