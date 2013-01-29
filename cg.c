@@ -1233,13 +1233,12 @@ cg(Expr *e, Ode *code, CGEnv *p, Location *loc, Ctlidx ctl, Ctlidx nxt,
 			cgrand(f, &r2, e->e2);
 		}else{
 			L0 = genlabel(code);
-			randframeloc(&r1, f->tmp);
+			fpushlm(f);
+			randframeloc(&r1, f->tmp++);
 			cg(e->e1, code, p, &r1.u.loc, L0, L0, f);
 			emitlabel(code, L0);
 			femit(f, code);
 			L = genlabel(code);
-			fpushlm(f);
-			fset(f, f->tmp++);
 			cg(e->e2, code, p, AC, L, L, f);
 			f->tmp--;
 			fpoplm(f);

@@ -4,6 +4,7 @@
 @include <debugutil.cqct>
 
 @global 
+	callrets,
 	calls,
 	chverbose,
 	chronicledb,
@@ -660,6 +661,49 @@ chverbose = 0;
 		if(length(its) == 0)
 			error("no return");
 		return its[length(its)-1];
+	}
+
+	@define callrets(db, iv, fptr)
+	{
+		@local ct, rt, ps, n, ivs;
+		
+		ct = @typeof(fptr);
+		if(!isptr(ct) || !isfunc(subtype(ct)))
+			error("cannot determine function argument types");
+		ps = params(subtype(ct));
+		n = length(ps);
+		if(n == 1 && paramtype(ps[0]) == @typeof(void))
+			n = 0;
+		else
+			n = length(ps);
+		rt = rettype(subtype(ct));
+		if(rt == @typeof(void))
+			rt = nil;
+
+		ivs = callintervals(db, iv, fptr);
+		return map(@lambda(iv){
+				@local t, ctx, args, as, i, dom, rv;
+
+				/* arguments */
+				as = [];
+				if(n > 0){
+					t = iv.beg;
+					dom = db.dom(t);
+					args = chgetargs(db, n, t);
+					for(i = 0; i < n; i++)
+						append(as, {paramtype(ps[i])}{dom}args[i]);
+				}
+
+				/* return value */
+				rv = nil;
+				if(rt){
+					t = iv.end;
+					ctx = db.ctx(t);
+					rv = {rt}{db.dom(t)}ctx->rax;
+				}
+
+				return interval(iv.beg, iv.end, push(as, rv));
+			}, ivs);
 	}
 
 	@define calls(db, iv, fptr)
