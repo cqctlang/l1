@@ -78,22 +78,20 @@
 			&dom`_listappend,	// void  _listappend(List*, Val);
 		];
 
-//		x = zunionall(map(@lambda(fn){ callrets(db, liv, fn); }, exclude), nocollide);
 		x = anycallsinout(db, liv, exclude);
 		x = map(mkpicktype(@typeof(dom`List*)), x);
 		x = filter(@lambda(iv){ iv.val == liv.val; }, x);
-		return zout([liv], x);
+		return zout(liv, x);
 	}
 
 	/* exclude swaps to elements of the list */
 	@defloc excludeswap(liv)
 	{
 		@local x;
-//		x = callrets(db, liv, &dom`doswap);
 		x = anycallsinout(db, liv, [&dom`doswap]);
 		x = map(mkpickn(1), x);
 		x = filter(@lambda(iv){ containsloc(dataloc(liv), iv.val); }, x);
-		return zout([liv], x);
+		return zout(liv, x);
 	}
 
 	/* check one list interval.
