@@ -125,3 +125,13 @@
 	x = pop(arg);
 	r(x, arg);
 }
+
+@define flatten(ls)
+{
+	@local acc;
+	acc = [];
+	foreach(@lambda(l){
+			acc = concat(acc, l);
+		}, ls);
+	return acc;
+}

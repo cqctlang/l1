@@ -1,0 +1,125 @@
+@global
+	checklist,
+	lists,
+	l1lists
+;
+
+{
+
+@defloc iv2list(iv) { return {db.dom(iv.beg)}iv.val; }
+@defloc hloc(iv) { @local l; l = iv2list(iv); return interval(iv.beg, iv.end, [&l->h, sizeof(l->h)]); }
+@defloc tloc(iv) { @local l; l = iv2list(iv); return interval(iv.beg, iv.end, [&l->t, sizeof(l->t)]); }
+@defloc vloc(iv) { @local l; l = iv2list(iv); return interval(iv.beg, iv.end, [&l->v, sizeof(l->v)]); }
+@defloc metalocs(iv) { [ hloc(iv), tloc(iv), vloc(iv) ]; }
+
+@defloc dataloc(iv)
+{
+	@local sa, ea;
+	@local l;
+	l = iv2list(iv); 
+	sa = (void*)(vecdata(l->v)+l->h);
+	ea = (void*)(vecdata(l->v)+l->t);
+	return interval(iv.beg, iv.end, [sa, ea-sa]);
+}
+
+@defloc listcontents(iv)
+{
+	@local addr, len, p, ep, rv;
+	[addr, len] = iv.val;
+	p = (Val*)addr;
+	ep = (Val*)(addr+len);
+	rv = [];
+	while(p < ep)
+		append(rv, interval(iv.beg, iv.end, *p++));
+	return rv;
+}
+
+@defloc containsloc(iv, addr)
+{
+	return addr >= iv.val[0] && addr < (void*)iv.val[0]+iv.val[1];
+}
+
+@define l1lists(db)
+{
+	@local dom, n;
+
+	dom = db.exedom;
+	n = 0;
+	lists = returns(db, db.interval(), &dom`_mklist);
+	printf("'lists': %d lists allocated\n", length(lists));
+	lists = map(@lambda(lit){
+			@local livs;
+			livs = vallifetime(db, lit.val, lit.t);
+			printf("\t#%-3d %a\n", n++, livs);
+			return livs;
+		    }, lists);
+
+	return nil;
+}
+
+@define checklist(livs)
+{
+	@local dom;
+
+	dom = db.exedom;
+
+	/* exclude time in any function that updates the list */
+	@defloc excludeupdates(liv)
+	{
+		@local x, exclude;
+
+		/* functions to exclude */
+		exclude = [
+			&dom`_mklist,		// List* _mklist(Imm);
+			&dom`listset,		// List* listset(List*, Imm, Val);
+			&dom`listpop,		// void  listpop(List*, Val*);
+			&dom`listdel,		// List* listdel(VM*, List*, Imm);
+			&dom`listins,		// List* listins(VM*, List*, Imm, Val);
+			&dom`_listappend,	// void  _listappend(List*, Val);
+		];
+
+//		x = zunionall(map(@lambda(fn){ callrets(db, liv, fn); }, exclude), nocollide);
+		x = anycallsinout(db, liv, exclude);
+		x = map(mkpicktype(@typeof(dom`List*)), x);
+		x = filter(@lambda(iv){ iv.val == liv.val; }, x);
+		return zout([liv], x);
+	}
+
+	/* exclude swaps to elements of the list */
+	@defloc excludeswap(liv)
+	{
+		@local x;
+//		x = callrets(db, liv, &dom`doswap);
+		x = anycallsinout(db, liv, [&dom`doswap]);
+		x = map(mkpickn(1), x);
+		x = filter(@lambda(iv){ containsloc(dataloc(liv), iv.val); }, x);
+		return zout([liv], x);
+	}
+
+	/* check one list interval.
+	   assume location of list descriptor is constant within LIV.
+	   assume location of storage and # of elements may change within LIV. */
+	@defloc checkliv(liv)
+	{
+		@local stable;
+
+		stable = excludeupdates(liv);
+
+		/* verify that metadata variables (h, t, v) are not updated */
+		foreach(@lambda(iv){ foreach(assertunwritten, metalocs(iv)); }, stable);
+				
+		/* verify that storage is not updated */
+//		stable = flatten(map(excludeswap, stable));
+		foreach(@lambda(iv){ assertunwritten(dataloc(iv)); }, stable);
+
+		/* verify that each element is live */
+//		foreach(@lambda(iv){ foreach(assertlive, listcontents(dataloc(iv))); }, stable);
+	}
+
+	printf("checking list allocated @%d\n", livs[0].beg);
+	livs = zout(livs, callrets(db, db.interval(), &dom`_gc));
+
+	foreach(checkliv, livs);
+}
+
+}

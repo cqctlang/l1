@@ -6,8 +6,11 @@
 @global 
 	/* intervals */
 	anycalls,
+	anycallsinout,
 	containsiv,
 	it2ivseq,
+	mkpickn,
+	mkpicktype,
 	zdump,
 	zjoin,
 	zout,
@@ -945,9 +948,21 @@ rdsetfmt(@record interval { beg, end, val },
 		mkchctl(db);
 	}
 
-	@define anycalls(db, fns)
+	/* A and B are the values of two colliding intervals.
+	   it would be nice to have the intervals */
+//	@defloc nocollide(a, b)
+//	{
+//		error("interval collision");
+//	}
+
+	@define anycalls(db, iv, fns)
 	{
-		zunionall(map(@lambda(fn){ callintervals(db, db.interval(), fn); }, fns), nil);
+		zunionall(map(@lambda(fn){ callintervals(db, iv, fn); }, fns), nil);
+	}
+
+	@define anycallsinout(db, iv, fns)
+	{
+		zunionall(map(@lambda(fn){ callrets(db, iv, fn); }, fns), nil);
 	}
 
 	@define it2ivseq(its)
@@ -1225,5 +1240,32 @@ rdsetfmt(@record interval { beg, end, val },
 	{
 		apply(printf, fmt, args);
 		foreach(@lambda(iv){ printf("\t%a\n", iv); }, ivs);
+	}
+
+	@define mkpicktype(type)
+	{
+		@defloc pick(iv)
+		{
+			@local i, m;
+			m = length(iv.val);
+			for(i = 0; i < m; i++)
+				if(iv.val[i] && @typeof(iv.val[i]) == type)
+					return interval(iv.beg, iv.end, iv.val[i]);
+				else if(iv.val[i])
+					printf("rejecting idx %d of type %t\n", i, @typeof(iv.val[i]));
+			error("no value of type %t", type);
+		}
+		return pick;
+	}
+
+	@define mkpickn(n)
+	{
+		@defloc pick(iv)
+		{
+			if(n > length(iv.val))
+				error("no value at index %d\n", n);
+			return interval(iv.beg, iv.end, iv.val[n]);
+		}
+		return pick;
 	}
 }
