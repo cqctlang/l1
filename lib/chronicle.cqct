@@ -4,6 +4,19 @@
 @include <debugutil.cqct>
 
 @global 
+	/* intervals */
+	anycalls,
+	containsiv,
+	it2ivseq,
+	zdump,
+	zjoin,
+	zout,
+	zshred,
+	zsplit,
+	zunion,
+	zunionall,
+
+	/* chronicle backend */
 	callrets,
 	calls,
 	chverbose,
@@ -29,6 +42,16 @@
 ;
 
 chverbose = 0;
+
+rdsetfmt(@record instant { t, val },
+	 @lambda(r) { sprintfa("@%d%s", r.t,
+			       r.val == nil ? "" :
+			       sprintfa(" %a", r.val)); });
+rdsetfmt(@record interval { beg, end, val },
+	 @lambda(r) { sprintfa("<@%d - @%d%s>", r.beg, r.end,
+			       r.val == nil ? "" :
+			       isprocedure(r.val) ? " *" :
+			       sprintfa(" %a", r.val)); });
 
 {
 	@local chroot, chvalgrpath, chquerypath, ns;
@@ -611,17 +634,28 @@ chverbose = 0;
 
 	@define callintervals(exe, i, func)
 	{
-		@local ts;
+		@local ts, ps;
 		ts = exe.scan('exec, func, i.beg, i.end);
-		if(length(ts) == 0)
-			return [];
-		map(@lambda(t){
+		ts = map(@lambda(t){
 				@local r;
 				r = exe.findret(t);
 				if(r == nil)
 					error("cannot find return time for %a\n", t);
 				return interval(t, r, nil);
 			}, ts);
+		ps = exe.scan('lastexec, func, 0, i.beg);
+		if(length(ps) == 1){
+			@local t, r;
+			t = ps[0];
+			r = exe.findret(t);
+			if(r == nil)
+				error("cannot find return time for %a\n, t");
+			if(length(ts) && r >= ts[0].end)
+				/* we seemed to have found overlapping calls */
+				error("bug");
+			push(ts, interval(t, r, nil));
+		}
+		return ts;
 	}
 
 	@define firstcall(db, iv, fptr)
@@ -909,5 +943,287 @@ chverbose = 0;
 	@define chronicledb(db)
 	{
 		mkchctl(db);
+	}
+
+	@define anycalls(db, fns)
+	{
+		zunionall(map(@lambda(fn){ callintervals(db, db.interval(), fn); }, fns), nil);
+	}
+
+	@define it2ivseq(its)
+	{
+		@local it, nit, i, m, rv;
+		m = length(its);
+		if(m == 0)
+			return [];
+		if(m == 1)
+			error("only one instant");
+		it = its[0];
+		rv = [];
+		for(i = 1; i < m; i++){
+			nit = its[i];
+			append(rv, interval(it.t, nit.t, it.val));
+			it = nit;
+		}
+		return rv;
+	}
+
+/* split interval sequence into two sequences, before and after.
+   before contains intervals before T (i.e., that end no later than T).
+   after contains intervals at or after T.
+   optional third argument MODE determines what happens
+   if T occurs within an interval [B,E,V]:
+
+   'split :    it is split into [B,T,V] (which goes into before)
+   and [T,E,V] (which goes into after).
+   'before :   [B,E,V] is added to before
+   'after :    [B,E,V] is added to after
+   'fail :     the call returns nil
+*/
+	@define zsplit(ivs, t, rest ...)
+	{
+		@local before, mode;
+
+		before = [];
+
+		if(length(rest) > 0){
+			if(length(rest) > 1)
+				error("too many arguments");
+			mode = rest[0];
+			if(!ismember(['split, 'before, 'after, 'fail], mode))
+				error("unknown mode: %a", mode);
+		}else
+			mode = 'split;
+
+		@defloc loop(ivs)
+		{
+			@local iv;
+			if(length(ivs) == 0)
+				return [before, []];
+			iv = ivs[0];
+			if(iv.beg >= t)
+				return [before, ivs];
+			else if(iv.end <= t){
+				pop(ivs);
+				append(before, iv);
+				return loop(ivs);
+			}else
+				switch(mode){
+				case 'split:
+					pop(ivs);
+					append(before, interval(iv.beg, t, iv.val));
+					push(ivs, interval(t, iv.end, iv.val));
+					return loop(ivs);
+				case 'before:
+					pop(ivs);
+					append(before, iv);
+					return loop(ivs);
+				case 'after:
+					return [before, ivs];
+				case 'fail:
+					return [nil, nil];
+				default:
+					error("bug");
+				}
+		}
+		return loop(copy(ivs));
+	}
+
+	@define containsiv(ivs, ivort)
+	{
+		@defloc lookt(t)
+		{
+			@local i, iv, m;
+			m = length(ivs);
+			for(i = 0; i < m; i++){
+				iv = ivs[i];
+				if(t < iv.beg)
+					continue;
+				if(t >= iv.beg && t < iv.end)
+					return iv;
+				if(t >= iv.end)
+					continue;
+			}
+			return nil;
+		}
+
+		@defloc lookiv(iv)
+		{
+			@local x;
+			x = containsiv(ivs, iv.beg);
+			if(x == nil)
+				return nil;
+			if(x.end < iv.end)
+				return nil;
+			return x;
+		}
+
+		if(isinterval(ivort))
+			return lookiv(ivort);
+		else if(isinstant(ivort))
+			return lookt(ivort.t);
+		else if(iscvalue(ivort))
+			return lookt(ivort);
+		else
+			error("invalid second argument");
+	}
+
+/* AVS and BVS are ivseqs.
+   subdivide each so that no interval in AVS overlaps with
+   one in BVS and vice-versa. */
+	@define zshred(avs, bvs)
+	{
+		@defloc loop(avs, bvs, navs, nbvs, cnt)
+		{
+			@local av, bv;
+			@local ab, ae, bb, be;
+			if(length(avs) == 0)
+				return [navs, concat(nbvs, bvs)];
+			else if(length(bvs) == 0)
+				return [concat(navs, avs), nbvs];
+			else{
+				av = avs[0];
+				bv = bvs[0];
+				ab = av.beg;
+				ae = av.end;
+				bb = bv.beg;
+				be = bv.end;
+
+				if(ae <= bb){
+					append(navs, pop(avs));
+					return loop(avs, bvs, navs, nbvs, cnt);
+				}else if(ab < bb && ae <= be){
+					pop(avs);
+					pop(bvs);
+					append(navs, interval(ab, bb, av.val));
+					append(navs, interval(bb, ae, av.val));
+					append(nbvs, interval(bb, ae, bv.val));
+					if(ae < be)
+						push(bvs, interval(ae, be, bv.val));
+					return loop(avs, bvs, navs, nbvs, cnt);
+				}else if(ae <= be){
+					if(ab == bb && ae == be){
+						append(navs, pop(avs));
+						append(nbvs, pop(bvs));
+						return loop(avs, bvs, navs, nbvs, cnt);
+					}else if(ab == bb && ae < be){
+						pop(bvs);
+						append(navs, pop(avs));
+						append(nbvs, interval(bb, ae, bv.val));
+						push(bvs, interval(ae, be, bv.val)); 
+						return loop(avs, bvs, navs, nbvs, cnt);
+					}else if(ab > bb && ae <= be){
+						pop(avs);
+						pop(bvs);
+						append(navs, interval(ab, ae, av.val));
+						append(nbvs, interval(bb, ab, bv.val));
+						append(nbvs, interval(ab, ae, bv.val));
+						if(ae < be)
+							push(bvs, interval(ae, be, bv.val));
+						return loop(avs, bvs, navs, nbvs, cnt);
+					}else
+						error("confusion");
+				}else{
+					/* the remaining cases have symmetry with the above cases */
+					[nbvs, navs] = loop(bvs, avs, nbvs, navs, cnt+1);
+					return [navs, nbvs];
+				}
+			}
+		}
+		return loop(copy(avs), copy(bvs), [], [], 0);
+	}
+
+	@define zunion(avs, bvs, f)
+	{
+		@defloc loop(avs, bvs, rv)
+		{
+			if(length(avs) == 0)
+				return concat(rv, bvs);
+			else if(length(bvs) == 0)
+				return concat(rv, avs);
+			else{
+				@local av, bv;
+				av = avs[0];
+				bv = bvs[0];
+				if(av.beg < bv.beg){
+					if(av.end > bv.beg)
+						error("bug");
+					pop(avs);
+					append(rv, av);
+					return loop(avs, bvs, rv);
+				}else if(av.beg > bv.beg){
+					if(bv.end > av.beg)
+						error("bug");
+					pop(bvs);
+					append(rv, bv);
+					return loop(avs, bvs, rv);
+				}else{
+					@local val;
+					if(av.end != bv.end)
+						error("bug");
+					pop(avs);
+					pop(bvs);
+					val = f ? f(av.val, bv.val) : nil;
+					append(rv, interval(av.beg, av.end, val));
+					return loop(avs, bvs, rv);
+				}
+			}
+		}
+		[avs, bvs] = zshred(avs, bvs);
+		return loop(avs, bvs, []);
+	}
+
+	@define zout(avs, bvs)
+	{
+		@defloc loop(avs, bvs, rv)
+		{
+			if(length(avs) == 0)
+				return rv;
+			else if(length(bvs) == 0)
+				return concat(rv, avs);
+			else{
+				@local av, bv;
+				av = avs[0];
+				bv = bvs[0];
+				if(av.beg < bv.beg){
+					if(av.end > bv.beg)
+						error("bug");
+					pop(avs);
+					append(rv, av);
+					return loop(avs, bvs, rv);
+				}else if(av.beg > bv.beg){
+					if(bv.end > av.beg)
+						error("bug");
+					pop(bvs);
+					return loop(avs, bvs, rv);
+				}else{
+					if(av.end != bv.end)
+						error("bug");
+					pop(avs);
+					pop(bvs);
+					return loop(avs, bvs, rv);				
+				}
+			}
+		}
+		if(!islist(avs))
+			return zout([avs], bvs);
+		if(!islist(bvs))
+			return zout(avs, [bvs]);
+		[avs, bvs] = zshred(avs, bvs);
+		return loop(avs, bvs, []);
+	}
+
+	@define zunionall(all, f)
+	{
+		@local rv;
+		rv = [];
+		foreach(@lambda(ivs){ rv = zunion(rv, ivs, f); }, all);
+		return rv;
+	}
+
+	@define zdump(ivs, fmt, args ...)
+	{
+		apply(printf, fmt, args);
+		foreach(@lambda(iv){ printf("\t%a\n", iv); }, ivs);
 	}
 }

@@ -61,7 +61,7 @@
 
 	// search backward for chain of calls to copy.
 
-	[bgcs, _] = ivseqsplit(gcs, t);
+	[bgcs, _] = zsplit(gcs, t);
 	bgcs = reverse(bgcs);
 	while(gc = pop(bgcs)){
 		@local copyt, from;
@@ -102,7 +102,7 @@
 
 	// search forward for chain of calls to copy.
 
-	[_, agcs] = ivseqsplit(gcs, t);
+	[_, agcs] = zsplit(gcs, t);
 	while(gc = pop(agcs)){
 		@local copyt, to;
 		[copyt, to] = findcopyfrom(db, addr, gc);
@@ -117,7 +117,7 @@
 
 	// search forward for freeseg of Seg containing addr
 
-	[_, agcs] = ivseqsplit(gcs, t);
+	[_, agcs] = zsplit(gcs, t);
 	while(gc = pop(agcs)){
 		@local xs, it;
 		xs = calls(db, gc, &dom`freeseg);
@@ -150,24 +150,8 @@
 
 @define checkfreelist(db)
 {
-	@local dom, exclude, init, fini, stivs;
+	@local dom, exclude, init, fini, stable;
 
-	printf("checking free list\n");
-
-	dom = db.exedom;
-	exclude = [
-		&dom`_gc,
-		&dom`nextfree,
-		&dom`freeseg,
-		&dom`freerange,
-	];
-
-	init = firstreturn(db, db.interval(), &dom`initmem);
-	fini = lastcall(db, db.interval(), &dom`finimem);
-
-	stivs = [interval(init.t, fini.t, nil)];
-	stivs = ivseqout(stivs, anycalls(db, exclude));
-				 
 	@defloc freesegs(iv)
 	{
 		@local f, rvs;
@@ -182,13 +166,21 @@
 		return rvs;
 	}
 
-	@defloc assertsafe(iv)
-	{
-		foreach(@lambda(s){assertunwritten(db, s, s.val);}, freesegs(iv));
-	}
+	dom = db.exedom;
+	exclude = [
+		&dom`_gc,
+		&dom`nextfree,
+		&dom`freeseg,
+		&dom`freerange,
+	];
 
-	printf("scanning %d stable intervals\n", length(stivs));
-	foreach(assertsafe, stivs);
+	init = firstreturn(db, db.interval(), &dom`initmem);
+	fini = lastcall(db, db.interval(), &dom`finimem);
+	stable = interval(init.t, fini.t, nil);
+	stable = zout(stable, anycalls(db, exclude));
+				 
+	printf("scanning %d stable intervals\n", length(stable));
+	foreach(@lambda(iv){ foreach(assertunwritten, freesegs(iv)); }, stable);
 }
 
 }

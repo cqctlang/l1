@@ -4,18 +4,22 @@
 
 @global lists, db;
 
-@define anycalls(db, fns)
+@define flatten(ls)
 {
-	ivsequnionall(map(@lambda(fn){ callintervals(db, db.interval(), fn); }, fns), nil);
+	@local acc;
+	acc = [];
+	foreach(@lambda(l){
+			acc = concat(acc, l);
+		}, ls);
+	return acc;
 }
 
-@define dumpreport(db, iv, addr, len, ws)
+@define whine(db, str, iv, ws)
 {
 	@local stks;
-	printf("... %d unexpected writes in interval @%d-@%d\n",
-	       length(ws), iv.beg, iv.end);
-	printf("...... object %p (%t), range %p-%p\n",
-	       iv.val, iv.val, addr, (void*)addr+len);
+	printf("... %s in interval @%d-@%d\n", str, iv.beg, iv.end);
+	if(!ws || length(ws) == 0)
+		return;
 	stks = uniqstacks(db, ws);
 	printf("...... %d unique context%s\n", length(stks),
 	       length(stks) > 1 ? "s" : "");
@@ -26,16 +30,23 @@
 		}, stks);
 }
 
-@define assertunwritten(db, iv, locs)
+@define assertunwritten(iv)
 {
 	@local addr, len, ws;
-	printf("assertunwritten %a %a\n", iv, locs);
-	foreach(@lambda(loc){
-			[addr, len] = loc;
-			ws = db.scan('write, addr, len, iv.beg, iv.end);
-			if(length(ws) != 0)
-				dumpreport(db, iv, addr, len, ws);
-		}, locs);
+	printf("... assertunwritten: %a\n", iv);
+	[addr, len] = iv.val;
+	ws = db.scan('write, addr, len, iv.beg, iv.end);
+	if(length(ws) != 0)
+		whine(db, "write to stable data", iv, ws);
+}
+
+@define assertlive(iv)
+{
+	@local life;
+	printf("... assertlive: %a\n", iv);
+	life = vallifetime(db, iv.val, iv.beg);
+	if(!containsiv(life, iv))
+		whine(db, "reference to stale object", iv, nil);
 }
 
 /* A and B are the values of two colliding intervals.
@@ -45,172 +56,148 @@
 	error("interval collision");
 }
 
-@define checklist2(lit)
+@define mkpicktype(type)
 {
-	@local dom, livs, exclude;
+	@defloc pick(iv)
+	{
+		@local i, m;
+		m = length(iv.val);
+		for(i = 0; i < m; i++)
+			if(iv.val[i] && @typeof(iv.val[i]) == type)
+				return interval(iv.beg, iv.end, iv.val[i]);
+			else if(iv.val[i])
+				printf("rejecting idx %d of type %t\n", i, @typeof(iv.val[i]));
+		error("no value of type %t", type);
+	}
+	return pick;
+}
 
-	printf("checking list allocated @%d\n", lit.t);
+@define mkpickn(n)
+{
+	@defloc pick(iv)
+	{
+		if(n > length(iv.val))
+			error("no value at index %d\n", n);
+		return interval(iv.beg, iv.end, iv.val[n]);
+	}
+	return pick;
+}
+
+@define iv2list(iv) { return {db.dom(iv.beg)}iv.val; }
+@define hloc(iv) { @local l; l = iv2list(iv); return interval(iv.beg, iv.end, [&l->h, sizeof(l->h)]); }
+@define tloc(iv) { @local l; l = iv2list(iv); return interval(iv.beg, iv.end, [&l->t, sizeof(l->t)]); }
+@define vloc(iv) { @local l; l = iv2list(iv); return interval(iv.beg, iv.end, [&l->v, sizeof(l->v)]); }
+@define metalocs(iv) { [ hloc(iv), tloc(iv), vloc(iv) ]; }
+
+@define dataloc(iv)
+{
+	@local sa, ea;
+	@local l;
+	l = iv2list(iv); 
+	sa = (void*)(vecdata(l->v)+l->h);
+	ea = (void*)(vecdata(l->v)+l->t);
+	return interval(iv.beg, iv.end, [sa, ea-sa]);
+}
+
+@define listcontents(iv)
+{
+	@local addr, len, p, ep, rv;
+	[addr, len] = iv.val;
+	p = (Val*)addr;
+	ep = (Val*)(addr+len);
+	rv = [];
+	while(p < ep)
+		append(rv, interval(iv.beg, iv.end, *p++));
+	return rv;
+}
+
+@define containsloc(iv, addr)
+{
+	return addr >= iv.val[0] && addr < (void*)iv.val[0]+iv.val[1];
+}
+
+@define checklist(livs)
+{
+	@local dom;
+
 	dom = db.exedom;
-	exclude = [
-//		&dom`_gc,
-//		&dom`_mklist,
-		&dom`listset,
-		&dom`listpop,
-//		&dom`listexpand,
-		&dom`listdel,
-		&dom`listins,
-		&dom`_listappend,
-//		&dom`dosort
-	];
 
-	livs = vallifetime(db, lit.val, lit.t);
-	livs = ivseqout(livs, callrets(db, db.interval(), &dom`_gc));
-	livs = ivseqout(livs, callrets(db, db.interval(), &dom`_mklist));
-
-	@defloc iv2list(iv) { return {db.dom(iv.beg)}iv.val; }
-
-	@defloc mkpickval(type)
+	/* exclude time in any function that updates the list */
+	@defloc excludeupdates(liv)
 	{
-		@defloc picklistval(iv)
-		{
-			@local i, m;
-			m = length(iv.val);
-			for(i = 0; i < m; i++)
-				if(iv.val[i] && @typeof(iv.val[i]) == type)
-					return interval(iv.beg, iv.end, iv.val[i]);
-			error("no value of type %t", type);
-		}
-		return picklistval;
+		@local x, exclude;
+
+		/* functions to exclude */
+		exclude = [
+			&dom`_mklist,		// List* _mklist(Imm);
+			&dom`listset,		// List* listset(List*, Imm, Val);
+			&dom`listpop,		// void  listpop(List*, Val*);
+			&dom`listdel,		// List* listdel(VM*, List*, Imm);
+			&dom`listins,		// List* listins(VM*, List*, Imm, Val);
+			&dom`_listappend,	// void  _listappend(List*, Val);
+		];
+
+		x = zunionall(map(@lambda(fn){ callrets(db, liv, fn); }, exclude), nocollide);
+		x = map(mkpicktype(@typeof(dom`List*)), x);
+		x = filter(@lambda(iv){ iv.val == liv.val; }, x);
+		return zout([liv], x);
 	}
 
-	@defloc hloc(l) { return [&l->h, sizeof(l->h)]; }
-	@defloc tloc(l) { return [&l->t, sizeof(l->t)]; }
-	@defloc vloc(l) { return [&l->v, sizeof(l->v)]; }
-	@defloc eloc(l)
+	/* exclude swaps to elements of the list */
+	@defloc excludeswap(liv)
 	{
-		@local sa, ea;
-		sa = (void*)(vecdata(l->v)+l->h);
-		ea = (void*)(vecdata(l->v)+l->t);
-		return [sa, ea-sa];
+		@local x;
+		x = callrets(db, liv, &dom`doswap);
+		x = map(mkpickn(1), x);
+		x = filter(@lambda(iv){ containsloc(dataloc(liv), iv.val); }, x);
+		return zout([liv], x);
 	}
 
-	foreach(@lambda(liv){
-			@local xivs, descs, fixeds;
-			
-			xivs = ivsequnionall(map(@lambda(fn){ callrets(db, liv, fn); }, exclude), nocollide);
-			xivs = map(mkpickval(@typeof(dom`List*)), xivs);
-			xivs = filter(@lambda(iv){ iv.val == liv.val; }, xivs);
+	/* check one list interval.
+	   assume location of list descriptor is constant within LIV.
+	   assume location of storage and # of elements may change within LIV. */
+	@defloc checkliv(liv)
+	{
+		@local stable;
 
-			fixeds = ivseqout([liv], xivs);
-			descs = [ hloc(liv.val), tloc(liv.val), vloc(liv.val) ];
+		stable = excludeupdates(liv);
 
-			/* descriptor variables should be unchanged during fixed intervals */
-			foreach(@lambda(fixed){ assertunwritten(db, fixed, descs); }, fixeds);
+		/* verify that metadata variables (h, t, v) are not updated */
+		foreach(@lambda(iv){ foreach(assertunwritten, metalocs(iv)); }, stable);
 				
-			/* backing storage should be unchanged during fixed intervals */
-			foreach(@lambda(fixed){ assertunwritten(db, fixed, [ eloc(iv2list(fixed)) ]); }, fixeds);
-		}, livs);
-}
+		/* verify that storage is not updated */
+		stable = flatten(map(excludeswap, stable));
+		foreach(@lambda(iv){ assertunwritten(dataloc(iv)); }, stable);
 
-@define checklist(lit)
-{
-	@local dom, livs, exclude, xivs;
-
-	printf("checking list allocated @%d\n", lit.t);
-
-	dom = db.exedom;
-	exclude = [
-		&dom`_gc,
-		&dom`_mklist,
-		&dom`listset,
-		&dom`listpop,
-		&dom`listexpand,
-		&dom`listdel,
-		&dom`listins,
-		&dom`_listappend,
-		&dom`dosort
-	];
-	
-	livs = vallifetime(db, lit.val, lit.t);
-	xivs = anycalls(db, exclude);
-	livs = ivseqout(livs, xivs);
-
-	@defloc liv2list(iv) { return {db.dom(iv.beg)}iv.val; }
-
-	@defloc hrange(l) { return [&l->h, sizeof(l->h)]; }
-	@defloc trange(l) { return [&l->t, sizeof(l->t)]; }
-	@defloc vrange(l) { return [&l->v, sizeof(l->v)]; }
-	@defloc erange(l)
-	{
-		@local sa, ea;
-		sa = (void*)(vecdata(l->v)+l->h);
-		ea = (void*)(vecdata(l->v)+l->t);
-		return [sa, ea-sa];
+		/* verify that each element is live */
+		foreach(@lambda(iv){ foreach(assertlive, listcontents(dataloc(iv))); }, stable);
 	}
 
-	@defloc assertconfig(iv)
-	{
-		@local l;
-		l = liv2list(iv);
-		assertunwritten(db, iv, hrange(l));
-		assertunwritten(db, iv, trange(l));
-		assertunwritten(db, iv, vrange(l));
-		assertunwritten(db, iv, erange(l));
-	}
+	printf("checking list allocated @%d\n", livs[0].beg);
+	livs = zout(livs, callrets(db, db.interval(), &dom`_gc));
 
-	@defloc listcontents(iv)
-	{
-		@local l, addr, len, p, ep, rv;
-		l = liv2list(iv);
-		[addr, len] = erange(l);
-		p = (Val*)addr;
-		ep = (Val*)(addr+len);
-		rv = [];
-		while(p < ep)
-			append(rv, interval(iv.beg, iv.end, *p++));
-		return rv;
-	}
-
-	@defloc assertlive(iv)
-	{
-		printf("...... assertlive: %a\n", iv);
-		if(!ivseqlook(vallifetime(db, iv.val, iv.beg), iv))
-			printf("... object %p is stale in interval @%d-@%d\n",
-			       iv.val, iv.beg, iv.end);
-	}
-
-	printf("... verifying %d subintervals are invariant\n", length(livs));
-	foreach(assertconfig, livs);
-
-	printf("... verifying %d subintervals have live contents\n", length(livs));
-	foreach(@lambda(iv){ foreach(assertlive, listcontents(iv)); }, livs);
-
-	printf("\n");
-}
-
-@define safelist(db)
-{
-	@local dom, lists;
-
-	dom = db.exedom;
-	lists = returns(db, db.interval(), &dom`_mklist);
-
-	foreach(@lambda(it){
-			printf("list %p allocated @%d\n", it.val, it.time);
-			checklist(db, it);
-		}, lists);
+	foreach(checkliv, livs);
 }
 
 @define l1db(file)
 {
 	@local dom, n;
+
 	printf("'db':\n");
 	db = chronicledb(file);
 	printf("\n");
+
 	dom = db.exedom;
+
+	n = 0;
 	lists = returns(db, db.interval(), &dom`_mklist);
 	printf("'lists': %d lists allocated\n", length(lists));
-	n = 0;
-	foreach(@lambda(it){ printf("\t#%-3d %a\n", n++, it); }, lists);
-	printf("\n");
+	lists = map(@lambda(lit){
+			@local livs;
+			livs = vallifetime(db, lit.val, lit.t);
+			printf("\t#%-3d %a\n", n++, livs);
+			return livs;
+		    }, lists);
+
+	return nil;
 }
