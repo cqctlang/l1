@@ -115,7 +115,7 @@
 	}
 
 	printf("checking list allocated @%d\n", livs[0].beg);
-	livs = zdiff(livs, callrets(db, db.interval(), &dom`_gc));
+	livs = zdiff(livs, anycalls(db, db.interval(), [&dom`_gc]));
 
 	foreach(checkliv, livs);
 }

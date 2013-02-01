@@ -1,0 +1,50 @@
+@include <chronicle.cqct>
+@include <l1-debug.cqct>
+@include <l1-list.cqct>
+@include <l1-mem.cqct>
+
+@global db;
+
+@define whine(str, iv, ws)
+{
+	@local stks;
+	printf("... %s in interval @%d-@%d\n", str, iv.beg, iv.end);
+	if(!ws || length(ws) == 0)
+		return;
+	stks = uniqstacks(db, ws);
+	printf("...... %d unique context%s\n", length(stks),
+	       length(stks) > 1 ? "s" : "");
+	foreach(@lambda(e){
+			printf("...... %d writes occurred here (example @%d)\n",
+			       length(e[0]), e[0][0]);
+			printf("%s", e[1]);
+		}, stks);
+}
+
+@define assertunwritten(iv)
+{
+	@local addr, len, ws;
+	printf("... assert unwritten: %a\n", iv);
+	[addr, len] = iv.val;
+	ws = db.scan('write, addr, len, iv.beg, iv.end);
+	if(length(ws) != 0)
+		whine("write to unwritten data", iv, ws);
+}
+
+@define assertlive(iv)
+{
+	@local life;
+	printf("... assert live: %a\n", iv);
+	life = vallifetime(db, iv.val, iv.beg);
+	if(!containsiv(life, iv))
+		whine("reference to stale object", iv, nil);
+}
+
+@define l1db(file)
+{
+	printf("'db':\n");
+	db = chronicledb(file);
+	printf("\n");
+
+	return nil;
+}
