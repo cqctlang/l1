@@ -81,7 +81,7 @@
 		x = anycallsinout(db, liv, exclude);
 		x = map(mkpicktype(@typeof(dom`List*)), x);
 		x = filter(@lambda(iv){ iv.val == liv.val; }, x);
-		return zout(liv, x);
+		return zdiff(liv, x);
 	}
 
 	/* exclude swaps to elements of the list */
@@ -91,7 +91,7 @@
 		x = anycallsinout(db, liv, [&dom`doswap]);
 		x = map(mkpickn(1), x);
 		x = filter(@lambda(iv){ containsloc(dataloc(liv), iv.val); }, x);
-		return zout(liv, x);
+		return zdiff(liv, x);
 	}
 
 	/* check one list interval.
@@ -115,7 +115,7 @@
 	}
 
 	printf("checking list allocated @%d\n", livs[0].beg);
-	livs = zout(livs, callrets(db, db.interval(), &dom`_gc));
+	livs = zdiff(livs, callrets(db, db.interval(), &dom`_gc));
 
 	foreach(checkliv, livs);
 }

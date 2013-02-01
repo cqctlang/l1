@@ -177,7 +177,7 @@
 	init = firstreturn(db, db.interval(), &dom`initmem);
 	fini = lastcall(db, db.interval(), &dom`finimem);
 	stable = interval(init.t, fini.t, nil);
-	stable = zout(stable, anycalls(db, stable, exclude));
+	stable = zdiff(stable, anycalls(db, stable, exclude));
 				 
 	printf("scanning %d stable intervals\n", length(stable));
 	foreach(@lambda(iv){ foreach(assertunwritten, freesegs(iv)); }, stable);

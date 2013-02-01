@@ -11,9 +11,9 @@
 	it2ivseq,
 	mkpickn,
 	mkpicktype,
+	zdiff,
 	zdump,
 	zjoin,
-	zout,
 	zshred,
 	zsplit,
 	zunion,
@@ -1188,7 +1188,7 @@ rdsetfmt(@record interval { beg, end, val },
 		return loop(avs, bvs, []);
 	}
 
-	@define zout(avs, bvs)
+	@define zdiff(avs, bvs)
 	{
 		@defloc loop(avs, bvs, rv)
 		{
@@ -1221,9 +1221,9 @@ rdsetfmt(@record interval { beg, end, val },
 			}
 		}
 		if(!islist(avs))
-			return zout([avs], bvs);
+			return zdiff([avs], bvs);
 		if(!islist(bvs))
-			return zout(avs, [bvs]);
+			return zdiff(avs, [bvs]);
 		[avs, bvs] = zshred(avs, bvs);
 		return loop(avs, bvs, []);
 	}
