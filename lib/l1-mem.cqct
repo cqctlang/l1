@@ -168,7 +168,6 @@
 
 	dom = db.exedom;
 	exclude = [
-		&dom`_gc,
 		&dom`nextfree,
 		&dom`freeseg,
 		&dom`freerange,
@@ -180,7 +179,7 @@
 	stable = zdiff(stable, anycalls(db, stable, exclude));
 				 
 	printf("scanning %d stable intervals\n", length(stable));
-	foreach(@lambda(iv){ foreach(assertunwritten, freesegs(iv)); }, stable);
+	foreach(@lambda(iv){ foreach(assertunaccessed, freesegs(iv)); }, stable);
 }
 
 }

@@ -102,6 +102,7 @@
 		@local stable;
 
 		stable = excludeupdates(liv);
+		printf("list has %d stable intervals\n", length(stable));
 
 		/* verify that metadata variables (h, t, v) are not updated */
 		foreach(@lambda(iv){ foreach(assertunwritten, metalocs(iv)); }, stable);
