@@ -112,7 +112,7 @@ open = @lambda(filename, mode) {
 
   flags = 0;
   oflags = 0;
- 
+
   if(!isnil(strstr(mode,"r")))
     flags |= 1;
   if((!isnil(strstr(mode,"w"))) || (!isnil(strstr(mode,"a"))))
@@ -131,7 +131,7 @@ open = @lambda(filename, mode) {
     return nil;
   } 
 
-  if((flags&1) & (flags&2)) {
+  if((flags&1) && (flags&2)) {
     newmode="rw";
   } else if(flags&1) {
     newmode="r";
