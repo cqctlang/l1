@@ -112,12 +112,12 @@ open = @lambda(filename, mode) {
 
   flags = 0;
   oflags = 0;
-  
-  if(strstr(mode,"r"))
+ 
+  if(!isnil(strstr(mode,"r")))
     flags |= 1;
-  if(strstr(mode,"w") || strstr(mode,"a"))
+  if((!isnil(strstr(mode,"w"))) || (!isnil(strstr(mode,"a"))))
     flags |= 2;
-  if(strstr(mode,"w"))
+  if(!isnil(strstr(mode,"w")))
     oflags |= unix`O_CREAT|unix`O_TRUNC;
   if((flags&1) && (flags&2))                                     
     oflags |= unix`O_RDWR;                                               
