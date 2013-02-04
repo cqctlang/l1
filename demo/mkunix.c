@@ -135,6 +135,11 @@ main(int argc,char **argv) {
 		{ NULL },
 	};
 
+	struct enum_entry tcp[]={
+		{ "INADDR_ANY",	INADDR_ANY},
+		{ NULL },
+	};
+
 	struct enum_entry tcp_sockopt[]={
 		{ "IPPROTO_TCP",		IPPROTO_TCP },
 
@@ -330,7 +335,7 @@ main(int argc,char **argv) {
 		{ "SIGUSR2",	SIGUSR2},
 
 		// not a signal number
-		{ "SIG_IGN",	SIG_IGN},
+		{ "SIG_IGN",	(long)SIG_IGN},
 		{ NULL },
 	};
 
@@ -835,6 +840,7 @@ main(int argc,char **argv) {
 	print_enum("address_families",address_families);
 	print_enum("socket_type",socket_type);
 	print_enum("sockopts",sockopts);
+	print_enum("tcp",tcp);
 	print_enum("tcp_sockopt",tcp_sockopt);
 	print_enum("ioctl_nr",ioctl_nr);
 	print_enum("termios_nr",termios_nr);

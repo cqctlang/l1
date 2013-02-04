@@ -55,6 +55,9 @@ enum sockopts {
 	SO_TYPE	= 0x3,
 	SO_ERROR	= 0x4,
 };
+enum tcp {
+	INADDR_ANY	= 0x0,
+};
 enum tcp_sockopt {
 	IPPROTO_TCP	= 0x6,
 	TCP_NODELAY	= 0x1,
