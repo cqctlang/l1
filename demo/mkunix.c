@@ -290,6 +290,50 @@ main(int argc,char **argv) {
 		{ NULL },
 	};
 
+	struct enum_entry signal_nr[]={
+		{ "SIGHUP",	SIGHUP},
+		{ "SIGINT",	SIGINT},
+		{ "SIGQUIT",	SIGQUIT},
+		{ "SIGILL",	SIGILL},
+		{ "SIGTRAP",	SIGTRAP},
+		{ "SIGABRT",	SIGABRT},
+#ifdef SIGEMT
+		{ "SIGEMT",	SIGEMT},
+#endif
+		{ "SIGFPE",	SIGFPE},
+		{ "SIGKILL",	SIGKILL},
+#ifdef SIGBUS
+		{ "SIGBUS",	SIGBUS},
+#endif
+		{ "SIGSEGV",	SIGSEGV},
+		{ "SIGSYS",	SIGSYS},
+		{ "SIGPIPE",	SIGPIPE},
+		{ "SIGALRM",	SIGALRM},
+		{ "SIGTERM",	SIGTERM},
+		{ "SIGURG",	SIGURG},
+		{ "SIGSTOP",	SIGSTOP},
+		{ "SIGTSTP",	SIGTSTP},
+		{ "SIGCONT",	SIGCONT},
+		{ "SIGCHLD",	SIGCHLD},
+		{ "SIGTTIN",	SIGTTIN},
+		{ "SIGTTOU",	SIGTTOU},
+		{ "SIGIO",	SIGIO},
+		{ "SIGXCPU",	SIGXCPU},
+		{ "SIGXFSZ",	SIGXFSZ},
+		{ "SIGVTALRM",	SIGVTALRM},
+		{ "SIGPROF",	SIGPROF},
+		{ "SIGWINCH",	SIGWINCH},
+#ifdef SIGINFO
+		{ "SIGINFO",	SIGINFO},
+#endif
+		{ "SIGUSR1",	SIGUSR1},
+		{ "SIGUSR2",	SIGUSR2},
+
+		// not a signal number
+		{ "SIG_IGN",	SIG_IGN},
+		{ NULL },
+	};
+
 	struct enum_entry syscall_nr[]={
 		{ "read",	SYS_read },
 		{ "write",	SYS_write },
@@ -794,6 +838,7 @@ main(int argc,char **argv) {
 	print_enum("tcp_sockopt",tcp_sockopt);
 	print_enum("ioctl_nr",ioctl_nr);
 	print_enum("termios_nr",termios_nr);
+	print_enum("signal_nr",signal_nr);
 	print_enum("syscall_nr",syscall_nr);
 
 	return 0;
