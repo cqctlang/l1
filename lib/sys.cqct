@@ -186,7 +186,7 @@ FD_ALLOC=@lambda() {
 
 FD_ISSET=@lambda(fd,set) {
   @local bit,byte;
-  byte=(fd+1)>>3;
+  byte=(fd)>>3;
   bit=1<<(fd - (byte*8));
   if(set[byte]&bit) {
     return 1;
@@ -197,7 +197,7 @@ FD_ISSET=@lambda(fd,set) {
 
 FD_SET=@lambda(fd,set) {
     @local bit,byte;
-    byte=(fd+1)>>3;
+    byte=(fd)>>3;
     bit=1<<(fd - (byte*8));
     set[byte]|=bit;
 };
