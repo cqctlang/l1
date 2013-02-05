@@ -106,6 +106,7 @@ doinflate(VM *vm, struct getr *getr, Cval *omaxcv, int zlib)
 	rvec = mkvec(2);
 	_vecset(rvec, 0, mkvalstr(mkstr((char*)wr.out, wr.len)));
 	_vecset(rvec, 1, mkvallitcval(Vulong, getr->used));
+	efree(wr.out);
 	return rvec;
 
 }
