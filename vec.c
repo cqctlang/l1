@@ -38,7 +38,17 @@ veccopy(Vec *old)
 	Vec *new;
 	new = mkvec(old->len);
 	memcpy(vecdata(new), vecdata(old), new->len*sizeof(Val));
+	
 	return new;
+}
+
+Vec*
+vecrealloc(Vec *s, u64 len)
+{
+	Vec *t;
+	t = mkvec(len);
+	memcpy(vecdata(t), vecdata(s), min(t->len, s->len)*sizeof(Val));
+	return t;
 }
 
 Vec*

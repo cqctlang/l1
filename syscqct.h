@@ -820,12 +820,12 @@ struct Ode {
 	unsigned long ninsn, maxinsn;
 	Str *insn;
 	Cid *id;
-	Src *src;
+	Vec *src;
 	Str *ctl;
 	u32 nctl, mctl;
-	u64 *lm;
+	Str *lm;
 	u32 nlm, mlm;
-	Dbg *dbg;
+	Str *dbg;
 	u32 ndbg, mdbg;
 };
 
@@ -1167,7 +1167,6 @@ int		isnatcval(Cval *cv);
 int		isnegcval(Cval *cv);
 int		iszerocval(Cval *cv);
 void		finivm(void);
-int		freeode(Head *hd);
 void		freetoplevel(Env *top);
 void		heapfree(Head *p);
 int		iscomplete(Ctype *t);
@@ -1558,6 +1557,7 @@ Vec*		mkvecinit(Imm len, Val v);
 Vec*		veccopy(Vec *old);
 Imm		veclen(Vec *vec);
 Val		vecref(Vec *vec, Imm idx);
+Vec*		vecrealloc(Vec *vec, Imm len);
 void		_vecset(Vec *vec, Imm idx, Val v);
 void		vecset(Vec *vec, Imm idx, Val v);
 

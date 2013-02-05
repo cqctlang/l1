@@ -115,26 +115,14 @@ mkode(char *id)
 	code->nctl = 0;
 	code->mctl = 128;
 	code->ctl = mkstrn(code->mctl*sizeof(Ctl));
-	code->src = emalloc(code->maxinsn*sizeof(Src));
+	code->src = mkvec(code->maxinsn);
 	code->nlm = 0;
 	code->mlm = 128;
-	code->lm = emalloc(code->mlm*sizeof(u64));
+	code->lm = mkstrn(code->mlm*sizeof(u64));
 	code->ndbg = 0;
 	code->mdbg = 128;
-	code->dbg = emalloc(code->mdbg*sizeof(Dbg));
-	quard((Val)code);
+	code->dbg = mkstrn(code->mdbg*sizeof(Dbg));
 	return code;
-}
-
-int
-freeode(Head *hd)
-{
-	Ode *code;
-	code = (Ode*)hd;
-	efree(code->lm);
-	efree(code->dbg);
-	efree(code->src);
-	return 1;
 }
 
 static Insn*
@@ -144,15 +132,13 @@ nextinsn(Ode *code, Src src)
 	/* plan for one extra instruction for emitlabel */
 	if(code->ninsn+1 >= code->maxinsn){
 		code->insn = strrealloc(code->insn, 2*code->maxinsn*sizeof(Insn));
-		code->src = erealloc(code->src,
-				     code->maxinsn*sizeof(Src),
-				     2*code->maxinsn*sizeof(Src));
+		code->src = vecrealloc(code->src, 2*code->maxinsn);
 		code->maxinsn *= 2;
 	}
 	in = &((Insn*)strdata(code->insn))[code->ninsn];
 	if(src == 0)
 		src = mksrcfake("system code");
-	code->src[code->ninsn] = src;
+	vecdata(code->src)[code->ninsn] = mkvalvec(src);
 	code->ninsn++;
 	return in;
 }
@@ -489,14 +475,13 @@ mkvmcode(Ode *o, u32 nfree)
 	c->id = o->id;
 	memcpy(codetramp(c), trampentry->buf, trampentry->n);
 	memcpy(codeinsn(c), strdata(o->insn), o->ninsn*sizeof(Insn));
-	c->lm = mkstr((char*)o->lm, o->nlm*sizeof(u64));
-	c->dbg = mkstr((char*)o->dbg, o->ndbg*sizeof(Dbg));
+	c->lm = strrealloc(o->lm, o->nlm*sizeof(u64));
+	c->dbg = strrealloc(o->dbg, o->ndbg*sizeof(Dbg));
+	c->src = vecrealloc(o->src, n);
 	c->ndbg = o->ndbg;
 	c->reloc = mkstrn(128);
 	c->nreloc = 0;
-	c->src = mkvec(n);
 	c->nfree = nfree;
-	memcpy(vecdata(c->src), o->src, n*sizeof(Src));
 
 	setreloc(c);
 	setgo(c);
@@ -1089,11 +1074,10 @@ femit(Frame *f, Ode *c)
 	u32 nw;
 
 	if(c->ndbg >= c->mdbg){
-		c->dbg = erealloc(c->dbg, c->mdbg*sizeof(Dbg),
-				  2*c->mdbg*sizeof(Dbg));
+		c->dbg = strrealloc(c->dbg, 2*c->mdbg*sizeof(Dbg));
 		c->mdbg *= 2;
 	}
-	dbg = &c->dbg[c->ndbg++];
+	dbg = &((Dbg*)strdata(c->dbg))[c->ndbg++];
 	dbg->off = c->ninsn*sizeof(Insn);
 	dbg->fsz = f->fsz;
 	if(f->fsz < mwbits-1)
@@ -1103,12 +1087,11 @@ femit(Frame *f, Ode *c)
 		/* live mask goes in live mask buffer */
 		nw = roundup(f->fsz, mwbits)/mwbits;
 		if(c->nlm+nw >= c->mlm){
-			c->lm = erealloc(c->lm, c->mlm*sizeof(u64),
-					 2*c->mlm*sizeof(u64));
+			c->lm = strrealloc(c->lm, 2*c->mlm*sizeof(u64));
 			c->mlm *= 2;
 		}
 		dbg->lm = (1ULL<<(mwbits-1))|c->nlm; /* offset into lm */
-		memcpy(c->lm+c->nlm, f->l, nw*sizeof(u64));
+		memcpy(strdata(c->lm)+c->nlm, f->l, nw*sizeof(u64));
 		c->nlm += nw;
 	}
 }

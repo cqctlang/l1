@@ -286,7 +286,7 @@ static Qtype qs[Qnkind] = {
 	[Qlist]	 = { "list", sizeof(List), 0, 0, scanlist },
 	[Qnil]	 = { "nil", sizeof(Head), 0, 0, 0 },
 	[Qns]	 = { "ns", sizeof(Ns), 1, 0, scanns },
-	[Qode]	 = { "ode", sizeof(Ode), 1, freeode, scanode },
+	[Qode]	 = { "ode", sizeof(Ode), 1, 0, scanode },
 	[Qpair]	 = { "pair", sizeof(Pair), 0, 0, scanpair },
 	[Qrange] = { "range", sizeof(Range), 0, 0, scanrange },
 	[Qrd]    = { "rd", sizeof(Rd), 0, 0, scanrd },
@@ -434,14 +434,14 @@ static u8
 scanode(Head *hd)
 {
 	u8 min;
-	Ode *ode;
-	u32 i;
+	Ode *c;
 
 	min = Clean;
-	ode = (Ode*)hd;
-	for(i = 0; i < ode->ninsn; i++)
-		gcopy((Val*)&ode->src[i], &min);
-	gcopy((Val*)&ode->id, &min);
+	c = (Ode*)hd;
+	gcopy((Val*)&c->id, &min);
+	gcopy((Val*)&c->lm, &min);
+	gcopy((Val*)&c->dbg, &min);
+	gcopy((Val*)&c->src, &min);
 	return min;
 }
 
