@@ -158,10 +158,7 @@ Segsize = 1ULL<<20;
 	case 0: /* Sperm */
 		s = (Strperm*)s;
 		return s->s;
-	case 2: /* Smalloc */
-		s = (Strmalloc*)s;
-		return s->s;
-	case 3: /* Smmap */
+	case 2: /* Smmap */
 		s = (Strmmap*)s;
 		return s->s;
 	default:

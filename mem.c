@@ -313,16 +313,11 @@ freestr(Head *hd)
 {
 	Str *str;
 	Strmmap *m;
-	Strmalloc *a;
 	str = (Str*)hd;
 	switch(str->skind){
 	case Smmap:
 		m = (Strmmap*)str;
 		xmunmap(m->s, m->mlen);
-		break;
-	case Smalloc:
-		a = (Strmalloc*)str;
-		efree(a->s);
 		break;
 	case Sheap:
 	case Sperm:
@@ -1310,8 +1305,6 @@ qsz(Head *h)
 		switch(s->skind){
 		case Sheap:
 			return roundup(strsize(s->len), Align);
-		case Smalloc:
-			return sizeof(Strmalloc); /* FIXME: align? */
 		case Smmap:
 			return sizeof(Strmmap); /* FIXME: align? */
 		case Sperm:

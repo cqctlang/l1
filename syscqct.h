@@ -471,7 +471,6 @@ typedef
 enum {
 	Sperm,			/* don't free */
 	Sheap,			/* managed by gc */
-	Smalloc,		/* free with efree() */
 	Smmap,			/* free with munmap() */
 } Skind;
 
@@ -504,9 +503,7 @@ struct Strmalloc {
 		    ? (char*)((x)+1)	           \
 	            : (((x)->skind == Smmap)       \
 	               ? (((Strmmap*)(x))->s)      \
-		       : (((x)->skind == Smalloc)  \
-                          ? (((Strmalloc*)(x))->s) \
-			  : (((Strperm*)(x))->s))))
+		       : (((Strperm*)(x))->s)))
 /* size of Sheap strings */
 #define strsize(n) (sizeof(Str)+(n)*sizeof(char))
 

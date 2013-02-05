@@ -103,18 +103,10 @@ mkstrk(char *s, Imm len, Skind skind)
 {
 	Strmmap *sm;
 	Strperm *sp;
-	Strmalloc *sa;
 
 	switch(skind){
 	case Sheap:
 		return mkstr(s, len);
-	case Smalloc:
-		sa = (Strmalloc*)malv(Qstr, sizeof(Strmalloc));
-		sa->s = s;
-		sa->str.len = len;
-		sa->str.skind = Smalloc;
-		quard((Val)sa);
-		return (Str*)sa;
 	case Smmap:
 		sm = (Strmmap*)malv(Qstr, sizeof(Strmmap));
 		sm->mlen = len;
