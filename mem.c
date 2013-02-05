@@ -15,7 +15,6 @@ enum
 	Mmutable,
 	Mdata,
 	Mstack,
-	Mode,
 	Mcode,
 	Nm,
 } Mtag;
@@ -44,8 +43,6 @@ enum
 	MTdata    = (Mdata<<Ftag),
 	MTbigdata = (Mdata<<Ftag)|(1<<Fbig),
 	MTstack   = (Mstack<<Ftag),
-	MTode     = (Mode<<Ftag),
-	MTbigode  = (Mode<<Ftag)|(1<<Fbig),
 	MTcode    = (Mcode<<Ftag),
 	MTbigcode = (Mcode<<Ftag)|(1<<Fbig),
 	Nmt,
@@ -56,28 +53,24 @@ static char *MTname[] = {
 	[MTnix]     = "nix",
 	[MTfree]    = "free",
 	[MTdata]    = "data",
-	[MTode]     = "ode",
 	[MTcode]    = "code",
 	[MTweak]    = "weak",
 	[MTbox]     = "box",
 	[MTstack]   = "stack",
 	[MTmutable] = "mutable",
 	[MTbigdata] = "bigdata",
-	[MTbigode]  = "bigode",
 	[MTbigcode] = "bigcode",
 
 	[MThole|1<<Fold]    = "old hole",
 	[MTnix|1<<Fold]     = "old nix",
 	[MTfree|1<<Fold]    = "old free",
 	[MTdata|1<<Fold]    = "old data",
-	[MTode|1<<Fold]     = "old ode",
 	[MTcode|1<<Fold]    = "old code",
 	[MTweak|1<<Fold]    = "old weak",
 	[MTbox|1<<Fold]     = "old box",
 	[MTstack|1<<Fold]   = "old stack",
 	[MTmutable|1<<Fold] = "old mutable",
 	[MTbigdata|1<<Fold] = "old bigdata",
-	[MTbigode|1<<Fold]  = "old bigode",
 	[MTbigcode|1<<Fold] = "old bigcode",
 };
 
@@ -259,8 +252,8 @@ static u8	scanexpr(Head*);
 static u8	scanfd(Head*);
 static u8	scanlist(Head*);
 static u8	scanns(Head*);
-static u8	scanode(Head*);
 static u8	scanpair(Head*);
+static u8	scanprecode(Head*);
 static u8	scanrange(Head*);
 static u8	scanrd(Head*);
 static u8	scanrec(Head*);
@@ -272,29 +265,29 @@ static void	copystack(void **basep, u32 sz, void **rap, Closure *cl, u32 fpo, u8
 static void	gcopy(Val *v, u8 *min);
 
 static Qtype qs[Qnkind] = {
-	[Qas]	 = { "as", sizeof(As), 1, 0, scanas },
-	[Qbox]	 = { "box", sizeof(Box), 0, 0, scanbox },
-	[Qcid]   = { "cid", sizeof(Cid), 1, 0, 0 },
-	[Qcl]	 = { "closure", sizeof(Closure), 1, 0, scancl },
-	[Qcode]	 = { "code", sizeof(Code), 1, 0, scancode },
-	[Qcont]	 = { "cont", sizeof(Cont), 1, 0, scancont },
-	[Qctype] = { "ctype", sizeof(Ctype), 1, 0, scanctype },
-	[Qcval]  = { "cval", sizeof(Cval), 0, 0, scancval },
-	[Qdom]	 = { "domain", sizeof(Dom), 0, 0, scandom },
-	[Qexpr]	 = { "expr", sizeof(Expr), 1, 0, scanexpr },
-	[Qfd]	 = { "fd", sizeof(Fd), 0, freefd, scanfd },
-	[Qlist]	 = { "list", sizeof(List), 0, 0, scanlist },
-	[Qnil]	 = { "nil", sizeof(Head), 0, 0, 0 },
-	[Qns]	 = { "ns", sizeof(Ns), 1, 0, scanns },
-	[Qode]	 = { "ode", sizeof(Ode), 1, 0, scanode },
-	[Qpair]	 = { "pair", sizeof(Pair), 0, 0, scanpair },
-	[Qrange] = { "range", sizeof(Range), 0, 0, scanrange },
-	[Qrd]    = { "rd", sizeof(Rd), 0, 0, scanrd },
-	[Qrec]	 = { "record", sizeof(Rec), 0, 0, scanrec },
-	[Qstr]	 = { "string", sizeof(Str), 1, freestr, 0 },
-	[Qtab]	 = { "table",  sizeof(Tab), 1, 0, scantab },
-	[Qundef] = { "undef", sizeof(Head), 0, 0, 0 },
-	[Qvec]	 = { "vector", sizeof(Vec), 0, 0, scanvec },
+	[Qas]	 	= { "as", sizeof(As), 1, 0, scanas },
+	[Qbox]	 	= { "box", sizeof(Box), 0, 0, scanbox },
+	[Qcid]   	= { "cid", sizeof(Cid), 1, 0, 0 },
+	[Qcl]	 	= { "closure", sizeof(Closure), 1, 0, scancl },
+	[Qcode]	 	= { "code", sizeof(Code), 1, 0, scancode },
+	[Qcont]	 	= { "cont", sizeof(Cont), 1, 0, scancont },
+	[Qctype] 	= { "ctype", sizeof(Ctype), 1, 0, scanctype },
+	[Qcval]  	= { "cval", sizeof(Cval), 0, 0, scancval },
+	[Qdom]	 	= { "domain", sizeof(Dom), 0, 0, scandom },
+	[Qexpr]	 	= { "expr", sizeof(Expr), 1, 0, scanexpr },
+	[Qfd]	 	= { "fd", sizeof(Fd), 0, freefd, scanfd },
+	[Qlist]	 	= { "list", sizeof(List), 0, 0, scanlist },
+	[Qnil]	 	= { "nil", sizeof(Head), 0, 0, 0 },
+	[Qns]	 	= { "ns", sizeof(Ns), 1, 0, scanns },
+	[Qpair]	 	= { "pair", sizeof(Pair), 0, 0, scanpair },
+	[Qprecode]	= { "precode", sizeof(Precode), 1, 0, scanprecode },
+	[Qrange] 	= { "range", sizeof(Range), 0, 0, scanrange },
+	[Qrd]    	= { "rd", sizeof(Rd), 0, 0, scanrd },
+	[Qrec]	 	= { "record", sizeof(Rec), 0, 0, scanrec },
+	[Qstr]	 	= { "string", sizeof(Str), 1, freestr, 0 },
+	[Qtab]	 	= { "table",  sizeof(Tab), 1, 0, scantab },
+	[Qundef] 	= { "undef", sizeof(Head), 0, 0, 0 },
+	[Qvec]	 	= { "vector", sizeof(Vec), 0, 0, scanvec },
 };
 
 static Segmap	segmap;
@@ -431,13 +424,13 @@ scancont(Head *hd)
 }
 
 static u8
-scanode(Head *hd)
+scanprecode(Head *hd)
 {
 	u8 min;
-	Ode *c;
+	Precode *c;
 
 	min = Clean;
-	c = (Ode*)hd;
+	c = (Precode*)hd;
 	gcopy((Val*)&c->id, &min);
 	gcopy((Val*)&c->lm, &min);
 	gcopy((Val*)&c->dbg, &min);
@@ -1106,7 +1099,6 @@ isliveseg(Seg *s)
 {
 	switch(MTtag(s->mt)){
 	case Mdata:
-	case Mode:
 	case Mcode:
 	case Mweak:
 	case Mbox:
@@ -1221,15 +1213,6 @@ malweak()
 	Head *h;
 	h = __mal(MTweak, H.tg, sizeof(Pair));
 	Vsetkind(h, Qpair);
-	return h;
-}
-
-Head*
-malode()
-{
-	Head *h;
-	h = __mal(MTode, H.tg, sizeof(Ode));
-	Vsetkind(h, Qode);
 	return h;
 }
 
@@ -1433,9 +1416,6 @@ copy(Val *v)
 	switch(Vkind(h)){
 	case Qbox:
 		nh = malbox();
-		break;
-	case Qode:
-		nh = malode();
 		break;
 	case Qpair:
 		if(isweak(h))
@@ -2132,7 +2112,6 @@ _gc(u32 g, u32 tg)
 
 	if(g == tg){
 		resetalloc(MTdata, tg);
-		resetalloc(MTode, tg);
 		resetalloc(MTcode, tg);
 		resetalloc(MTstack, tg);
 		resetalloc(MTweak, tg);
@@ -2140,7 +2119,6 @@ _gc(u32 g, u32 tg)
 		resetalloc(MTmutable, tg);
 	}else{
 		getalloc(MTdata, tg);
-		getalloc(MTode, tg);
 		getalloc(MTcode, tg);
 		getalloc(MTstack, tg);
 		getalloc(MTweak, tg);
@@ -2236,7 +2214,6 @@ _gc(u32 g, u32 tg)
 	if(H.tg != 0){
 		H.tg = 0;
 		resetalloc(MTdata, H.tg);
-		resetalloc(MTode, H.tg);
 		resetalloc(MTcode, H.tg);
 		resetalloc(MTstack, H.tg);
 		resetalloc(MTweak, H.tg);
@@ -2418,7 +2395,6 @@ initmem()
 		gr *= GCradix;
 	}
 	resetalloc(MTdata, 0);
-	resetalloc(MTode, 0);
 	resetalloc(MTcode, 0);
 	resetalloc(MTstack, 0);
 	resetalloc(MTweak, 0);
@@ -2496,13 +2472,11 @@ gcstats()
 
 	gcstat1(MTfree, ns[MTfree], np[MTfree], nd[MTfree]);
 	gcstat1(MTdata, ns[MTdata], np[MTdata], nd[MTdata]);
-	gcstat1(MTode, ns[MTode], np[MTode], nd[MTode]);
 	gcstat1(MTcode, ns[MTcode], np[MTcode], nd[MTcode]);
 	gcstat1(MTweak, ns[MTweak], np[MTweak], nd[MTweak]);
 	gcstat1(MTbox, ns[MTbox], np[MTbox], nd[MTbox]);
 	gcstat1(MTmutable, ns[MTmutable], np[MTmutable], nd[MTmutable]);
 	gcstat1(MTbigdata, ns[MTbigdata], np[MTbigdata], nd[MTbigdata]);
-	gcstat1(MTbigode, ns[MTbigode], np[MTbigode], nd[MTbigode]);
 	gcstat1(MTbigcode, ns[MTbigcode], np[MTbigcode], nd[MTbigcode]);
 
 	printf(" inuse = %10" PRIu64 "\n", H.inuse);

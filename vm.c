@@ -18,8 +18,8 @@ char *qname[Qnkind] = {
 	[Qfd]=		"fd",
 	[Qlist]=	"list",
 	[Qns]=		"name space",
-	[Qode]=		"ode",
 	[Qpair]=	"pair",
+	[Qprecode]=	"precode",
 	[Qrange]=	"range",
 	[Qrec]=		"record",
 	[Qrd]=		"record descriptor",
@@ -287,7 +287,7 @@ eqval(Val v1, Val v2)
 	case Qrec:
 	case Qstr:
 	case Qvec:
-	case Qode:
+	case Qprecode:
 	case Qcode:
 	case Qcont:
 		return eqptr(v1, v2);
@@ -322,7 +322,7 @@ hashqval(Val v)
 	case Qrec:
 	case Qstr:
 	case Qvec:
-	case Qode:
+	case Qprecode:
 	case Qcode:
 	case Qcont:
 		return hashptr(v);
@@ -351,7 +351,7 @@ eqvval(Val v1, Val v2)
 	case Qns:
 	case Qrd:
 	case Qtab:
-	case Qode:
+	case Qprecode:
 	case Qcode:
 	case Qcont:
 		return eqptr(v1, v2);
@@ -394,7 +394,7 @@ hashqvval(Val v)
 	case Qns:
 	case Qrd:
 	case Qtab:
-	case Qode:
+	case Qprecode:
 	case Qcode:
 	case Qcont:
 		return hashptr(v);
@@ -439,7 +439,7 @@ equalval(Val v1, Val v2)
 	case Qns:
 	case Qrd:
 	case Qtab:
-	case Qode:
+	case Qprecode:
 	case Qcode:
 	case Qcont:
 		return eqptr(v1, v2);
@@ -482,7 +482,7 @@ hashval(Val v)
 	case Qns:
 	case Qrd:
 	case Qtab:
-	case Qode:
+	case Qprecode:
 	case Qcode:
 	case Qcont:
 		return hashptr(v);

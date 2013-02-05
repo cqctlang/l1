@@ -232,7 +232,7 @@ enum {
 typedef struct Ctl Ctl;
 typedef struct Code Code;
 typedef struct Cont Cont;
-typedef struct Ode Ode;
+typedef struct Precode Precode;
 typedef struct Insn Insn;
 typedef struct Expr Expr;
 
@@ -815,7 +815,7 @@ struct Dbg {
 	u64	lm;		/* live mask (directly encoded or offset) */
 } Dbg;
 
-struct Ode {
+struct Precode {
 	Head hd;
 	unsigned long ninsn, maxinsn;
 	Str *insn;
@@ -1384,7 +1384,6 @@ Head*		malq(Qkind kind, u32 sz);
 Head*		malv(Qkind kind, Imm len);
 Head*		malbox();
 void*		malstack(u32 sz);
-Head*		malode();
 Head*		malweak();
 u64		meminuse();
 Pair*		mkguard();

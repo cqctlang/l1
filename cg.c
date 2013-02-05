@@ -46,7 +46,7 @@ newloc(Location *loc, unsigned kind, unsigned idx, unsigned indirect)
 }
 
 static Ctlidx
-mklabel(Ode *code)
+mklabel(Precode *code)
 {
 	if(code->nctl >= code->mctl){
 		code->ctl = strrealloc(code->ctl, 2*code->mctl*sizeof(Ctl));
@@ -56,7 +56,7 @@ mklabel(Ode *code)
 }
 
 static Ctl*
-idx2ctl(Ode *code, Ctlidx idx)
+idx2ctl(Precode *code, Ctlidx idx)
 {
 	return ((Ctl*)strdata(code->ctl))+idx;
 }
@@ -68,7 +68,7 @@ resetlabels()
 }
 
 static Ctlidx
-genlabel(Ode *code)
+genlabel(Precode *code)
 {
 	Ctlidx idx;
 	Ctl *ctl;
@@ -80,7 +80,7 @@ genlabel(Ode *code)
 }
 
 static Ctlidx
-genlabelpair(Ode *code, Ctlidx l1, Ctlidx l2)
+genlabelpair(Precode *code, Ctlidx l1, Ctlidx l2)
 {
 	Ctlidx idx;
 	Ctl *ctl;
@@ -94,7 +94,7 @@ genlabelpair(Ode *code, Ctlidx l1, Ctlidx l2)
 }
 
 static void
-emitlabel(Ode *code, Ctlidx idx)
+emitlabel(Precode *code, Ctlidx idx)
 {
 	Ctl *ctl;
 	ctl = idx2ctl(code, idx);
@@ -103,11 +103,11 @@ emitlabel(Ode *code, Ctlidx idx)
 	ctl->insn = code->ninsn;
 }
 
-static Ode*
-mkode(char *id)
+static Precode*
+mkprecode(char *id)
 {
-	Ode *code;
-	code = (Ode*)malode();
+	Precode *code;
+	code = (Precode*)malq(Qprecode, sizeof(Precode));
 	code->id = mkcid0(id);
 	code->ninsn = 0;
 	code->maxinsn = InsnAlloc;
@@ -126,7 +126,7 @@ mkode(char *id)
 }
 
 static Insn*
-nextinsn(Ode *code, Src src)
+nextinsn(Precode *code, Src src)
 {
 	Insn *in;
 	/* plan for one extra instruction for emitlabel */
@@ -421,7 +421,7 @@ setreloc(Code *c)
 }
 
 static void
-setinsn(Ode *c)
+setinsn(Precode *c)
 {
 	Ctl *ctl;
 	Insn *i, *s, *t, *e;
@@ -464,7 +464,7 @@ mkcode(Ckind kind, Imm nbytes)
 }
 
 static Code*
-mkvmcode(Ode *o, u32 nfree)
+mkvmcode(Precode *o, u32 nfree)
 {
 	Code *c;
 	Imm n;
@@ -661,7 +661,7 @@ printcode(Code *c)
 }
 
 static void
-reclabels(Expr *e, Ode *code, HT *ls)
+reclabels(Expr *e, Precode *code, HT *ls)
 {
 	char *id;
 	Expr *p;
@@ -692,7 +692,7 @@ reclabels(Expr *e, Ode *code, HT *ls)
 }
 
 static HT*
-labels(Expr *e, Ode *code)
+labels(Expr *e, Precode *code)
 {
 	HT *ls;
 	ls = mkhts();
@@ -810,7 +810,7 @@ cgrand(Frame *f, Operand *rand, Expr *e)
 }
 
 static void
-cgjmp(Ode *code, CGEnv *p, Ctlidx ctl, Ctlidx nxt, Src src)
+cgjmp(Precode *code, CGEnv *p, Ctlidx ctl, Ctlidx nxt, Src src)
 {
 	Insn *i;
 
@@ -889,7 +889,7 @@ escapectl(Expr *e, CGEnv *p)
 }
 
 static void
-cgbranch(Ode *code, CGEnv *p, Ctlidx idx, Ctlidx nxt, Src src)
+cgbranch(Precode *code, CGEnv *p, Ctlidx idx, Ctlidx nxt, Src src)
 {
 	Insn *i;
 	Ctlidx l1, l2;
@@ -922,7 +922,7 @@ cgbranch(Ode *code, CGEnv *p, Ctlidx idx, Ctlidx nxt, Src src)
 }
 
 static void
-cgctl(Ode *code, CGEnv *p, Ctlidx idx, Ctlidx nxt, Src src)
+cgctl(Precode *code, CGEnv *p, Ctlidx idx, Ctlidx nxt, Src src)
 {
 	Ctl *ctl;
 	ctl = idx2ctl(code, idx);
@@ -1068,7 +1068,7 @@ fbumpfsz(Frame *f, s32 i)
 }
 
 static void
-femit(Frame *f, Ode *c)
+femit(Frame *f, Precode *c)
 {
 	Dbg *dbg;
 	u32 nw;
@@ -1097,7 +1097,7 @@ femit(Frame *f, Ode *c)
 }
 
 static void
-cg(Expr *e, Ode *code, CGEnv *p, Location *loc, Ctlidx ctl, Ctlidx nxt,
+cg(Expr *e, Precode *code, CGEnv *p, Location *loc, Ctlidx ctl, Ctlidx nxt,
    Frame *f)
 {
 	Ctlidx L0, L, Lthen, Lelse, lpair;
@@ -1519,7 +1519,7 @@ static Code*
 cglambda(Expr *e, char *id)
 {
 	Lambda *l;
-	Ode *ode;
+	Precode *ode;
 	Code *code;
 	Insn *i;
 	CGEnv p;
@@ -1534,7 +1534,7 @@ cglambda(Expr *e, char *id)
 
 	if(id == 0)
 		id = "anon";
-	ode = mkode(id);
+	ode = mkprecode(id);
 
 	finit(&f, l->narg, l->nloc, l->ntmp);
 	fset(&f, Ocl);
@@ -1637,14 +1637,14 @@ Closure*
 haltthunk(void)
 {
 	Insn *i;
-	Ode *ode;
+	Precode *ode;
 	Code *code;
 	Closure *cl;
 	Frame f;
 
 	finit(&f, 0, 0, 0);
 	fset(&f, Ocl);
-	ode = mkode("$halt");
+	ode = mkprecode("$halt");
 	femit(&f, ode);
 	i = nextinsn(ode, 0);
 	i->kind = Ihalt;
@@ -1658,14 +1658,14 @@ Closure*
 abortthunk(void)
 {
 	Insn *i;
-	Ode *ode;
+	Precode *ode;
 	Code *code;
 	Closure *cl;
 	Frame f;
 
 	finit(&f, 0, 0, 0);
 	fset(&f, Ocl);
-	ode = mkode("$abort");
+	ode = mkprecode("$abort");
 	femit(&f, ode);
 	i = nextinsn(ode, 0);
 	i->kind = Iabort;
@@ -1679,7 +1679,7 @@ Closure*
 mkkcapture(void)
 {
 	Insn *i;
-	Ode *ode;
+	Precode *ode;
 	Code *code;
 	Closure *cl;
 	Frame f;
@@ -1687,7 +1687,7 @@ mkkcapture(void)
 	finit(&f, 1, 0, 0);
 	fset(&f, Ocl);
 	fsetarg(&f, 0);
-	ode = mkode("kcapture");
+	ode = mkprecode("kcapture");
 	femit(&f, ode);
 	i = nextinsn(ode, 0);
 	i->kind = Ikg;
@@ -1705,7 +1705,7 @@ Closure*
 mkapply(void)
 {
 	Insn *i;
-	Ode *ode;
+	Precode *ode;
 	Code *code;
 	Frame f;
 
@@ -1714,7 +1714,7 @@ mkapply(void)
 	fset(&f, Ocl);
 	fsetarg(&f, 0);
 	fsetarg(&f, 1);
-	ode = mkode("apply");
+	ode = mkprecode("apply");
 	femit(&f, ode);
 	i = nextinsn(ode, 0);
 	i->kind = Iapply;
@@ -1731,14 +1731,14 @@ Closure*
 stkunderflowthunk(void)
 {
 	Insn *i;
-	Ode *ode;
+	Precode *ode;
 	Code *code;
 	Closure *cl;
 	Frame f;
 
 	finit(&f, 0, 0, 0);
 	fset(&f, Ocl);
-	ode = mkode("$stkunderflow");
+	ode = mkprecode("$stkunderflow");
 	femit(&f, ode);
 	i = nextinsn(ode, 0);
 	i->kind = Iunderflow;
@@ -1756,7 +1756,7 @@ Closure*
 mkraiseinterrupt(void)
 {
 	Insn *i;
-	Ode *ode;
+	Precode *ode;
 	Code *code;
 	Closure *cl;
 	Frame f;
@@ -1777,7 +1777,7 @@ mkraiseinterrupt(void)
 	*/
 	nfp = Onfrhd+3;
 
-	ode = mkode("$raiseinterrupt");
+	ode = mkprecode("$raiseinterrupt");
 	femit(&f, ode);
 	fpushlm(&f);
 
@@ -1856,14 +1856,14 @@ Code*
 kresumecode(void)
 {
 	Insn *i;
-	Ode *ode;
+	Precode *ode;
 	Code *code;
 	Frame f;
 	Imm nfp;
 
 	finit(&f, 0, 0, 0);
 	fset(&f, Ocl);
-	ode = mkode("kresume");
+	ode = mkprecode("kresume");
 	femit(&f, ode);
 
 	i = nextinsn(ode, 0);
