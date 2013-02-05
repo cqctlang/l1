@@ -48,8 +48,6 @@ newloc(Location *loc, unsigned kind, unsigned idx, unsigned indirect)
 static Ctlidx
 mklabel(Ode *code)
 {
-	Ctl *ctl;
-	ctl = emalloc(sizeof(Ctl));
 	if(code->nctl >= code->mctl){
 		code->ctl = strrealloc(code->ctl, 2*code->mctl*sizeof(Ctl));
 		code->mctl *= 2;
@@ -1125,7 +1123,6 @@ cg(Expr *e, Ode *code, CGEnv *p, Location *loc, Ctlidx ctl, Ctlidx nxt,
 	Insn *i;
 	unsigned narg, istail;
 	Lambda *l;
-	Block *b;
 	Location dst;
 	int m;
 	Src src;
@@ -1256,7 +1253,6 @@ cg(Expr *e, Ode *code, CGEnv *p, Location *loc, Ctlidx ctl, Ctlidx nxt,
 		cgctl(code, p, ctl, nxt, e->src);
 		break;
 	case Eblock:
-		b = (Block*)e->xp;
 		fpushlm(f);
 		cg(e->e2, code, p, loc, ctl, nxt, f);
 		fpoplm(f);
