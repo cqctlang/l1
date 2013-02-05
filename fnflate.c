@@ -16,7 +16,7 @@ struct getr {
 
 struct wr {
 	VM *vm;
-	char *out;
+	Str *out;
 	Imm omax;
 	Imm len;
 	Imm avail;
@@ -68,10 +68,10 @@ wfn(void *p, void *buf, int cnt)
 		if(wr->omax)
 			vmerr(wr->vm, "incomplete inflate");
 		m = 2*(wr->len+cnt);
-		wr->out = erealloc(wr->out, wr->len, m);
+		wr->out = strrealloc(wr->out, m);
 		wr->avail = m-wr->len;
 	}
-	memcpy(wr->out+wr->len, buf, cnt);
+	memcpy(strdata(wr->out)+wr->len, buf, cnt);
 	wr->len += cnt;
 	wr->avail -= cnt;
 	return cnt;
@@ -88,11 +88,11 @@ doinflate(VM *vm, struct getr *getr, Cval *omaxcv, int zlib)
 	wr.vm = vm;
 	if(omaxcv){
 		wr.omax = cvalu(omaxcv);
-		wr.out = emalloc(wr.omax);
+		wr.out = mkstrn(wr.omax);
 		wr.avail = wr.omax;
 	}else{
 		wr.omax = 0;
-		wr.out = emalloc(Unit);
+		wr.out = mkstrn(Unit);
 		wr.avail = Unit;
 	}
 
@@ -104,9 +104,8 @@ doinflate(VM *vm, struct getr *getr, Cval *omaxcv, int zlib)
 		vmerr(vm, flateerr(err));
 
 	rvec = mkvec(2);
-	_vecset(rvec, 0, mkvalstr(mkstr((char*)wr.out, wr.len)));
+	_vecset(rvec, 0, mkvalstr(strrealloc(wr.out, wr.len)));
 	_vecset(rvec, 1, mkvallitcval(Vulong, getr->used));
-	efree(wr.out);
 	return rvec;
 
 }
