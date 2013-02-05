@@ -38,7 +38,7 @@ l1__readdir(VM *vm, Imm argc, Val *argv, Val *rv)
 		ndir++;
 	}
 	closedir(dir);
-	*rv = mkvalas(mksas(mkstrk(buf, ndir*sizeof(struct dirent), Smalloc)));
+	*rv = mkvalas(mksas(mkstr(buf, ndir*sizeof(struct dirent))));
 }
 
 static void
