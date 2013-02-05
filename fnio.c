@@ -284,7 +284,8 @@ l1_stat(VM *vm, Imm argc, Val *argv, Val *rv)
 	efree(name);
 	freedir(d);
 
-	*rv = mkvalstr(mkstrk(buf, len, Smalloc));
+	*rv = mkvalstr(mkstr(buf, len));
+	efree(buf);
 }
 
 static void
