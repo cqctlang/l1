@@ -525,7 +525,6 @@ l1_read(VM *vm, Imm argc, Val *argv, Val *rv)
 {
 	Fd *fd;
 	Str *s;
-	char *buf;
 	Cval *n;
 	Imm r;
 
@@ -540,18 +539,18 @@ l1_read(VM *vm, Imm argc, Val *argv, Val *rv)
 	if((fd->flags&Fread) == 0)
 		vmerr(vm, "attempt to read non-readable file descriptor");
 	if(fd->flags&Ffn){
-		n = valcval(argv[1]);
-		buf = emalloc(cvalu(n));  /* FIXME: check sign, <= SSIZE_MAX */
 		if(!fd->u.fn.read)
 			return;	/* nil */
-		r = fd->u.fn.read(&fd->u.fn, buf, cvalu(n));
+		n = valcval(argv[1]);
+		s = mkstrn(cvalu(n));
+		r = fd->u.fn.read(&fd->u.fn, strdata(s), cvalu(n));
 		if(r == (Imm)-1){
 			setlasterrno(errno);
 			return;		/* nil */
 		}
 		if(cvalu(n) > 0 && r == 0)
 			return;		/* nil */
-		s = mkstrk(buf, r, Smalloc);
+		s = strrealloc(s, r);
 		*rv = mkvalstr(s);
 	}else
 		*rv = ccall(vm, fd->u.cl.read, argc-1, argv+1);
