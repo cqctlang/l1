@@ -191,12 +191,13 @@ freedir(Dir *d)
 
 #define XWR(u,v,k) {memcpy((u),(v),(k)); (u) += (k);}
 
-static char*
-dir2buf(Dir *d, u64 *psz)
+static Str*
+dir2buf(Dir *d)
 {
 	unsigned len;
 	u32 o;
-	char *buf, *p;
+	Str *s;
+	char *p;
 
 	len = (sizeof(d->type)
 	       +sizeof(d->dev)
@@ -221,8 +222,8 @@ dir2buf(Dir *d, u64 *psz)
 	       +strlen(d->muid)+1
 	       +strlen(d->extension)+1);
 
-	buf = emalloc(len);
-	p = buf;
+	s = mkstrn(len);
+	p = strdata(s);
 	XWR(p, &d->type, sizeof(d->type));
 	XWR(p, &d->dev, sizeof(d->dev));
 	XWR(p, &d->qid.type, sizeof(d->qid.type));
@@ -237,7 +238,7 @@ dir2buf(Dir *d, u64 *psz)
 	XWR(p, &d->nmuid, sizeof(d->nmuid));
 
 	// pointers
-	o = p-buf+5*sizeof(o);
+	o = p-strdata(s)+5*sizeof(o);
 	XWR(p, &o, sizeof(o));
 	o += strlen(d->name)+1;
 	XWR(p, &o, sizeof(o));
@@ -255,8 +256,7 @@ dir2buf(Dir *d, u64 *psz)
 	XWR(p, d->muid, strlen(d->muid)+1);
 	XWR(p, d->extension, strlen(d->extension)+1);
 
-	*psz = p-buf;
-	return buf;
+	return s;
 }
 
 static void
@@ -264,9 +264,9 @@ l1_stat(VM *vm, Imm argc, Val *argv, Val *rv)
 {
 	struct stat st;
 	Str *names;
-	char *name, *buf;
+	char *name;
 	Dir *d;
-	u64 len;
+	Str *s;
 
 	if(argc != 1)
 		vmerr(vm, "wrong number of arguments to stat");
@@ -280,12 +280,11 @@ l1_stat(VM *vm, Imm argc, Val *argv, Val *rv)
 		      strerror(errno));
 	}
 	d = stat2dir(name, &st);
-	buf = dir2buf(d, &len);
-	efree(name);
+	s = dir2buf(d);
 	freedir(d);
+	efree(name);
 
-	*rv = mkvalstr(mkstr(buf, len));
-	efree(buf);
+	*rv = mkvalstr(s);
 }
 
 static void
