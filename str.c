@@ -143,12 +143,6 @@ mkstrn(Imm len)
 	return str;
 }
 
-static Str*
-mkstrmalloc(Imm len)
-{
-	return mkstrk(emalloc(len), len, Smalloc);
-}
-
 static void
 l1__malloc(VM *vm, Imm argc, Val *argv, Val *rv)
 {
@@ -208,7 +202,7 @@ l1_memset(VM *vm, Imm argc, Val *argv, Val *rv)
 	else if(Vkind(argv[0]) == Qcval){
 		/* FIXME: we shouldn't call valstrorcval just
 		   to get lim in 2-arg case */
-		s = mkstrmalloc(lim);
+		s = mkstrn(lim);
 		memset(strdata(s), b, lim);
 		tcv = valcval(argv[0]);
 		callput(vm, tcv->dom->as, cvalu(tcv), lim, s);
