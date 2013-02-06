@@ -439,8 +439,6 @@ fmtval(VM *vm, Fmt *f, Val val)
 		if(fmtputB(vm, f, ciddata(cl->code->id), cl->code->id->len-1))
 			return -1;
 		return fmtputs0(vm, f, ">");
-	case Qundef:
-		return 0;
 	case Qnil:
 		return fmtputs0(vm, f, "<nil>");
 	case Qbox:

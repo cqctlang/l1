@@ -417,8 +417,6 @@ l1_tabdelete(VM *vm, Imm argc, Val *argv, Val *rv)
 	if(argc != 2)
 		vmerr(vm, "wrong number of arguments to tabdelete");
 	checkarg(vm, argv, 0, Qtab);
-	if(Vkind(argv[1]) == Qundef)
-		vmerr(vm, "attempt to access table with undefined key value");
 	t = valtab(argv[0]);
 	tabdel(t, argv[1]);
 	USED(rv);
@@ -432,8 +430,6 @@ l1_tablook(VM *vm, Imm argc, Val *argv, Val *rv)
 	if(argc != 2)
 		vmerr(vm, "wrong number of arguments to tablook");
 	checkarg(vm, argv, 0, Qtab);
-	if(Vkind(argv[1]) == Qundef)
-		vmerr(vm, "attempt to access table with undefined key value");
 	t = valtab(argv[0]);
 	vp = tabget(t, argv[1]);
 	if(vp)
@@ -457,8 +453,6 @@ l1_tabinsert(VM *vm, Imm argc, Val *argv, Val *rv)
 	if(argc != 3)
 		vmerr(vm, "wrong number of arguments to tabinsert");
 	checkarg(vm, argv, 0, Qtab);
-	if(Vkind(argv[1]) == Qundef)
-		vmerr(vm, "attempt to access table with undefined key value");
 	t = valtab(argv[0]);
 	tabput(t, argv[1], argv[2]);
 	USED(rv);

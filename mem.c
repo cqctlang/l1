@@ -286,7 +286,6 @@ static Qtype qs[Qnkind] = {
 	[Qrec]	 	= { "record", sizeof(Rec), 0, 0, scanrec },
 	[Qstr]	 	= { "string", sizeof(Str), 1, freestr, 0 },
 	[Qtab]	 	= { "table",  sizeof(Tab), 1, 0, scantab },
-	[Qundef] 	= { "undef", sizeof(Head), 0, 0, 0 },
 	[Qvec]	 	= { "vector", sizeof(Vec), 0, 0, scanvec },
 };
 

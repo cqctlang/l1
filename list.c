@@ -100,7 +100,7 @@ listpop(List *l, Val *vp)
 	if(listlen(l) == 0)
 		return; 	/* nil */
 	*vp = listdata(l)[l->h];
-	listdata(l)[l->h] = Xundef;
+	listdata(l)[l->h] = Xnil;
 	l->h++;
 }
 
@@ -111,7 +111,7 @@ listtail(VM *vm, List *l)
 	if(listlen(l) == 0)
 		vmerr(vm, "tail on empty list");
 	n = listcopy(l);
-	listdata(n)[n->h] = Xundef;
+	listdata(n)[n->h] = Xnil;
 	n->h++;
 	return n;
 }

@@ -3,7 +3,6 @@
 #include "syscqct.h"
 
 char *qname[Qnkind] = {
-	[Qundef]=	"undefined",
 	[Qnil]=		"nil",
 	[Qas]=		"address space",
 	[Qbox]=		"box",
@@ -71,7 +70,6 @@ static Env* mktopenv(void);
 static void l1_sort(VM *vm, Imm argc, Val *argv, Val *rv);
 static Cont* kcapture(VM *vm);
 
-Val Xundef;
 Val Xnil;
 Dom *litdom;
 static Closure *halt, *vabort, *stkunderflow;
@@ -146,7 +144,6 @@ valhead(Val v)
 	if(v == 0)
 		return 0;
 	switch(Vkind(v)){
-	case Qundef:
 	case Qnil:
 		return 0;
 		break;
@@ -265,8 +262,6 @@ eqval(Val v1, Val v2)
 	if(Vkind(v1) != Vkind(v2))
 		return 0;
 	switch(Vkind(v1)){
-	case Qundef:
-		bug();
 	case Qnil:
 		return 1;
 	case Qas:
@@ -300,8 +295,6 @@ u32
 hashqval(Val v)
 {
 	switch(Vkind(v)){
-	case Qundef:
-		bug();
 	case Qnil:
 		return hashp(Xnil);
 	case Qas:
@@ -337,8 +330,6 @@ eqvval(Val v1, Val v2)
 	if(Vkind(v1) != Vkind(v2))
 		return 0;
 	switch(Vkind(v1)){
-	case Qundef:
-		bug();
 	case Qnil:
 		return 1;
 	case Qas:
@@ -380,8 +371,6 @@ u32
 hashqvval(Val v)
 {
 	switch(Vkind(v)){
-	case Qundef:
-		bug();
 	case Qnil:
 		return hashp(Xnil);
 	case Qas:
@@ -425,8 +414,6 @@ equalval(Val v1, Val v2)
 	if(Vkind(v1) != Vkind(v2))
 		return 0;
 	switch(Vkind(v1)){
-	case Qundef:
-		bug();
 	case Qnil:
 		return 1;
 	case Qas:
@@ -468,8 +455,6 @@ u32
 hashval(Val v)
 {
 	switch(Vkind(v)){
-	case Qundef:
-		bug();
 	case Qnil:
 		return hashp(Xnil);
 	case Qas:
@@ -942,15 +927,12 @@ getval(VM *vm, Location *loc)
 			return p;
 	case Ltopl:
 		p = envget(vm->top, valcid(loc->v));
-		if(p == 0 || p == Xundef)
+		if(p == 0)
 			vmerr(vm, "reference to unbound variable: %s",
 			      ciddata(valcid(loc->v)));
 		return p;
 	case Ltopr:
 		p = cdr(loc->v);
-		if(p == Xundef)
-			vmerr(vm, "reference to unbound variable: %s",
-			      ciddata(valcid(car(loc->v))));
 		return p;
 	default:
 		fatal("bug");
@@ -6750,7 +6732,7 @@ l1_gettoplevel(VM *vm, Imm argc, Val *argv, Val *rv)
 	checkarg(vm, argv, 0, Qcid);
 	id = valcid(argv[0]);
 	p = envget(vm->top, id);
-	if(p == 0 || p == Xundef)
+	if(p == 0)
 		vmerr(vm, "reference to unbound variable: %s", ciddata(id));
 	*rv = p;
 }
@@ -7574,7 +7556,6 @@ void
 initvm()
 {
 	dovm(0); /* initialize gotab */
-	Xundef = gclock(malq(Qundef, sizeof(Head)));
 	litdom = gclock(mklitdom());
 	cvalnull = gclock(mkcval(litdom, litdom->ns->base[Vptr], 0));
 	cval0 = gclock(mkcval(litdom, litdom->ns->base[Vint], 0));
@@ -7588,7 +7569,6 @@ initvm()
 void
 finivm(void)
 {
-	gcunlock(Xundef);
 	gcunlock(litdom);
 	gcunlock(cvalnull);
 	gcunlock(cval0);

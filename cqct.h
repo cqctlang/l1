@@ -2,8 +2,7 @@ extern char cqctflags[];
 
 typedef
 enum {
-	Qundef = 0,
-	Qnil,
+	Qnil = 0,
 	Qas,
 	Qbox,
 	Qcl,
