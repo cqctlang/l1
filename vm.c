@@ -71,7 +71,6 @@ static Env* mktopenv(void);
 static void l1_sort(VM *vm, Imm argc, Val *argv, Val *rv);
 static Cont* kcapture(VM *vm);
 
-void *GCiterdone;
 Val Xundef;
 Val Xnil;
 Dom *litdom;
@@ -7584,7 +7583,6 @@ initvm()
 	vabort = gclock(abortthunk());
 	halt = gclock(haltthunk());
 	stkunderflow = gclock(stkunderflowthunk());
-	GCiterdone = emalloc(1); /* unique pointer */
 }
 
 void
@@ -7599,7 +7597,6 @@ finivm(void)
 	gcunlock(halt);
 	gcunlock(vabort);
 	gcunlock(stkunderflow);
-	efree(GCiterdone);
 }
 
 int

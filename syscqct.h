@@ -942,7 +942,6 @@ extern char* tkindstr[];
 extern Cval  *cvalnull, *cval0, *cval1, *cvalminus1;
 extern char  **cqctloadpath;
 extern char *qname[];
-extern void *GCiterdone;
 extern Dom *litdom;
 extern Val Xundef;
 extern Val Xnil;
