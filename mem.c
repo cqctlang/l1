@@ -1858,11 +1858,9 @@ docards(Seg *s, void *p, void *e)
 			c = card(p);
 			min = Clean;
 		}
-		if(!Vdead((Head*)p)){
-			g = scan1(p);
-			if(g < min)
-				min = g;
-		}
+		g = scan1(p);
+		if(g < min)
+			min = g;
 		sz = qsz(p);
 		p += sz;
 		if(sz > Cardsize)
@@ -2191,12 +2189,8 @@ _gc(u32 g, u32 tg)
 	// call built-in finalizers
 	for(i = 0; i < Qnkind; i++)
 		if(H.guards[i])
-			while((h = pop1guard(H.guards[i]))){
-				if(dbg)printf("freeing object %p (%s)\n",
-					      h, qs[Vkind(h)].id);
-				Vsetdead(h, 1);
+			while((h = pop1guard(H.guards[i])))
 				qs[i].free1(h);
-			}
 	stats.finaltime += usec()-b;
 	b = usec();
 	recycle();
