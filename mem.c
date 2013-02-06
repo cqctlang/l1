@@ -2,6 +2,8 @@
 #include "util.h"
 #include "syscqct.h"
 
+static Head constnil;
+
 /* if you change this, be sure the
    ordering in MTx enum remains consistent */
 typedef
@@ -705,6 +707,8 @@ static Seg*
 a2s(void *a)
 {
 	u64 o;
+	if(a == Xnil)
+		bug();
 	o = (a-segmap.lo)/Segsize;
 	return segmap.map+o;
 }
@@ -1366,6 +1370,8 @@ copy(Val *v)
 	h = *v;
 	if(h == 0)
 		return Clean;
+	if(h == Xnil)
+		return Clean;
 	if(Vfwd(h)){
 		if(dbg)printf("copy: read fwd %p -> %p\n",
 			      h, (void*)Vfwdaddr(h));
@@ -1603,6 +1609,8 @@ islive(Head *o)
 {
 	Seg *s;
 	if(Vfwd(o))
+		return 1;
+	if(o == Xnil)
 		return 1;
 	s = a2s(o);
 	if(islocked(s, o))
@@ -2390,7 +2398,8 @@ initmem()
 	H.ma = GCthresh;
 
 	/* we need nil now to initialize the guarded object lists */
-	Xnil = gclock(malq(Qnil, sizeof(Head)));
+	Vsetkind(&constnil, Qnil);
+	Xnil = &constnil;
 
 	for(i = 0; i < Qnkind; i++)
 		if(qs[i].free1)

@@ -72,7 +72,7 @@ static Cont* kcapture(VM *vm);
 
 Val Xnil;
 Dom *litdom;
-static Closure *halt, *vabort, *stkunderflow;
+Closure *halt, *vabort, *stkunderflow;
 Cval *cvalnull, *cval0, *cval1, *cvalminus1;
 
 VM *vms[1];			/* active VMs (at most one) */

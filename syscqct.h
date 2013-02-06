@@ -940,6 +940,7 @@ extern unsigned isunsigned[Vnallbase];
 extern Imm repsize[Rnrep];
 extern char* tkindstr[];
 extern Cval  *cvalnull, *cval0, *cval1, *cvalminus1;
+extern Closure *halt, *vabort, *stkunderflow;
 extern char  **cqctloadpath;
 extern char *qname[];
 extern Dom *litdom;
