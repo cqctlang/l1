@@ -2179,6 +2179,14 @@ _gc(u32 g, u32 tg)
 	/* global roots */
 	copy(&syms);
 	copy(&typecache);
+	copy((Val*)&litdom);
+	copy((Val*)&cvalnull);
+	copy((Val*)&cval0);
+	copy((Val*)&cval1);
+	copy((Val*)&cvalminus1);
+	copy((Val*)&vabort);
+	copy((Val*)&halt);
+	copy((Val*)&stkunderflow);
 
 	// add per-type guards as roots
 	for(i = 0; i < Qnkind; i++)

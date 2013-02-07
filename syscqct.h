@@ -939,19 +939,18 @@ extern unsigned isfloat[Vnallbase];
 extern unsigned isunsigned[Vnallbase];
 extern Imm repsize[Rnrep];
 extern char* tkindstr[];
-extern Cval  *cvalnull, *cval0, *cval1, *cvalminus1;
-extern Closure *halt, *vabort, *stkunderflow;
 extern char  **cqctloadpath;
 extern char *qname[];
-extern Dom *litdom;
-extern Val Xnil;
-extern Code *kcode;
 extern NC *trampentry;
 extern Xfd l1stdin, l1stdout, l1stderr;
 
-/* top-level roots */
+/* global roots */
+extern Val Xnil;
 extern Val syms;
 extern Val typecache;
+extern Dom *litdom;
+extern Closure *halt, *vabort, *stkunderflow;
+extern Cval *cvalnull, *cval0, *cval1, *cvalminus1;
 
 /* c.l */
 void		freeyystate(YYstate *yy);

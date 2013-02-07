@@ -2,8 +2,6 @@
 #include "util.h"
 #include "syscqct.h"
 
-Val syms;
-
 Cid*
 mkcidstr(Str *str)
 {

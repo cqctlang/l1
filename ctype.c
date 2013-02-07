@@ -41,7 +41,6 @@ Imm repsize[Rnrep] = {
 
 
 static Vec*	funcparam(Ctypefunc *tf, Imm m);
-Val typecache;
 
 u32
 hashqvctype(Ctype *t)

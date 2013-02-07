@@ -70,7 +70,10 @@ static Env* mktopenv(void);
 static void l1_sort(VM *vm, Imm argc, Val *argv, Val *rv);
 static Cont* kcapture(VM *vm);
 
+/* global roots */
 Val Xnil;
+Val syms;
+Val typecache;
 Dom *litdom;
 Closure *halt, *vabort, *stkunderflow;
 Cval *cvalnull, *cval0, *cval1, *cvalminus1;
@@ -7556,27 +7559,19 @@ void
 initvm()
 {
 	dovm(0); /* initialize gotab */
-	litdom = gclock(mklitdom());
-	cvalnull = gclock(mkcval(litdom, litdom->ns->base[Vptr], 0));
-	cval0 = gclock(mkcval(litdom, litdom->ns->base[Vint], 0));
-	cval1 = gclock(mkcval(litdom, litdom->ns->base[Vint], 1));
-	cvalminus1 = gclock(mkcval(litdom, litdom->ns->base[Vint], -1));
-	vabort = gclock(abortthunk());
-	halt = gclock(haltthunk());
-	stkunderflow = gclock(stkunderflowthunk());
+	litdom = mklitdom();
+	cvalnull = mkcval(litdom, litdom->ns->base[Vptr], 0);
+	cval0 = mkcval(litdom, litdom->ns->base[Vint], 0);
+	cval1 = mkcval(litdom, litdom->ns->base[Vint], 1);
+	cvalminus1 = mkcval(litdom, litdom->ns->base[Vint], -1);
+	vabort = abortthunk();
+	halt = haltthunk();
+	stkunderflow = stkunderflowthunk();
 }
 
 void
 finivm(void)
 {
-	gcunlock(litdom);
-	gcunlock(cvalnull);
-	gcunlock(cval0);
-	gcunlock(cval1);
-	gcunlock(cvalminus1);
-	gcunlock(halt);
-	gcunlock(vabort);
-	gcunlock(stkunderflow);
 }
 
 int
