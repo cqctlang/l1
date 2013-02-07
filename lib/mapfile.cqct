@@ -1,0 +1,8 @@
+@define mapfile(arg ...)
+{
+	@local addr, len, rv;
+	[addr, len] = apply(_mapfile, arg);
+	rv = mkstrm(addr, len);
+	finalize(rv, @lambda(x){ _munmap(addr, len); });
+	return rv;
+}

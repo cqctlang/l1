@@ -288,16 +288,17 @@ l1_stat(VM *vm, Imm argc, Val *argv, Val *rv)
 }
 
 static void
-l1_mapfile(VM *vm, Imm argc, Val *argv, Val *rv)
+l1__mapfile(VM *vm, Imm argc, Val *argv, Val *rv)
 {
 	int fd;
-	Str *names, *map;
+	Str *names;
+	List *l;
 	char *p, *name, *f;
 	struct stat st;
 	int prot, omode, flags;
 
 	if(argc != 1 && argc != 2)
-		vmerr(vm, "wrong number of arguments to mapfile");
+		vmerr(vm, "wrong number of arguments to _mapfile");
 	checkarg(vm, argv, 0, Qstr);
 	f = 0;
 	if(argc == 2){
@@ -359,8 +360,30 @@ l1_mapfile(VM *vm, Imm argc, Val *argv, Val *rv)
 		vmerr(vm, "cannot open %.*s: %s",
 		      (int)names->len, strdata(names),
 		      strerror(errno));
-	map = mkstrk(p, st.st_size, Smmap);
-	*rv = mkvalstr(map);
+	l = mklist();
+	_listappend(l, mkvallitcval(Vptr, (uptr)p));
+	_listappend(l, mkvallitcval(Vuvlong, st.st_size));
+	*rv = mkvallist(l);
+}
+
+static void
+l1__munmap(VM *vm, Imm argc, Val *argv, Val *rv)
+{
+	void *p;
+	size_t len;
+	int r;
+
+	if(argc != 2)
+		vmerr(vm, "wrong number of arguments to _munmap");
+	checkarg(vm, argv, 0, Qcval);
+	checkarg(vm, argv, 1, Qcval);
+	p = (void*)(uptr)cvalu(valcval(argv[0]));
+	len = (size_t)cvalu(valcval(argv[1]));
+	setlasterrno(0);
+	r = munmap(p, len);
+	if(r == -1)
+		r = -errno;
+	*rv = mkvallitcval(Vint, r);
 }
 
 static void
@@ -815,7 +838,8 @@ fnio(Env *env)
 	FN(access);
 	FN(fdopen);
 	FN(ioctl);
-	FN(mapfile);
+	FN(_mapfile);
+	FN(_munmap);
 	FN(open);
 	FN(popen);
 	FN(read);

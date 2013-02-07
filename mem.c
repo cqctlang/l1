@@ -229,7 +229,6 @@ struct Stats
 } Stats;
 
 static int	freefd(Head*);
-static int	freestr(Head*);
 
 static u8	scanas(Head*);
 static u8	scanbox(Head*);
@@ -275,7 +274,7 @@ static Qtype qs[Qnkind] = {
 	[Qrange] 	= { "range", sizeof(Range), 0, 0, scanrange },
 	[Qrd]    	= { "rd", sizeof(Rd), 0, 0, scanrd },
 	[Qrec]	 	= { "record", sizeof(Rec), 0, 0, scanrec },
-	[Qstr]	 	= { "string", sizeof(Str), 1, freestr, 0 },
+	[Qstr]	 	= { "string", sizeof(Str), 1, 0, 0 },
 	[Qtab]	 	= { "table",  sizeof(Tab), 1, 0, scantab },
 	[Qvec]	 	= { "vector", sizeof(Vec), 0, 0, scanvec },
 };
@@ -295,24 +294,6 @@ freefd(Head *hd)
 	   && fd->flags&Ffn
 	   && fd->u.fn.close)
 		fd->u.fn.close(&fd->u.fn);
-	return 1;
-}
-
-static int
-freestr(Head *hd)
-{
-	Str *str;
-	Strmmap *m;
-	str = (Str*)hd;
-	switch(str->skind){
-	case Smmap:
-		m = (Strmmap*)str;
-		xmunmap(m->s, m->mlen);
-		break;
-	case Sheap:
-	case Sperm:
-		fatal("bug");
-	}
 	return 1;
 }
 
@@ -1271,8 +1252,6 @@ qsz(Head *h)
 		switch(s->skind){
 		case Sheap:
 			return roundup(strsize(s->len), Align);
-		case Smmap:
-			return sizeof(Strmmap); /* FIXME: align? */
 		case Sperm:
 			return sizeof(Strperm); /* FIXME: align? */
 		}

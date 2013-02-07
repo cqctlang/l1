@@ -101,20 +101,11 @@ mkstr0(char *s)
 Str*
 mkstrk(char *s, Imm len, Skind skind)
 {
-	Strmmap *sm;
 	Strperm *sp;
 
 	switch(skind){
 	case Sheap:
 		return mkstr(s, len);
-	case Smmap:
-		sm = (Strmmap*)malv(Qstr, sizeof(Strmmap));
-		sm->mlen = len;
-		sm->s = s;
-		sm->str.len = len;
-		sm->str.skind = Smmap;
-		quard((Val)sm);
-		return (Str*)sm;
 	case Sperm:
 		sp = (Strperm*)malv(Qstr, sizeof(Strperm));
 		sp->s = s;

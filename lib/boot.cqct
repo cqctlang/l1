@@ -6,6 +6,10 @@
 
 @include <callcc.cqct>
 @include <dynamicwind.cqct>
+@include <stx.cqct>
+@include <control.cqct>
+@include <gc.cqct>
+@include <mapfile.cqct>
 
 /* once we have callcc, we can get a backtrace
    on boot-time errors. */

@@ -471,7 +471,6 @@ typedef
 enum {
 	Sperm,			/* don't free */
 	Sheap,			/* managed by gc */
-	Smmap,			/* free with munmap() */
 } Skind;
 
 struct Str {
@@ -481,29 +480,14 @@ struct Str {
 };
 
 typedef
-struct Strmmap {
-	Str str;
-	size_t mlen;		/* Smmap size */
-	char *s;		/* data */
-} Strmmap;
-
-typedef
 struct Strperm {
 	Str str;
 	char *s;		/* data */
 } Strperm;
 
-typedef
-struct Strmalloc {
-	Str str;
-	char *s;		/* data */
-} Strmalloc;
-
 #define strdata(x) (((x)->skind == Sheap)	   \
 		    ? (char*)((x)+1)	           \
-	            : (((x)->skind == Smmap)       \
-	               ? (((Strmmap*)(x))->s)      \
-		       : (((Strperm*)(x))->s)))
+	            : (((Strperm*)(x))->s))
 /* size of Sheap strings */
 #define strsize(n) (sizeof(Str)+(n)*sizeof(char))
 

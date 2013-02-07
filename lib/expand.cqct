@@ -1,5 +1,3 @@
-@include <control.cqct>
-@include <stx.cqct>
 @include <pp.cqct>
 
 @global debugexpand, validateexpand;

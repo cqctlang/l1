@@ -5,9 +5,7 @@
 }
 @include <cqct.cqct>
 @include <ctype.cqct>
-@include <gc.cqct>
 @include <malloc.cqct>
-@include <control.cqct>
 @include <util.cqct>
 @include <validate.cqct>
 @include <rand.cqct>
