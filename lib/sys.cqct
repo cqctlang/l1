@@ -14,22 +14,25 @@ _unameres = nil;
   r=myrootns();
   w=sizeof(r`long);
 
-  switch([o,a,w]) {
-    case ["Linux","x86_64",8]:
-      eval("@include <linux-x86_64.cqct>"); 
-      break;
-    case ["Linux","armv7l",4]:
-      eval("@include <linux-arm.cqct>"); 
-      break;
-    case ["Darwin","x86_64",8]:
-      eval("@include <darwin-x86_64.cqct>"); 
-      break;
-    case ["Linux","x86_64",4]:
-    case ["Darwin","x86_64",4]:
-    default:
-      // no direct syscalls for you
-      fprintf(stderr,"Unsupported OS: %a\n",[o,a,w]);
-  }
+	switch([o,a,w]) {
+	case ["Linux","x86_64",8]:
+		eval("@include <linux-x86_64.cqct>"); 
+		break;
+	case ["Linux","i686",4]:
+		eval("@include <linux-x86.cqct>"); 
+		break;
+	case ["Linux","armv7l",4]:
+		eval("@include <linux-arm.cqct>"); 
+		break;
+	case ["Darwin","x86_64",8]:
+		eval("@include <darwin-x86_64.cqct>"); 
+		break;
+	case ["Linux","x86_64",4]:
+	case ["Darwin","x86_64",4]:
+	default:
+	// no direct syscalls for you
+		fprintf(stderr,"Unsupported OS: %a\n",[o,a,w]);
+	}
 
   _unameres = u;
 
@@ -296,6 +299,7 @@ sys_unlink = @lambda(filename) {
 
 @global sys_mmap;
 if(unix.looksym('mmap2)) {
+  // some linuxes don't support old mmap anymore
   sys_mmap = @lambda(addr,length,prot,flags,fd,offset) {                                
     return (linuxns`void *)syscall(unix`mmap2,addr,length,prot,flags,fd,offset>>12);                
   };
