@@ -348,5 +348,15 @@ unix = @names clp64le {
 
 	@include <linux-x86_64-enum.names>
 	@include <unix.names>
+
+	// x86_64 linux
+	struct stat {
+
+		@24    uint32 st_mode;
+
+		@48    int64  st_size;
+
+		@144;
+	};
 };
 
