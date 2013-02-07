@@ -128,7 +128,6 @@ enum
 	G2,
 	G3,
 	Gstatic,
-	Gfull=Gstatic,
 	Ngen=Gstatic,
 	Nsgen=Gstatic+1,
 	Allgen,
