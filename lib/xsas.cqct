@@ -1,3 +1,10 @@
+@global xsas_defined;
+
+if (xsas_defined == nil)
+{
+@global mkxsas, mkxs;
+xsas_defined = 1;
+
 @define mkxsas()
 {
 	@local get, put, map, ismapped, dat;
@@ -60,4 +67,6 @@
 @define mkxs()
 {
 	return (char*){mkxsas()}0;
+}
+
 }
