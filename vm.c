@@ -4107,30 +4107,6 @@ setgo(Code *c)
 		i->go = gotab[i->kind];
 }
 
-Val
-cqctgcprotect(VM *vm, Val v)
-{
-	return gclock(v);
-}
-
-Val
-cqctgcunprotect(VM *vm, Val v)
-{
-	return gcunlock(v);
-}
-
-Val
-cqctgcpersist(VM *vm, Val v)
-{
-	return gclock(v);
-}
-
-Val
-cqctgcunpersist(VM *vm, Val v)
-{
-	return gcunlock(v);
-}
-
 static void
 builtincode(Env *env, char *name, Code *c)
 {
@@ -6493,22 +6469,6 @@ l1_compact(VM *vm, Imm argc, Val *argv, Val *rv)
 }
 
 static void
-l1_gclock(VM *vm, Imm argc, Val *argv, Val *rv)
-{
-	if(argc != 1)
-		vmerr(vm, "wrong number of arguments to gclock");
-	gclock(argv[0]);
-}
-
-static void
-l1_gcunlock(VM *vm, Imm argc, Val *argv, Val *rv)
-{
-	if(argc != 1)
-		vmerr(vm, "wrong number of arguments to gcunlock");
-	gcunlock(argv[0]);
-}
-
-static void
 l1_gcstats(VM *vm, Imm argc, Val *argv, Val *rv)
 {
 	if(argc != 0)
@@ -7411,10 +7371,8 @@ mktopenv(void)
 	FN(fault);
 	FN(fdname);
 	FN(gc);
-	FN(gclock);
 	FN(gcpoll);
 	FN(gcstats);
-	FN(gcunlock);
 	FN(getbytes);
 	FN(gettoplevel);
 	FN(hash);

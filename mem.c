@@ -131,7 +131,6 @@ enum
 	Gfull=Gstatic,
 	Ngen=Gstatic,
 	Nsgen=Gstatic+1,
-	Glock,
 	Allgen,
 	Clean=0xff,
 	Dirty=0x00,
@@ -143,8 +142,6 @@ static char *genname[] = {
 	"2",
 	"3",
 	"S",
-	"?",
-	"L",
 };
 
 typedef u8 Gen;
@@ -159,8 +156,6 @@ struct Seg
 	void *e;		/* pointer to last byte in segment */
 	u8 card[Ncard];
 	u8 crossing[Ncard];
-	Pair *p;		/* protected objects */
-	u32 nprotect;
 	void *link;
 };
 
@@ -210,7 +205,6 @@ struct Heap
 	Guard ug;		/* user guard list */
 	Guard sg;		/* system guard list */
 	Pair *guards[Qnkind];	/* system per-type guardians */
-	Pair *unlocked;		/* objects unlocked since last collection */
 	unsigned disable;
 	u32 gctrip, gcsched[Ngen], ingc;
 } Heap;
@@ -219,14 +213,10 @@ typedef
 struct Stats
 {
 	u32 ncard;
-	u32 nlock;
 	u32 nseg[Nmt][Nsgen];
 	u64 roottime;
-	u64 unlocktime;
-	u64 locktime;
 	u64 sweeptime;
 	u64 guardtime;
-	u64 promotetime;
 	u64 cardtime;
 	u64 oldtime;
 	u64 weaktime;
@@ -1023,10 +1013,6 @@ allocseg(MT mt, Gen g)
 		fatal("bug");
 	s->mt = mt;
 	s->gen = g;
-
-	/* FIXME: this should be unnecessary */
-	s->p = 0;
-	s->nprotect = 0;
 	s->link = 0;
 
 	return s;
@@ -1052,9 +1038,6 @@ allocbigseg(MT mt, Gen g, u64 sz)
 	memset(s->crossing, 0, sizeof(s->crossing));
 	s->mt = mt;
 	s->gen = g;
-	/* FIXME: this should be unnecessary */
-	s->p = 0;
-	s->nprotect = 0;
 	s->link = 0;
 
 	s++;
@@ -1066,10 +1049,6 @@ allocbigseg(MT mt, Gen g, u64 sz)
 		s->mt = mt;
 		MTsetbigcont(s->mt);
 		s->gen = g;
-
-		/* FIXME: this should be unnecessary */
-		s->p = 0;
-		s->nprotect = 0;
 		s->link = 0;
 
 		if(!MTbig(s->mt))
@@ -1146,21 +1125,6 @@ u64
 meminuse()
 {
 	return H.inuse;
-}
-
-static int
-islocked(Seg *s, Head *h)
-{
-	Head *p;
-	if(s->nprotect == 0)
-		return 0;
-	p = (Head*)s->p;
-	while(p){
-		if(cdar(p) == h)
-			return 1;
-		p = cdr(p);
-	}
-	return 0;
 }
 
 int
@@ -1388,17 +1352,9 @@ copy(Val *v)
 		return s->gen;
 	}
 	s = a2s(h);
-	if(islocked(s, h)){
-		// protected objects do not move.
-		if(dbg)printf("copy: object %p is protected\n", h);
-		return Glock;
-	}
-	if(!MTold(s->mt) && s->gen != Glock){
+	if(!MTold(s->mt))
 		// this object does not move
-		if(dbg)printf("copy: object %p not in from space (gen %d)\n",
-			      h, s->gen);
 		return s->gen;
-	}
 	if(MTbig(s->mt)){
 		t = s;
 		es = a2s(s->e);
@@ -1613,9 +1569,7 @@ islive(Head *o)
 	if(o == Xnil)
 		return 1;
 	s = a2s(o);
-	if(islocked(s, o))
-		return 1;
-	if(!MTold(s->mt) && s->gen != Glock)
+	if(!MTold(s->mt))
 		return 1;
 	return 0;
 }
@@ -1757,8 +1711,7 @@ copystack(void **basep, u32 stxsz, void **rap, Closure *cl, u32 fpo, u8 *min)
 
 	/*
 	  if stack is in oldspace, move it.
-	  no need to check segment for locked (not permitted on stacks).
-	  no need to check for big (also prohibited).
+	  no need to check for big (not permitted on stacks).
 	*/
 	base = *basep;
 	s = a2s(base);
@@ -1837,8 +1790,6 @@ mark1old(Seg *s, u32 g)
 {
 	if(s->gen <= g)
 		MTsetold(s->mt);
-	else if(s->gen == Glock && s->nprotect == 0)
-		MTsetold(s->mt);
 }
 
 static void
@@ -1892,9 +1843,6 @@ scan1segcards(Seg *s, u32 g)
 	void *p;
 	if(s->gen <= g)
 		return;
-	if(s->gen == Glock)
-		/* no need to scan: scanlocked will do it */
-		return;
 	if(s->mt == MTstack)
 		/* FIXME: this is a stupid special
 		   case.  shouldn't it be the case that
@@ -1930,53 +1878,6 @@ scancards(u32 g)
 }
 
 static void
-scanunlocked()
-{
-	Pair *p;
-	u64 b;
-	b = usec();
-	p = H.unlocked;
-	while(p != (Pair*)Xnil){
-		if(!Vfwd(car(p)))
-			scan1(car(p));
-		p = (Pair*)cdr(p);
-	}
-	H.unlocked = (Pair*)Xnil;
-	stats.unlocktime += usec()-b;
-}
-
-static void
-scan1locked(Seg *s)
-{
-	Head *p;
-	if(s->nprotect == 0)
-		return;
-	copy((Val*)&s->p); /* retain list of locked objects! */
-	p = (Head*)s->p;
-	while(p){
-		stats.nlock++;
-		scan1(cdar(p));
-		p = cdr(p);
-	}
-}
-
-static void
-scanlocked()
-{
-	Seg *s, *es;
-	u64 b;
-	b = usec();
-	s = a2s(segmap.lo);
-	es = a2s(segmap.hi);
-	while(s < es){
-		if(isliveseg(s))
-			scan1locked(s);
-		s = nextseg(s);
-	}
-	stats.locktime += usec()-b;
-}
-
-static void
 updateweak(u32 tg)
 {
 	M *m;
@@ -2001,33 +1902,6 @@ updateweak(u32 tg)
 		s = a2s(s->link);
 	}
 	stats.weaktime += usec()-b;
-}
-
-static void
-promote1locked(Seg *s)
-{
-	if(!MTold(s->mt))
-		return;
-	if(s->nprotect == 0)
-		return;
-	s->gen = Glock;
-	MTclrold(s->mt);
-}
-
-static void
-promotelocked()
-{
-	Seg *s, *es;
-	u64 b;
-	b = usec();
-	s = a2s(segmap.lo);
-	es = a2s(segmap.hi);
-	while(s < es){
-		if(isliveseg(s))
-			promote1locked(s);
-		s = nextseg(s);
-	}
-	stats.promotetime += usec()-b;
 }
 
 static void
@@ -2098,12 +1972,6 @@ _gc(u32 g, u32 tg)
 		fatal("bug");
 	if(tg >= Nsgen)
 		return; // FIXME: silently do nothing...caller should know
-
-	/* force full collection when there are newly unlocked objects.
-	   the problem is ensuring that live references to the unlocked
-	   objects in older generations remain valid. */
-	if(H.unlocked != (Pair*)Xnil)
-		g = tg = Gfull;
 
 	H.g = g;
 	H.tg = tg;
@@ -2195,10 +2063,8 @@ _gc(u32 g, u32 tg)
 
 	stats.roottime += usec()-b;
 
-	scanunlocked();
 	scancards(g);
 	if(dbg)printf("scanned cards\n");
-	scanlocked();
 	kleenescan(tg);
 	if(dbg)printf("re-scanned tg data (after prot)\n");
 
@@ -2206,7 +2072,6 @@ _gc(u32 g, u32 tg)
 	updateguards(&H.sg);
 	if(dbg)printf("did updateguards\n");
 	updateweak(tg);
-	promotelocked();
 
 	b = usec();
 	// call built-in finalizers
@@ -2270,102 +2135,6 @@ compact(VM *vm)
 	dogc(vm, Ngen-1, Gstatic);
 }
 
-void*
-gclock(void *v)
-{
-	Seg *s;
-	Head *h;
-	Pair *p;
-	Cval *cv;
-	Closure *cl;
-
-	if(v == 0)
-		return v;
-	h = v;
-	if(Vfwd(h))
-		fatal("bug");
-
-	/* every closure cl on a continuation stack has
-	   an associated return address on the stack.
-	   that address points to an insn in the
-	   current location of cl->code.  if cl is
-	   locked, we must prevent cl->code from being
-	   moved; otherwise we may not be able to
-	   resolve the return address.  the fix is a
-	   hack: recursively lock cl->code (and unlock
-	   it in gcunlock).  note that it would be bad
-	   if the user directly changed the locked
-	   state of cl->code. */
-	if(Vkind(h) == Qcl){
-		cl = valcl(h);
-		gclock(cl->code);
-	}
-
-	s = a2s(h);
-	if(islocked(s, h)){
-		/* find locked object record and bump count */
-		p = s->p;
-		while(p){
-			if(cdar(p) == h){
-				cv = (Cval*)caar(p);
-				cvalu(cv)++;
-				return h;
-			}
-			p = (Pair*)cdr(p);
-		}
-		fatal("lost track of locked object");
-	}else{
-		/* segment descriptor may move during allocation */
-		p = s->p;
-		p = cons(cons(mkvalcval(0, 0, 1), h), p);
-		s = a2s(h);
-		s->p = p;
-		s->nprotect++;
-		return h;
-	}
-}
-
-void*
-gcunlock(void *v)
-{
-	Seg *s;
-	Head *h, *p, **r;
-	Cval *cv;
-	Closure *cl;
-
-	if(v == 0)
-		return v;
-	h = v;
-	if(Vfwd(h))
-		fatal("bug");
-	if(Vkind(h) == Qcl){
-		cl = valcl(h);
-		gcunlock(cl->code);
-	}
-	s = a2s(h);
-	if(!islocked(s, h))
-		return h;
-	r = (Head**)&s->p;
-	p = *r;
-	while(p){
-		if(cdar(p) == h){
-			cv = (Cval*)caar(p);
-			cvalu(cv)--;
-			if(cvalu(cv) == 0){
-				*r = cdr(p);
-				s->nprotect--;
-				H.unlocked = cons(h, H.unlocked);
-				return h;
-			}else
-				return h;
-		}
-		r = &cdr(p);
-		p = *r;
-	}
-	fatal("lost track of locked object");
-	return 0;
-}
-
 int
 ismanagedrange(void *p, Imm len)
 {
@@ -2423,7 +2192,6 @@ initmem()
 	for(i = 0; i < Nsgen; i++)
 		H.ug.gd[i] = H.sg.gd[i] = (Pair*)Xnil;
 	H.disable = 0;
-	H.unlocked = (Pair*)Xnil;
 }
 
 void
@@ -2437,17 +2205,16 @@ finimem()
 
 
 static void
-gcstat1(MT mt, u64 *ns, u64 *np, u64 *nd)
+gcstat1(MT mt, u64 *ns, u64 *nd)
 {
 	Gen g;
-	for(g = G0; g <= Glock; g++){
+	for(g = G0; g <= Gstatic; g++){
 		if(g == Nsgen)
 			continue;
-		printf("%10s %3s %8" PRIu64 " %8" PRIu64 " %8" PRIu64 "\n",
+		printf("%10s %3s %8" PRIu64 " %8" PRIu64 "\n",
 		       MTname[mt],
 		       genname[g],
 		       ns[g],
-		       np[g],
 		       nd[g]);
 	}
 }
@@ -2457,11 +2224,9 @@ gcstats()
 {
 	Seg *s, *es;
 	u64 ns[Nmt][Allgen];
-	u64 np[Nmt][Allgen];
 	u64 nd[Nmt][Allgen];
 
 	memset(ns, 0, sizeof(ns));
-	memset(np, 0, sizeof(ns));
 	memset(nd, 0, sizeof(ns));
 
 	s = a2s(segmap.lo);
@@ -2469,7 +2234,6 @@ gcstats()
 	while(s < es){
 		ns[s->mt][s->gen]++;
 		if(isliveseg(s)){
-			np[s->mt][s->gen] += s->nprotect;
 #if 0
 			if(s->card < s->gen)
 				nd[s->mt][s->gen]++;
@@ -2478,17 +2242,17 @@ gcstats()
 		s = nextseg(s);
 	}
 
-	printf("%10s %3s %8s %8s %8s\n",
-	       "TYPE", "GEN", "#SEG", "#LOCKED", "#DIRTY");
+	printf("%10s %3s %8s %8s\n",
+	       "TYPE", "GEN", "#SEG", "#DIRTY");
 
-	gcstat1(MTfree, ns[MTfree], np[MTfree], nd[MTfree]);
-	gcstat1(MTdata, ns[MTdata], np[MTdata], nd[MTdata]);
-	gcstat1(MTcode, ns[MTcode], np[MTcode], nd[MTcode]);
-	gcstat1(MTweak, ns[MTweak], np[MTweak], nd[MTweak]);
-	gcstat1(MTbox, ns[MTbox], np[MTbox], nd[MTbox]);
-	gcstat1(MTmutable, ns[MTmutable], np[MTmutable], nd[MTmutable]);
-	gcstat1(MTbigdata, ns[MTbigdata], np[MTbigdata], nd[MTbigdata]);
-	gcstat1(MTbigcode, ns[MTbigcode], np[MTbigcode], nd[MTbigcode]);
+	gcstat1(MTfree, ns[MTfree], nd[MTfree]);
+	gcstat1(MTdata, ns[MTdata], nd[MTdata]);
+	gcstat1(MTcode, ns[MTcode], nd[MTcode]);
+	gcstat1(MTweak, ns[MTweak], nd[MTweak]);
+	gcstat1(MTbox, ns[MTbox], nd[MTbox]);
+	gcstat1(MTmutable, ns[MTmutable], nd[MTmutable]);
+	gcstat1(MTbigdata, ns[MTbigdata], nd[MTbigdata]);
+	gcstat1(MTbigcode, ns[MTbigcode], nd[MTbigcode]);
 
 	printf(" inuse = %10" PRIu64 "\n", H.inuse);
 	printf("  free = %10" PRIu64 "\n", H.free);
@@ -2496,7 +2260,6 @@ gcstats()
 	printf(" bigsz = %10" PRIu64 "\n", H.bigsz);
 	printf("smapsz = %10" PRIu64 "\n", H.smapsz);
 	printf(" ncard = %10" PRIu32 "\n", stats.ncard);
-	printf(" nlock = %10" PRIu32 "\n", stats.nlock);
 	printf("   ngc = %10" PRIu32 "\n", H.gctrip);
 }
 
@@ -2519,16 +2282,10 @@ gcstatistics(Tab *t)
 	       mkvallitcval(Vuvlong, stats.cardtime));
 	tabput(t, mkvalcid(mkcid0("roottime")),
 	       mkvallitcval(Vuvlong, stats.roottime));
-	tabput(t, mkvalcid(mkcid0("unlocktime")),
-	       mkvallitcval(Vuvlong, stats.unlocktime));
-	tabput(t, mkvalcid(mkcid0("locktime")),
-	       mkvallitcval(Vuvlong, stats.locktime));
 	tabput(t, mkvalcid(mkcid0("sweeptime")),
 	       mkvallitcval(Vuvlong, stats.sweeptime));
 	tabput(t, mkvalcid(mkcid0("guardtime")),
 	       mkvallitcval(Vuvlong, stats.guardtime));
-	tabput(t, mkvalcid(mkcid0("promotetime")),
-	       mkvallitcval(Vuvlong, stats.promotetime));
 	tabput(t, mkvalcid(mkcid0("weaktime")),
 	       mkvallitcval(Vuvlong, stats.weaktime));
 	tabput(t, mkvalcid(mkcid0("oldtime")),

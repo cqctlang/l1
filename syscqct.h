@@ -1365,10 +1365,8 @@ void		gc(VM *vm);
 void		gcdisable();
 void		gcenable();
 void		gcpoll(VM *vm);
-void*		gclock(void *v);
 void		gcstatistics();
 void		gcstats();
-void*		gcunlock(void *v);
 void		gcwb(Val v);
 void		guard(Val o, Pair *g);
 void		initmem();
@@ -1384,7 +1382,6 @@ u64		meminuse();
 Pair*		mkguard();
 Head*		pop1guard(Pair *t);
 Head*		pop1tguard(Pair *t);
-u64		protected();
 void		quard(Val o);
 void		tguard(Val o, Pair *g);
 
