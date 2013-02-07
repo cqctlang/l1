@@ -9,9 +9,15 @@ linuxns = @names c32le {
 	} Ctx;
 };
 
-unix = @names clp64le {
+unix = @names c32le {
 
         @include <linux-x86-enum.names>
         @include <unix.names>
+
+	struct stat {
+		@0x10 int32 st_mode;
+		@0x2c int32 st_size;
+		@0x58;
+	};
 };
 

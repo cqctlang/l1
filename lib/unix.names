@@ -1,14 +1,4 @@
 
-// x86_64 linux
-struct stat {
-
-  @24    uint32 st_mode;
-
-  @48    int64	st_size;
-
-  @144;
-};
-
 //// from linux/un.h
 enum __anon_un_h
 {
