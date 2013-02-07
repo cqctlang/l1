@@ -1815,12 +1815,20 @@ copystack(void **basep, u32 stxsz, void **rap, Closure *cl, u32 fpo, u8 *min)
 
 		rap = (void**)(fp+Ora);
 		ra = *rap;
-		/* FIXME: we shouldn't also need this termination
-		   condition.  it happens because the root
-		   stack has an extra two slots from the initial
-		   call to ccall. */
-		if(cl == 0)
-			break;
+	}
+
+	if(fp != base)
+		bug();
+	if(cl == 0)
+		bug();
+
+	/* copy ra at base of stack if any */
+	cp = cl->code;
+	if(cp){
+		coff = (void*)ra-(void*)cp;
+		gcopy((Val*)&cp, min);
+		ra = (void*)cp+coff;
+		*rap = ra;
 	}
 }
 
