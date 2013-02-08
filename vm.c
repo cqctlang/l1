@@ -226,15 +226,10 @@ Fd*
 mkfdfn(Str *name, int flags, Xfd *xfd)
 {
 	Fd *fd;
-//	if(read == 0)
-//		flags &= ~Fread;
-//	if(write == 0)
-//		flags &= ~Fwrite;
 	fd = (Fd*)malq(Qfd, sizeof(Fd));
 	fd->name = name;
 	fd->u.fn = *xfd;
 	fd->flags = flags|Ffn;
-	quard((Val)fd);
 	return fd;
 }
 
@@ -255,7 +250,6 @@ mkfdcl(Str *name, int flags,
 	fd->u.cl.write = write;
 	fd->u.cl.close = close;
 	fd->flags = flags&~Ffn;
-	quard((Val)fd);
 	return fd;
 }
 

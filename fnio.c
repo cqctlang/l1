@@ -260,6 +260,30 @@ dir2buf(Dir *d)
 }
 
 static void
+l1_mksysfd(VM *vm, Imm argc, Val *argv, Val *rv)
+{
+	int fd, flags;
+	Xfd xfd;
+	Str *name;
+	if(argc != 2 && argc != 3)
+		vmerr(vm, "wrong number of arguments to mksysfd");
+	checkarg(vm, argv, 0, Qcval);
+	checkarg(vm, argv, 1, Qcval);
+	name = 0;
+	if(argc == 3){
+		checkarg(vm, argv, 2, Qstr);
+		name = valstr(argv[2]);
+	}
+	fd = cvalu(valcval(argv[0]));
+	flags = cvalu(valcval(argv[1]));
+	xfd.fd = fd;
+	xfd.read = xfdread;
+	xfd.write = xfdwrite;
+	xfd.close = xfdclose;
+	*rv = mkvalfd(mkfdfn(name, flags, &xfd));
+}
+
+static void
 l1_stat(VM *vm, Imm argc, Val *argv, Val *rv)
 {
 	struct stat st;
@@ -463,11 +487,9 @@ l1_ioctl(VM *vm, Imm argc, Val *argv, Val *rv)
 }
 
 static void
-l1_open(VM *vm, Imm argc, Val *argv, Val *rv)
+l1__open(VM *vm, Imm argc, Val *argv, Val *rv)
 {
-	Fd *fd;
-	Xfd xfd;
-	Str *names;
+	int fd;
 	char *name, *mode;
 	int oflags, flags;
 
@@ -476,8 +498,7 @@ l1_open(VM *vm, Imm argc, Val *argv, Val *rv)
 		vmerr(vm, "wrong number of arguments to open");
 	checkarg(vm, argv, 0, Qstr);
 	checkarg(vm, argv, 1, Qstr);
-	names = valstr(argv[0]);
-	name = str2cstr(names);
+	name = str2cstr(valstr(argv[0]));
 	mode = str2cstr(valstr(argv[1]));
 
 	flags = 0;
@@ -495,20 +516,16 @@ l1_open(VM *vm, Imm argc, Val *argv, Val *rv)
 	else if(flags&Fwrite)
 		oflags |= O_WRONLY;
 
-	xfd.fd = open(name, oflags, 0777); /* ~umask */
+	fd = open(name, oflags, 0777); /* ~umask */
 	efree(name);
 	efree(mode);
-	if(0 > xfd.fd){
+	if(0 > fd){
 		setlasterrno(errno);
 		return;
 	}
 	if(strchr(mode, 'a'))
-		lseek(xfd.fd, 0, SEEK_END);
-	xfd.read = xfdread;
-	xfd.write = xfdwrite;
-	xfd.close = xfdclose;
-	fd = mkfdfn(names, flags, &xfd);
-	*rv = mkvalfd(fd);
+		lseek(fd, 0, SEEK_END);
+	*rv = mkvallitcval(Vint, fd);
 }
 
 static void
@@ -839,8 +856,9 @@ fnio(Env *env)
 	FN(fdopen);
 	FN(ioctl);
 	FN(_mapfile);
+	FN(mksysfd);
 	FN(_munmap);
-	FN(open);
+	FN(_open);
 	FN(popen);
 	FN(read);
 	FN(seek);

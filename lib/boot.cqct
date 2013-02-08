@@ -9,7 +9,7 @@
 @include <stx.cqct>
 @include <control.cqct>
 @include <gc.cqct>
-@include <mapfile.cqct>
+@include <io.cqct>
 
 /* once we have callcc, we can get a backtrace
    on boot-time errors. */

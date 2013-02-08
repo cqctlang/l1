@@ -1,0 +1,43 @@
+@global
+	mapfile,      
+	open
+;	
+
+{
+@local ions;
+
+ions = @names c32le {
+	enum {
+		/* FFlag in syscqct.h */
+		Fread = 4,
+		Fwrite = 8,
+	};
+};
+
+@define open(file, mode)
+{
+	@local fd, flags, rv;
+
+	fd = _open(file, mode);
+	if(fd == nil)
+		return nil;
+	flags = 0;
+	if(strstr(mode, "r") != nil)
+		flags |= ions`Fread;
+	if(strstr(mode, "w") != nil)
+		flags |= ions`Fwrite;
+	rv = mksysfd(fd, flags, file);
+	finalize(rv, @lambda(fd){ close(fd); });
+	return rv;
+}
+
+@define mapfile(arg ...)
+{
+	@local addr, len, rv;
+	[addr, len] = apply(_mapfile, arg);
+	rv = mkstrm(addr, len);
+	finalize(rv, @lambda(x){ _munmap(addr, len); });
+	return rv;
+}
+
+}
