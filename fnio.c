@@ -707,10 +707,9 @@ setfdsout(VM *vm, List *il, fd_set *f, List *ol)
 }
 
 static void
-l1_sockpair(VM *vm, Imm argc, Val *argv, Val *rv)
+l1__sockpair(VM *vm, Imm argc, Val *argv, Val *rv)
 {
-	int fd[2], i;
-	Xfd xfd[2];
+	int fd[2];
 	List *l;
 
 	if(argc != 0)
@@ -718,17 +717,8 @@ l1_sockpair(VM *vm, Imm argc, Val *argv, Val *rv)
 	if(0 > newchan(&fd[0], &fd[1]))
 		vmerr(vm, "sockpair: %s", strerror(errno));
 	l = mklist();
-	memset(xfd, 0, sizeof(xfd));
-	for(i = 0; i < 2; i++){
-		xfd[i].fd = fd[i];
-		xfd[i].read = xfdread;
-		xfd[i].write = xfdwrite;
-		xfd[i].close = xfdclose;
-	}
-	listappend(vm, l, mkvalfd(mkfdfn(mkstr0("<sockpair>"),
-					 Fread|Fwrite, &xfd[0])));
-	listappend(vm, l, mkvalfd(mkfdfn(mkstr0("<sockpair>"),
-					 Fread|Fwrite, &xfd[1])));
+	listappend(vm, l, mkvallitcval(Vint, fd[0]));
+	listappend(vm, l, mkvallitcval(Vint, fd[1]));
 	*rv = mkvallist(l);
 }
 
@@ -805,7 +795,7 @@ fnio(Env *env)
 	FN(read);
 	FN(seek);
 	FN(select);
-	FN(sockpair);
+	FN(_sockpair);
 	FN(stat);
 	FN(write);
 }

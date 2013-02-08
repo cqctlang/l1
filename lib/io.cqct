@@ -2,7 +2,8 @@
 	fdopen,
 	mapfile,      
 	open,
-	popen
+	popen,
+	sockpair
 ;	
 
 {
@@ -55,6 +56,15 @@ ions = @names c32le {
 	fds = apply(_popen, arg);
 	return map(@lambda(fd){
 			/* FIXME: don't be overly permissive */
+			mksysfdfinal(fd, ions`Fread|ions`Fwrite);
+		}, fds);
+}
+
+@define sockpair()
+{
+	@local fds;
+	fds = _sockpair();
+	return map(@lambda(fd){
 			mksysfdfinal(fd, ions`Fread|ions`Fwrite);
 		}, fds);
 }
