@@ -1234,10 +1234,6 @@ Val		xunop(VM *vm, ikind op, Val v);
 #define stkp(v)		(void*)(uptr)(v)
 #define FN(id)		builtinfn(env, "%"#id, cqctmkcfn(#id, l1_##id))
 
-typedef int(*Freeheadfn)(Head*);
-Freeheadfn getfreeheadfn(Qkind qkind);
-void setfreeheadfn(Qkind qkind, Freeheadfn free1);
-
 /* lib9's reliable, portable snprintf (x/lib9) */
 int		snprint(char *buf, int len, char *fmt, ...);
 int		vsnprint(char *buf, int len, char *fmt, va_list args);
@@ -1366,7 +1362,6 @@ u64		meminuse();
 Pair*		mkguard();
 Head*		pop1guard(Pair *t);
 Head*		pop1tguard(Pair *t);
-void		quard(Val o);
 void		tguard(Val o, Pair *g);
 
 /* ch.c */

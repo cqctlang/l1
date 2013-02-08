@@ -172,7 +172,6 @@ struct Qtype
 	char *id;
 	u32 sz;
 	u32 clearit;
-	Freeheadfn free1;
 	u8 (*scan)(Head *hd);
 } Qtype;
 
@@ -201,9 +200,7 @@ struct Heap
 	u64 heapsz;		/* total bytes currently allocated to heap */
 	u64 bigsz;		/* bytes currently allocated to big segs */
 	u64 smapsz;		/* bytes currently allocated to segment map */
-	Guard ug;		/* user guard list */
-	Guard sg;		/* system guard list */
-	Pair *guards[Qnkind];	/* system per-type guardians */
+	Guard guard;		/* guard list */
 	unsigned disable;
 	u32 gctrip, gcsched[Ngen], ingc;
 } Heap;
@@ -220,15 +217,12 @@ struct Stats
 	u64 oldtime;
 	u64 weaktime;
 	u64 inittime;
-	u64 finaltime;
 	u64 recycletime;
 	u64 resettime;
 	u64 finimainttime;
 	u64 crossings[Ncard];
 	u64 multicardscan;
 } Stats;
-
-static int	freefd(Head*);
 
 static u8	scanas(Head*);
 static u8	scanbox(Head*);
@@ -255,47 +249,34 @@ static void	copystack(void **basep, u32 sz, void **rap, Closure *cl, u32 fpo, u8
 static void	gcopy(Val *v, u8 *min);
 
 static Qtype qs[Qnkind] = {
-	[Qas]	 	= { "as", sizeof(As), 1, 0, scanas },
-	[Qbox]	 	= { "box", sizeof(Box), 0, 0, scanbox },
-	[Qcid]   	= { "cid", sizeof(Cid), 1, 0, 0 },
-	[Qcl]	 	= { "closure", sizeof(Closure), 1, 0, scancl },
-	[Qcode]	 	= { "code", sizeof(Code), 1, 0, scancode },
-	[Qcont]	 	= { "cont", sizeof(Cont), 1, 0, scancont },
-	[Qctype] 	= { "ctype", sizeof(Ctype), 1, 0, scanctype },
-	[Qcval]  	= { "cval", sizeof(Cval), 0, 0, scancval },
-	[Qdom]	 	= { "domain", sizeof(Dom), 0, 0, scandom },
-	[Qexpr]	 	= { "expr", sizeof(Expr), 1, 0, scanexpr },
-	[Qfd]	 	= { "fd", sizeof(Fd), 0, freefd, scanfd },
-	[Qlist]	 	= { "list", sizeof(List), 0, 0, scanlist },
-	[Qnil]	 	= { "nil", sizeof(Head), 0, 0, 0 },
-	[Qns]	 	= { "ns", sizeof(Ns), 1, 0, scanns },
-	[Qpair]	 	= { "pair", sizeof(Pair), 0, 0, scanpair },
-	[Qprecode]	= { "precode", sizeof(Precode), 1, 0, scanprecode },
-	[Qrange] 	= { "range", sizeof(Range), 0, 0, scanrange },
-	[Qrd]    	= { "rd", sizeof(Rd), 0, 0, scanrd },
-	[Qrec]	 	= { "record", sizeof(Rec), 0, 0, scanrec },
-	[Qstr]	 	= { "string", sizeof(Str), 1, 0, 0 },
-	[Qtab]	 	= { "table",  sizeof(Tab), 1, 0, scantab },
-	[Qvec]	 	= { "vector", sizeof(Vec), 0, 0, scanvec },
+	[Qas]	 	= { "as", sizeof(As), 1, scanas },
+	[Qbox]	 	= { "box", sizeof(Box), 0, scanbox },
+	[Qcid]   	= { "cid", sizeof(Cid), 1, 0 },
+	[Qcl]	 	= { "closure", sizeof(Closure), 1, scancl },
+	[Qcode]	 	= { "code", sizeof(Code), 1, scancode },
+	[Qcont]	 	= { "cont", sizeof(Cont), 1, scancont },
+	[Qctype] 	= { "ctype", sizeof(Ctype), 1, scanctype },
+	[Qcval]  	= { "cval", sizeof(Cval), 0, scancval },
+	[Qdom]	 	= { "domain", sizeof(Dom), 0, scandom },
+	[Qexpr]	 	= { "expr", sizeof(Expr), 1, scanexpr },
+	[Qfd]	 	= { "fd", sizeof(Fd), 0, scanfd },
+	[Qlist]	 	= { "list", sizeof(List), 0, scanlist },
+	[Qnil]	 	= { "nil", sizeof(Head), 0, 0 },
+	[Qns]	 	= { "ns", sizeof(Ns), 1, scanns },
+	[Qpair]	 	= { "pair", sizeof(Pair), 0, scanpair },
+	[Qprecode]	= { "precode", sizeof(Precode), 1, scanprecode },
+	[Qrange] 	= { "range", sizeof(Range), 0, scanrange },
+	[Qrd]    	= { "rd", sizeof(Rd), 0, scanrd },
+	[Qrec]	 	= { "record", sizeof(Rec), 0, scanrec },
+	[Qstr]	 	= { "string", sizeof(Str), 1, 0 },
+	[Qtab]	 	= { "table",  sizeof(Tab), 1, scantab },
+	[Qvec]	 	= { "vector", sizeof(Vec), 0, scanvec },
 };
 
 static Segmap	segmap;
 static Heap	H;
 static unsigned	alldbg = 0;
 static Stats	stats;
-
-static int
-freefd(Head *hd)
-{
-	Fd *fd;
-	fd = (Fd*)hd;
-	/* FIXME: should dovm close closure if there is one (as finalizer?) */
-	if((fd->flags&Fclosed) == 0
-	   && fd->flags&Ffn
-	   && fd->u.fn.close)
-		fd->u.fn.close(&fd->u.fn);
-	return 1;
-}
 
 static u8
 scanas(Head *hd)
@@ -1474,7 +1455,7 @@ _instguard(Guard *g, Pair *p)
 void
 instguard(Pair *p)
 {
-	_instguard(&H.ug, p);
+	_instguard(&H.guard, p);
 }
 
 Head*
@@ -1514,16 +1495,6 @@ push1guard(Val o, Pair *t)
 	setcar(cdr(t), o);
 	setcdr(cdr(t), p);
 	setcdr(t, p);
-}
-
-void
-quard(Val o)
-{
-	Pair *t;
-	t = H.guards[Vkind(o)];
-	if(t == 0)
-		fatal("bug");
-	_instguard(&H.sg, cons(o, t));
 }
 
 void
@@ -1933,7 +1904,6 @@ _gc(u32 g, u32 tg)
 {
 	u32 i, mt;
 	VM **vmp, *vm;
-	Head *h;
 	unsigned dbg = alldbg;
 	u64 b;
 	void *ra;
@@ -2033,12 +2003,6 @@ _gc(u32 g, u32 tg)
 	copy((Val*)&vabort);
 	copy((Val*)&halt);
 	copy((Val*)&stkunderflow);
-
-	// add per-type guards as roots
-	for(i = 0; i < Qnkind; i++)
-		copy((Val*)&H.guards[i]);
-	if(dbg)printf("copied guard roots\n");
-
 	stats.roottime += usec()-b;
 
 	scancards(g);
@@ -2046,18 +2010,10 @@ _gc(u32 g, u32 tg)
 	kleenescan(tg);
 	if(dbg)printf("re-scanned tg data (after prot)\n");
 
-	updateguards(&H.ug);
-	updateguards(&H.sg);
+	updateguards(&H.guard);
 	if(dbg)printf("did updateguards\n");
 	updateweak(tg);
 
-	b = usec();
-	// call built-in finalizers
-	for(i = 0; i < Qnkind; i++)
-		if(H.guards[i])
-			while((h = pop1guard(H.guards[i])))
-				qs[i].free1(h);
-	stats.finaltime += usec()-b;
 	b = usec();
 	recycle();
 	if(dbg)printf("did recycle\n");
@@ -2164,19 +2120,15 @@ initmem()
 	Vsetkind(&constnil, Qnil);
 	Xnil = &constnil;
 
-	for(i = 0; i < Qnkind; i++)
-		if(qs[i].free1)
-			H.guards[i] = mkguard();
 	for(i = 0; i < Nsgen; i++)
-		H.ug.gd[i] = H.sg.gd[i] = (Pair*)Xnil;
+		H.guard.gd[i] = (Pair*)Xnil;
 	H.disable = 0;
 }
 
 void
 finimem()
 {
-	_gc(Ngen-1, Ngen-1); /* collect non-quarded objects */
-	_gc(Ngen-1, Ngen-1); /* collect quarded objects */
+	_gc(Ngen-1, Ngen-1);
 	/* FIXME: free all segments */
 	/* FIXME: free static generation */
 }
@@ -2272,8 +2224,6 @@ gcstatistics(Tab *t)
 	       mkvallitcval(Vuvlong, stats.ncard));
 	tabput(t, mkvalcid(mkcid0("inittime")),
 	       mkvallitcval(Vuvlong, stats.inittime));
-	tabput(t, mkvalcid(mkcid0("finaltime")),
-	       mkvallitcval(Vuvlong, stats.finaltime));
 	tabput(t, mkvalcid(mkcid0("recycletime")),
 	       mkvallitcval(Vuvlong, stats.recycletime));
 	tabput(t, mkvalcid(mkcid0("resettime")),
