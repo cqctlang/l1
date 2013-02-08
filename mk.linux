@@ -1,4 +1,0 @@
--include mk.unix
-
-L1FUNS += fnlinux
-L1EXTRAS += fnlinux.c
