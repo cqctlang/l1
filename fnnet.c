@@ -2,24 +2,6 @@
 #include "util.h"
 #include "syscqct.h"
 
-static void
-fdclose(Xfd *xfd)
-{
-	close(xfd->fd);
-}
-
-static Imm
-fdread(Xfd *xfd, char *buf, Imm len)
-{
-	return xread(xfd->fd, buf, len);
-}
-
-static Imm
-fdwrite(Xfd *xfd, char *buf, Imm len)
-{
-	return xwrite(xfd->fd, buf, len);
-}
-
 static int
 parseaddr(const char *s, struct in_addr *addr)
 {
@@ -109,10 +91,9 @@ reuseaddr(int fd)
 }
 
 static void
-l1_socket(VM *vm, Imm argc, Val *argv, Val *rv)
+l1__socket(VM *vm, Imm argc, Val *argv, Val *rv)
 {
-	Fd *fd;
-	Xfd xfd;
+	int fd;
 	Cval *dom, *type, *prot;
 
 	if(argc != 3)
@@ -123,24 +104,18 @@ l1_socket(VM *vm, Imm argc, Val *argv, Val *rv)
 	dom = valcval(argv[0]);
 	type = valcval(argv[1]);
 	prot = valcval(argv[2]);
-	memset(&xfd, 0, sizeof(xfd));
-	xfd.fd = socket((int)cvalu(dom), (int)cvalu(type), (int)cvalu(prot));
-	if(0 > xfd.fd)
+	fd = socket((int)cvalu(dom), (int)cvalu(type), (int)cvalu(prot));
+	if(0 > fd)
 		vmerr(vm, "socket: %s", strerror(errno));
-	xfd.read = fdread;
-	xfd.write = fdwrite;
-	xfd.close = fdclose;
-	fd = mkfdfn(mkstr0("socket"), Fread|Fwrite, &xfd);
-	*rv = mkvalfd(fd);
+	*rv = mkvallitcval(Vint, fd);
 }
 
 static void
-l1_tcpopen(VM *vm, Imm argc, Val *argv, Val *rv)
+l1__tcpopen(VM *vm, Imm argc, Val *argv, Val *rv)
 {
-	Fd *fd;
+	int fd;
 	Str *str;
 	char *s;
-	Xfd xfd;
 	struct sockaddr_in saddr;
 
 	setlasterrno(0);
@@ -155,28 +130,23 @@ l1_tcpopen(VM *vm, Imm argc, Val *argv, Val *rv)
 		      (int)str->len, strdata(str));
 	}
 	efree(s);
-	xfd.fd = socket(AF_INET, SOCK_STREAM, 0);
-	if(0 > xfd.fd)
+	fd = socket(AF_INET, SOCK_STREAM, 0);
+	if(0 > fd)
 		vmerr(vm, "tcpopen: %s", strerror(errno));
-	if(0 > connect(xfd.fd, (struct sockaddr*)&saddr, sizeof(saddr))){
+	if(0 > connect(fd, (struct sockaddr*)&saddr, sizeof(saddr))){
 		setlasterrno(errno);
 		return;
 	}
-	nodelay(xfd.fd);
-	xfd.read = fdread;
-	xfd.write = fdwrite;
-	xfd.close = fdclose;
-	fd = mkfdfn(str, Fread|Fwrite, &xfd);
-	*rv = mkvalfd(fd);
+	nodelay(fd);
+	*rv = mkvallitcval(Vint, fd);	
 }
 
 static void
-l1_tcplisten(VM *vm, Imm argc, Val *argv, Val *rv)
+l1__tcplisten(VM *vm, Imm argc, Val *argv, Val *rv)
 {
-	Fd *fd;
+	int fd;
 	Str *str;
 	char *s;
-	Xfd xfd;
 	struct sockaddr_in saddr;
 
 	if(argc != 1)
@@ -191,27 +161,25 @@ l1_tcplisten(VM *vm, Imm argc, Val *argv, Val *rv)
 	}
 	efree(s);
 
-	xfd.fd = socket(AF_INET, SOCK_STREAM, 0);
-	if(0 > xfd.fd)
+	fd = socket(AF_INET, SOCK_STREAM, 0);
+	if(0 > fd)
 		vmerr(vm, "tcplisten: %s", strerror(errno));
-	reuseaddr(xfd.fd);
-	if(0 > bind(xfd.fd, (struct sockaddr*)&saddr, sizeof(saddr)))
+	reuseaddr(fd);
+	if(0 > bind(fd, (struct sockaddr*)&saddr, sizeof(saddr)))
 		vmerr(vm, "tcplisten: %s", strerror(errno));
-	if(0 > listen(xfd.fd, 4096))
+	if(0 > listen(fd, 4096))
 		vmerr(vm, "tcplisten: %s", strerror(errno));
-	xfd.close = fdclose;
-	fd = mkfdfn(str, 0, &xfd);
-	*rv = mkvalfd(fd);
+	*rv = mkvallitcval(Vint, fd);	
 }
 
 static void
-l1_tcpaccept(VM *vm, Imm argc, Val *argv, Val *rv)
+l1__tcpaccept(VM *vm, Imm argc, Val *argv, Val *rv)
 {
-	Fd *fd0, *fd1;
-	Xfd *xfd0, xfd1;
+	int fd;
+	Fd *fd0;
+	Xfd *xfd0;
 	struct sockaddr_in saddr;
 	socklen_t len;
-	char buf[128];
 
 	if(argc != 1)
 		vmerr(vm, "wrong number of arguments to tcpaccept");
@@ -221,16 +189,11 @@ l1_tcpaccept(VM *vm, Imm argc, Val *argv, Val *rv)
 		vmerr(vm, "file descriptor is not a listener");
 	xfd0 = &fd0->u.fn;
 	len = sizeof(saddr);
-	xfd1.fd = accept(xfd0->fd, (struct sockaddr*)&saddr, &len);
-	if(0 > xfd1.fd)
+	fd = accept(xfd0->fd, (struct sockaddr*)&saddr, &len);
+	if(0 > fd)
 		vmerr(vm, "tcpaccept: %s", strerror(errno));
-	nodelay(xfd1.fd);
-	xfd1.read = fdread;
-	xfd1.write = fdwrite;
-	xfd1.close = fdclose;
-	sa2str(&saddr, buf, sizeof(buf));
-	fd1 = mkfdfn(mkstr0(buf), Fread|Fwrite, &xfd1);
-	*rv = mkvalfd(fd1);
+	nodelay(fd);
+	*rv = mkvallitcval(Vint, fd);
 }
 
 static void
@@ -284,8 +247,8 @@ fnnet(Env *env)
 {
 	FN(getpeername);
 	FN(getsockname);
-	FN(socket);
-	FN(tcpaccept);
-	FN(tcplisten);
-	FN(tcpopen);
+	FN(_socket);
+	FN(_tcpaccept);
+	FN(_tcplisten);
+	FN(_tcpopen);
 }

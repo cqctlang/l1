@@ -3,7 +3,11 @@
 	mapfile,      
 	open,
 	popen,
-	sockpair
+	socket,
+	sockpair,
+	tcpaccept,
+	tcplisten,
+	tcpopen
 ;	
 
 {
@@ -67,6 +71,42 @@ ions = @names c32le {
 	return map(@lambda(fd){
 			mksysfdfinal(fd, ions`Fread|ions`Fwrite);
 		}, fds);
+}
+
+@define socket(d, t, p)
+{
+	@local fd;
+	fd = _socket(d, t, p);
+	if(fd == nil)
+		return nil;
+	return mksysfdfinal(fd, ions`Fread|ions`Fwrite);
+}
+
+@define tcpopen(addr)
+{
+	@local fd;
+	fd = _tcpopen(addr);
+	if(fd == nil)
+		return nil;
+	return mksysfdfinal(fd, ions`Fread|ions`Fwrite);
+}
+
+@define tcplisten(addr)
+{
+	@local fd;
+	fd = _tcplisten(addr);
+	if(fd == nil)
+		return nil;
+	return mksysfdfinal(fd, 0);
+}
+
+@define tcpaccept(lfd)
+{
+	@local fd;
+	fd = _tcpaccept(lfd);
+	if(fd == nil)
+		return nil;
+	return mksysfdfinal(fd, ions`Fread|ions`Fwrite);
 }
 
 @define mapfile(arg ...)
