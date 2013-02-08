@@ -784,8 +784,10 @@ kbacktrace(VM *vm, Cont *k)
 		sz = ra2size(pc, cp);
 		printframe(vm, pc, cp);
 		fp -= sz;
-		pc = stkp(fp[Ora]);
-		cl = valcl(fp[Ocl]);
+		if((void*)fp >= k->base){
+			pc = stkp(fp[Ora]);
+			cl = valcl(fp[Ocl]);
+		}
 	}
 	kbacktrace(vm, k->link);
 }
