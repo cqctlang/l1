@@ -619,17 +619,15 @@ l1_seek(VM *vm, Imm argc, Val *argv, Val *rv)
 }
 
 static void
-l1_popen(VM *vm, Imm argc, Val *argv, Val *rv)
+l1__popen(VM *vm, Imm argc, Val *argv, Val *rv)
 {
 	int fds[3];
-	Xfd xfd;
 	Imm m;
 	char **xargv;
 	int xrv;
 	int flags;
 	Cval *cv;
 	List *ls;
-	Fd *fd;
 
 	if(argc == 0)
 		vmerr(vm, "wrong number of arguments to popen");
@@ -657,38 +655,14 @@ l1_popen(VM *vm, Imm argc, Val *argv, Val *rv)
 
 	ls = mklist();
 	*rv = mkvallist(ls);
-
-	memset(&xfd, 0, sizeof(xfd));
+	listappend(vm, ls, mkvallitcval(Vint, fds[0]));
 	if(flags&PopenFullDuplex)
-		xfd.read = xfdread;
-	xfd.write = xfdwrite;
-	xfd.close = xfdclose;
-	xfd.fd = fds[0];
-	fd = mkfdfn(mkstr0("<popen0>"),
-		    Fwrite|((flags&PopenFullDuplex)?Fread:0),
-		    &xfd);
-	listappend(vm, ls, mkvalfd(fd));
-
-	if(flags&PopenFullDuplex)
-		listappend(vm, ls, mkvalfd(fd));
-	else{
-		memset(&xfd, 0, sizeof(xfd));
-		xfd.read = xfdread;
-		xfd.close = xfdclose;
-		xfd.fd = fds[1];
-		fd = mkfdfn(mkstr0("<popen1>"), Fread, &xfd);
-		listappend(vm, ls, mkvalfd(fd));
-	}
-
+		listappend(vm, ls, mkvallitcval(Vint, dup(fds[0])));
+	else
+		listappend(vm, ls, mkvallitcval(Vint, fds[1]));
 	if(flags&(PopenNoErr|PopenStderr))
 		return;
-
-	memset(&xfd, 0, sizeof(xfd));
-	xfd.read = xfdread;
-	xfd.close = xfdclose;
-	xfd.fd = fds[2];
-	fd = mkfdfn(mkstr0("<popen2>"), Fread, &xfd);
-	listappend(vm, ls, mkvalfd(fd));
+	listappend(vm, ls, mkvallitcval(Vint, fds[2]));	
 }
 
 static int
@@ -827,7 +801,7 @@ fnio(Env *env)
 	FN(mksysfd);
 	FN(_munmap);
 	FN(_open);
-	FN(popen);
+	FN(_popen);
 	FN(read);
 	FN(seek);
 	FN(select);

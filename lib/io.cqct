@@ -1,7 +1,8 @@
 @global
 	fdopen,
 	mapfile,      
-	open
+	open,
+	popen
 ;	
 
 {
@@ -26,24 +27,36 @@ ions = @names c32le {
 	return flags;
 }
 
+@defloc mksysfdfinal(arg ...)
+{
+	@local rv;
+	rv = apply(mksysfd, arg);
+	finalize(rv, close);
+	return rv;
+}
+
 @define open(file, mode)
 {
-	@local fd, rv;
-
+	@local fd;
 	fd = _open(file, mode);
 	if(fd == nil)
 		return nil;
-	rv = mksysfd(fd, mode2flags(mode), file);
-	finalize(rv, @lambda(fd){ close(fd); });
-	return rv;
+	return mksysfdfinal(fd, mode2flags(mode), file);
 }
 
 @define fdopen(fd, mode)
 {
-	@local rv;
-	rv = mksysfd(fd, mode2flags(mode), sprintfa("fd%d", fd));
-	finalize(rv, @lambda(fd){ close(fd); });
-	return rv;
+	mksysfdfinal(fd, mode2flags(mode), sprintfa("fd%d", fd));
+}
+
+@define popen(arg ...)
+{
+	@local fds;
+	fds = apply(_popen, arg);
+	return map(@lambda(fd){
+			/* FIXME: don't be overly permissive */
+			mksysfdfinal(fd, ions`Fread|ions`Fwrite);
+		}, fds);
 }
 
 @define mapfile(arg ...)
