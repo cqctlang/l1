@@ -7475,10 +7475,6 @@ mktopenv(void)
 	builtinnil(env, "$$"); /* FIXME: get rid of this */
 	builtincode(env, "kresumecode", kresumecode());
 
-	builtinfd(env, "stdin", mkfdfn(mkstr0("(stdin)"), Fread, &l1stdin));
-	builtinfd(env, "stdout", mkfdfn(mkstr0("(stdout)"), Fwrite, &l1stdout));
-	builtinfd(env, "stderr", mkfdfn(mkstr0("(stderr)"), Fwrite, &l1stderr));
-
 	/* expanded source may call these magic functions */
 	builtinfn(env, "$put", mkcfn("$put", l1_put));
 	builtinfn(env, "$typeof", mkcfn("$typeof", l1_typeof));

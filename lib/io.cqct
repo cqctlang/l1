@@ -5,6 +5,9 @@
 	popen,
 	socket,
 	sockpair,
+	stdin,
+	stdout,
+	stderr,
 	tcpaccept,
 	tcplisten,
 	tcpopen
@@ -21,6 +24,14 @@ ions = @names c32le {
 	};
 };
 
+@defloc mksysfdfinal(arg ...)
+{
+	@local rv;
+	rv = apply(mksysfd, arg);
+	finalize(rv, close);
+	return rv;
+}
+
 @defloc mode2flags(mode)
 {
 	@local flags;
@@ -30,14 +41,6 @@ ions = @names c32le {
 	if(strstr(mode, "w") != nil)
 		flags |= ions`Fwrite;
 	return flags;
-}
-
-@defloc mksysfdfinal(arg ...)
-{
-	@local rv;
-	rv = apply(mksysfd, arg);
-	finalize(rv, close);
-	return rv;
 }
 
 @define open(file, mode)
@@ -117,5 +120,9 @@ ions = @names c32le {
 	finalize(rv, @lambda(x){ _munmap(addr, len); });
 	return rv;
 }
+
+stdin = mksysfdfinal(0, ions`Fread, "(stdin)");
+stdout = mksysfdfinal(1, ions`Fwrite, "(stdout)");
+stderr = mksysfdfinal(2, ions`Fwrite, "(stderr)");
 
 }
