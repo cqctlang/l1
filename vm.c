@@ -1769,11 +1769,15 @@ vapply(VM *vm)
 		break;
 	case Ccfn:
 		c->cfn(vm, vm->vc, vm->fp+Oarg0, &vm->ac);
-		vm->pc = stkp(vm->fp[Ora]); /* apply's caller */
+		/* return to apply's caller */
+		vm->pc = stkp(vm->fp[Ora]);
+		vm->cl = stkp(vm->fp[Ocl]);
 		break;
 	case Cccl:
 		c->ccl(vm, vm->vc, vm->fp+Oarg0, cldisp(vm->cl), &vm->ac);
-		vm->pc = stkp(vm->fp[Ora]); /* apply's caller */
+		/* return to apply's caller */
+		vm->pc = stkp(vm->fp[Ora]);
+		vm->cl = stkp(vm->fp[Ocl]);
 		break;
 	case Cxfn:
 		calln(vm);	/* FIXME: does this really work? */

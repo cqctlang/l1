@@ -1,0 +1,18 @@
+@define test()
+{
+	return apply(list, ["abc", "def"]);
+}
+
+@define mkbad(x)
+{
+	@defloc fn()
+	{
+		printf("before test x == %d\n", x);
+		test();
+		printf("after test x == %d\n", x);
+	}
+	return fn;
+}
+
+fn = mkbad(1);
+fn();
