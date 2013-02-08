@@ -529,37 +529,6 @@ l1__open(VM *vm, Imm argc, Val *argv, Val *rv)
 }
 
 static void
-l1_fdopen(VM *vm, Imm argc, Val *argv, Val *rv)
-{
-	Fd *fd;
-	Xfd xfd;
-	Cval *cfd;
-	char *mode;
-	int flags;
-	char buf[32];
-
-	if(argc != 2)
-		vmerr(vm, "wrong number of arguments to fdopen");
-	checkarg(vm, argv, 0, Qcval);
-	checkarg(vm, argv, 1, Qstr);
-	cfd = valcval(argv[0]);
-	mode = str2cstr(valstr(argv[1]));
-	flags = 0;
-	if(strchr(mode, 'r'))
-		flags |= Fread;
-	if(strchr(mode, 'w'))
-		flags |= Fwrite;
-	efree(mode);
-	xfd.fd = cvalu(cfd);
-	snprintf(buf, sizeof(buf), "fd%d", xfd.fd);
-	xfd.read = xfdread;
-	xfd.write = xfdwrite;
-	xfd.close = xfdclose;  // FIXME: close on gc should be optional
-	fd = mkfdfn(mkstr0(buf), flags, &xfd);
-	*rv = mkvalfd(fd);
-}
-
-static void
 l1_read(VM *vm, Imm argc, Val *argv, Val *rv)
 {
 	Fd *fd;
@@ -853,7 +822,6 @@ void
 fnio(Env *env)
 {
 	FN(access);
-	FN(fdopen);
 	FN(ioctl);
 	FN(_mapfile);
 	FN(mksysfd);

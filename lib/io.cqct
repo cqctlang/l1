@@ -1,4 +1,5 @@
 @global
+	fdopen,
 	mapfile,      
 	open
 ;	
@@ -7,26 +8,40 @@
 @local ions;
 
 ions = @names c32le {
-	enum {
+	enum Fflag {
 		/* FFlag in syscqct.h */
 		Fread = 4,
 		Fwrite = 8,
 	};
 };
 
-@define open(file, mode)
+@defloc mode2flags(mode)
 {
-	@local fd, flags, rv;
-
-	fd = _open(file, mode);
-	if(fd == nil)
-		return nil;
+	@local flags;
 	flags = 0;
 	if(strstr(mode, "r") != nil)
 		flags |= ions`Fread;
 	if(strstr(mode, "w") != nil)
 		flags |= ions`Fwrite;
-	rv = mksysfd(fd, flags, file);
+	return flags;
+}
+
+@define open(file, mode)
+{
+	@local fd, rv;
+
+	fd = _open(file, mode);
+	if(fd == nil)
+		return nil;
+	rv = mksysfd(fd, mode2flags(mode), file);
+	finalize(rv, @lambda(fd){ close(fd); });
+	return rv;
+}
+
+@define fdopen(fd, mode)
+{
+	@local rv;
+	rv = mksysfd(fd, mode2flags(mode), sprintfa("fd%d", fd));
 	finalize(rv, @lambda(fd){ close(fd); });
 	return rv;
 }
