@@ -363,7 +363,9 @@ and set the local variable myfn1 to the value of fn1 in that library.
   </div>
   <div class="desc">
     Imports the named libraries and symbols to the global scope. 
-    For use in top-level execution. 
+    For use in top-level execution. Unlike the other library import
+    techniques, this will re-load the library from disk every time
+    (though it will not re-load the library's dependencies).
   </div>
 </div>
 

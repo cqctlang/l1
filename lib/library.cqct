@@ -75,6 +75,8 @@ if (__library_exports == nil) //might not have been set in a macro
 
   if (__library_exports == nil) __library_exports = [:];
 
+  glob = compile(glob)();
+
   @defloc pathto(f) {
     @local i,paths,len;
     paths = loadpath();
@@ -91,7 +93,7 @@ if (__library_exports == nil) //might not have been set in a macro
   @defloc check_and_load(lib) {
     @global __library_exports;
     //determine if that library has been loaded, if not, load it
-    if (__library_exports[lib] == nil) {
+    if (glob || __library_exports[lib] == nil) {
       @local l,fp,parsed;
       fp = pathto(sprintfa("%s.cqct",lib));
       if (fp == nil) error("could not find library: %s.cqct",lib);
@@ -215,7 +217,7 @@ if (__library_exports == nil) //might not have been set in a macro
   //we'd been building new_body as a cqct list, but it needs to be a Zlist
   new_body = apply(Zlist,new_body);
   
-  if (compile(glob)())
+  if (glob)
     return #[#global(new_locals),#scope(#block(#[],new_body))];
   else
     return #[#scope(#block(new_locals,new_body))];
