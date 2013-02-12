@@ -40,4 +40,19 @@ y = "lib";
 @dynamic_imports( "subdir"+"/"+"sublib" ) { fn1(); }
 @dynamic_imports( "(f2, subdir/sublib.fn1)" ) { f2(); }
 
+@with_imports ( (meme, subdir/sublib) )
+{
+  printf("with an object now\n");
+  meme.fn1();
+  meme.fn1();
+  meme.fn1000();
+  meme.fn1();
+  /*
+  applyk(@lambda() { meme.fn5(); }, 
+         @lambda(ret) { printf("success\n"); },
+         @lambda() { printf("expected error found\n"); },
+         []);
+  */
+
+}
 
