@@ -70,7 +70,7 @@ if (__library_exports == nil) //might not have been set in a macro
 }
 
 //this macro allows some code to be run with bindings to some imported symbols 
-@defstx @with_imports(imports...) body {
+@defstx @with_imports_imp(glob, imports...) body {
   @local new_body, new_locals, has_dot;
 
   if (__library_exports == nil) __library_exports = [:];
@@ -92,11 +92,14 @@ if (__library_exports == nil) //might not have been set in a macro
     @global __library_exports;
     //determine if that library has been loaded, if not, load it
     if (__library_exports[lib] == nil) {
-      @local l,fp;
+      @local l,fp,parsed;
       fp = pathto(sprintfa("%s.cqct",lib));
       if (fp == nil) error("could not find library: %s.cqct",lib);
       l = mapfile(fp);
-      eval(sprintfa("@library(%s) { %s }",lib,l));
+      parsed = parse(sprintfa("@library(%s) { %s }",lib,l),fp);
+      if (parsed == nil)
+        error("loading library %a",lib);
+      compile(parsed)();
       if (__library_exports[lib] == nil) 
         error("loading library %a", lib);
     }
@@ -134,41 +137,74 @@ if (__library_exports == nil) //might not have been set in a macro
         default: error("Bad import entry: %a\n",en);
         };
         has_dot = nil;
-        lname = mklibstr(y);
+
+        lname = mklibstr(y); //sets the has_dot variable
+        check_and_load(lname);
+
+        //store the id in the list of locals
+        append(new_locals,#id(fn));
+
         if (has_dot != nil) {
           @local lfn;
           lfn = has_dot;
-          check_and_load(lname);
           if (__library_exports[lname][lfn] == nil)
               error("Attempt to import non-exported symbol %a in %a",
                   lfn,lname );
-          //store the id in the list of locals
-          append(new_locals,#id(fn));
           s = #`{
             #,(#id(fn)) = __library_exports[#,(#val(lname))][#,(#val(lfn))];
           };
           //add these lazy function definitions to the body
           append(new_body,s);
+        } else {
+          //in this case we want to create an object to dispatch
+          //calls to the given library.
+          s = #`{
+            {
+              @defloc internal_dispatch(s,fnnm,args...)
+              {
+                @local fn;
+                fn = __library_exports[#,(#val(lname))][mkcid(fnnm)];
+                if (fn == nil)
+                  error("library %s does not provide %s",#,(#val(lname)),fnnm);
+                return apply(fn,args);
+              }
+
+              #,(#id(fn)) = mkas([
+                //hacky stubs
+                "put" : @lambda(s,args...) 
+                          { return apply(internal_dispatch,s,"put",args); },
+                "get" : @lambda(s,args...) 
+                          { return apply(internal_dispatch,s,"get",args); },
+                "ismapped" : @lambda(s,args...) 
+                          { return apply(internal_dispatch,s,"ismapped",args);},
+                "map" : @lambda(s,args...) 
+                          { return apply(internal_dispatch,s,"map",args); },
+                //actual dispatch
+                "dispatch" : internal_dispatch
+              ]);
+            }
+          }; //end generated code
+          append(new_body,s);
         }
         break;
-      default:
-        lname = mklibstr(en);
-        if (lname == nil)
-          error("Could not parse imports at %a\n",en);
-        check_and_load(lname);
-        foreach(@lambda(lfn,_) {
-          //store the id in the list of locals
-          append(new_locals,#id(lfn));
-          s = #`{
-            #,(#id(lfn)) = __library_exports[#,(#val(lname))][#,(#val(lfn))];
-            //hack to avoid variable defined but not referenced warnings
-            #,(#id(lfn)) = #,(#id(lfn)); 
-          };
-          append(new_body,s);
-        },__library_exports[lname]);
-        break;
-    }
-  },Ztolist(imports));
+        default:
+          lname = mklibstr(en);
+          if (lname == nil)
+            error("Could not parse imports at %a\n",en);
+          check_and_load(lname);
+          foreach(@lambda(lfn,_) {
+            //store the id in the list of locals
+            append(new_locals,#id(lfn));
+            s = #`{
+              #,(#id(lfn)) = __library_exports[#,(#val(lname))][#,(#val(lfn))];
+              //hack to avoid variable defined but not referenced warnings
+              #,(#id(lfn)) = #,(#id(lfn)); 
+            };
+            append(new_body,s);
+          },__library_exports[lname]);
+          break;
+      }
+    },Ztolist(imports));
 
   //we'd been building new_locals as a cqct list, but it needs to be a Zlist
   new_locals = apply(Zlist,new_locals);
@@ -179,7 +215,22 @@ if (__library_exports == nil) //might not have been set in a macro
   //we'd been building new_body as a cqct list, but it needs to be a Zlist
   new_body = apply(Zlist,new_body);
   
-  return #[#scope(#block(new_locals,new_body))];
+  if (compile(glob)())
+    return #[#global(new_locals),#scope(#block(#[],new_body))];
+  else
+    return #[#scope(#block(new_locals,new_body))];
+}
+
+@defstx @with_imports(imports...) body {
+  @local new_args;
+  new_args = Zcons(#val(0),imports);
+  return #mcall(#id('with_imports_imp),new_args,body);
+}
+
+@defstx @import_globals(imports...) {
+  @local new_args;
+  new_args = Zcons(#val(1),imports);
+  return #mcall(#id('with_imports_imp),new_args,#[]);
 }
 
 @defstx @dynamic_imports(args...) body {
