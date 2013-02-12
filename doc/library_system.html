@@ -32,7 +32,7 @@ given piece of code.
 In its most basic instantiation, a library is a file containing
 definitions for various functions and variables. There is currently
 no mechanism for putting macros (i.e. <em>@defstx</em> definitions)
-in a library -- any macros appearing in a library currently gets bound
+in a library -- any macros appearing in a library currently get bound
 at the top level. Future version of the library system will remedy the
 macro limitations.
 </p>
@@ -67,7 +67,8 @@ then run using those symbols as follows:
 }
 </pre>
 </div>
-The <em>@with_imports</em> macro loads the library lib1.cqct, and
+The <em>@with_imports</em> macro checks that lib1.cqct has been loaded,
+loading it if necessary, and
 binds all of that library's exported symbols in the following scope.
 Since lib1.cqct exports both <em>func1</em> and <em>func2</em>
 both symbols will be available. If one already has a binding for 
@@ -113,28 +114,64 @@ The <em>@import</em> macro only works inside a library file -- at the top
 level <em>@with_imports</em> must be used instead. 
 </p>
 
+<h5>Import Specification</h5>
 <p>
-<em>@import</em> and <em>@with_imports</em> are both variable argument 
-macros for which all of the following are legal:
+<em>@import</em>, <em>@with_imports</em>, and <em>@import_globals</em> are 
+variable argument macros for which support the same import specification.
+Each element of the import specification can have one of three forms
+</p>
+
+<p>
+<em>library_name</em>: This will import all functions exported by
+  that library directly into the local scope before evaluating the local
+  scope. 
 <div class="code">
 <pre>
+@with_imports( lib1 ) {
+  fn1(); //if lib1 exports a function fn1, this will call that function
+  @defloc fn2() { ... } 
+  fn2(); // will call the local fn2 even if lib1 exports fn2
+}
+</pre>
+</div>
 
-@import( lib1, lib2 );
-
-@with_imports( (f1, lib1.func1), lib2 ) { ... }
-
-@import( (func1, lib1.func1), (lib1_func2, lib1.func2), lib2 );
+</p>
+<p>
+<em>(object_name, library_name)</em>: This will create an object
+named <em>object_name</em> that exports access to the functions in
+the given library via its "dispatch" function. So if the library contains
+a function <em>fn1</em>, one can call that function with the statment
+<em>object_name.fn1()</em>. For instance
+<div class="code">
+<pre>
+@with_imports( (l,lib1) ) {
+  l.fn1(); //if lib1 exports a function fn1, this will call that function
+}
+</pre>
+</div>
+</p>
+<p>
+<em>(binding, library_name.export)</em>: This will create a local 
+binding with the given name to the given library export. For instance:
+<div class="code">
+<pre>
+@with_imports( (f, lib1.fn1) ) {
+  f(); //this will call function fn1 exported by library lib1
+}
 </pre>
 </div>
 </p>
 
 <p>
-If one wants to import a file that is in a directory <em>dir1</em> 
+Library names are allowed to include the "/" character to specify
+subdirectories inside of the load path. 
+If one wants to import a library <em>lib</em> 
+that is in a directory <em>dir1</em> 
 that is in the load path, one may use the following constructions:
 <div class="code">
 <pre>
 
-@import( dir1/lib, (f1, dir1/lib.func1));
+@import( dir1/lib, (f1, dir1/lib.func1) );
 
 @with_imports( dir1/lib, (f1, dir1/lib.func1) ) { ... }
 </pre>
@@ -144,7 +181,11 @@ that is in the load path, one may use the following constructions:
 <p>
 Imported libraries must be present in the load path. That is, when importing
 from <em>lib1</em>, there must be a lib1.cqct present in the load path at
-compile time. Recursive or mutually recursive libraries are not allowed.
+compile time. 
+</p>
+
+<p>
+Recursive or mutually recursive libraries are currently not supported.
 Any <em>@defstx</em> statements in any library are 
 bound globally during compilation. 
 </p>
@@ -195,11 +236,11 @@ foreach(@lambda(dir) {
     to compute path. For instance:
     <div class="code">
       <pre>
-@loadpath("/"); //legal
-@loadpath(loadpath[0]+"../something"); //legal
+@add_loadpath("/"); //legal
+@add_loadpath(loadpath()[0]+"../something"); //legal
 path = compute_path(); //this statement does not execute until run time
-@loadpath(path); //error: path is unbound until runtime
-@loadpath(compute_path()); //error: compute_path is also unbound until runtime
+@add_loadpath(path); //error: path is unbound until runtime
+@add_loadpath(compute_path()); //error: compute_path is also unbound until runtime
       </pre>
     </div>
   </div>
@@ -277,6 +318,19 @@ For example:
 Will import all symbols exported by the library found in the first 
 dir1/lib1.cqct in the load path (the load path is searched in order). 
 </li>
+<li>If the import_spec is <em>(sym, (dir/)*libname)</em>, 
+then the library libname is loaded and bound 
+to the symbol <em>sym</em> in the current library. 
+Symbols exported by the library can be accessed with:
+<em>sym.fn1()</em>. 
+For instance
+<div class="code">
+<pre>
+@import( (mylib1, dir1/lib1) );
+mylib1.fn1(); //calls the export fn1 from dir1/lib1
+</pre>
+</div>
+</li>
 <li>If the import_spec is <em>(sym, (dir/)*libname.esym)</em>, 
 then the library libname is loaded and the symbol esym from that library
 is bound to the symbol <em>sym</em> in the current library. For instance
@@ -290,6 +344,27 @@ and set the local variable myfn1 to the value of fn1 in that library.
 </li>
 </ul>
 </div>
+</div>
+
+<div class="docitem" id="fn:@import_globals">
+  <div class="proto">
+    <div class="function">
+      <span class="id">@import_globals( import_spec [, import_spec [,...]] )
+      </span>
+    </div>
+    <div class="param">
+      <span class="arg">import_spec</span>: 
+      <span class="type">(dir/)*libname</span> or
+      <span class="type">(sym, (dir/)*libname.sym)</span> or
+    </div>
+    <div class="returns">
+      <span class="type">nothing</span>
+    </div>
+  </div>
+  <div class="desc">
+    Imports the named libraries and symbols to the global scope. 
+    For use in top-level execution. 
+  </div>
 </div>
 
 <div class="docitem" id="fn:@library">
