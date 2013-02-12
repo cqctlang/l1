@@ -1,6 +1,4 @@
 
-@include <library.cqct>
-
 @add_loadpath(loadpath()[0] + "/../test/libs");
 
 @with_imports ( (f1, lib3.f2), lib4 ) { 
