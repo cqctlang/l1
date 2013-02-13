@@ -22,7 +22,7 @@ readfile(char *filename)
 }
 
 Imm
-xwrite(int fd, char *p, Imm len)
+xwrite(int fd, void *p, Imm len)
 {
 	notimpl("xwrite");
 }

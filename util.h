@@ -44,7 +44,7 @@ unsigned max(unsigned a, unsigned b);  /* FIXME: cpv dependency! */
 /* misplaced */
 char* readfile(char *filename);
 Imm xread(int fd, char *p, Imm len);
-Imm xwrite(int fd, char *p, Imm len);
+Imm xwrite(int fd, void *p, Imm len);
 void xprintf(char *fmt, ...);
 void xvprintf(char *fmt, va_list args);
 

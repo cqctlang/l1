@@ -45,7 +45,7 @@ readfile(char *filename)
 }
 
 Imm
-xwrite(int fd, char *p, Imm len)
+xwrite(int fd, void *p, Imm len)
 {
 	Imm ns;
 	ssize_t rv;
@@ -53,8 +53,10 @@ xwrite(int fd, char *p, Imm len)
 	ns = 0;
 	while(ns < len){
 		rv = write(fd, p, len-ns);
-		if(0 > rv)
+		if(0 > rv){
+			printf("xwrite returning error\n");
 			return -1;
+		}
 		ns += rv;
 		p += rv;
 	}
@@ -181,11 +183,11 @@ xpopen(Imm argc, char **argv, unsigned flags, int *rfd)
 				setsid();
 			execvp(argv[0], argv);
 			eno = errno;
-			xwrite(ctl[1], (char*)&eno, sizeof(eno));
+			xwrite(ctl[1], &eno, sizeof(eno));
 			_exit(1);
 		case -1:
 			eno = errno;
-			xwrite(ctl[1], (char*)&eno, sizeof(eno));
+			xwrite(ctl[1], &eno, sizeof(eno));
 			_exit(1);
 		default:
 			_exit(0);
