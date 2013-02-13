@@ -212,3 +212,29 @@ bootcompile(Env *top, Expr *e)
 	cl = codegen(&ctx, e);
 	return mkvalcl(cl);
 }
+
+void
+initqc()
+{
+	REGFN(l1_cpq);
+	REGFN(l1_cpx);
+	REGFN(l1_cpn);
+	REGFN(l1_cpm);
+	REGFN(l1_cpw);
+	REGFN(l1_cpa);
+	REGFN(l1_cpc);
+	REGFN(l1_cp0);
+	REGFN(l1_cpg);
+	REGFN(l1_cpk);
+	REGFN(l1_cpl);
+	REGFN(l1_cpi);
+	REGFN(l1_cpr);
+	REGFN(l1_cp1);
+	REGFN(l1_cpb);
+	REGFN(l1_codegen);
+}
+
+void
+finiqc()
+{
+}

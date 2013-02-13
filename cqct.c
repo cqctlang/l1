@@ -298,9 +298,11 @@ cqctinit(char **lp, Xfd *in, Xfd *out, Xfd *err)
 	}
 	initio(in, out, err);
 	initmem();
+	initqc();
 	initparse();
 	initcid();
 	inittype();
+	initrec();
 	initcg();
 	initnc();
 	initvm();
@@ -314,9 +316,11 @@ cqctfini(Env *top)
 	freeenv(top);
 	finivm();
 	finicg();
+	finirec();
 	finitype();
 	finicid();
 	finiparse();
 	finimem();
+	finiqc();
 	finiio();
 }

@@ -1177,6 +1177,7 @@ As*		mkzas(Imm len);
 Val		myrootns(Env *env);
 void		printframe(VM *vm, Insn *pc, Code *c);
 jmp_buf*	_pusherror(VM *vm);
+void		registercfn(char *name, void *addr);
 void		setgo(Code *c);
 void		setlasterrno(int no);
 u32		shash(char *s, Imm len);
@@ -1232,7 +1233,8 @@ Val		xunop(VM *vm, ikind op, Val v);
 #define valvec(v)	((Vec*)(v))
 #define stkimm(v)	(Imm)(uptr)(v)
 #define stkp(v)		(void*)(uptr)(v)
-#define FN(id)		builtinfn(env, "%"#id, cqctmkcfn(#id, l1_##id))
+#define REGFN(id)	{ registercfn(#id, id); }
+#define FN(id)		{ builtinfn(env, "%"#id, cqctmkcfn(#id, l1_##id)); REGFN(l1_##id); }
 
 /* lib9's reliable, portable snprintf (x/lib9) */
 int		snprint(char *buf, int len, char *fmt, ...);
@@ -1478,7 +1480,9 @@ Pair*		mkweakpair(Val a, Val d);
 
 /* rec.c */
 int		equalrec(Rec *a, Rec *b);
+void		finirec();
 u32		hashrec(Rec *r);
+void		initrec();
 void		fnrec(Env *env);
 
 /* str.c */
@@ -1534,9 +1538,11 @@ void		vecset(Vec *vec, Imm idx, Val v);
 
 /* qc.c */
 Val		bootcompile(Env *top, Expr *e);
+void		finiqc();
 void		fncompile(Env *env);
 void		initctx(U *ctx, VM *vm);
 void		initctxboot(U *ctx, Env *top);
+void		initqc();
 
 /* nc.c */
 void		emitu8(NC *nc, u8 w);

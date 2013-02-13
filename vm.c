@@ -7534,6 +7534,28 @@ initvm()
 	vabort = abortthunk();
 	halt = haltthunk();
 	stkunderflow = stkunderflowthunk();
+
+	REGFN(calldispatch);
+	REGFN(l1_put);
+	REGFN(l1_typeof);
+	REGFN(masget);
+	REGFN(masismapped);
+	REGFN(masmap);
+	REGFN(masput);
+	REGFN(nasbad);
+	REGFN(nasismapped);
+	REGFN(nasmap);
+	REGFN(nilfn);
+	REGFN(sasget);
+	REGFN(sasismapped);
+	REGFN(sasmap);
+	REGFN(sasput);
+	REGFN(stdenumsym);
+	REGFN(stdenumtype);
+	REGFN(stdlookaddr);
+	REGFN(stdlooksym);
+	REGFN(stdlooktype);
+	REGFN(symcmp);
 }
 
 void

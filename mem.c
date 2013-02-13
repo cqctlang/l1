@@ -226,6 +226,21 @@ struct Stats
 	u64 multicardscan;
 } Stats;
 
+
+typedef
+struct Cfnrec
+{
+	char *name;
+	void *addr;
+} Cfnrec;
+
+enum{
+	Maxcfnrec = 1024,
+};
+
+static u32 ncfn;
+static Cfnrec cfn[Maxcfnrec];
+
 static u8	scanas(Head*);
 static u8	scanbox(Head*);
 static u8	scancl(Head*);
@@ -2276,6 +2291,28 @@ gcstatistics(Tab *t)
 	       mkvallitcval(Vuvlong, stats.multicardscan));
 }
 
+void
+registercfn(char *name, void *addr)
+{
+	if(ncfn >= Maxcfnrec)
+		bug();
+	cfn[ncfn].name = name;
+	cfn[ncfn].addr = addr;
+	ncfn++;
+}
+
+u32
+lookcfnaddr(void *addr)
+{
+	u32 i;
+	for(i = 0; i < ncfn; i++)
+		if(cfn[i].addr == addr){
+			printf("stashing %s\n", cfn[i].name);
+			return i;
+		}
+	bug();
+}
+
 enum{
 	Segx = (uptr)-1,
 	Segconst = Segx,
@@ -2328,6 +2365,12 @@ gsave(Val *pp)
 			bug();
 		*pp = mkreloc(s->n, (uptr)p);
 	}
+}
+
+static void
+gsavefn(void **fnp)
+{
+	*fnp = mkreloc(Segcfn, lookcfnaddr(*fnp));
 }
 
 static u8
@@ -2385,8 +2428,19 @@ savecode(Head *h)
 	gsave((Val*)&c->lm);
 	gsave((Val*)&c->dbg);
 	gsave((Val*)&c->src);
-	if(c->kind == Cxfn)
+	switch(c->kind){
+	case Cxfn:
 		gsave(&c->xfn);
+		break;
+	case Ccfn:
+		gsavefn((void**)&c->cfn);
+		break;
+	case Cccl:
+		gsavefn((void**)&c->ccl);
+		break;
+	case Cvm:
+		break;
+	}
 	if(r == 0)
 		return 0;
 	p = c+1;

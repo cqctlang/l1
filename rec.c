@@ -398,3 +398,18 @@ fnrec(Env *env)
 	FN(rdsetfmt);
 	FN(rdsettab);
 }
+
+void
+initrec()
+{
+	REGFN(recfmt);
+	REGFN(recget);
+	REGFN(recis);
+	REGFN(recmk);
+	REGFN(recset);
+}
+
+void
+finirec()
+{
+}
