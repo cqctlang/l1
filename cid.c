@@ -67,7 +67,7 @@ l1_cid2str(VM *vm, Imm argc, Val *argv, Val *rv)
 }
 
 void
-fncid(Env *env)
+fncid(Env env)
 {
 	FN(cid2str);
 	FN(mkcid);

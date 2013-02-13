@@ -258,7 +258,7 @@ l1_stxsrc(VM *vm, Imm argc, Val *argv, Val *rv)
 }
 
 void
-fnstx(Env *env)
+fnstx(Env env)
 {
 	FN(mkstx);
 	FN(mkstxid);

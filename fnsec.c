@@ -26,7 +26,7 @@ l1_sha1(VM *vm, Imm argc, Val *argv, Val *rv)
 }
 
 void
-fnsec(Env *env)
+fnsec(Env env)
 {
 	FN(sha1);
 }

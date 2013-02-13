@@ -182,7 +182,7 @@ l1_mkdlfcnns(VM *vm, Imm argc, Val *argv, Val *rv)
 }
 
 void
-fndlfcn(Env *env)
+fndlfcn(Env env)
 {
 	FN(dlopen);
 	FN(dlsym);

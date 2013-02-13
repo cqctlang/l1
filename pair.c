@@ -119,7 +119,7 @@ l1_isweakpair(VM *vm, Imm argc, Val *argv, Val *rv)
 }
 
 void
-fnpair(Env *env)
+fnpair(Env env)
 {
 	FN(car);
 	FN(cdr);

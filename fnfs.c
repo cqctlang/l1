@@ -109,7 +109,7 @@ l1_rmdir(VM *vm, Imm argc, Val *argv, Val *rv)
 }
 
 void
-fnfs(Env *env)
+fnfs(Env env)
 {
 	FN(_readdir);
 	FN(mkdir);

@@ -127,7 +127,7 @@ l1_isxdigit(VM *vm, Imm argc, Val *argv, Val *rv)
 }
 
 void
-fnch(Env *env)
+fnch(Env env)
 {
 	FN(isalnum);
 	FN(isalpha);

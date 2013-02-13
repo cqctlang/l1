@@ -373,7 +373,7 @@ l1_usleep(VM *vm, Imm argc, Val *argv, Val *rv)
 }
 
 void
-fnsys(Env *env)
+fnsys(Env env)
 {
 	FN(chdir);
 	FN(cwd);

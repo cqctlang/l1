@@ -1266,7 +1266,7 @@ l1_sprintfa(VM *vm, Imm argc, Val *argv, Val *rv)
 }
 
 void
-fnfmt(Env *env)
+fnfmt(Env env)
 {
 	FN(fprintf);
 	FN(print);		/* FIXME: remove: held for test suite */

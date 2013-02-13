@@ -66,7 +66,7 @@ static unsigned isrelop[Iopmax+1] = {
 };
 
 static Ctype* dolooktype(VM *vm, Ctype *t, Ns *ns);
-static Env* mktopenv(void);
+static Env mktopenv(void);
 static void l1_sort(VM *vm, Imm argc, Val *argv, Val *rv);
 static Cont* kcapture(VM *vm);
 
@@ -540,53 +540,49 @@ mkns(void)
 	return ns;
 }
 
-static Env*
+static Env
 mkenv(void)
 {
-	Env *env;
-	env = emalloc(sizeof(Env));
-	env->var = mktab();
-	env->rd = mkhts();
-	return env;
+	return mktab();
 }
 
 int
-envbinds(Env *env, Cid *id)
+envbinds(Env env, Cid *id)
 {
-	if(tabget(env->var, mkvalcid(id)))
+	if(tabget(env, mkvalcid(id)))
 		return 1;
 	else
 		return 0;
 }
 
 void
-envdefine(Env *env, Cid *id, Val v)
+envdefine(Env env, Cid *id, Val v)
 {
 	if(envbinds(env, id))
 		bug();
-	tabput(env->var, mkvalcid(id), v);
+	tabput(env, mkvalcid(id), v);
 }
 
 Pair*
-envgetkv(Env *env, Cid *id)
+envgetkv(Env env, Cid *id)
 {
-	return tabgetkv(env->var, mkvalcid(id));
+	return tabgetkv(env, mkvalcid(id));
 }
 
 Val
-envget(Env *env, Cid *id)
+envget(Env env, Cid *id)
 {
-	return tabget(env->var, mkvalcid(id));
+	return tabget(env, mkvalcid(id));
 }
 
 void
-envput(Env *env, Cid *id, Val v)
+envput(Env env, Cid *id, Val v)
 {
-	tabput(env->var, mkvalcid(id), v);
+	tabput(env, mkvalcid(id), v);
 }
 
 void
-envbind(Env *env, char *id, Val val)
+envbind(Env env, char *id, Val val)
 {
 	Cid *cid;
 	cid = mkcid0(id);
@@ -598,28 +594,12 @@ envbind(Env *env, char *id, Val val)
 }
 
 static Val
-envlookup(Env *env, char *id)
+envlookup(Env env, char *id)
 {
 	return envget(env, mkcid0(id));
 }
 
-static void
-freerd(void *u, char *id, void *v)
-{
-	USED(u);
-	USED(v);
-	efree(id);
-}
-
-void
-freeenv(Env *env)
-{
-	hforeach(env->rd, freerd, 0);
-	freeht(env->rd);
-	efree(env);
-}
-
-Env*
+Env
 mktoplevel()
 {
 	return mktopenv();
@@ -1787,7 +1767,7 @@ ncallstat(VM *vm)
 {
 	Val v, k;
 	Tab *t;
-	Env *env;
+	Env env;
 	env = vm->top;
 	v = envlookup(env, "ncallstat");
 	if(v == 0){
@@ -4108,7 +4088,7 @@ setgo(Code *c)
 }
 
 static void
-builtincode(Env *env, char *name, Code *c)
+builtincode(Env env, char *name, Code *c)
 {
 	Val val;
 	val = mkvalcode(c);
@@ -4116,13 +4096,13 @@ builtincode(Env *env, char *name, Code *c)
 }
 
 void
-builtinnil(Env *env, char *name)
+builtinnil(Env env, char *name)
 {
 	envbind(env, name, Xnil);
 }
 
 void
-builtinfd(Env *env, char *name, Fd *fd)
+builtinfd(Env env, char *name, Fd *fd)
 {
 	Val val;
 	val = mkvalfd(fd);
@@ -4130,7 +4110,7 @@ builtinfd(Env *env, char *name, Fd *fd)
 }
 
 void
-builtinfn(Env *env, char *name, Closure *cl)
+builtinfn(Env env, char *name, Closure *cl)
 {
 	Val val;
 	val = mkvalcl(cl);
@@ -4140,13 +4120,13 @@ builtinfn(Env *env, char *name, Closure *cl)
 }
 
 void
-cqctbuiltinfn(Env *top, char *name, Closure *cl)
+cqctbuiltinfn(Env top, char *name, Closure *cl)
 {
 	builtinfn(top, name, cl);
 }
 
 static void
-builtinns(Env *env, char *name, Ns *ns)
+builtinns(Env env, char *name, Ns *ns)
 {
 	Val val;
 	val = mkvalns(ns);
@@ -4154,7 +4134,7 @@ builtinns(Env *env, char *name, Ns *ns)
 }
 
 static void
-builtindom(Env *env, char *name, Dom *dom)
+builtindom(Env env, char *name, Dom *dom)
 {
 	Val val;
 	val = mkvaldom(dom);
@@ -4162,7 +4142,7 @@ builtindom(Env *env, char *name, Dom *dom)
 }
 
 static void
-builtintab(Env *env, char *name, Tab *tab)
+builtintab(Env env, char *name, Tab *tab)
 {
 	Val val;
 	val = mkvaltab(tab);
@@ -4170,7 +4150,7 @@ builtintab(Env *env, char *name, Tab *tab)
 }
 
 static void
-builtincval(Env *env, char *name, Cval *cv)
+builtincval(Env env, char *name, Cval *cv)
 {
 	Val val;
 	val = mkvalcval2(cv);
@@ -4212,7 +4192,7 @@ dogc(VM *vm, u32 g, u32 tg)
 	_gc(g, tg);
 	vm->gctime += usec()-b;
 	b = usec();
-	v = cqctenvlook(vm->top, "callpostgc");
+	v = cqctenvlook(vm, "callpostgc");
 	if(v && Vkind(v) == Qcl)
 		/* we need to preserve the current
 		   value of AC.  this dance does so
@@ -4912,7 +4892,7 @@ l1_kbacktrace(VM *vm, Imm argc, Val *argv, Val *rv)
 }
 
 Val
-myrootns(Env *env)
+myrootns(Env env)
 {
 	char *r;
 	Val n;
@@ -6505,7 +6485,6 @@ l1_resettop(VM *vm, Imm argc, Val *argv, Val *rv)
 {
 	USED(argc);
 	USED(argv);
-	freeenv(vm->top);
 	vm->top = mktopenv();
 	USED(rv);
 }
@@ -6947,7 +6926,7 @@ l1_xcast(VM *vm, Imm argc, Val *argv, Val *rv)
 }
 
 static void
-fnalu(Env *env)
+fnalu(Env env)
 {
 	FN(add);
 	FN(div);
@@ -7026,7 +7005,7 @@ l1_defaultreturn(VM *vm, Imm argc, Val *argv, Val *rv)
 }
 
 static void
-fnctl(Env *env)
+fnctl(Env env)
 {
 	FN(defaultabort);
 	FN(defaulterror);
@@ -7345,10 +7324,10 @@ mklitdom(void)
 	return mkdom(mkrootns(&clp64le), mknas(), mkstr0("litdom"));
 }
 
-static Env*
+static Env
 mktopenv(void)
 {
-	Env *env;
+	Env env;
 
 	env = mkenv();
 
@@ -7477,7 +7456,7 @@ mktopenv(void)
 
 	/* FIXME: these bindings should be immutable */
 	builtindom(env, "litdom", litdom);
-	builtintab(env, "toplevel", env->var);
+	builtintab(env, "toplevel", env);
 	builtinns(env, "c32le", mkrootns(&c32le));
 	builtinns(env, "c32be", mkrootns(&c32be));
 	builtinns(env, "c64le", mkrootns(&c64le));
@@ -7496,7 +7475,7 @@ mktopenv(void)
 }
 
 VM*
-cqctmkvm(Env *top)
+cqctmkvm(Env top)
 {
 	VM *vm;
 

@@ -79,7 +79,7 @@ l1_disx86(VM *vm, Imm argc, Val *argv, Val *rv)
 }
 
 void
-fndis(Env *env)
+fndis(Env env)
 {
 	FN(disx86);
 }

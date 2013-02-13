@@ -598,7 +598,7 @@ struct U {
 	In *inp;
 	Expr *el;		/* parser accumulator */
 	Xfd *out;
-	Env *top;		/* toplevel (compiler) */
+	Env top;		/* toplevel (compiler) */
 } U;
 
 typedef
@@ -881,11 +881,6 @@ struct Xenv {
 	Xenv *link;
 };
 
-struct Env {
-	Tab *var;		/* variable bindings */
-	HT *rd;			/* record descriptors */
-};
-
 enum {
 	VMirq = 1,
 };
@@ -905,7 +900,7 @@ struct VM {
 	u32 stksz;
 	Cont *klink;
 	unsigned int flags;
-	Env *top;
+	Env top;
 	u32 level;
 	u64 gen;
 	u64 levgen[128];
@@ -1112,8 +1107,8 @@ void		xenvupdate(Xenv *xe, char *id, void *v);
 
 /* vm.c */
 Src		addr2line(Code *code, Insn *pc);
-void		builtinfd(Env *env, char *name, Fd *fd);
-void		builtinfn(Env *env, char *name, Closure *cl);
+void		builtinfd(Env env, char *name, Fd *fd);
+void		builtinfn(Env env, char *name, Closure *cl);
 Str*		callget(VM *vm, As *as, Imm off, Imm len);
 Cval*		callismapped(VM *vm, As *as, Imm off, Imm len);
 Vec*		callmap(VM *vm, As *as);
@@ -1125,16 +1120,16 @@ Tab*		doinsncnt(void);
 Cval*		domcast(VM *vm, Dom *dom, Cval *cv);
 void		dogc(VM *vm, u32 g, u32 tg);
 Val		dovm(VM* vm);
-void		envbind(Env *env, char *id, Val v);
-int		envbinds(Env *env, Cid *id);
-void		envdefine(Env *env, Cid *id, Val v);
-Val		envget(Env *env, Cid *id);
-Pair*		envgetkv(Env *env, Cid *id);
+void		envbind(Env env, char *id, Val v);
+int		envbinds(Env env, Cid *id);
+void		envdefine(Env env, Cid *id, Val v);
+Val		envget(Env env, Cid *id);
+Pair*		envgetkv(Env env, Cid *id);
 int		equalval(Val v1, Val v2);
 int		eqval(Val v1, Val v2);
 int		eqvval(Val v1, Val v2);
 Val		expr2syntax(Expr *e);
-void		freeenv(Env *env);
+void		freeenv(Env env);
 Str*		getbytes(VM *vm, Cval *addr, Imm n);
 int		getlasterrno();
 u32		hashval(Val v);
@@ -1146,7 +1141,6 @@ int		isnatcval(Cval *cv);
 int		isnegcval(Cval *cv);
 int		iszerocval(Cval *cv);
 void		finivm(void);
-void		freetoplevel(Env *top);
 void		heapfree(Head *p);
 int		iscomplete(Ctype *t);
 int		ismapped(VM *vm, As *as, Imm addr, Imm len);
@@ -1167,14 +1161,14 @@ Ns*		mknsraw(VM *vm, Ns *ons, Tab *rawtype,
 Ns*		mknstab(Tab *mtab, Str *name);
 Range*		mkrange(Cval *beg, Cval *len);
 As*		mksas(Str *s);
-Env*		mktoplevel();
+Env		mktoplevel();
 Val		mkvalbox(Val boxed);
 Val		mkvalcval(Dom *dom, Ctype *t, Imm imm);
 Val		mkvalcval2(Cval *cv);
 Val		mkvallitcval(Cbase base, Imm imm);
 Val		mkvallitcvalenc(Cbase base, Enc v);
 As*		mkzas(Imm len);
-Val		myrootns(Env *env);
+Val		myrootns(Env env);
 void		printframe(VM *vm, Insn *pc, Code *c);
 jmp_buf*	_pusherror(VM *vm);
 void		registercfn(char *name, void *addr);
@@ -1364,15 +1358,15 @@ u64		meminuse();
 Pair*		mkguard();
 Head*		pop1guard(Pair *t);
 Head*		pop1tguard(Pair *t);
-int		saveheap(Env *env, char *file);
+int		saveheap(Tab *toplevel, char *file);
 void		tguard(Val o, Pair *g);
 
 /* ch.c */
-void		fnch(Env *env);
+void		fnch(Env env);
 
 /* cid.c */
 void		finicid();
-void		fncid(Env *env);
+void		fncid(Env env);
 void		initcid();
 Cid*		mkcid(char *s, Imm len);
 Cid*		mkcid0(char *s);
@@ -1382,7 +1376,7 @@ Ctype*		chasetype(Ctype *t);
 int		equalctype(Ctype *a, Ctype *b);
 int		eqvctype(Ctype *a, Ctype *b);
 void		finitype();
-void		fnctype(Env *env);
+void		fnctype(Env env);
 u32		hashctype(Ctype *t);
 u32		hashqvctype(Ctype *t);
 void		inittype();
@@ -1415,11 +1409,11 @@ u32		hashqvcval(Cval *v);
 int		eqcval(Cval *a, Cval *b);
 int		equalcval(Cval *a, Cval *b);
 int		eqvcval(Cval *a, Cval *b);
-void		fncval(Env *env);
+void		fncval(Env env);
 
 /* list.c */
 int		equallist(List *a, List *b);
-void		fnlist(Env *env);
+void		fnlist(Env env);
 u32		hashlist(List *l);
 void		l1_listref(VM *vm, Imm argc, Val *argv, Val *rv);
 void		l1_listset(VM *vm, Imm argc, Val *argv, Val *rv);
@@ -1438,7 +1432,7 @@ List*		mklistinit(Imm len, Val v);
 List*		mklistn(Imm sz);
 
 /* tab.c */
-void		fntab(Env *env);
+void		fntab(Env env);
 Tab*		mktab(void);
 Tab*		mktabq(void);
 Tab*		mktabqv(void);
@@ -1473,7 +1467,7 @@ void		tabput(Tab *tab, Val keyv, Val val);
 #define		cons(a,d)  (mkpair((Val)(a), (Val)(d)))
 #define		weakcons(a,d)  (mkweakpair((Val)(a), (Val)(d)))
 int		equalpair(Pair *a, Pair *b);
-void		fnpair(Env *env);
+void		fnpair(Env env);
 u32		hashpair(Pair *p);
 Pair*		mkpair(Val a, Val d);
 Pair*		mkweakpair(Val a, Val d);
@@ -1483,11 +1477,11 @@ int		equalrec(Rec *a, Rec *b);
 void		finirec();
 u32		hashrec(Rec *r);
 void		initrec();
-void		fnrec(Env *env);
+void		fnrec(Env env);
 
 /* str.c */
 int		equalstr(Str *a, Str *b);
-void		fnstr(Env *env);
+void		fnstr(Env env);
 u32		hashstr(Str *s);
 void		l1_strref(VM *vm, Imm argc, Val *argv, Val *rv);
 void		l1_strput(VM *vm, Imm argc, Val *argv, Val *rv);
@@ -1505,7 +1499,7 @@ int		Strcmp(Str *s1, Str *s2);
 /* stx.c */
 int		equalstx(Expr *a, Expr *b);
 int		eqvstx(Expr *a, Expr *b);
-void		fnstx(Env *env);
+void		fnstx(Env env);
 u32		hashqvstx(Expr *e);
 u32		hashstx(Expr *e);
 void		l1_stxref(VM *vm, Imm argc, Val *argv, Val *rv);
@@ -1514,7 +1508,7 @@ void		l1_stxref(VM *vm, Imm argc, Val *argv, Val *rv);
 Val		attroff(Val o);
 Val		copyattr(Val attr, Val newoff);
 Ctype*		fieldtype(Vec *s);
-void		fnsym(Env *env);
+void		fnsym(Env env);
 int		issym(Vec *sym);
 int		issymvec(Vec *v);
 Val		mkattr(Val o);
@@ -1523,7 +1517,7 @@ Ctype*		symtype(Vec *s);
 
 /* vec.c */
 int		equalvec(Vec *a, Vec *b);
-void		fnvec(Env *env);
+void		fnvec(Env env);
 u32		hashvec(Vec *v);
 void		l1_vecref(VM *vm, Imm argc, Val *argv, Val *rv);
 void		l1_vecset(VM *vm, Imm argc, Val *argv, Val *rv);
@@ -1537,11 +1531,11 @@ void		_vecset(Vec *vec, Imm idx, Val v);
 void		vecset(Vec *vec, Imm idx, Val v);
 
 /* qc.c */
-Val		bootcompile(Env *top, Expr *e);
+Val		bootcompile(Env top, Expr *e);
 void		finiqc();
-void		fncompile(Env *env);
+void		fncompile(Env env);
 void		initctx(U *ctx, VM *vm);
-void		initctxboot(U *ctx, Env *top);
+void		initctxboot(U *ctx, Env top);
 void		initqc();
 
 /* nc.c */
@@ -1558,6 +1552,6 @@ void		initnc();
 /* boot.c */
 void		boot(VM *vm);
 
-extern		void fns(Env*);
+extern		void fns(Env);
 
 #endif /* _BISONFLAW_SYSCQCT_H_ */

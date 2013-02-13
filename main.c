@@ -417,7 +417,7 @@ main(int argc, char *argv[])
 	char *argv0, *root;
 	unsigned n, nlp;
 	char *lp[Maxloadpath+1];	/* extra one is final null */
-	Env *top;
+	Env top;
 	char *ename, *argsid;
 	struct memusage mu;
 	int rv;
@@ -675,7 +675,7 @@ main(int argc, char *argv[])
 		xargc = 1;
 		xargv[0] = cqctcstrval(filename);
 	}
-	fn = cqctenvlook(top, "$l1start");
+	fn = cqctenvlook(vm, "$l1start");
 	if(fn == 0)
 		fatal("$l1start is not defined");
 	cqctcallfn(vm, fn, xargc, xargv, &v);

@@ -114,7 +114,7 @@ l1_casstat(VM *vm, Imm argc, Val *argv, Val *rv)
 }
 
 void
-fncas(Env *env)
+fncas(Env env)
 {
 	FN(casstat);
 	FN(mkcas);

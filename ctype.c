@@ -1806,7 +1806,7 @@ l1_hashctype(VM *vm, Imm argc, Val *argv, Val *rv)
 }
 
 void
-fnctype(Env *env)
+fnctype(Env env)
 {
 	FN(arraynelm);
 	FN(baseid);

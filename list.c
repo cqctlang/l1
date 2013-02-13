@@ -492,7 +492,7 @@ l1_reverse(VM *vm, Imm argc, Val *argv, Val *rv)
 }
 
 void
-fnlist(Env *env)
+fnlist(Env env)
 {
 	FN(append);
 	FN(head);

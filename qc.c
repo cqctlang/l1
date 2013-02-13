@@ -93,7 +93,7 @@ doexpand(VM *vm, Expr *e)
 	Val argv[1], rv, v;
 
 	/* we need to fix Src handling to pass tests */
-	v = cqctenvlook(vm->top, "expand");
+	v = cqctenvlook(vm, "expand");
 	if(v && Vkind(v) == Qcl){
 		argv[0] = mkvalexpr(e);
 		if(0 > cqctcallfn(vm, v, 1, argv, &rv))
@@ -176,13 +176,13 @@ l1_bootcompilerpasses(VM *vm, Imm argc, Val *argv, Val *rv)
 }
 
 void
-fncompile(Env *env)
+fncompile(Env env)
 {
 	FN(bootcompilerpasses);
 }
 
 void
-initctxboot(U *ctx, Env *top)
+initctxboot(U *ctx, Env top)
 {
 	memset(ctx, 0, sizeof(U));
 	ctx->top = top;
@@ -198,7 +198,7 @@ initctx(U *ctx, VM *vm)
 }
 
 Val
-bootcompile(Env *top, Expr *e)
+bootcompile(Env top, Expr *e)
 {
 	Closure *cl;
 	U ctx;

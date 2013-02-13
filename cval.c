@@ -85,7 +85,7 @@ l1_hashqvcval(VM *vm, Imm argc, Val *argv, Val *rv)
 }
 
 void
-fncval(Env *env)
+fncval(Env env)
 {
 	FN(equalcval);
 	FN(eqvcval);

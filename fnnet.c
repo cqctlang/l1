@@ -243,7 +243,7 @@ l1_getsockname(VM *vm, Imm argc, Val *argv, Val *rv)
 }
 
 void
-fnnet(Env *env)
+fnnet(Env env)
 {
 	FN(getpeername);
 	FN(getsockname);

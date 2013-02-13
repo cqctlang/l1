@@ -197,7 +197,7 @@ l1_inflate(VM *vm, Imm argc, Val *argv, Val *rv)
 }
 
 void
-fnflate(Env *env)
+fnflate(Env env)
 {
 	deflateinit();
 	inflateinit();

@@ -412,7 +412,7 @@ l1_strput(VM *vm, Imm argc, Val *argv, Val *rv)
 }
 
 void
-fnstr(Env *env)
+fnstr(Env env)
 {
 	FN(_free);
 	FN(_malloc);

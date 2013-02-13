@@ -783,7 +783,7 @@ l1_select(VM *vm, Imm argc, Val *argv, Val *rv)
 }
 
 void
-fnio(Env *env)
+fnio(Env env)
 {
 	FN(access);
 	FN(ioctl);

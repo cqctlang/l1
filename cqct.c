@@ -116,15 +116,15 @@ cqctfreecstr(char *s)
 }
 
 void
-cqctenvbind(Env *env, char *name, Val v)
+cqctenvbind(Env env, char *name, Val v)
 {
 	envbind(env, name, v);
 }
 
 Val
-cqctenvlook(Env *env, char *name)
+cqctenvlook(VM *vm, char *name)
 {
-	return envget(env, mkcid0(name));
+	return envget(vm->top, mkcid0(name));
 }
 
 uint64_t
@@ -272,7 +272,7 @@ cqctrangelen(Val o)
 	return mkvalcval2(r->len);
 }
 
-Env*
+Env
 cqctinit(char **lp, Xfd *in, Xfd *out, Xfd *err)
 {
 	Xfd xfd[3];
@@ -310,10 +310,9 @@ cqctinit(char **lp, Xfd *in, Xfd *out, Xfd *err)
 }
 
 void
-cqctfini(Env *top)
+cqctfini(Env top)
 {
 	efree(cqctloadpath);
-	freeenv(top);
 	finivm();
 	finicg();
 	finirec();

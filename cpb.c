@@ -47,7 +47,7 @@ defloc(U *ctx, Expr *e, Expr *scope)
 }
 
 static Expr*
-globals(U *ctx, Expr *e, Env *env)
+globals(U *ctx, Expr *e, Env env)
 {
 	Expr *p;
 
@@ -94,7 +94,7 @@ bindids(Xenv *xe, Expr *e, void *v)
 /* FIXME: the side-effect of binding ids into toplevel may be
    undesirable when they occur erroneously */
 static Expr*
-toplevel(U *ctx, Expr *e, Env *env, Xenv *lex)
+toplevel(U *ctx, Expr *e, Env env, Xenv *lex)
 {
 	Expr *p, *se;
 	Xenv *rib;
@@ -151,7 +151,7 @@ toplevel(U *ctx, Expr *e, Env *env, Xenv *lex)
 }
 
 static Expr*
-resolve1(U *ctx, Expr *e, Env *top, Xenv *lex, Expr *scope, Xenv *slex)
+resolve1(U *ctx, Expr *e, Env top, Xenv *lex, Expr *scope, Xenv *slex)
 {
 	Expr *se, *p;
 	char *id;
@@ -220,7 +220,7 @@ resolve1(U *ctx, Expr *e, Env *top, Xenv *lex, Expr *scope, Xenv *slex)
 }
 
 static Expr*
-resolve2(U *ctx, Expr *e, Env *top, Xenv *lex, Expr *scope, Xenv *slex)
+resolve2(U *ctx, Expr *e, Env top, Xenv *lex, Expr *scope, Xenv *slex)
 {
 	Expr *se, *p;
 	char *id;
@@ -282,7 +282,7 @@ resolve2(U *ctx, Expr *e, Env *top, Xenv *lex, Expr *scope, Xenv *slex)
 }
 
 static Expr*
-resolve(U *ctx, Expr *e, Env *top, Xenv *lex, Expr *scope, Xenv *slex)
+resolve(U *ctx, Expr *e, Env top, Xenv *lex, Expr *scope, Xenv *slex)
 {
 	e = resolve1(ctx, e, top, lex, scope, slex);
 	e = resolve2(ctx, e, top, lex, scope, slex);

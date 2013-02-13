@@ -496,7 +496,7 @@ l1_tabvals(VM *vm, Imm argc, Val *argv, Val *rv)
 }
 
 void
-fntab(Env *env)
+fntab(Env env)
 {
 	FN(mktab);
 	FN(mktabq);

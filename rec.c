@@ -192,15 +192,7 @@ mkrd(VM *vm, Str *name, List *fname, Closure *fmt)
 	Val mn;
 	char *buf;
 
-	rd = hgets(vm->top->rd, strdata(name), (unsigned)name->len);
-	if(rd == 0){
-		rd = (Rd*)malq(Qrd, sizeof(Rd));
-		hputs(vm->top->rd,
-		      xstrndup(strdata(name), (unsigned)name->len),
-		      (unsigned)name->len, rd);
-	}else
-		gcwb(mkvalrd(rd));
-
+	rd = (Rd*)malq(Qrd, sizeof(Rd));
 	rd->nf = listlen(fname);
 	rd->name = name;
 	rd->fname = fname;
@@ -385,7 +377,7 @@ l1_rdsettab(VM *vm, Imm argc, Val *argv, Val *rv)
 }
 
 void
-fnrec(Env *env)
+fnrec(Env env)
 {
 	FN(mkrd);
 	FN(rdfields);

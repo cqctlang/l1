@@ -148,7 +148,7 @@ dowrite(VM *vm, Fd *fd, void *buf, Imm len)
 }
 
 void
-fnsnap(Env *env)
+fnsnap(Env env)
 {
 	FN(snap);
 }

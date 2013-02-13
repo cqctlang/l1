@@ -868,7 +868,7 @@ allocfr(Expr *e, unsigned ln)
 }
 
 static Var*
-topvar(Env *top, Cid *id)
+topvar(Env top, Cid *id)
 {
 	Var *v;
 	v = emalloc(sizeof(Var));
@@ -917,7 +917,7 @@ collect(Expr *e, Xenv *lex)
 
 /* exloc: expose locations of variable reference */
 static void
-exloc(Expr *e, Xenv *lex, Env *top)
+exloc(Expr *e, Xenv *lex, Env top)
 {
 	Lambda *l;
 	Expr *p;

@@ -544,7 +544,7 @@ retry:
 }
 
 void
-fnjson(Env *env)
+fnjson(Env env)
 {
 	FN(json2val);
 }

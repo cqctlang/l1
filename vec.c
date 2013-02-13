@@ -168,7 +168,7 @@ l1_vecset(VM *vm, Imm argc, Val *argv, Val *rv)
 
 
 void
-fnvec(Env *env)
+fnvec(Env env)
 {
 	FN(mkvec);
 	FN(vecref);

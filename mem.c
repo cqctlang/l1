@@ -1677,12 +1677,6 @@ gcwb(Val v)
 }
 
 static void
-toprd(void *u, void *k, void *v)
-{
-	copy(v);
-}
-
-static void
 copykstack(Cont *k, u8 *min)
 {
 	copystack(&k->base, k->sz, &k->ra, k->cl, k->sz, min);
@@ -2027,8 +2021,7 @@ _gc(u32 g, u32 tg)
 			bug();
 		}
 
-		copy((Val*)&vm->top->var);
-		hforeachp(vm->top->rd, toprd, 0);
+		copy((Val*)&vm->top);
 		copy(&vm->ac);
 	}
 	if(dbg)printf("copied vm roots\n");
@@ -2760,7 +2753,7 @@ skipmt(unsigned mt)
 }
 
 int
-saveheap(Env *env, char *file)
+saveheap(Tab *toplevel, char *file)
 {
 	unsigned mt, g;
 	u32 sn;
@@ -2822,7 +2815,7 @@ saveheap(Env *env, char *file)
 	err |= saveroot(fd, (Val)vabort);
 	err |= saveroot(fd, (Val)halt);
 	err |= saveroot(fd, (Val)stkunderflow);
-	err |= saveroot(fd, (Val)env->var);
+	err |= saveroot(fd, (Val)toplevel);
 	if(err != 0){
 		fprintf(stderr, "saveheap: saveroot: %s\n", strerror(errno));
 		goto fail;

@@ -403,7 +403,7 @@ l1_symoff(VM *vm, Imm argc, Val *argv, Val *rv)
 }
 
 void
-fnsym(Env *env)
+fnsym(Env env)
 {
 	FN(fieldattr);
 	FN(fieldid);

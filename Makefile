@@ -82,8 +82,8 @@ L1DEPS += x/lib9/lib9.a udis/udis.o
 L1FUNS += fnfmt fnjson fndis
 L1EXTRAS += fnfmt.c fnjson.c fndis.c
 
-FNSDECLS = $(foreach fn, $(L1FUNS), "void $(fn)(Env *);")
-FNSCALLS = $(foreach fn, $(L1FUNS), "	$(fn)(env);")
+FNSDECLS = $(foreach fn, $(L1FUNS), "void $(fn)(Env);\n")
+FNSCALLS = $(foreach fn, $(L1FUNS), "	$(fn)(env);\n")
 
 fns.$(CONF).c: $(L1EXTRAS)
 	@echo '#include "sys.h"' > $@
@@ -94,7 +94,7 @@ fns.$(CONF).c: $(L1EXTRAS)
 	@echo $(FNSDECLS) >> $@
 	@echo '' >> $@
 	@echo 'void' >> $@
-	@echo 'fns(Env *env)' >> $@
+	@echo 'fns(Env env)' >> $@
 	@echo '{' >> $@
 	@echo $(FNSCALLS) >> $@
 	@echo '}' >> $@
