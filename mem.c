@@ -2319,15 +2319,15 @@ enum{
 	Segcfn = Segx-1,
 };
 
-static Val
+static uptr
 mkreloc(uptr n, uptr off)
 {
 	switch(n){
 	case Segconst:
 	case Segcfn:
-		return (Val)((n<<Segbits)|(off&(Segsize-1)));
+		return (n<<Segbits)|(off&(Segsize-1));
 	default:
-		return (Val)((n<<Segbits)|(off&(Segsize-1)));
+		return (n<<Segbits)|(off&(Segsize-1));
 	}
 }
 
@@ -2338,39 +2338,22 @@ gsave(Val *pp)
 	Seg *s;
 
 	p = *pp;
-
 	if(p == 0)
 		return;
 	else if(p == Xnil)
-		*pp = mkreloc(Segconst, 0);
-	else if(p == (Val)litdom)
-		*pp = mkreloc(Segconst, 1);
-	else if(p == (Val)cvalnull)
-		*pp = mkreloc(Segconst, 2);
-	else if(p == (Val)cval0)
-		*pp = mkreloc(Segconst, 3);
-	else if(p == (Val)cval1)
-		*pp = mkreloc(Segconst, 4);
-	else if(p == (Val)cvalminus1)
-		*pp = mkreloc(Segconst, 5);
-	else if(p == (Val)vabort)
-		*pp = mkreloc(Segconst, 6);
-	else if(p == (Val)halt)
-		*pp = mkreloc(Segconst, 7);
-	else if(p == (Val)stkunderflow)
-		*pp = mkreloc(Segconst, 8);
+		*pp = (Val)mkreloc(Segconst, 0);
 	else{
 		s = a2s(p);
 		if(s == 0)
 			bug();
-		*pp = mkreloc(s->n, (uptr)p);
+		*pp = (Val)mkreloc(s->n, (uptr)p);
 	}
 }
 
 static void
 gsavefn(void **fnp)
 {
-	*fnp = mkreloc(Segcfn, lookcfnaddr(*fnp));
+	*fnp = (void*)mkreloc(Segcfn, lookcfnaddr(*fnp));
 }
 
 static u8
@@ -2713,6 +2696,20 @@ saveseg(void *p, Seg *s)
 	savesegment(p, s->a-s2a(s));
 }
 
+static int
+saveroot(int fd, Val p)
+{
+	Seg *s;
+	uptr x;
+	s = a2s(p);
+	if(s == 0)
+		bug();
+	x = mkreloc(s->n, (uptr)p);
+	if(-1 == xwrite(fd, &x, sizeof(x)))
+		return -1;
+	return 0;
+}
+
 int
 segsummary(int fd, Seg *s)
 {
@@ -2763,13 +2760,13 @@ skipmt(unsigned mt)
 }
 
 int
-saveheap(char *file)
+saveheap(Env *env, char *file)
 {
 	unsigned mt, g;
 	u32 sn;
 	M *m;
 	Seg *s, *t;
-	int fd;
+	int fd, err;
 	off_t off;
 	void *op, *p;
 
@@ -2810,6 +2807,24 @@ saveheap(char *file)
 
 	if(-1 == xwrite(fd, &sn, sizeof(sn))){
 		fprintf(stderr, "saveheap: open: %s\n", strerror(errno));
+		goto fail;
+	}
+
+	/* roots */
+	err = 0;
+	err |= saveroot(fd, (Val)syms);
+	err |= saveroot(fd, (Val)typecache);
+	err |= saveroot(fd, (Val)litdom);
+	err |= saveroot(fd, (Val)cvalnull);
+	err |= saveroot(fd, (Val)cval0);
+	err |= saveroot(fd, (Val)cval1);
+	err |= saveroot(fd, (Val)cvalminus1);
+	err |= saveroot(fd, (Val)vabort);
+	err |= saveroot(fd, (Val)halt);
+	err |= saveroot(fd, (Val)stkunderflow);
+	err |= saveroot(fd, (Val)env->var);
+	if(err != 0){
+		fprintf(stderr, "saveheap: saveroot: %s\n", strerror(errno));
 		goto fail;
 	}
 
