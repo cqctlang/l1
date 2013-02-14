@@ -902,9 +902,9 @@ rdsetfmt(@record interval { beg, end, val },
 //		printf("sp is %d\n", sp);
 			ts = exe.scan('findspgt, spe, tid, te+1, t);
 			if(length(ts) == 0)
-				return te;
+				return te+1;
 			if(ts[0] > t)
-				return te;
+				return te+1;
 			printf("looping %a!\n", ts);
 			t = te;
 			sp = spe+8;
@@ -918,8 +918,9 @@ rdsetfmt(@record interval { beg, end, val },
 		t = entry(exe, t);
 		if(t == nil)
 			return;
+		printf("@%-10d %s\n", t-1, fmtframe(exe, exe.ctx(t-1), t-1));
 		while(t = entry(exe, t-1))
-			printf("@%-10d %s\n", t, fmtframe(exe, exe.ctx(t), t));
+			printf("@%-10d %s\n", t-1, fmtframe(exe, exe.ctx(t-1), t-1));
 	}
 
 	@define runchronicle(db, cmd)
