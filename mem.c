@@ -168,13 +168,29 @@ struct Segmap
 } Segmap;
 
 typedef
+struct LSctx
+{
+	enum {
+		LSsave,
+		LSload,
+	} mode;
+
+	/* context for load */
+	Seg *seg;
+	u32 nseg;
+	char **csym;
+	u32 ncsym;
+	void *top;
+} LSctx;
+
+typedef
 struct Qtype
 {
 	char *id;
 	u32 sz;
 	u32 clearit;
 	u8 (*scan)(Head *hd);
-	u8 (*save)(Head *hd);
+	u8 (*loadsave)(Head *hd, LSctx *ls);
 } Qtype;
 
 typedef
@@ -261,53 +277,53 @@ static u8	scanrec(Head*);
 static u8	scantab(Head*);
 static u8	scanvec(Head*);
 
-static u8	saveas(Head*);
-static u8	savebox(Head*);
-static u8	savecl(Head*);
-static u8	savecode(Head*);
-static u8	savecont(Head*);
-static u8	savectype(Head*);
-static u8	savecval(Head*);
-static u8	savedom(Head*);
-static u8	saveexpr(Head*);
-static u8	savefd(Head*);
-static u8	savelist(Head*);
-static u8	savens(Head*);
-static u8	savepair(Head*);
-static u8	saveprecode(Head*);
-static u8	saverange(Head*);
-static u8	saverd(Head*);
-static u8	saverec(Head*);
-static u8	savetab(Head*);
-static u8	savevec(Head*);
+static u8	loadsaveas(Head*, LSctx *ls);
+static u8	loadsavebox(Head*, LSctx *ls);
+static u8	loadsavecl(Head*, LSctx *ls);
+static u8	loadsavecode(Head*, LSctx *ls);
+static u8	loadsavecont(Head*, LSctx *ls);
+static u8	loadsavectype(Head*, LSctx *ls);
+static u8	loadsavecval(Head*, LSctx *ls);
+static u8	loadsavedom(Head*, LSctx *ls);
+static u8	loadsaveexpr(Head*, LSctx *ls);
+static u8	loadsavefd(Head*, LSctx *ls);
+static u8	loadsavelist(Head*, LSctx *ls);
+static u8	loadsavens(Head*, LSctx *ls);
+static u8	loadsavepair(Head*, LSctx *ls);
+static u8	loadsaveprecode(Head*, LSctx *ls);
+static u8	loadsaverange(Head*, LSctx *ls);
+static u8	loadsaverd(Head*, LSctx *ls);
+static u8	loadsaverec(Head*, LSctx *ls);
+static u8	loadsavetab(Head*, LSctx *ls);
+static u8	loadsavevec(Head*, LSctx *ls);
 
 static void	copykstack(Cont *k, u8 *min);
 static void	copystack(void **basep, u32 sz, void **rap, Closure *cl, u32 fpo, u8 *min);
 static void	gcopy(Val *v, u8 *min);
 
 static Qtype qs[Qnkind] = {
-	[Qas]	 	= { "as", sizeof(As), 1, scanas, saveas, },
-	[Qbox]	 	= { "box", sizeof(Box), 0, scanbox, savebox },
+	[Qas]	 	= { "as", sizeof(As), 1, scanas, loadsaveas, },
+	[Qbox]	 	= { "box", sizeof(Box), 0, scanbox, loadsavebox },
 	[Qcid]   	= { "cid", sizeof(Cid), 1, 0 },
-	[Qcl]	 	= { "closure", sizeof(Closure), 1, scancl, savecl },
-	[Qcode]	 	= { "code", sizeof(Code), 1, scancode, savecode },
-	[Qcont]	 	= { "cont", sizeof(Cont), 1, scancont, savecont },
-	[Qctype] 	= { "ctype", sizeof(Ctype), 1, scanctype, savectype },
-	[Qcval]  	= { "cval", sizeof(Cval), 0, scancval, savecval },
-	[Qdom]	 	= { "domain", sizeof(Dom), 0, scandom, savedom },
-	[Qexpr]	 	= { "expr", sizeof(Expr), 1, scanexpr, saveexpr },
-	[Qfd]	 	= { "fd", sizeof(Fd), 0, scanfd, savefd },
-	[Qlist]	 	= { "list", sizeof(List), 0, scanlist, savelist },
+	[Qcl]	 	= { "closure", sizeof(Closure), 1, scancl, loadsavecl },
+	[Qcode]	 	= { "code", sizeof(Code), 1, scancode, loadsavecode },
+	[Qcont]	 	= { "cont", sizeof(Cont), 1, scancont, loadsavecont },
+	[Qctype] 	= { "ctype", sizeof(Ctype), 1, scanctype, loadsavectype },
+	[Qcval]  	= { "cval", sizeof(Cval), 0, scancval, loadsavecval },
+	[Qdom]	 	= { "domain", sizeof(Dom), 0, scandom, loadsavedom },
+	[Qexpr]	 	= { "expr", sizeof(Expr), 1, scanexpr, loadsaveexpr },
+	[Qfd]	 	= { "fd", sizeof(Fd), 0, scanfd, loadsavefd },
+	[Qlist]	 	= { "list", sizeof(List), 0, scanlist, loadsavelist },
 	[Qnil]	 	= { "nil", sizeof(Head), 0, 0 },
-	[Qns]	 	= { "ns", sizeof(Ns), 1, scanns, savens },
-	[Qpair]	 	= { "pair", sizeof(Pair), 0, scanpair, savepair },
-	[Qprecode]	= { "precode", sizeof(Precode), 1, scanprecode, saveprecode },
-	[Qrange] 	= { "range", sizeof(Range), 0, scanrange, saverange },
-	[Qrd]    	= { "rd", sizeof(Rd), 0, scanrd, saverd },
-	[Qrec]	 	= { "record", sizeof(Rec), 0, scanrec, saverec },
+	[Qns]	 	= { "ns", sizeof(Ns), 1, scanns, loadsavens },
+	[Qpair]	 	= { "pair", sizeof(Pair), 0, scanpair, loadsavepair },
+	[Qprecode]	= { "precode", sizeof(Precode), 1, scanprecode, loadsaveprecode },
+	[Qrange] 	= { "range", sizeof(Range), 0, scanrange, loadsaverange },
+	[Qrd]    	= { "rd", sizeof(Rd), 0, scanrd, loadsaverd },
+	[Qrec]	 	= { "record", sizeof(Rec), 0, scanrec, loadsaverec },
 	[Qstr]	 	= { "string", sizeof(Str), 1, 0 },
-	[Qtab]	 	= { "table",  sizeof(Tab), 1, scantab, savetab },
-	[Qvec]	 	= { "vector", sizeof(Vec), 0, scanvec, savevec },
+	[Qtab]	 	= { "table",  sizeof(Tab), 1, scantab, loadsavetab },
+	[Qvec]	 	= { "vector", sizeof(Vec), 0, scanvec, loadsavevec },
 };
 
 static Segmap	segmap;
@@ -401,6 +417,9 @@ scancont(Head *hd)
 
 	min = Clean;
 	k = (Cont*)hd;
+	if(k->base == 0)
+		/* defunct continuation in restored heap */
+		return min;
 	gcopy((Val*)&k->link, &min);
 	copykstack(k, &min);
 	gcopy((Val*)&k->cl, &min);
@@ -1121,6 +1140,25 @@ minsert(M *m, Seg *s)
 	p = s2a(s);
 	t->link = p;
 	m->t = p;
+}
+
+static void
+importseg(MT mt, Gen g, void *p, uptr aoff, u8 *card, u8 *crossing)
+{
+	Seg *s;
+	void *e;
+
+	e = p+Segsize;
+	remapsegmap(p, e);
+	s = a2s(p);
+	if(s->mt != MThole)
+		fatal("importseg: desired segment is %s", MTname[s->mt]);
+	s->mt = mt;
+	s->gen = g;
+	s->a = p+aoff;
+	memcpy(s->card, card, sizeof(s->card));
+	memcpy(s->crossing, crossing, sizeof(s->crossing));
+	minsert(&H.m[mt][g], s);
 }
 
 u64
@@ -2294,15 +2332,23 @@ registercfn(char *name, void *addr)
 	ncfn++;
 }
 
-u32
+static u32
 lookcfnaddr(void *addr)
 {
 	u32 i;
 	for(i = 0; i < ncfn; i++)
-		if(cfn[i].addr == addr){
-			printf("stashing %s\n", cfn[i].name);
+		if(cfn[i].addr == addr)
 			return i;
-		}
+	bug();
+}
+
+static u32
+lookcfnname(char *name)
+{
+	u32 i;
+	for(i = 0; i < ncfn; i++)
+		if(!strcmp(cfn[i].name, name))
+			return i;
 	bug();
 }
 
@@ -2324,8 +2370,37 @@ mkreloc(uptr n, uptr off)
 	}
 }
 
+static void*
+resolveptr(uptr x, LSctx *ls)
+{
+	uptr n;
+	uptr off;
+	u32 idx;
+
+	if(ls->mode != LSload)
+		bug();
+	n = x>>Segbits;
+	off = x&(Segsize-1);
+	switch(n){
+	case Segconst:
+		if(off == 1)
+			return Xnil;
+		bug();
+		break;
+	case Segcfn:
+		if(n > ls->ncsym)
+			bug();
+		idx = lookcfnname(ls->csym[n]);
+		return cfn[idx].addr;
+	default:
+		if(n >= ls->nseg)
+			bug();
+		return ls->top+n*Segsize+off;
+	}
+}
+
 static void
-gsave(Val *pp)
+loadsaveptr(Val *pp, LSctx *ls)
 {
 	Val p;
 	Seg *s;
@@ -2333,60 +2408,69 @@ gsave(Val *pp)
 	p = *pp;
 	if(p == 0)
 		return;
-	else if(p == Xnil)
-		*pp = (Val)mkreloc(Segconst, 0);
-	else{
-		s = a2s(p);
-		if(s == 0)
-			bug();
-		*pp = (Val)mkreloc(s->n, (uptr)p);
+	switch(ls->mode){
+	case LSsave:
+		if(p == Xnil)
+			*pp = (Val)mkreloc(Segconst, 1);
+		else{
+			s = a2s(p);
+			if(s == 0)
+				bug();
+			*pp = (Val)mkreloc(s->n, (uptr)p);
+		}
+		break;
+	case LSload:
+		*pp = resolveptr((uptr)p, ls);
+		break;
+	default:
+		bug();
 	}
 }
 
 static void
-gsavefn(void **fnp)
+savecfn(void **fnp)
 {
 	*fnp = (void*)mkreloc(Segcfn, lookcfnaddr(*fnp));
 }
 
 static u8
-saveas(Head *hd)
+loadsaveas(Head *hd, LSctx *ls)
 {
 	As *as;
 	as = (As*)hd;
-	gsave((Val*)&as->mtab);
-	gsave((Val*)&as->name);
-	gsave((Val*)&as->get);
-	gsave((Val*)&as->put);
-	gsave((Val*)&as->ismapped);
-	gsave((Val*)&as->map);
-	gsave((Val*)&as->dispatch);
+	loadsaveptr((Val*)&as->mtab, ls);
+	loadsaveptr((Val*)&as->name, ls);
+	loadsaveptr((Val*)&as->get, ls);
+	loadsaveptr((Val*)&as->put, ls);
+	loadsaveptr((Val*)&as->ismapped, ls);
+	loadsaveptr((Val*)&as->map, ls);
+	loadsaveptr((Val*)&as->dispatch, ls);
 	return 0;
 }
 
 static u8
-savebox(Head *hd)
+loadsavebox(Head *hd, LSctx *ls)
 {
 	Box *box;
 	box = (Box*)hd;
-	gsave((Val*)&box->v);
+	loadsaveptr((Val*)&box->v, ls);
 	return 0;
 }
 
 static u8
-savecl(Head *hd)
+loadsavecl(Head *hd, LSctx *ls)
 {
 	unsigned i;
 	Closure *cl;
 	cl = (Closure*)hd;
-	gsave((Val*)&cl->code);
+	loadsaveptr((Val*)&cl->code, ls);
 	for(i = 0; i < cl->dlen; i++)
-		gsave(&cldisp(cl)[i]);
+		loadsaveptr(&cldisp(cl)[i], ls);
 	return 0;
 }
 
 static u8
-savecode(Head *h)
+loadsavecode(Head *h, LSctx *ls)
 {
 	Imm i;
 	Reloc *r;
@@ -2395,24 +2479,38 @@ savecode(Head *h)
 	Code *c;
 
 	c = (Code*)h;
-	gsave((Val*)&c->id);
-	if(c->reloc)
-		r = (Reloc*)strdata(c->reloc);
-	else
-		r = 0;
-	gsave((Val*)&c->reloc);
-	gsave((Val*)&c->lm);
-	gsave((Val*)&c->dbg);
-	gsave((Val*)&c->src);
+	loadsaveptr((Val*)&c->id, ls);
+	if(ls->mode == LSsave){
+		if(c->reloc)
+			r = (Reloc*)strdata(c->reloc);
+		else
+			r = 0;
+		loadsaveptr((Val*)&c->reloc, ls);
+	}else{
+		loadsaveptr((Val*)&c->reloc, ls);
+		if(c->reloc)
+			r = (Reloc*)strdata(c->reloc);
+		else
+			r = 0;
+	}
+	loadsaveptr((Val*)&c->lm, ls);
+	loadsaveptr((Val*)&c->dbg, ls);
+	loadsaveptr((Val*)&c->src, ls);
 	switch(c->kind){
 	case Cxfn:
-		gsave(&c->xfn);
+		loadsaveptr(&c->xfn, ls);
 		break;
 	case Ccfn:
-		gsavefn((void**)&c->cfn);
+		if(ls->mode == LSsave)
+			savecfn((void**)&c->cfn);
+		else
+			c->cfn = resolveptr((uptr)c->cfn, ls);
 		break;
 	case Cccl:
-		gsavefn((void**)&c->ccl);
+		if(ls->mode == LSsave)
+			savecfn((void**)&c->ccl);
+		else
+			c->ccl = resolveptr((uptr)c->ccl, ls);
 		break;
 	case Cvm:
 		break;
@@ -2422,37 +2520,40 @@ savecode(Head *h)
 	p = c+1;
 	for(i = 0; i < c->nreloc; i++, r++){
 		cp = (void**)(p+r->coff);
-		gsave((Val*)cp);
+		loadsaveptr((Val*)cp, ls);
 	}
 	return 0;
 }
 
 /* order matters: copy the stack before the closure. */
 static u8
-savecont(Head *hd)
+loadsavecont(Head *hd, LSctx *ls)
 {
 	Cont *k;
 	k = (Cont*)hd;
-	gsave((Val*)&k->link);
+	k->link = 0;
+	k->base = 0;
+	k->cl = 0;
+//	gsave((Val*)&k->link);
 //	copykstack(k, &min);
-	gsave((Val*)&k->cl);
+//	gsave((Val*)&k->cl);
 	return 0;
 }
 
 static u8
-saveprecode(Head *hd)
+loadsaveprecode(Head *hd, LSctx *ls)
 {
 	Precode *c;
 	c = (Precode*)hd;
-	gsave((Val*)&c->id);
-	gsave((Val*)&c->lm);
-	gsave((Val*)&c->dbg);
-	gsave((Val*)&c->src);
+	loadsaveptr((Val*)&c->id, ls);
+	loadsaveptr((Val*)&c->lm, ls);
+	loadsaveptr((Val*)&c->dbg, ls);
+	loadsaveptr((Val*)&c->src, ls);
 	return 0;
 }
 
 static u8
-savectype(Head *hd)
+loadsavectype(Head *hd, LSctx *ls)
 {
 	Ctype *t;
 	Ctypearr *ta;
@@ -2473,48 +2574,48 @@ savectype(Head *hd)
 	case Tstruct:
 	case Tunion:
 		ts = (Ctypesu*)t;
-		gsave((Val*)&ts->tag);
-		gsave((Val*)&ts->field);
-		gsave(&ts->attr);
+		loadsaveptr((Val*)&ts->tag, ls);
+		loadsaveptr((Val*)&ts->field, ls);
+		loadsaveptr(&ts->attr, ls);
 		break;
 	case Tenum:
 		te = (Ctypeenum*)t;
-		gsave((Val*)&te->tag);
-		gsave((Val*)&te->sub);
-		gsave((Val*)&te->konst);
+		loadsaveptr((Val*)&te->tag, ls);
+		loadsaveptr((Val*)&te->sub, ls);
+		loadsaveptr((Val*)&te->konst, ls);
 		break;
 	case Ttypedef:
 		td = (Ctypedef*)t;
-		gsave((Val*)&td->sub);
-		gsave((Val*)&td->tid);
+		loadsaveptr((Val*)&td->sub, ls);
+		loadsaveptr((Val*)&td->tid, ls);
 		break;
 	case Tundef:
 		tu = (Ctypeundef*)t;
-		gsave((Val*)&tu->sub);
+		loadsaveptr((Val*)&tu->sub, ls);
 		break;
 	case Tconst:
 		tc = (Ctypeconst*)t;
-		gsave((Val*)&tc->sub);
+		loadsaveptr((Val*)&tc->sub, ls);
 		break;
 	case Tptr:
 		tp = (Ctypeptr*)t;
-		gsave((Val*)&tp->sub);
+		loadsaveptr((Val*)&tp->sub, ls);
 		break;
 	case Tarr:
 		ta = (Ctypearr*)t;
-		gsave(&ta->cnt);
-		gsave((Val*)&ta->sub);
+		loadsaveptr(&ta->cnt, ls);
+		loadsaveptr((Val*)&ta->sub, ls);
 		break;
 	case Tfun:
 		tf = (Ctypefunc*)t;
-		gsave((Val*)&tf->sub);
-		gsave((Val*)&tf->param);
+		loadsaveptr((Val*)&tf->sub, ls);
+		loadsaveptr((Val*)&tf->param, ls);
 		break;
 	case Tbitfield:
 		tw = (Ctypebitfield*)t;
-		gsave(&tw->cnt);
-		gsave(&tw->bit0);
-		gsave((Val*)&tw->sub);
+		loadsaveptr(&tw->cnt, ls);
+		loadsaveptr(&tw->bit0, ls);
+		loadsaveptr((Val*)&tw->sub, ls);
 		break;
 	default:
 		bug();
@@ -2523,149 +2624,149 @@ savectype(Head *hd)
 }
 
 static u8
-savecval(Head *hd)
+loadsavecval(Head *hd, LSctx *ls)
 {
 	Cval *cval;
 	cval = (Cval*)hd;
-	gsave((Val*)&cval->dom);
-	gsave((Val*)&cval->type);
+	loadsaveptr((Val*)&cval->dom, ls);
+	loadsaveptr((Val*)&cval->type, ls);
 	return 0;
 }
 
 static u8
-savedom(Head *hd)
+loadsavedom(Head *hd, LSctx *ls)
 {
 	Dom *dom;
 	dom = (Dom*)hd;
-	gsave((Val*)&dom->as);
-	gsave((Val*)&dom->ns);
-	gsave((Val*)&dom->name);
+	loadsaveptr((Val*)&dom->as, ls);
+	loadsaveptr((Val*)&dom->ns, ls);
+	loadsaveptr((Val*)&dom->name, ls);
 	return 0;
 }
 
 static u8
-saveexpr(Head *hd)
+loadsaveexpr(Head *hd, LSctx *ls)
 {
 	Expr *e;
 	e = (Expr*)hd;
-	gsave((Val*)&e->e1);
-	gsave((Val*)&e->e2);
-	gsave((Val*)&e->e3);
-	gsave((Val*)&e->e4);
-	gsave((Val*)&e->aux);
-	gsave((Val*)&e->skind);
-	gsave((Val*)&e->src);
+	loadsaveptr((Val*)&e->e1, ls);
+	loadsaveptr((Val*)&e->e2, ls);
+	loadsaveptr((Val*)&e->e3, ls);
+	loadsaveptr((Val*)&e->e4, ls);
+	loadsaveptr((Val*)&e->aux, ls);
+	loadsaveptr((Val*)&e->skind, ls);
+	loadsaveptr((Val*)&e->src, ls);
 	return 0;
 }
 
 static u8
-savefd(Head *hd)
+loadsavefd(Head *hd, LSctx *ls)
 {
 	Fd *fd;
 	fd = (Fd*)hd;
-	gsave((Val*)&fd->name);
+	loadsaveptr((Val*)&fd->name, ls);
 	if(fd->flags&Ffn)
 		return 0;
-	gsave((Val*)&fd->u.cl.close);
-	gsave((Val*)&fd->u.cl.read);
-	gsave((Val*)&fd->u.cl.write);
+	loadsaveptr((Val*)&fd->u.cl.close, ls);
+	loadsaveptr((Val*)&fd->u.cl.read, ls);
+	loadsaveptr((Val*)&fd->u.cl.write, ls);
 	return 0;
 }
 
 static u8
-savelist(Head *hd)
+loadsavelist(Head *hd, LSctx *ls)
 {
 	List *l;
 	l = (List*)hd;
-	gsave((Val*)&l->v);
+	loadsaveptr((Val*)&l->v, ls);
 	return 0;
 }
 
 static u8
-savens(Head *hd)
+loadsavens(Head *hd, LSctx *ls)
 {
 	Ns *ns;
 	unsigned i;
 	ns = (Ns*)hd;
-	gsave((Val*)&ns->lookaddr);
-	gsave((Val*)&ns->looksym);
-	gsave((Val*)&ns->looktype);
-	gsave((Val*)&ns->enumtype);
-	gsave((Val*)&ns->enumsym);
-	gsave((Val*)&ns->name);
-	gsave((Val*)&ns->dispatch);
-	gsave((Val*)&ns->mtab);
+	loadsaveptr((Val*)&ns->lookaddr, ls);
+	loadsaveptr((Val*)&ns->looksym, ls);
+	loadsaveptr((Val*)&ns->looktype, ls);
+	loadsaveptr((Val*)&ns->enumtype, ls);
+	loadsaveptr((Val*)&ns->enumsym, ls);
+	loadsaveptr((Val*)&ns->name, ls);
+	loadsaveptr((Val*)&ns->dispatch, ls);
+	loadsaveptr((Val*)&ns->mtab, ls);
 	for(i = 0; i < Vnallbase; i++)
-		gsave((Val*)&ns->base[i]);
+		loadsaveptr((Val*)&ns->base[i], ls);
 	return 0;
 }
 
 static u8
-savepair(Head *hd)
+loadsavepair(Head *hd, LSctx *ls)
 {
 	Pair *pair;
 	pair = (Pair*)hd;
-	gsave(&pair->cdr);
-	gsave(&pair->car);
+	loadsaveptr(&pair->cdr, ls);
+	loadsaveptr(&pair->car, ls);
 	return 0;
 }
 
 static u8
-saverange(Head *hd)
+loadsaverange(Head *hd, LSctx *ls)
 {
 	Range *range;
 	range = (Range*)hd;
-	gsave((Val*)&range->beg);
-	gsave((Val*)&range->len);
+	loadsaveptr((Val*)&range->beg, ls);
+	loadsaveptr((Val*)&range->len, ls);
 	return 0;
 }
 
 static u8
-saverd(Head *hd)
+loadsaverd(Head *hd, LSctx *ls)
 {
 	Rd *rd;
 	rd = (Rd*)hd;
-	gsave((Val*)&rd->name);
-	gsave((Val*)&rd->fname);
-	gsave((Val*)&rd->is);
-	gsave((Val*)&rd->mk);
-	gsave((Val*)&rd->fmt);
-	gsave((Val*)&rd->get);
-	gsave((Val*)&rd->set);
+	loadsaveptr((Val*)&rd->name, ls);
+	loadsaveptr((Val*)&rd->fname, ls);
+	loadsaveptr((Val*)&rd->is, ls);
+	loadsaveptr((Val*)&rd->mk, ls);
+	loadsaveptr((Val*)&rd->fmt, ls);
+	loadsaveptr((Val*)&rd->get, ls);
+	loadsaveptr((Val*)&rd->set, ls);
 	return 0;
 }
 
 static u8
-saverec(Head *hd)
+loadsaverec(Head *hd, LSctx *ls)
 {
 	u32 i;
 	Rec *r;
 	r = (Rec*)hd;
-	gsave((Val*)&r->rd);
+	loadsaveptr((Val*)&r->rd, ls);
 	for(i = 0; i < r->nf; i++)
-		gsave((Val*)&recdata(r)[i]);
+		loadsaveptr((Val*)&recdata(r)[i], ls);
 	return 0;
 }
 
 static u8
-savetab(Head *hd)
+loadsavetab(Head *hd, LSctx *ls)
 {
 	Tab *t;
 	t = (Tab*)hd;
-	gsave((Val*)&t->ht);
-	gsave((Val*)&t->tg);
-	gsave((Val*)&t->def);
+	loadsaveptr((Val*)&t->ht, ls);
+	loadsaveptr((Val*)&t->tg, ls);
+	loadsaveptr((Val*)&t->def, ls);
 	return 0;
 }
 
 static u8
-savevec(Head *hd)
+loadsavevec(Head *hd, LSctx *ls)
 {
 	Vec *vec;
 	Imm i;
 	vec = (Vec*)hd;
 	for(i = 0; i < vec->len; i++)
-		gsave(&vecdata(vec)[i]);
+		loadsaveptr(&vecdata(vec)[i], ls);
 	return 0;
 }
 
@@ -2674,11 +2775,14 @@ savesegment(void *p, uptr m)
 {
 	void *e;
 	Head *h;
+	LSctx ls;
+
+	ls.mode = LSsave;
 	e = p+m;
 	while(p < e){
 		h = p;
-		if(qs[Vkind(h)].save)
-			qs[Vkind(h)].save(h);
+		if(qs[Vkind(h)].loadsave)
+			qs[Vkind(h)].loadsave(h, &ls);
 		p += qsz(h);
 	}
 }
@@ -2694,10 +2798,17 @@ saveroot(int fd, Val p)
 {
 	Seg *s;
 	uptr x;
-	s = a2s(p);
-	if(s == 0)
+
+	if(p == 0)
 		bug();
-	x = mkreloc(s->n, (uptr)p);
+	else if(p == Xnil)
+		x = mkreloc(Segconst, 1);
+	else{
+		s = a2s(p);
+		if(s == 0)
+			bug();
+		x = mkreloc(s->n, (uptr)p);
+	}
 	if(-1 == xwrite(fd, &x, sizeof(x)))
 		return -1;
 	return 0;
@@ -2737,7 +2848,24 @@ fail:
 	return -1;
 }
 
-int
+static void
+loadseg(void *p, LSctx *ls)
+{
+	Seg *s;
+	void *e;
+	Head *h;
+
+	s = s2a(p);
+	e = s->a;
+	while(p < e){
+		h = p;
+		if(qs[Vkind(h)].loadsave)
+			qs[Vkind(h)].loadsave(h, ls);
+		p += qsz(h);
+	}
+}
+
+static int
 skipmt(unsigned mt)
 {
 	switch(MTtag(mt)){
@@ -2755,8 +2883,8 @@ skipmt(unsigned mt)
 int
 saveheap(Tab *toplevel, char *file)
 {
-	unsigned mt, g;
-	u32 sn;
+	u8 mt, g;
+	u32 i, sn, nsp;
 	M *m;
 	Seg *s, *t;
 	int fd, err;
@@ -2798,30 +2926,11 @@ saveheap(Tab *toplevel, char *file)
 	}
 	printf("%d segments\n", sn);
 
+	/* segment descriptors */
 	if(-1 == xwrite(fd, &sn, sizeof(sn))){
-		fprintf(stderr, "saveheap: open: %s\n", strerror(errno));
+		fprintf(stderr, "saveheap: write: %s\n", strerror(errno));
 		goto fail;
 	}
-
-	/* roots */
-	err = 0;
-	err |= saveroot(fd, (Val)syms);
-	err |= saveroot(fd, (Val)typecache);
-	err |= saveroot(fd, (Val)litdom);
-	err |= saveroot(fd, (Val)cvalnull);
-	err |= saveroot(fd, (Val)cval0);
-	err |= saveroot(fd, (Val)cval1);
-	err |= saveroot(fd, (Val)cvalminus1);
-	err |= saveroot(fd, (Val)vabort);
-	err |= saveroot(fd, (Val)halt);
-	err |= saveroot(fd, (Val)stkunderflow);
-	err |= saveroot(fd, (Val)toplevel);
-	if(err != 0){
-		fprintf(stderr, "saveheap: saveroot: %s\n", strerror(errno));
-		goto fail;
-	}
-
-	/* save segment descriptors */
 	for(mt = 0; mt < Nmt; mt++){
 		if(skipmt(mt))
 			continue;
@@ -2849,6 +2958,75 @@ saveheap(Tab *toplevel, char *file)
 		}
 	}
 
+	/* scan pointers */
+	nsp = 0;
+	for(mt = 0; mt < Nmt; mt++){
+		if(skipmt(mt))
+			continue;
+		for(g = 0; g < Nsgen; g++){
+			m = &H.m[mt][g];
+			if(m->h == 0)
+				continue;
+			nsp++;
+		}
+	}
+	if(-1 == xwrite(fd, &nsp, sizeof(u32))){
+		fprintf(stderr, "saveheap: write: %s\n", strerror(errno));
+		goto fail;
+	}
+	for(mt = 0; mt < Nmt; mt++){
+		if(skipmt(mt))
+			continue;
+		for(g = 0; g < Nsgen; g++){
+			m = &H.m[mt][g];
+			if(m->h == 0)
+				continue;
+			if(-1 == xwrite(fd, &mt, sizeof(u8))){
+				fprintf(stderr, "saveheap: write: %s\n", strerror(errno));
+				goto fail;
+			}
+			if(-1 == xwrite(fd, &g, sizeof(u8))){
+				fprintf(stderr, "saveheap: write: %s\n", strerror(errno));
+				goto fail;
+			}
+			if(-1 == saveroot(fd, (Val)m->scan)){
+				fprintf(stderr, "saveheap: write: %s\n", strerror(errno));
+				goto fail;
+			}
+		}
+	}
+
+	/* roots */
+	err = 0;
+	err |= saveroot(fd, (Val)syms);
+	err |= saveroot(fd, (Val)typecache);
+	err |= saveroot(fd, (Val)litdom);
+	err |= saveroot(fd, (Val)cvalnull);
+	err |= saveroot(fd, (Val)cval0);
+	err |= saveroot(fd, (Val)cval1);
+	err |= saveroot(fd, (Val)cvalminus1);
+	err |= saveroot(fd, (Val)vabort);
+	err |= saveroot(fd, (Val)halt);
+	err |= saveroot(fd, (Val)stkunderflow);
+	err |= saveroot(fd, (Val)toplevel);
+	for(i = 0; i < Nsgen; i++)
+		err |= saveroot(fd, (Val)H.guard.gd[i]);
+	if(err != 0){
+		fprintf(stderr, "saveheap: saveroot: %s\n", strerror(errno));
+		goto fail;
+	}
+
+	/* C symbols */
+	if(-1 == xwrite(fd, &ncfn, sizeof(u32))){
+		fprintf(stderr, "saveheap: write: %s\n", strerror(errno));
+		goto fail;
+	}
+	for(i = 0; i < ncfn; i++)
+		if(-1 == xwrite(fd, cfn[i].name, strlen(cfn[i].name)+1)){
+			fprintf(stderr, "saveheap: write: %s\n", strerror(errno));
+			goto fail;
+		}
+
 	off = lseek(fd, 0, SEEK_CUR);
 	if(off == -1){
 		fprintf(stderr, "saveheap: lseek: %s\n", strerror(errno));
@@ -2860,9 +3038,7 @@ saveheap(Tab *toplevel, char *file)
 		goto fail;
 	}
 
-	printf("saved descriptors\n");
-
-	/* save segments */
+	/* segments */
 	for(mt = 0; mt < Nmt; mt++){
 		if(skipmt(mt))
 			continue;
@@ -2940,4 +3116,142 @@ fail:
 	close(fd);
 	return -1;
 
+}
+
+typedef
+struct Scanptr
+{
+	u8 mt;
+	u8 gen;
+	uptr ptr;
+} Scanptr;
+
+Tab*
+restoreheap(char *file)
+{
+	int fd;
+	u64 len;
+	struct stat st;
+	void *op, *p, *top;
+	u32 i, nseg, nsp;
+	Seg *tseg, *s;
+	uptr root[11+Nsgen];
+	char **csym;
+	u32 ncsym;
+	LSctx ls;
+	Scanptr *sptr, *sp;
+	Tab *toplevel;
+
+	tseg = 0;
+	csym = 0;
+	sptr = 0;
+	p = 0;
+	fd = -1;
+	fd = open(file, O_RDONLY);
+	if(0 > fd){
+		fprintf(stderr, "restoreheap: open: %s\n", strerror(errno));
+		goto fail;
+	}
+	if(0 > fstat(fd, &st)){
+		fprintf(stderr, "restoreheap: stat: %s\n", strerror(errno));
+		goto fail;
+	}
+	len = st.st_size;
+	op = p = mmap(0, len, PROT_READ|PROT_WRITE, MAP_PRIVATE, fd, 0);
+	if(p == MAP_FAILED){
+		fprintf(stderr, "restoreheap: stat: %s\n", strerror(errno));
+		goto fail;
+	}
+	close(fd);
+
+#define XRD(to,fr,sz) { 		\
+	if(len < (sz)) goto fail;	\
+	memcpy((to),(fr),(sz));		\
+	(fr) += (sz);			\
+	len -= (sz);			\
+}
+
+	/* segment descriptors */
+	XRD(&nseg, p, sizeof(u32));
+	tseg = emalloc(nseg*sizeof(Seg));
+	for(i = 0, s = tseg; i < nseg; i++, s++){
+		XRD(&s->mt, p, sizeof(s->mt));
+		XRD(&s->gen, p, sizeof(s->gen));
+		XRD(&s->a, p, sizeof(uptr)); /* relative */
+		XRD(s->card, p, sizeof(s->card));
+		XRD(s->crossing, p, sizeof(s->crossing));
+	}
+
+	/* scan pointers */
+	XRD(&nsp, p, sizeof(u32));
+	sptr = emalloc(nsp*sizeof(Scanptr));
+	for(i = 0; i < nseg; i++){
+		XRD(&sptr[i].mt, p, sizeof(u8));
+		XRD(&sptr[i].gen, p, sizeof(u8));
+		XRD(&sptr[i].ptr, p, sizeof(uptr));
+	}
+
+	/* roots */
+	for(i = 0; i < sizeof(root)/sizeof(uptr); i++)
+		XRD(&root[i], p, sizeof(uptr));
+
+	/* C symbols */
+	XRD(&ncsym, p, sizeof(u32));
+	csym = emalloc(ncsym*sizeof(char*));
+	for(i = 0; i < ncsym; i++){
+		csym[i] = p;
+		p += strlen(p)+1;
+	}
+
+	top = p = (void*)roundup(p, 4096);
+
+	ls.mode = LSload;
+	ls.seg = tseg;
+	ls.nseg = nseg;
+	ls.csym = csym;
+	ls.ncsym = ncsym;
+	ls.top = top;
+
+	/* segments */
+	for(i = 0; i < nseg; i++){
+		s = &tseg[i];
+		if(MTbig(s->mt) || MTbigcont(s->mt)){
+			fprintf(stderr, "restoreheap: implement big segments\n");
+			goto fail;
+		}
+		importseg(s->mt, s->gen, p, (uptr)s->a, s->card, s->crossing);
+		loadseg(p, &ls);
+	}
+
+	/* update scan pointers */
+	for(i = 0, sp = sptr; i < nsp; i++, sp++)
+		H.m[sp->mt][sp->gen].scan = resolveptr(sp->ptr, &ls);
+		
+	/* update roots */
+	syms = resolveptr(root[0], &ls);
+	typecache = resolveptr(root[1], &ls);
+	litdom = resolveptr(root[2], &ls);
+	cvalnull = resolveptr(root[3], &ls);
+	cval0 = resolveptr(root[4], &ls);
+	cval1 = resolveptr(root[5], &ls);
+	cvalminus1 = resolveptr(root[6], &ls);
+	vabort = resolveptr(root[7], &ls);
+	halt = resolveptr(root[8], &ls);
+	stkunderflow = resolveptr(root[9], &ls);
+	toplevel = resolveptr(root[10], &ls);
+	for(i = 0; i < Nsgen; i++)
+		H.guard.gd[i] = resolveptr(root[11+i], &ls);
+
+#undef XRD
+
+	munmap(p, top-p);
+	return toplevel;
+fail:
+	if(op && op != MAP_FAILED)
+		munmap(op, len);
+	close(fd);
+	efree(tseg);
+	efree(csym);
+	efree(sptr);
+	return 0;
 }

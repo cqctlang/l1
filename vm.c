@@ -750,6 +750,9 @@ kbacktrace(VM *vm, Cont *k)
 
 	if(k == 0)
 		return;
+	if(k->base == 0)
+		/* defunct leftover in restored heap */
+		return;
 	pc = k->ra;
 	cl = k->cl;
 	fp = k->base+k->sz;
@@ -2528,7 +2531,7 @@ kunderflow(VM *vm)
 	k = vm->klink;
 	if(k == 0)
 		bug();
-	if(k->gen != vm->levgen[k->level])
+	if(k->base == 0 || k->gen != vm->levgen[k->level])
 		vmerr(vm, "attempt to return to stale context");
 
 	/* split the continuation if it exceeds our copy limit */
