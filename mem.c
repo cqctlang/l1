@@ -3373,6 +3373,9 @@ restoreheap(char *file)
 		p += Segsize;
 	}
 
+	/* reset dynamic wind */
+	tabput(toplevel, mkvalcid(mkcid0("$winders")), Xnil);
+
 	return toplevel;
 fail:
 	if(op && op != MAP_FAILED)

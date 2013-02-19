@@ -1,9 +1,8 @@
 @global dynamicwind, $dynamicwind, syscallcc, applyk, evalk;
+@global $winders;
 
 {
-	@local winders;
-
-	winders = nil;
+	$winders = nil;
 	syscallcc = callcc;
 
 	@defloc listtail(l, n)
@@ -39,7 +38,7 @@
 		@defloc lout(ls)
 		{
 			if(!eq(ls, tail)){
-				winders = cdr(ls);
+				$winders = cdr(ls);
 				cdr(car(ls))();
 				lout(cdr(ls));
 			}
@@ -50,12 +49,12 @@
 			if(!eq(ls, tail)){
 				lin(cdr(ls));
 				car(car(ls))();
-				winders = ls;
+				$winders = ls;
 			}
 		}
 
-		tail = commontail(new, winders);
-		lout(winders);
+		tail = commontail(new, $winders);
+		lout($winders);
 		lin(new);
 	}
 
@@ -63,10 +62,10 @@
 	{
 		syscallcc(@lambda(k){
 				@local save, r;
-				save = winders;
+				save = $winders;
 				r = mkcontinuation(continuationfr(k),
 						   @lambda(val){
-							   if(!eq(save, winders))
+							   if(!eq(save, $winders))
 								   dowind(save);
 							   continuationfn(k)(val);
 						   });
@@ -78,9 +77,9 @@
 	{
 		@local rv;
 		in();
-		winders = cons(cons(in, out), winders);
+		$winders = cons(cons(in, out), $winders);
 		rv = body();
-		winders = cdr(winders);
+		$winders = cdr($winders);
 		out();
 		return rv;
 	}
