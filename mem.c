@@ -1177,6 +1177,9 @@ importseg(MT mt, Gen g, void *p, uptr aoff, u8 *card, u8 *crossing)
 	memcpy(s->card, card, sizeof(s->card));
 	memcpy(s->crossing, crossing, sizeof(s->crossing));
 	minsert(&H.m[mt][g], s);
+	H.na += Segsize;
+	H.heapsz += Segsize;
+	H.inuse += Segsize;
 }
 
 u64
@@ -2250,6 +2253,7 @@ resetmem()
 	H.ma = GCthresh;
 	H.heapsz = 0;
 	H.free = 0;
+	H.inuse = 0;
 }
 
 void
@@ -2440,9 +2444,14 @@ resolveptr(uptr x, LSctx *ls)
 	off = x&(Segsize-1);
 	switch(n){
 	case Segconst:
-		if(off == 1)
+		switch(off){
+		case 0:
+			return 0;
+		case 1:
 			return Xnil;
-		bug();
+		default:
+			bug();
+		}
 		break;
 	case Segcfn:
 		if(off > ls->ncsym)
@@ -2466,10 +2475,10 @@ loadsaveptr(Val *pp, LSctx *ls)
 	switch(ls->mode){
 	case LSsave:
 		if(p == 0)
-			return;
-		else if(p == Xnil){
+			*pp = (Val)mkreloc(Segconst, 0);
+		else if(p == Xnil)
 			*pp = (Val)mkreloc(Segconst, 1);
-		}else{
+		else{
 			s = a2s(p);
 			if(s == 0)
 				bug();
