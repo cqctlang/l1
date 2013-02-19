@@ -235,6 +235,12 @@ if (__library_exports == nil) //might not have been set in a macro
   return #mcall(#id('with_imports_imp),new_args,#[]);
 }
 
+@defstx @import_object(obj) {
+  return #`{
+    @with_imports_imp(0,(the_obj, #,(obj))) { the_obj; }
+  };
+}
+
 @defstx @dynamic_imports(args...) body {
   args = #list(args);
   return #`{
