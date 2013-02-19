@@ -426,6 +426,7 @@ main(int argc, char *argv[])
 	struct sigaction sa;
 	unsigned xargc;
 	Val xargv[128];
+	char *memfile;
 
 	argv0 = argv[0];
 	memset(opt, 0, sizeof(opt));
@@ -436,9 +437,10 @@ main(int argc, char *argv[])
 	dorepl = 1;
 	ename = 0;
 	nlp = 0;
+	memfile = 0;
 	tbeg = Tbeg = end = 0;
 	filename = 0;
-	while(EOF != (c = getopt(argc, argv, "+6bde:hkKl:oOpqrstTuwxz"))){
+	while(EOF != (c = getopt(argc, argv, "+6bde:hkKl:m:oOpqrstTuwxz"))){
 		switch(c){
 		case '6':
 		case 'b':
@@ -476,6 +478,9 @@ main(int argc, char *argv[])
 				n--;
 			lp[nlp] = emalloc(n+1);
 			memcpy(lp[nlp++], optarg, n);
+			break;
+		case 'm':
+			memfile = optarg;
 			break;
 		case '+':
 		case 'h':
@@ -542,10 +547,22 @@ main(int argc, char *argv[])
 	top = cqctinit(lp, 0, xfd, 0);
 	while(nlp > 0)
 		free(lp[--nlp]);
-	vm = cqctmkvm(top);
-	if(vm == 0){
-		cqctfini(top);
-		return -1;
+	if(memfile == 0){
+		vm = cqctmkvm(top);
+		if(vm == 0){
+			cqctfini(top);
+			return -1;
+		}
+		cqctbootvm(vm);
+	}else{
+		top = restoreheap(memfile);
+		if(top == 0)
+			return -1;
+		vm = cqctmkvm(top);
+		if(vm == 0){
+			cqctfini(top);
+			return -1;
+		}
 	}
 	memset(&sa, 0, sizeof(sa));
 	sa.sa_handler = sigint;

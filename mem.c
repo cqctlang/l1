@@ -926,6 +926,21 @@ initsegmap()
 	freerange(p, e);
 }
 
+static void
+initsegmap2(void *p, u64 sz)
+{
+	u64 nseg;
+	void *e;
+
+	nseg = sz/Segsize;
+	e = p+sz;
+	H.heapsz += sz;
+	segmap.lo = p;
+	segmap.hi = e;
+	segmap.map = allocsegmap(nseg);
+	segmap.free = 0;
+}
+
 enum
 {
 	LORES = 1,  /* low reserve; triggers growth */
@@ -1151,11 +1166,14 @@ importseg(MT mt, Gen g, void *p, uptr aoff, u8 *card, u8 *crossing)
 	e = p+Segsize;
 	remapsegmap(p, e);
 	s = a2s(p);
-	if(s->mt != MThole)
-		fatal("importseg: desired segment is %s", MTname[s->mt]);
+//	if(s->mt != MThole)
+//		fatal("importseg: desired segment is %s", MTname[s->mt]);
 	s->mt = mt;
 	s->gen = g;
+	if(aoff > Segsize)
+		bug();
 	s->a = p+aoff;
+	s->e = p+Seguse-1; /* FIXME */
 	memcpy(s->card, card, sizeof(s->card));
 	memcpy(s->crossing, crossing, sizeof(s->crossing));
 	minsert(&H.m[mt][g], s);
@@ -2198,6 +2216,43 @@ initmem()
 }
 
 void
+resetmem()
+{
+	u8 mt, g;
+	u32 i;
+	Seg *s, *es;
+	u64 nseg;
+
+	for(i = 0; i < Nsgen; i++)
+		H.guard.gd[i] = (Pair*)Xnil;
+
+	for(mt = 0; mt < Nmt; mt++)
+		for(g = 0; g < Nsgen; g++)
+			mclr(&H.m[mt][g]);
+
+	s = a2s(segmap.lo);
+	es = a2s(segmap.hi);
+	nseg = es-s;
+	while(s < es){
+		if(s->mt == MThole){
+			s++;
+			continue;
+		}
+		unmapmem(s2a(s), Segsize);
+		s++;
+	}
+	freesegmap(segmap.map, nseg);
+	segmap.lo = 0;
+	segmap.hi = 0;
+	segmap.map = 0;
+	segmap.free = 0;
+	H.na = 0;
+	H.ma = GCthresh;
+	H.heapsz = 0;
+	H.free = 0;
+}
+
+void
 finimem()
 {
 	_gc(Ngen-1, Ngen-1);
@@ -2353,9 +2408,9 @@ lookcfnname(char *name)
 }
 
 enum{
-	Segx = (uptr)-1,
+	Segx = 0xfffffffffff,  /* FIXME: define in terms of Segbits */
 	Segconst = Segx,
-	Segcfn = Segx-1,
+	Segcfn   = Segx-1,
 };
 
 static uptr
@@ -2366,6 +2421,8 @@ mkreloc(uptr n, uptr off)
 	case Segcfn:
 		return (n<<Segbits)|(off&(Segsize-1));
 	default:
+		if(n == 0 && off == 0)
+			printf("jackpot!\n");
 		return (n<<Segbits)|(off&(Segsize-1));
 	}
 }
@@ -2388,9 +2445,9 @@ resolveptr(uptr x, LSctx *ls)
 		bug();
 		break;
 	case Segcfn:
-		if(n > ls->ncsym)
+		if(off > ls->ncsym)
 			bug();
-		idx = lookcfnname(ls->csym[n]);
+		idx = lookcfnname(ls->csym[off]);
 		return cfn[idx].addr;
 	default:
 		if(n >= ls->nseg)
@@ -2406,13 +2463,13 @@ loadsaveptr(Val *pp, LSctx *ls)
 	Seg *s;
 
 	p = *pp;
-	if(p == 0)
-		return;
 	switch(ls->mode){
 	case LSsave:
-		if(p == Xnil)
+		if(p == 0)
+			return;
+		else if(p == Xnil){
 			*pp = (Val)mkreloc(Segconst, 1);
-		else{
+		}else{
 			s = a2s(p);
 			if(s == 0)
 				bug();
@@ -2513,6 +2570,8 @@ loadsavecode(Head *h, LSctx *ls)
 			c->ccl = resolveptr((uptr)c->ccl, ls);
 		break;
 	case Cvm:
+		if(ls->mode == LSload)
+			setgo(c);
 		break;
 	}
 	if(r == 0)
@@ -2665,11 +2724,21 @@ loadsavefd(Head *hd, LSctx *ls)
 	Fd *fd;
 	fd = (Fd*)hd;
 	loadsaveptr((Val*)&fd->name, ls);
-	if(fd->flags&Ffn)
-		return 0;
-	loadsaveptr((Val*)&fd->u.cl.close, ls);
-	loadsaveptr((Val*)&fd->u.cl.read, ls);
-	loadsaveptr((Val*)&fd->u.cl.write, ls);
+	if(fd->flags&Ffn){
+		if(ls->mode == LSsave){
+			savecfn((void**)&fd->u.fn.close);
+			savecfn((void**)&fd->u.fn.read);
+			savecfn((void**)&fd->u.fn.write);
+		}else{
+			fd->u.fn.close = resolveptr((uptr)fd->u.fn.close, ls);
+			fd->u.fn.read = resolveptr((uptr)fd->u.fn.read, ls);
+			fd->u.fn.write = resolveptr((uptr)fd->u.fn.write, ls);
+		}
+	}else{
+		loadsaveptr((Val*)&fd->u.cl.close, ls);
+		loadsaveptr((Val*)&fd->u.cl.read, ls);
+		loadsaveptr((Val*)&fd->u.cl.write, ls);
+	}
 	return 0;
 }
 
@@ -2756,6 +2825,13 @@ loadsavetab(Head *hd, LSctx *ls)
 	loadsaveptr((Val*)&t->ht, ls);
 	loadsaveptr((Val*)&t->tg, ls);
 	loadsaveptr((Val*)&t->def, ls);
+	if(ls->mode == LSsave){
+		savecfn((void**)&t->equal);
+		savecfn((void**)&t->hash);
+	}else{
+		t->equal = resolveptr((uptr)t->equal, ls);
+		t->hash = resolveptr((uptr)t->hash, ls);
+	}
 	return 0;
 }
 
@@ -2783,6 +2859,7 @@ savesegment(void *p, uptr m)
 		h = p;
 		if(qs[Vkind(h)].loadsave)
 			qs[Vkind(h)].loadsave(h, &ls);
+//		printf("\tsaving %s at %p (%lx)\n", qs[Vkind(h)].id, h, (void*)h-s2a(a2s(h)));
 		p += qsz(h);
 	}
 }
@@ -2821,16 +2898,16 @@ segsummary(int fd, Seg *s)
 	uptr d;
 
 	p = s2a(s);
-	if(-1 == xwrite(fd, &s->mt, sizeof(s->mt)))
+	if(-1 == xwrite(fd, &s->mt, sizeof(u8)))
 		goto fail;
-	if(-1 == xwrite(fd, &s->gen, sizeof(s->gen)))
+	if(-1 == xwrite(fd, &s->gen, sizeof(u8)))
 		goto fail;
 	d = s->a-p;
-	if(-1 == xwrite(fd, &d, sizeof(d)))
+	if(-1 == xwrite(fd, &d, sizeof(uptr)))
 		goto fail;
-	if(-1 == xwrite(fd, s->card, sizeof(s->card)))
+	if(-1 == xwrite(fd, s->card, sizeof(Ncard*sizeof(u8))))
 		goto fail;
-	if(-1 == xwrite(fd, s->crossing, sizeof(s->crossing)))
+	if(-1 == xwrite(fd, s->crossing, sizeof(Ncard*sizeof(u8))))
 		goto fail;
 
 //	printf("\tbeg = %p\talloc = %p", s2a(s), s->a);
@@ -2855,12 +2932,29 @@ loadseg(void *p, LSctx *ls)
 	void *e;
 	Head *h;
 
-	s = s2a(p);
+	s = a2s(p);
 	e = s->a;
 	while(p < e){
 		h = p;
 		if(qs[Vkind(h)].loadsave)
 			qs[Vkind(h)].loadsave(h, ls);
+		p += qsz(h);
+	}
+}
+
+static void
+rehash(void *p)
+{
+	Seg *s;
+	void *e;
+	Head *h;
+
+	s = a2s(p);
+	e = s->a;
+	while(p < e){
+		h = p;
+		if(Vkind(h) == Qtab)
+			tabrehash(valtab(h));
 		p += qsz(h);
 	}
 }
@@ -2884,7 +2978,7 @@ int
 saveheap(Tab *toplevel, char *file)
 {
 	u8 mt, g;
-	u32 i, sn, nsp;
+	u32 i, sn, nsp, xx;
 	M *m;
 	Seg *s, *t;
 	int fd, err;
@@ -2927,7 +3021,7 @@ saveheap(Tab *toplevel, char *file)
 	printf("%d segments\n", sn);
 
 	/* segment descriptors */
-	if(-1 == xwrite(fd, &sn, sizeof(sn))){
+	if(-1 == xwrite(fd, &sn, sizeof(u32))){
 		fprintf(stderr, "saveheap: write: %s\n", strerror(errno));
 		goto fail;
 	}
@@ -2974,6 +3068,7 @@ saveheap(Tab *toplevel, char *file)
 		fprintf(stderr, "saveheap: write: %s\n", strerror(errno));
 		goto fail;
 	}
+	printf("saving %d scan pointers\n", nsp);
 	for(mt = 0; mt < Nmt; mt++){
 		if(skipmt(mt))
 			continue;
@@ -3021,6 +3116,7 @@ saveheap(Tab *toplevel, char *file)
 		fprintf(stderr, "saveheap: write: %s\n", strerror(errno));
 		goto fail;
 	}
+	printf("saving %d c symbols\n", ncfn);
 	for(i = 0; i < ncfn; i++)
 		if(-1 == xwrite(fd, cfn[i].name, strlen(cfn[i].name)+1)){
 			fprintf(stderr, "saveheap: write: %s\n", strerror(errno));
@@ -3032,7 +3128,7 @@ saveheap(Tab *toplevel, char *file)
 		fprintf(stderr, "saveheap: lseek: %s\n", strerror(errno));
 		goto fail;
 	}
-	off = lseek(fd, roundup(off, 4096), SEEK_SET);
+	off = lseek(fd, roundup(off, Segsize), SEEK_SET);
 	if(off == -1){
 		fprintf(stderr, "saveheap: lseek: %s\n", strerror(errno));
 		goto fail;
@@ -3078,6 +3174,7 @@ saveheap(Tab *toplevel, char *file)
 	}
 
 	/* relocate segments */
+	xx = 0;
 	for(mt = 0; mt < Nmt; mt++){
 		if(skipmt(mt))
 			continue;
@@ -3085,9 +3182,11 @@ saveheap(Tab *toplevel, char *file)
 			m = &H.m[mt][g];
 			if(m->h == 0)
 				continue;
-//			printf("%d %-10s\tscan %p\n", g, MTname[mt], m->scan);
 			s = a2s(m->h);
 			while(1){
+//				printf("exporting seg #%d mt %d gen %d p %p a %p\n",
+//				       xx, mt, g, s2a(s), s->a);
+				xx++;
 				saveseg(p, s);
 				p += Segsize;
 				if(MTbig(mt)){
@@ -3175,17 +3274,17 @@ restoreheap(char *file)
 	XRD(&nseg, p, sizeof(u32));
 	tseg = emalloc(nseg*sizeof(Seg));
 	for(i = 0, s = tseg; i < nseg; i++, s++){
-		XRD(&s->mt, p, sizeof(s->mt));
-		XRD(&s->gen, p, sizeof(s->gen));
+		XRD(&s->mt, p, sizeof(u8));
+		XRD(&s->gen, p, sizeof(u8));
 		XRD(&s->a, p, sizeof(uptr)); /* relative */
-		XRD(s->card, p, sizeof(s->card));
-		XRD(s->crossing, p, sizeof(s->crossing));
+		XRD(s->card, p, sizeof(Ncard*sizeof(u8)));
+		XRD(s->crossing, p, sizeof(Ncard*sizeof(u8)));
 	}
 
 	/* scan pointers */
 	XRD(&nsp, p, sizeof(u32));
 	sptr = emalloc(nsp*sizeof(Scanptr));
-	for(i = 0; i < nseg; i++){
+	for(i = 0; i < nsp; i++){
 		XRD(&sptr[i].mt, p, sizeof(u8));
 		XRD(&sptr[i].gen, p, sizeof(u8));
 		XRD(&sptr[i].ptr, p, sizeof(uptr));
@@ -3203,7 +3302,7 @@ restoreheap(char *file)
 		p += strlen(p)+1;
 	}
 
-	top = p = (void*)roundup(p, 4096);
+	top = p = (void*)roundup(p, Segsize);
 
 	ls.mode = LSload;
 	ls.seg = tseg;
@@ -3213,14 +3312,19 @@ restoreheap(char *file)
 	ls.top = top;
 
 	/* segments */
+	resetmem();
+	initsegmap2(top, nseg*Segsize);
 	for(i = 0; i < nseg; i++){
 		s = &tseg[i];
 		if(MTbig(s->mt) || MTbigcont(s->mt)){
 			fprintf(stderr, "restoreheap: implement big segments\n");
 			goto fail;
 		}
+//		printf("importing seg #%d mt %d gen %d p %p a %p\n",
+//		       i, s->mt, s->gen, p, s->a);
 		importseg(s->mt, s->gen, p, (uptr)s->a, s->card, s->crossing);
 		loadseg(p, &ls);
+		p += Segsize;
 	}
 
 	/* update scan pointers */
@@ -3244,7 +3348,31 @@ restoreheap(char *file)
 
 #undef XRD
 
-	munmap(p, top-p);
+	if(H.m[MTdata][0].h == 0)
+		resetalloc(MTdata, 0);
+	if(H.m[MTcode][0].h == 0)
+		resetalloc(MTcode, 0);
+	if(H.m[MTstack][0].h == 0)
+		resetalloc(MTstack, 0);
+	if(H.m[MTweak][0].h == 0)
+		resetalloc(MTweak, 0);
+	if(H.m[MTbox][0].h == 0)
+		resetalloc(MTbox, 0);
+	if(H.m[MTmutable][0].h == 0)
+		resetalloc(MTmutable, 0);
+
+	/* rehash tables */
+	p = top;
+	for(i = 0; i < nseg; i++){
+		s = &tseg[i];
+		if(MTbig(s->mt) || MTbigcont(s->mt)){
+			fprintf(stderr, "restoreheap: implement big segments\n");
+			goto fail;
+		}
+		rehash(p);
+		p += Segsize;
+	}
+
 	return toplevel;
 fail:
 	if(op && op != MAP_FAILED)

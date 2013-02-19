@@ -25,6 +25,10 @@ mkpair(Val a, Val d)
 	Pair *p;
 	p = (Pair*)malq(Qpair, sizeof(Pair));
 	// setc*r would invoke write barrier
+	if(a == 0)
+		bug();
+	if(d == 0)
+		bug();
 	_setcar(p, a);
 	_setcdr(p, d);
 	return p;
@@ -36,6 +40,10 @@ mkweakpair(Val a, Val d)
 	Pair *p;
 	p = (Pair*)malweak();
 	// setc*r would invoke write barrier
+	if(a == 0)
+		bug();
+	if(d == 0)
+		bug();
 	_setcar(p, a);
 	_setcdr(p, d);
 	return p;

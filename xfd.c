@@ -88,4 +88,7 @@ initio(Xfd *in, Xfd *out, Xfd *err)
 	l1stdin = *in;
 	l1stdout = *out;
 	l1stderr = *err;
+	REGFN(xfdclose);
+	REGFN(xfdread);
+	REGFN(xfdwrite);
 }

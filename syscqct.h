@@ -1452,6 +1452,7 @@ Val		tabget(Tab *tab, Val keyv);
 Pair*		tabgetkv(Tab *t, Val k);
 void		tabpop(Tab *tab, Val *rv);
 void		tabput(Tab *tab, Val keyv, Val val);
+void		tabrehash(Tab *tab);
 
 /* pair.c */
 #define 	car(p)  (((Pair*)(p))->car)

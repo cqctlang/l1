@@ -126,6 +126,7 @@ struct Xfd {
 
 #define CQCTFN(top,id)	cqctbuiltinfn(top, "%"#id, cqctmkcfn(#id, l1_##id))
 
+void		cqctbootvm(VM *vm);
 void		cqctbuiltinfn(Env top, char *name, Closure *cl);
 int		cqctcallfn(VM *vm, Val cl, int argc, Val *argv, Val *rv);
 int		cqctcallthunk(VM *vm, Val cl, Val *rv);
@@ -183,3 +184,6 @@ Val		cqctvecref(Val l, uint64_t idx);
 Val		cqctvecset(Val l, uint64_t idx, Val v);
 Val*		cqctvecvals(Val v);
 void		cqctvmerr(VM *vm, char *fmt, ...);
+
+/* mem.c */
+Env		restoreheap(char *file);

@@ -205,6 +205,34 @@ tabget(Tab *t, Val k)
 	return 0;
 }
 
+void
+tabrehash(Tab *t)
+{
+	Vec *oht;
+	Val x;
+	Pair *lnk;
+	u32 i, m, osz, onent;
+
+	osz = t->sz;
+	oht = t->ht;
+	onent = t->nent;
+	gcwb(mkvaltab(t));
+	t->ht = mkvec(t->sz);
+	t->nent = 0;
+	t->tg = mkguard();
+	for(i = 0; i < t->sz; i++)
+		_vecset(t->ht, i, mkvalcval(0, 0, i));
+	for(i = m = 0; i < osz && m < onent; i++){
+		x = vecref(oht, i);
+		while(islink(x)){
+			lnk = (Pair*)x;
+			x = linknext(lnk);
+			tabput(t, linkkey(lnk), linkval(lnk));
+			m++;
+		}
+	}
+}
+
 static void
 expand(Tab *t)
 {

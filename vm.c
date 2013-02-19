@@ -7488,9 +7488,14 @@ cqctmkvm(Env top)
 	vm->top = top;
 	vms[nvm++] = vm;
 	vmresetctl(vm);
+	return vm;
+}
+
+void
+cqctbootvm(VM *vm)
+{
 	boot(vm);
 	vmresetctl(vm);
-	return vm;
 }
 
 void
@@ -7518,8 +7523,14 @@ initvm()
 	stkunderflow = stkunderflowthunk();
 
 	REGFN(calldispatch);
+	REGFN(equalval);
+	REGFN(eqval);
+	REGFN(eqvval);
 	REGFN(l1_put);
 	REGFN(l1_typeof);
+	REGFN(hashqval);
+	REGFN(hashqvval);
+	REGFN(hashval);
 	REGFN(masget);
 	REGFN(masismapped);
 	REGFN(masmap);
