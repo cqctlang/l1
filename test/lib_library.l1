@@ -54,3 +54,7 @@ y = "lib";
 
 }
 
+printf("Testing lone object import\n");
+sublib = @import_object( subdir/sublib );
+sublib.fn1();
+
