@@ -330,7 +330,7 @@ if (__library_exports == nil) //might not have been set in a macro
       //@match #dot(x,y): return mklibstr(x);
       @match #id(x): return sprintfa("%a",x);
     }
-    error("Could not parse libname: %a\n",lib);
+    error("Could not parse library name: %a\n",lib);
   }
 
   libname = mklibstr(name);
