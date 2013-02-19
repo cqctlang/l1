@@ -2,6 +2,8 @@
 #include "util.h"
 #include "syscqct.h"
 
+static void	tabputkv(Tab *t, Pair *kv);
+
 static Tab*
 _mktab(u32 sz, Val def)
 {
@@ -59,6 +61,12 @@ static Pair*
 mklink(Val k, Val v)
 {
 	return cons(cons(k, v), Xnil);
+}
+
+static Pair*
+mklinkkv(Val kv)
+{
+	return cons(kv, Xnil);
 }
 
 static void
@@ -227,7 +235,7 @@ tabrehash(Tab *t)
 		while(islink(x)){
 			lnk = (Pair*)x;
 			x = linknext(lnk);
-			tabput(t, linkkey(lnk), linkval(lnk));
+			tabputkv(t, linkkv(lnk));
 			m++;
 		}
 	}
@@ -257,6 +265,19 @@ expand(Tab *t)
 			m++;
 		}
 	}
+}
+
+/* only for rehash */
+static void
+tabputkv(Tab *t, Pair *kv)
+{
+	Pair *lnk;
+	if(3*t->nent > 2*t->sz)
+		expand(t);
+	lnk = mklinkkv(mkvalpair(kv));
+	tguard(mkvalpair(lnk), t->tg);
+	put(t, lnk);
+	t->nent++;
 }
 
 void
