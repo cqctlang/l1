@@ -333,6 +333,31 @@ path = compute_path(); //this statement does not execute until run time
   </div>
 </div>
 
+<div class="docitem" id="fn:@import_object">
+  <div class="proto">
+    <div class="function">
+      <span class="id">@import_object( library )
+      </span>
+    </div>
+    <div class="param">
+      <span class="type">(dir/)*libname</span>
+    </div>
+    <div class="returns">
+      <span class="type">cqct object</span>
+    </div>
+  </div>
+  <div class="desc">
+    Imports the named library into a cqct object and returns that
+    object. Only bare library names are allowed, i.e.:
+    <div class="code">
+<pre>
+lib = @import_object( subdir/sublib );
+lib.fn(); //calls function fn exported by sublib
+</pre>
+    </div>
+  </div>
+</div>
+
 <div class="docitem" id="fn:@library">
   <div class="proto">
     <div class="function">
