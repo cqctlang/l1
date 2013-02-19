@@ -114,10 +114,10 @@ The <em>@import</em> macro only works inside a library file -- at the top
 level <em>@with_imports</em> must be used instead. 
 </p>
 
-<h5>Import Specification</h5>
+<h5 id=import_spec>Import Specification</h5>
 <p>
 <em>@import</em>, <em>@with_imports</em>, and <em>@import_globals</em> are 
-variable argument macros for which support the same import specification.
+variable argument macros which support the same import specification.
 Each element of the import specification can have one of three forms
 </p>
 
@@ -150,6 +150,7 @@ a function <em>fn1</em>, one can call that function with the statment
 </pre>
 </div>
 </p>
+
 <p>
 <em>(binding, library_name.export)</em>: This will create a local 
 binding with the given name to the given library export. For instance:
@@ -166,14 +167,14 @@ binding with the given name to the given library export. For instance:
 Library names are allowed to include the "/" character to specify
 subdirectories inside of the load path. 
 If one wants to import a library <em>lib</em> 
-that is in a directory <em>dir1</em> 
+that is in a directory <em>dir1/dir2</em> 
 that is in the load path, one may use the following constructions:
 <div class="code">
 <pre>
 
-@import( dir1/lib, (f1, dir1/lib.func1) );
+@import( dir1/dir2/lib, (f1, dir1/dir2/lib.func1) );
 
-@with_imports( dir1/lib, (f1, dir1/lib.func1) ) { ... }
+@with_imports( dir1/dir2/lib, (f1, dir1/dir2/lib.func1) ) { ... }
 </pre>
 </div>
 </p>
@@ -293,9 +294,7 @@ path = compute_path(); //this statement does not execute until run time
 <span class="id">@import( import_spec [, import_spec [,...]] )</span>
 </div>
 <div class="param">
-<span class="arg">import_spec</span>: 
-<span class="type">(dir/)*libname</span> or
-<span class="type">(sym, (dir/)*libname.sym)</span> or
+<span class="arg">import_spec</span>
 </div>
 <div class="returns">
 <span class="type">nothing</span>
@@ -304,45 +303,8 @@ path = compute_path(); //this statement does not execute until run time
 <div class="desc">
   Can only be used inside a library file. 
   Imports the named libraries and symbols. 
-  For each import_spec, one of the following happens: 
-<ul>
-<li> If the import_spec is (dir/)*libname, then the library libname is loaded
-from the loadpath concatenated with the specified directory sequence. All
-symbols exported from that library are bound to locals in the current library.
-For example:
-<div class="code">
-<pre>
-@import( dir1/lib1 );
-</pre>
-</div>
-Will import all symbols exported by the library found in the first 
-dir1/lib1.cqct in the load path (the load path is searched in order). 
-</li>
-<li>If the import_spec is <em>(sym, (dir/)*libname)</em>, 
-then the library libname is loaded and bound 
-to the symbol <em>sym</em> in the current library. 
-Symbols exported by the library can be accessed with:
-<em>sym.fn1()</em>. 
-For instance
-<div class="code">
-<pre>
-@import( (mylib1, dir1/lib1) );
-mylib1.fn1(); //calls the export fn1 from dir1/lib1
-</pre>
-</div>
-</li>
-<li>If the import_spec is <em>(sym, (dir/)*libname.esym)</em>, 
-then the library libname is loaded and the symbol esym from that library
-is bound to the symbol <em>sym</em> in the current library. For instance
-<div class="code">
-<pre>
-@import( (myfn1, dir1/lib1.fn1) );
-</pre>
-</div>
-Will load the first file dir1/lib1.cqct found in the load path as a library
-and set the local variable myfn1 to the value of fn1 in that library. 
-</li>
-</ul>
+  See <a href=#import_spec>import specification</a> for a list of
+  valid import specifications.
 </div>
 </div>
 
@@ -366,6 +328,8 @@ and set the local variable myfn1 to the value of fn1 in that library.
     For use in top-level execution. Unlike the other library import
     techniques, this will re-load the library from disk every time
     (though it will not re-load the library's dependencies).
+    See <a href=#import_spec>import specification</a> for a list of
+    valid import specifications.
   </div>
 </div>
 
@@ -432,9 +396,10 @@ and set the local variable myfn1 to the value of fn1 in that library.
     </div>
   </div>
   <div class="desc">
-    Used to import code from libraries. See 
-    <a href=#fn:@import>@import</a> for a description of import_spec. 
+    Used to import code from libraries. 
     All imported symbols will only be visible inside the provided body.
+    See <a href=#import_spec>import specification</a> for a list of
+    valid import specifications.
   </div>
 </div>
 
