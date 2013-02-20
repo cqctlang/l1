@@ -63,7 +63,6 @@ if (__library_exports == nil) //might not have been set in a macro
   @defloc check_and_load(lib,args_v) {
     @local l,fp,parsed,ftn;
     @global __library_exports;
-    lib = mkcid(lib);
     if (__library_exports[lib] == nil)
       __library_exports[lib] = [:];
     if (__library_exports[lib][args_v] != nil)
@@ -122,7 +121,7 @@ if (__library_exports == nil) //might not have been set in a macro
   new_locals = [];
 
   foreach(@lambda(en) {
-    @local s,fn,lname,args;
+    @local s,fn,lname,args,lnamecid;
     //parse (fn, lib.fn) or (lib)
     switch(en) {
       @match #comma(x,y):
@@ -135,6 +134,7 @@ if (__library_exports == nil) //might not have been set in a macro
         has_dot = nil;
         has_args = nil;
         lname = mklibstr(y); //sets the has_dot variable
+        lnamecid = mkcid(lname);
 
         if (has_args != nil) {
           has_args = #list(has_args);
@@ -144,7 +144,7 @@ if (__library_exports == nil) //might not have been set in a macro
           args = nil;
         }
 
-        check_and_load(lname,args);
+        check_and_load(lnamecid,args);
 
         //store the id in the list of locals
         append(new_locals,#id(fn));
@@ -152,12 +152,12 @@ if (__library_exports == nil) //might not have been set in a macro
         if (has_dot != nil) {
           @local lfn;
           lfn = has_dot;
-          if (__library_exports[lname][args][lfn] == nil)
+          if (__library_exports[lnamecid][args][lfn] == nil)
               error("Attempt to import non-exported symbol %a in %a",
                   lfn,lname );
           s = #`{
             #,(#id(fn)) = __library_exports
-                            [#,(#val(lname))]
+                            [#,(#val(lnamecid))]
                             [#,(has_args)] 
                             [#,(#val(lfn))];
           };
@@ -169,7 +169,7 @@ if (__library_exports == nil) //might not have been set in a macro
           s = #`{
             {
               @local lib_exports;
-              lib_exports = __library_exports[ #,(#val(lname)) ]
+              lib_exports = __library_exports[ #,(#val(lnamecid)) ]
                                              [ #,(has_args) ];
               @defloc internal_dispatch(s,fnnm,args...)
               {
@@ -202,6 +202,8 @@ if (__library_exports == nil) //might not have been set in a macro
           has_dot = nil;
           has_args = nil;
           lname = mklibstr(en);
+          lnamecid = mkcid(lname);
+
           if (lname == nil)
             error("Could not parse imports at %a\n",en);
 
@@ -213,20 +215,20 @@ if (__library_exports == nil) //might not have been set in a macro
             args = nil;
           }
 
-          check_and_load(lname,args);
+          check_and_load(lnamecid,args);
 
           foreach(@lambda(lfn,_) {
             //store the id in the list of locals
             append(new_locals,#id(lfn));
             s = #`{
-              #,(#id(lfn)) = __library_exports[#,(#val(lname))]
+              #,(#id(lfn)) = __library_exports[#,(#val(lnamecid))]
                                               [#,(has_args)]
                                               [#,(#val(lfn))];
               //hack to avoid variable defined but not referenced warnings
               #,(#id(lfn)) = #,(#id(lfn)); 
             };
             append(new_body,s);
-          },__library_exports[lname][args]);
+          },__library_exports[lnamecid][args]);
           break;
       }
     },Ztolist(imports));
@@ -281,7 +283,7 @@ if (__library_exports == nil) //might not have been set in a macro
 //this macro allows one to export some symbols as though they were part of
 //a library with the provided name
 @defstx @with_exports(name,exports...) body {
-  @local libname, new_body, new_locals, new_postbody;
+  @local libname, libnamecid, new_body, new_locals, new_postbody, s;
 
   @defloc mklibstr(lib) {
     switch(lib) {
@@ -297,6 +299,7 @@ if (__library_exports == nil) //might not have been set in a macro
   }
 
   libname = mklibstr(name);
+  libnamecid = mkcid(libname);
 
   if (__library_exports == nil) __library_exports = [:];
 
@@ -304,10 +307,10 @@ if (__library_exports == nil) //might not have been set in a macro
   //the first thing we need to have done is to register that this library
   //exists by setting it's hash table in the __library_exports. 
   new_body = [ #`{
-    if (__library_exports[#,(#val(libname))] == nil)
-      __library_exports[#,(#val(libname))] = mktab(); 
-    if (__library_exports[#,(#val(libname))][args] == nil)
-      __library_exports[#,(#val(libname))][args] = mktab(); 
+    if (__library_exports[#,(#val(libnamecid))] == nil)
+      __library_exports[#,(#val(libnamecid))] = mktab(); 
+    if (__library_exports[#,(#val(libnamecid))][args] == nil)
+      __library_exports[#,(#val(libnamecid))][args] = mktab(); 
   } ];
   //new_postbody collects statements to be run after the main body of
   //this library. 
@@ -316,20 +319,19 @@ if (__library_exports == nil) //might not have been set in a macro
   new_locals = [];
 
   s = #`{
-    if (__library_exports[#,(#val(libname))][args] == nil)
-      __library_exports[#,(#val(libname))][args] = [:];
+    if (__library_exports[#,(#val(libnamecid))][args] == nil)
+      __library_exports[#,(#val(libnamecid))][args] = [:];
   };
   append(new_postbody,s);
 
   foreach(@lambda(en) {
-    @local s;
     append(new_locals,en);
     switch(en) {
     @match #id(x): en = x; break;
     default: error("Error parsing export %a in %a\n",en,libname);
     }
     s = #`{
-      __library_exports[#,(#val(libname))][args][#,(#val(en))] = #,(#id(en)); 
+      __library_exports[#,(#val(libnamecid))][args][#,(#val(en))] = #,(#id(en)); 
     };
     append(new_postbody,s);
   },Ztolist(exports));
