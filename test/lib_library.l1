@@ -1,6 +1,9 @@
 
 @add_loadpath(loadpath()[0] + "/../test/libs");
 
+arglib2 = @import_object(lib5(1000));
+arglib2.printargs();
+
 @with_imports ( (f1, lib3.f2), lib4 ) { 
   @defloc f4() { printf("Running f4 from main!\n"); } 
   printf("In main\n"); 
@@ -10,15 +13,30 @@
   printf("constant c1's value: %a\n",c1); 
 }
 
+@with_imports ( lib3, lib4 ) { 
+  1+1; 
+}
+
+printf("loading test\n");
 @library(test) {
   @import( lib3 );
   @export( func );
   @define func() {
     f2();
   }
+  printf("test(%a) loaded\n",args);
 };
 
 @with_imports( test ) {
+  func();
+}
+
+@with_imports( test ) {
+  func();
+}
+
+printf("loading test(10)\n");
+@with_imports( test(10) ) {
   func();
 }
 
@@ -58,3 +76,9 @@ printf("Testing lone object import\n");
 sublib = @import_object( subdir/sublib );
 sublib.fn1();
 
+arglib = @import_object(lib5(1,2,3,"abcde",[1,2,3]));
+arglib.printargs();
+
+arglib2 = @import_object(lib5(1000));
+arglib2.printargs();
+arglib.printargs();
