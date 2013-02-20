@@ -41,9 +41,14 @@ macro limitations.
 An example library file might look this file, named <b>lib1.cqct</b>:
 <div class="code">
 <pre>
-@local helper_func2;
+//variables local to the library must be declared 
+//at the top of the file
+@local helper_func2; 
+
+//only functions may be exported from a library
 @export( func1, func2 );
 
+//the library's contents look like normal cqct code
 @define func1() { ... }
 @define helper_func2() { ... }
 @define func2() { ... }
@@ -58,43 +63,26 @@ then run using those symbols as follows:
 </p>
 <div class="code">
 <pre>
-@with_imports( lib1 ) {
-  ...
-  func1();
-  ...
-  func2();
-  ...
-}
+lib1 = @import_object( lib1 ); 
+...
+lib1.func1(); //runs the function func1 exported by lib1
+...
+lib1.func2(); //runs the function func2 exported by lib1
+...
 </pre>
 </div>
-The <em>@with_imports</em> macro checks that lib1.cqct has been loaded,
-loading it if necessary, and
-binds all of that library's exported symbols in the following scope.
+The <em>@import_object</em> macro checks that lib1.cqct has been loaded,
+loading it only if necessary, and
+creates an object through which any of the library's exported functions
+can be called. 
 Since lib1.cqct exports both <em>func1</em> and <em>func2</em>
-both symbols will be available. If one already has a binding for 
-<em>lib1_func1</em> and wants to bind it to a different symbol, 
-one can do the following:
-<div class="code">
-<pre>
-@define func1() { ... }
-@with_imports( (lib1_func1, lib1.func1) ) {
-  ...
-  func1(); //calls above function 
-  ...
-  lib1_func1(); //calls func1 from lib1.cqct
-}
-</pre>
-</div>
-In this case, the function <em>func1</em> from lib1 is bound to
-the symbol <em>lib1_func1</em> while the original binding for <em>func1</em>
-remains unchanged. This sort of rebinding allows
-a programmer to avoid symbol colision for symbols defined by multiple
-libraries. 
+both symbols will be available. 
 </p>
 
 <p>
-When writing a library one can use <em>@import</em> instead of 
-<em>@with_imports</em>.
+When writing a library one can also use <em>@import</em> syntax,
+which will make all of the exported symbols from the associated
+library visible without an associated object (as above). 
 Consider for example <b>lib2.cqct</b>
 <div class="code">
 <pre>
@@ -104,23 +92,64 @@ Consider for example <b>lib2.cqct</b>
 
 @define something() { 
   ... 
-  func1();
+  func1(); //calls func1 from lib1
   ...
 }
 @define somethingelse() { ... }
 </pre>
 </div>
 The <em>@import</em> macro only works inside a library file -- at the top
-level <em>@with_imports</em> must be used instead. 
+level <em>@import_object</em>, <em>@import_globals</em> or
+<em>@with_imports</em> must be used instead. 
 </p>
 
 <h5 id=import_spec>Import Specification</h5>
 <p>
 <em>@import</em>, <em>@with_imports</em>, and <em>@import_globals</em> are 
 variable argument macros which support the same import specification.
-Each element of the import specification can have one of three forms
+There are three valid import speicifcation forms, all of which use 
+the same library name specification. 
 </p>
 
+<b>Library name specification</b>: 
+Libraries are specified by a name that maps to their
+actual file name. The name is path-like to allow for the organization
+of libraries into modules and to help organize the libraries in the file
+system. Further, the library name is allowed to be
+given arguments (similar to a function call). This allows one to initialize
+libraries with parameters specific to the given run. Formally, a library
+name is:
+<div class="code">
+<pre>
+[&lt;path1&gt;/[&lt;path2&gt;/ [...]]]&lt;name&gt;[( [arg1 [, arg2 [, ...]]] )]
+</pre>
+</div>
+For instance, consider the library name:
+<div class="code">
+<pre>
+path1/path2/name(1,2)
+</pre>
+</div>
+This will attempt to find the file path1/path2/name.cqct in the current load
+path, and then initialize that library with <em>args</em> set to [1,2]
+</p>
+
+<p>
+When arguments are present in a library name, the library
+must always be newly re-loaded to account for the possibility that the
+new arguments might cause different behavior. 
+When arguments are not present, however, the library is loaded exactly
+once.  This can be used to the 
+programer's advantage: loading <em>lib1()</em> instead of <em>lib1</em>
+will force the library lib1 to be loaded even if it had been loaded previously. 
+Newly loaded libraries will not affect previously loaded versions of the
+same library.
+</p>
+
+
+<p>
+The three import specification forms are:
+</p>
 <p>
 <em>library_name</em>: This will import all functions exported by
   that library directly into the local scope before evaluating the local
@@ -156,9 +185,8 @@ a function <em>fn1</em>, one can call that function with the statment
 binding with the given name to the given library export. For instance:
 <div class="code">
 <pre>
-@with_imports( (f, lib1.fn1) ) {
-  f(); //this will call function fn1 exported by library lib1
-}
+@import_globals( (lib1_fn1, lib1.fn1) );
+lib1_fn1(); //this will call function fn1 exported by library lib1
 </pre>
 </div>
 </p>
@@ -316,8 +344,7 @@ path = compute_path(); //this statement does not execute until run time
     </div>
     <div class="param">
       <span class="arg">import_spec</span>: 
-      <span class="type">(dir/)*libname</span> or
-      <span class="type">(sym, (dir/)*libname.sym)</span> or
+      <span class="type">import specification</span> 
     </div>
     <div class="returns">
       <span class="type">nothing</span>
@@ -340,7 +367,7 @@ path = compute_path(); //this statement does not execute until run time
       </span>
     </div>
     <div class="param">
-      <span class="type">(dir/)*libname</span>
+      <span class="type">library specification</span>
     </div>
     <div class="returns">
       <span class="type">cqct object</span>
