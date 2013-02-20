@@ -1182,6 +1182,40 @@ importseg(MT mt, Gen g, void *p, uptr aoff, u8 *card, u8 *crossing)
 	H.inuse += Segsize;
 }
 
+static void
+importbigseg(MT mt, Gen g, void *p, uptr aoff, u8 *card, u8 *crossing)
+{
+	Seg *s, *es;
+	void *e;
+	u64 sz;
+
+	sz = roundup(aoff, Segsize);
+	e = p+sz;
+	remapsegmap(p, e);
+	s = a2s(p);
+	s->mt = mt;
+	s->gen = g;
+	s->a = p+aoff;
+	s->e = p+aoff-1;
+	memcpy(s->card, card, sizeof(s->card));
+	memcpy(s->crossing, crossing, sizeof(s->crossing));
+	minsert(&H.m[mt][g], s);
+	s++;
+	es = a2s(p+sz);
+	while(s < es){
+		memset(s->card, Clean, sizeof(s->card));
+		memset(s->crossing, 0, sizeof(s->crossing));
+		s->mt = mt;
+		MTsetbigcont(s->mt);
+		s->gen = g;
+		s->a = s->e = 0;
+		s->link = 0;
+		s++;
+	}
+	H.na += sz;
+	H.bigsz += sz;
+}
+
 u64
 meminuse()
 {
@@ -2254,6 +2288,7 @@ resetmem()
 	H.heapsz = 0;
 	H.free = 0;
 	H.inuse = 0;
+	H.bigsz = 0;
 }
 
 void
@@ -2987,13 +3022,14 @@ int
 saveheap(Tab *toplevel, char *file)
 {
 	u8 mt, g;
-	u32 i, sn, nsp, xx;
+	u32 i, sn, nsp;
 	M *m;
 	Seg *s, *t;
 	int fd, err;
 	off_t off;
 	void *op, *p;
 
+	sleep(1);
 	p = 0;
 	fd = -1;
 	fd = open(file, O_RDWR|O_TRUNC|O_CREAT, 0600);
@@ -3027,7 +3063,6 @@ saveheap(Tab *toplevel, char *file)
 			}
 		}
 	}
-	printf("%d segments\n", sn);
 
 	/* segment descriptors */
 	if(-1 == xwrite(fd, &sn, sizeof(u32))){
@@ -3041,7 +3076,6 @@ saveheap(Tab *toplevel, char *file)
 			m = &H.m[mt][g];
 			if(m->h == 0)
 				continue;
-//			printf("%d %-10s\tscan %p\n", g, MTname[mt], m->scan);
 			s = a2s(m->h);
 			while(1){
 				if(0 > segsummary(fd, s))
@@ -3077,7 +3111,6 @@ saveheap(Tab *toplevel, char *file)
 		fprintf(stderr, "saveheap: write: %s\n", strerror(errno));
 		goto fail;
 	}
-	printf("saving %d scan pointers\n", nsp);
 	for(mt = 0; mt < Nmt; mt++){
 		if(skipmt(mt))
 			continue;
@@ -3125,7 +3158,6 @@ saveheap(Tab *toplevel, char *file)
 		fprintf(stderr, "saveheap: write: %s\n", strerror(errno));
 		goto fail;
 	}
-	printf("saving %d c symbols\n", ncfn);
 	for(i = 0; i < ncfn; i++)
 		if(-1 == xwrite(fd, cfn[i].name, strlen(cfn[i].name)+1)){
 			fprintf(stderr, "saveheap: write: %s\n", strerror(errno));
@@ -3151,7 +3183,6 @@ saveheap(Tab *toplevel, char *file)
 			m = &H.m[mt][g];
 			if(m->h == 0)
 				continue;
-//			printf("%d %-10s\tscan %p\n", g, MTname[mt], m->scan);
 			s = a2s(m->h);
 			while(1){
 				if(-1 == xwrite(fd, s2a(s), Segsize)){
@@ -3174,7 +3205,6 @@ saveheap(Tab *toplevel, char *file)
 			}
 		}
 	}
-	printf("saved segments\n");
 
 	op = p = mmap(0, sn*Segsize, PROT_READ|PROT_WRITE, MAP_SHARED, fd, off);
 	if(p == MAP_FAILED){
@@ -3183,7 +3213,6 @@ saveheap(Tab *toplevel, char *file)
 	}
 
 	/* relocate segments */
-	xx = 0;
 	for(mt = 0; mt < Nmt; mt++){
 		if(skipmt(mt))
 			continue;
@@ -3193,9 +3222,6 @@ saveheap(Tab *toplevel, char *file)
 				continue;
 			s = a2s(m->h);
 			while(1){
-//				printf("exporting seg #%d mt %d gen %d p %p a %p\n",
-//				       xx, mt, g, s2a(s), s->a);
-				xx++;
 				saveseg(p, s);
 				p += Segsize;
 				if(MTbig(mt)){
@@ -3211,8 +3237,6 @@ saveheap(Tab *toplevel, char *file)
 			}
 		}
 	}
-
-	printf("relocated segments\n");
 
 	munmap(op, sn*Segsize);
 	close(fd);
@@ -3323,17 +3347,24 @@ restoreheap(char *file)
 	/* segments */
 	resetmem();
 	initsegmap2(top, nseg*Segsize);
-	for(i = 0; i < nseg; i++){
+	i = 0;
+	while(i < nseg){
 		s = &tseg[i];
-		if(MTbig(s->mt) || MTbigcont(s->mt)){
-			fprintf(stderr, "restoreheap: implement big segments\n");
-			goto fail;
+		if(MTbig(s->mt)){
+			importbigseg(s->mt, s->gen, p, (uptr)s->a, s->card, s->crossing);
+			loadseg(p, &ls);
+			p += Segsize;
+			i++;
+			while(i < nseg && MTbigcont(tseg[i].mt)){
+				p += Segsize;
+				i++;
+			}
+		}else{
+			importseg(s->mt, s->gen, p, (uptr)s->a, s->card, s->crossing);
+			loadseg(p, &ls);
+			p += Segsize;
+			i++;
 		}
-//		printf("importing seg #%d mt %d gen %d p %p a %p\n",
-//		       i, s->mt, s->gen, p, s->a);
-		importseg(s->mt, s->gen, p, (uptr)s->a, s->card, s->crossing);
-		loadseg(p, &ls);
-		p += Segsize;
 	}
 
 	/* update scan pointers */
@@ -3372,14 +3403,18 @@ restoreheap(char *file)
 
 	/* rehash tables */
 	p = top;
-	for(i = 0; i < nseg; i++){
+	i = 0;
+	while(i < nseg){
 		s = &tseg[i];
-		if(MTbig(s->mt) || MTbigcont(s->mt)){
-			fprintf(stderr, "restoreheap: implement big segments\n");
-			goto fail;
-		}
 		rehash(p);
 		p += Segsize;
+		i++;
+		if(MTbig(s->mt)){
+			while(i < nseg && MTbigcont(tseg[i].mt)){
+				p += Segsize;
+				i++;
+			}
+		}
 	}
 
 	/* reset dynamic wind */
