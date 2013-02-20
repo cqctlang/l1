@@ -70,12 +70,18 @@ if (__library_exports == nil) //might not have been set in a macro
     __library_exports[lib][args_v] = [:];
     //determine if that library has been loaded, if not, load it
     fp = pathto(sprintfa("%s.cqct",lib));
-    if (__library_exports[lib]['parsed] != nil)
+    //if we are not importing globals (in which case we always reload the file)
+    //and we have already parsed the file, simply use the old parse.
+    if (!glob && __library_exports[lib]['parsed] != nil)
     {
       if (args_v == nil && __library_exports[lib]['loaded] == 1)
+      {
         return;
+      }
       parsed = __library_exports[lib]['parsed];
     } else {
+      //XXX for manually defined @library statements, this may lead
+      //to issues if they are imported globally
       if (fp == nil) 
         error("could not find library: %s",lib);
       l = mapfile(fp);
@@ -138,7 +144,12 @@ if (__library_exports == nil) //might not have been set in a macro
 
         if (has_args != nil) {
           has_args = #list(has_args);
-          args = compile(has_args)();
+          args = applyk( @lambda() { compile(has_args)(); },
+                         @lambda(ret) { return ret; },
+                         @lambda() { nil; },
+                         []);
+          if (args == nil)
+            error("Bad library argument list. Cannot contain variables or runtime state.\nSee doc/library_system.html#compile_time_problems");
         } else {
           has_args = #id('nil);
           args = nil;
@@ -176,7 +187,7 @@ if (__library_exports == nil) //might not have been set in a macro
                 @local fn;
                 fn = lib_exports[mkcid(fnnm)];
                 if (fn == nil)
-                  error("library %s does not provide %s",#,(#val(lname)),fnnm);
+                  error("library %s does not provide %s.\nPossible recursive library dependency",#,(#val(lname)),fnnm);
                 return apply(fn,args);
               }
 

@@ -21,11 +21,10 @@
 </div>
 
 <p>
-Cinquecento provides a syntax-based mechanism for modularizing code.
+Cinquecento provides a prototype syntax-based mechanism for modularizing code.
 The primary goals of this system are both to allow the creation of libraries
-that do not assign global variables, and to allow easy
-swapping of different implementations for the same set of symbols into a 
-given piece of code. 
+that do not assign global variables, and to allow easy swapping of different
+implementations for the same set of symbols into a given piece of code. 
 </p>
 
 <p>
@@ -51,7 +50,10 @@ An example library file might look this file, named <b>lib1.cqct</b>:
 //the library's contents look like normal cqct code
 @define func1() { ... }
 @define helper_func2() { ... }
-@define func2() { ... }
+//libraries are loaded with a special variable, "args"
+//that is bound to parameters associated set by the
+//person loading the library
+@define func2() { printf("%a\n",args); }
 
 </pre>
 </div>
@@ -63,20 +65,34 @@ then run using those symbols as follows:
 </p>
 <div class="code">
 <pre>
-lib1 = @import_object( lib1 ); 
-...
+lib1 = @import_object( lib1 ); //loads lib1 with no parameters
 lib1.func1(); //runs the function func1 exported by lib1
-...
-lib1.func2(); //runs the function func2 exported by lib1
-...
+lib1.func2(); //prints "nil"
+
+lib1_v2 = @import_object( lib1(10,"abc") ); //loads lib1 with a parameter
+lib1_v2.func2(); //prints "[ 10, "abc" ]"
 </pre>
 </div>
 The <em>@import_object</em> macro checks that lib1.cqct has been loaded,
 loading it only if necessary, and
 creates an object through which any of the library's exported functions
-can be called. 
+can be called. The second load of lib1 loads it with the parameter 10.
 Since lib1.cqct exports both <em>func1</em> and <em>func2</em>
-both symbols will be available. 
+both symbols will be available in both objects. 
+</p>
+
+<p id=compile_time_problems>
+The library arguments are calculated
+<b>at compile time</b>, so one may not use any runtime state in a library
+argument list. For instance:
+<div class="code">
+<pre>
+a = 10; //a is set to 10 at run time
+//this next line is compiled before any line is run
+//so the variable a is not bound on library load
+lib1 = @import_object( lib1(a,"abc") ); //error! 
+</pre>
+</div>
 </p>
 
 <p>
@@ -102,6 +118,7 @@ The <em>@import</em> macro only works inside a library file -- at the top
 level <em>@import_object</em>, <em>@import_globals</em> or
 <em>@with_imports</em> must be used instead. 
 </p>
+
 
 <h5 id=import_spec>Import Specification</h5>
 <p>
@@ -133,19 +150,6 @@ path1/path2/name(1,2)
 This will attempt to find the file path1/path2/name.cqct in the current load
 path, and then initialize that library with <em>args</em> set to [1,2]
 </p>
-
-<p>
-When arguments are present in a library name, the library
-must always be newly re-loaded to account for the possibility that the
-new arguments might cause different behavior. 
-When arguments are not present, however, the library is loaded exactly
-once.  This can be used to the 
-programer's advantage: loading <em>lib1()</em> instead of <em>lib1</em>
-will force the library lib1 to be loaded even if it had been loaded previously. 
-Newly loaded libraries will not affect previously loaded versions of the
-same library.
-</p>
-
 
 <p>
 The three import specification forms are:
