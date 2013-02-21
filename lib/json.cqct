@@ -1,0 +1,49 @@
+@global val2json;
+/* json2val() is an l1 builtin */
+{
+	@define val2json(v)
+	{
+		if(isstring(v) || iscid(v))
+			return sprintfa("\"%s\"", v);
+		else if(iscvalue(v))
+			return sprintfa("%u", v);
+		else if(islist(v))
+			return list2json(v);
+		else if(istable(v))
+			return tab2json(v);
+		else
+			error("invalid value: %a", v);
+	}
+
+	@defloc tab2json(tab)
+	{
+		@local ss, m;
+		ss = [];
+		m = length(tab);
+		append(ss, "{");
+		foreach(@lambda(key, val){
+				append(ss, val2json(key));
+				append(ss, ":");
+				append(ss, val2json(val));
+				if(--m > 0)
+					append(ss, ",");
+			}, tab);
+		append(ss, "}");
+		return join(ss);
+	}
+
+	@defloc list2json(l)
+	{
+		@local ss, m;
+		ss = [];
+		m = length(l);
+		append(ss, "[");
+		foreach(@lambda(val){
+				append(ss, val2json(val));
+				if(--m > 0)
+					append(ss, ",");
+			}, l);
+		append(ss, "]");
+		return join(ss);
+	}
+}
