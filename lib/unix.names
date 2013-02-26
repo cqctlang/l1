@@ -55,3 +55,11 @@ struct termios {
 	@56 speed_t c_ospeed;
 	@60;
 };
+
+struct linux_dirent {
+	@0				unsigned long d_ino;
+	@(sizeof(unsigned long))	unsigned long d_off;
+	@(2 * sizeof(unsigned long))	unsigned short d_reclen;
+	@(sizeof(unsigned short) + 2*sizeof(unsigned long)) char d_name[0];
+	@(sizeof(unsigned short) + 2*sizeof(unsigned long));
+};

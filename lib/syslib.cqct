@@ -196,3 +196,41 @@ unlink = sys_unlink;
 reboot = @lambda(cmd) {
   return sys_reboot(0xfee1dead,672274793,cmd,0);
 };
+
+dirlist=@lambda(dirname) {
+	@local readdir_size;
+	@local buf;
+	@local fd;
+	@local ddom;
+	@local count;
+	@local l;
+	@local start,end;
+	
+	readdir_size=512;
+
+	buf=malloc(readdir_size);
+	if(!buf) return nil;
+
+	fd=sys_open(dirname,unix`O_RDONLY);
+	if(fd==-1)
+		return nil;
+
+	ddom=mkdom(unix,asof(buf));
+	buf={ddom}buf;
+
+	l=[];
+
+	while((count=(int)syscall(unix`getdents,fd,buf,readdir_size)) > 0) {
+
+		start=buf;
+		end=((unsigned char *)buf)+count;
+		while(start<end) {
+			start=(struct linux_dirent *)start;
+			append(l,getbytes(start->d_name,strlen(start->d_name)));
+			start=(struct linux_dirent *)(((unsigned char *)start)
+				+ start->d_reclen);
+		}	
+	}
+
+	return l;
+};
