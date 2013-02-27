@@ -134,7 +134,7 @@ static int jsmn_parse_primitive(jsmn_parser *parser, const char *js,
 			case ','  : case ']'  : case '}' :
 				goto found;
 		}
-		if (js[parser->pos] < 32 || js[parser->pos] >= 127) {
+		if (js[parser->pos] < 32 || js[parser->pos] >= 255) {
 			parser->pos = start;
 			return JSMN_ERROR_INVAL;
 		}
@@ -387,7 +387,7 @@ expands(char *s, unsigned long len)
 					u += *r-'0';
 				r++;
 			}
-			if(u > 127)
+			if(u > 255)
 				return 0;
 			c = (char)u;
 			break;
