@@ -1,6 +1,9 @@
 *.o
 depend
 l1
+mkelf
+tl1
+heap.l1
 .DS_Store
 fns.*.c
 */*/*.a
