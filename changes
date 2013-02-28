@@ -42,3 +42,14 @@ symbols beginning with @ can be constructed like other symbols:
 	@foo
 
 
+
+compilation:
+
+Makefile defines OS, canonicalized name of OS.
+
+builds based on conf/mk.$(OS)
+
+generally based on conf/mk.unix
+
+it would be easy to extend for per-arch configurations,
+but this hasn't been necessary.
