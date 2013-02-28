@@ -1479,7 +1479,7 @@ usualconvs(VM *vm, Cval *op1, Cval *op2, Cval **rv1, Cval **rv2)
 
 Closure *xentry;
 
-static void
+void
 calln(VM *vm)
 {
 	Xentry *x;
@@ -1502,6 +1502,7 @@ _ccall(VM *vm, Closure *cl, Imm argc, Val *argv)
 	Code *c;
 	Val rv;
 	Imm m;
+	void (*x)(void);
 
 	rv = Xnil;
 	c = cl->code;
@@ -1545,9 +1546,16 @@ _ccall(VM *vm, Closure *cl, Imm argc, Val *argv)
 		vm->ac = rv;
 		break;
 	case Cxfn:
-		bug();
+		if(Vkind(c->xfn) == Qstr)
+			x = (void*)strdata(valstr(c->xfn));
+		else if(Vkind(c->xfn) == Qcval)
+			x = (void*)(uptr)cvalu(valcval(c->xfn));
+		else
+			bug();
+		x();
+		break;
 #if 0
-
+		/* dregs for native code entry */
 		fsz = Onfrhd+vm->vc;
 
 		vm->fp += fsz;
@@ -1568,8 +1576,8 @@ _ccall(VM *vm, Closure *cl, Imm argc, Val *argv)
 		vm->vc = fsz-Onfrhd;
 		vm->fp -= fsz;
 		rv = vm->ac;
-#endif
 		break;
+#endif
 	default:
 		bug();
 	}
@@ -1639,6 +1647,7 @@ vcall(VM *vm)
 {
 	Code *c;
 	Val rv;
+	void (*x)(void);
 
 	if(showvcall)
 		printf("vcall %s\n", ciddata(vm->cl->code->id));
@@ -1665,10 +1674,24 @@ vcall(VM *vm)
 		vm->pc = stkp(vm->fp[Ora]);
 		break;
 	case Cxfn:
+		if(Vkind(c->xfn) == Qstr)
+			x = (void*)strdata(valstr(c->xfn));
+		else if(Vkind(c->xfn) == Qcval)
+			x = (void*)(uptr)cvalu(valcval(c->xfn));
+		else
+			bug();
+		x();
+		vm->ac = Xnil;
+		vm->cl = valcl(vm->fp[Ocl]);
+		vm->pc = stkp(vm->fp[Ora]);
+		break;
+#if 0
+		/* dregs for native call */
 		calln(vm);
 		vm->cl = valcl(vm->fp[Ocl]);
 		vm->pc = stkp(vm->fp[Ora]);
 		break;
+#endif
 	default:
 		bug();
 	}
@@ -1757,8 +1780,13 @@ vapply(VM *vm)
 		vm->cl = stkp(vm->fp[Ocl]);
 		break;
 	case Cxfn:
-		calln(vm);	/* FIXME: does this really work? */
+		vmerr(vm, "attempt to apply alien code");
 		break;
+/*
+  dregs for native code
+		calln(vm);
+		break;
+*/
 	default:
 		bug();
 	}
@@ -7444,6 +7472,7 @@ mktopenv(void)
 	fnch(env);
 	fncid(env);
 	fncompile(env);
+	fncode(env);
 	fnctl(env);
 	fnctype(env);
 	fncval(env);

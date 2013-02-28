@@ -984,6 +984,7 @@ Imm		bitfieldput(char *s, BFgeom *bfg, Imm val);
 
 /* code.c */
 void		addreloc(Code *code, uptr coff);
+void		fncode(Env env);
 Code*		mkncode(Imm nbytes);
 Imm		ra2mask(void *ra, Code *code);
 Imm		ra2size(void *ra, Code *code);
