@@ -138,7 +138,7 @@ syntaxid
 maybeid
 	: id
 	|
-	{ $$ = 0 }
+	{ $$ = 0; }
 	;
 
 lambda
