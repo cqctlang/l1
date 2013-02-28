@@ -6992,7 +6992,7 @@ l1_defaultwarning(VM *vm, Imm argc, Val *argv, Val *rv)
 		vmerr(vm, "wrong number of arguments to warning");
 	checkarg(vm, argv, 0, Qstr);
 	s = valstr(argv[0]);
-	cprintf(&l1stderr, "%.*s\n", s->len, strdata(s));
+	cprintf(&l1stderr, "%.*s\n", (int)s->len, strdata(s));
 }
 
 static void
