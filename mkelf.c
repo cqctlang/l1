@@ -184,132 +184,48 @@ strtablen(Strtab *st)
 	return (st->p-st->tab)*sizeof(st->tab[0]);
 }
 
+
+#define Elf_Ehdr	Elf64_Ehdr
+#define Elf_Shdr	Elf64_Shdr
+#define Elf_Sym		Elf64_Sym
+#define Symtab		Symtab64
+#define initsymtab	initsymtab64
+#define addsymtab	addsymtab64
+#define symtablen	symtab64len
+
 static void
 mkelfo64(Sys *sys, int fd, char *sym, void *data, uptr len, uptr align)
-{
-	Elf64_Ehdr hdr;
-	Elf64_Shdr shdr[Nsect];	
-	Strtab shstrtab;
-	Strtab symstrtab;
-	Symtab64 symtab;
-	uptr dataoff, shstrtaboff, symtaboff, symstrtaboff;
-	char endsym[128];
+#include "mkelfo.c"
 
-	initstrtab(&shstrtab);
-	initstrtab(&symstrtab);
-	initsymtab64(&symtab);
+#undef Elf_Ehdr
+#undef Elf_Shdr
+#undef Elf_Sym
+#undef Symtab
+#undef initsymtab
+#undef addsymtab
+#undef symtablen
 
-	memset(&hdr, 0, sizeof(hdr));
-	hdr.e_ident[EI_MAG0] = ELFMAG0;
-	hdr.e_ident[EI_MAG1] = ELFMAG1;
-	hdr.e_ident[EI_MAG2] = ELFMAG2;
-	hdr.e_ident[EI_MAG3] = ELFMAG3;
-	hdr.e_ident[EI_CLASS] = sys->width;
-	hdr.e_ident[EI_DATA] = ELFDATA2LSB;
-	hdr.e_ident[EI_VERSION] = EV_CURRENT;
-	hdr.e_ident[EI_OSABI] = ELFOSABI_SYSV;
-	hdr.e_type = ET_REL;
-	hdr.e_machine = sys->machine;
-	hdr.e_version = EV_CURRENT;
-	hdr.e_entry = 0;
-	hdr.e_phoff = 0;
-	hdr.e_shoff = sizeof(Elf64_Ehdr);
-	hdr.e_flags = 0;
-	hdr.e_ehsize = sizeof(Elf64_Ehdr);
-	hdr.e_phentsize = 0;
-	hdr.e_phnum = 0;
-	hdr.e_shentsize = sizeof(Elf64_Shdr);
-	hdr.e_shnum = Nsect;
-	hdr.e_shstrndx = 1;
 
-	shdr[0].sh_name = 0;
-	shdr[0].sh_type = SHT_NULL;
-	shdr[0].sh_flags = 0;
-	shdr[0].sh_addr = 0;
-	shdr[0].sh_offset = 0;
-	shdr[0].sh_size = 0;
-	shdr[0].sh_link = SHN_UNDEF;
-	shdr[0].sh_info = 0;
-	shdr[0].sh_addralign = 0;
-	shdr[0].sh_entsize = 0;
-
-	shdr[1].sh_name = addstrtab(&shstrtab, ".shstrtab");
-	shdr[1].sh_type = SHT_STRTAB;
-	shdr[1].sh_flags = 0;
-	shdr[1].sh_addr = 0;
-	shdr[1].sh_link = 0;
-	shdr[1].sh_info = 0;
-	shdr[1].sh_addralign = 1;
-	shdr[1].sh_entsize = 0;
-
-	shdr[2].sh_name = addstrtab(&shstrtab, ".data");
-	shdr[2].sh_type = SHT_PROGBITS;
-	shdr[2].sh_flags = SHF_ALLOC|SHF_WRITE;
-	shdr[2].sh_addr = 0;
-	shdr[2].sh_link = 0;
-	shdr[2].sh_info = 0;
-	shdr[2].sh_addralign = align;
-	shdr[2].sh_entsize = 0;
-
-	shdr[3].sh_name = addstrtab(&shstrtab, ".strtab");
-	shdr[3].sh_type = SHT_STRTAB;
-	shdr[3].sh_flags = 0;
-	shdr[3].sh_addr = 0;
-	shdr[3].sh_link = 0;
-	shdr[3].sh_info = 0;
-	shdr[3].sh_addralign = 1;
-	shdr[3].sh_entsize = 0;
-
-	shdr[4].sh_name = addstrtab(&shstrtab, ".symtab");
-	shdr[4].sh_type = SHT_SYMTAB;
-	shdr[4].sh_flags = 0;
-	shdr[4].sh_addr = 0;
-	shdr[4].sh_link = 3;
-	shdr[4].sh_info = 0; /* no locals */
-	shdr[4].sh_addralign = 8;
-	shdr[4].sh_entsize = sizeof(Elf64_Sym);
-
-	addsymtab64(&symtab,
-		    addstrtab(&symstrtab, sym),
-		    2,
-		    0,
-		    len);
-	snprintf(endsym, sizeof(endsym), "end%s", sym);
-	addsymtab64(&symtab,
-		    addstrtab(&symstrtab, endsym),
-		    2,
-		    len,
-		    0);
-
-	shstrtaboff = sizeof(Elf64_Ehdr)+Nsect*sizeof(Elf64_Shdr);
-	dataoff = shstrtaboff+strtablen(&shstrtab);
-	symstrtaboff = dataoff+len;
-	symtaboff = symstrtaboff+strtablen(&symstrtab);
-	
-	shdr[1].sh_offset = shstrtaboff;
-	shdr[1].sh_size = strtablen(&shstrtab);
-
-	shdr[2].sh_offset = dataoff;
-	shdr[2].sh_size = len;
-
-	shdr[3].sh_offset = symstrtaboff;
-	shdr[3].sh_size = strtablen(&symstrtab);
-
-	shdr[4].sh_offset = symtaboff;
-	shdr[4].sh_size = symtab64len(&symtab);
-
-	xwrite(fd, &hdr, sizeof(Elf64_Ehdr));
-	xwrite(fd, shdr, Nsect*sizeof(Elf64_Shdr));
-	xwrite(fd, shstrtab.tab, strtablen(&shstrtab));
-	xwrite(fd, data, len);
-	xwrite(fd, symstrtab.tab, strtablen(&symstrtab));
-	xwrite(fd, symtab.tab, symtab64len(&symtab));
-}
+#define Elf_Ehdr	Elf32_Ehdr
+#define Elf_Shdr	Elf32_Shdr
+#define Elf_Sym		Elf32_Sym
+#define Symtab		Symtab32
+#define initsymtab	initsymtab32
+#define addsymtab	addsymtab32
+#define symtablen	symtab32len
 
 static void
 mkelfo32(Sys *sys, int fd, char *sym, void *data, uptr len, uptr align)
-{
-}
+#include "mkelfo.c"
+
+#undef Elf_Ehdr
+#undef Elf_Shdr
+#undef Elf_Sym
+#undef Symtab
+#undef initsymtab
+#undef addsymtab
+#undef symtablen
+
 
 static void
 usage(char *argv0)
