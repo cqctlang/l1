@@ -1,0 +1,5 @@
+CFLAGS    += -m32
+LDFLAGS   += -melf_i386
+ARCH	   = i386
+
+include conf/mk.$(OS)

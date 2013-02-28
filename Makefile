@@ -78,6 +78,7 @@ include conf/mk.$(CONF)
 
 export CC
 export CFLAGS
+export LDFLAGS
 export CPPFLAGS
 export V
 

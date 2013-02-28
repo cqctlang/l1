@@ -1,10 +1,10 @@
-CC        = gcc
-LD        = ld
-CFLAGS    = -Wall -g
-LDFLAGS   = -r
-LIBS	  =
+CC        ?= gcc
+LD        ?= ld
+CFLAGS    ?= -Wall -g
+LDFLAGS   ?= -r
+LIBS	  ?=
 TARG      = udis.o
-V	  = @
+V	  ?= @
 
 all: $(TARG)
 
