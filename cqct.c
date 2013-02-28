@@ -297,6 +297,7 @@ cqctinit(char **lp, Xfd *in, Xfd *out, Xfd *err)
 		err->fd = 2;
 	}
 	initio(in, out, err);
+	initos();
 	initmem();
 	initqc();
 	initparse();

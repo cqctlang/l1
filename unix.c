@@ -1,6 +1,9 @@
 #include "sys.h"
 #include "util.h"
 
+char sysarch[256];
+char sysos[256];
+
 Imm
 xread(int fd, char *p, Imm len)
 {
@@ -248,4 +251,27 @@ usec(void)
 	u *= 1000000;
 	u += tv.tv_usec;
 	return u;
+}
+
+static void
+stolower(char *s)
+{
+	unsigned i, m;
+	m = strlen(s);
+	for(i = 0; i < m; i++)
+		s[i] = tolower(s[i]);
+}
+
+void
+initos()
+{
+	struct utsname buf;
+	if(0 > uname(&buf))
+		fatal("no uname");
+	memcpy(sysarch, buf.machine, sizeof(sysarch)-1);
+	memcpy(sysos, buf.sysname, sizeof(sysarch)-1);
+	if(strcmp(sysarch, "x86_64") == 0)
+		strcpy(sysarch, "amd64");
+	stolower(sysarch);
+	stolower(sysos);
 }

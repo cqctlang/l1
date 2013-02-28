@@ -1553,6 +1553,11 @@ void		initnc();
 /* boot.c */
 void		boot(VM *vm);
 
+/* os-dependent (unix.c, noix.c) */
+extern char	sysarch[];
+extern char	sysos[];
+void		initos();
+
 extern		void fns(Env);
 
 #endif /* _BISONFLAW_SYSCQCT_H_ */

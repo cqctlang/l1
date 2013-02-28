@@ -1,6 +1,9 @@
 #include "sys.h"
 #include "util.h"
 
+char sysarch[256];
+char sysos[256];
+
 static void notimpl(char *s) NORETURN;
 
 static void
@@ -156,4 +159,11 @@ Imm
 usec(void)
 {
 	notimpl("usec");
+}
+
+void
+initos()
+{
+	strcpy(sysarch, "unknown");
+	strcpy(sysos, "unknown");
 }
