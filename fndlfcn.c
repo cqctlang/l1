@@ -43,7 +43,7 @@ l1_dlclose(VM *vm, Imm argc, Val *argv, Val *rv)
 		vmerr(vm, "wrong number of arguments to dlclose");
 	checkarg(vm, argv, 0, Qcval);
 
-	handle = (void*)valimm(argv[0]);
+	handle = (void*)(uptr)valimm(argv[0]);
 
 	ret = dlclose(handle);
 
@@ -63,7 +63,7 @@ l1_dlsym(VM *vm, Imm argc, Val *argv, Val *rv)
 	checkarg(vm, argv, 0, Qcval);
 	checkarg(vm, argv, 1, Qstr);
 
-	handle = (void*)valimm(argv[0]);
+	handle = (void*)(uptr)valimm(argv[0]);
 
 	ftnnm = valstr(argv[1]);
 	ftn = str2cstr(ftnnm);
