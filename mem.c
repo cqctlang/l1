@@ -2905,7 +2905,6 @@ savesegment(void *p, uptr m)
 		h = p;
 		if(qs[Vkind(h)].loadsave)
 			qs[Vkind(h)].loadsave(h, &ls);
-//		printf("\tsaving %s at %p (%lx)\n", qs[Vkind(h)].id, h, (void*)h-s2a(a2s(h)));
 		p += qsz(h);
 	}
 }
@@ -2955,15 +2954,6 @@ segsummary(int fd, Seg *s)
 		goto fail;
 	if(-1 == xwrite(fd, s->crossing, sizeof(Ncard*sizeof(u8))))
 		goto fail;
-
-//	printf("\tbeg = %p\talloc = %p", s2a(s), s->a);
-//	printf("\tcard");
-//	for(i = 0; i < Ncard; i++)
-//		printf(" %02x", s->card[i]);
-//	printf("\tcrossing");
-//	for(i = 0; i < Ncard; i++)
-//		printf(" %d", s->crossing[i]);
-//	printf("\n");
 
 	return 0;
 fail:
@@ -3318,8 +3308,8 @@ restoreheap(char *file)
 		len = endheapimage-heapimage;
 		if(len == 0)
 			return 0;
-		op = p = mapmem(len); /* Segsize-aligned and hopefully
-					 close to other segments */
+		op = p = mapmem(len); /* Segsize-aligned; closer to
+					 other segments than executable */
 		memcpy(p, heapimage, len);
 	}
 
