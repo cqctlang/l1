@@ -6,3 +6,4 @@ fns.*.c
 */*/*.a
 *.failed
 *.swp
+*.so
