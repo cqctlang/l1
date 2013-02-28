@@ -6,7 +6,7 @@ export CC
 export LD
 export AR
 
-include mk.unix
+include conf/mk.$(OS)
 
 # inhibit OS X block declarations in system .h's
 CFLAGS += -U__BLOCKS__ -O0
