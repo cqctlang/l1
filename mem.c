@@ -3353,7 +3353,7 @@ restoreheap(char *file)
 		}
 		close(fd);
 		op = p = mapmem(len); /* Segsize-aligned */
-		memcpy(p, heapimage, len);
+		memcpy(p, tmp, len);
 		munmap(tmp, roundup(len, 4096));
 	}else{
 		len = endheapimage-heapimage;
