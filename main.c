@@ -417,7 +417,7 @@ main(int argc, char *argv[])
 	char *argv0, *root;
 	unsigned n, nlp;
 	char *lp[Maxloadpath+1];	/* extra one is final null */
-	Env top;
+	Env top, htop;
 	char *ename, *argsid;
 	struct memusage mu;
 	int rv;
@@ -548,12 +548,21 @@ main(int argc, char *argv[])
 	while(nlp > 0)
 		free(lp[--nlp]);
 	if(memfile == 0){
-		vm = cqctmkvm(top);
-		if(vm == 0){
-			cqctfini(top);
-			return -1;
+		htop = restoreheap(0);
+		if(htop){
+			vm = cqctmkvm(htop);
+			if(vm == 0){
+				cqctfini(top);
+				return -1;
+			}
+		}else{
+			vm = cqctmkvm(top);
+			if(vm == 0){
+				cqctfini(top);
+				return -1;
+			}
+			cqctbootvm(vm);
 		}
-		cqctbootvm(vm);
 	}else{
 		top = restoreheap(memfile);
 		if(top == 0)
@@ -700,5 +709,5 @@ main(int argc, char *argv[])
 	cqctfreevm(vm);
 	cqctfini(top);
 
-	return status;
+	return 0;
 }

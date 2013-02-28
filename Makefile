@@ -1,26 +1,22 @@
-CC        = gcc
-LD        = ld
-CFLAGS    += -Wall -g #-O3
+CC         = gcc
+LD         = ld
+CFLAGS    += -Wall -g -O3
 CPPFLAGS  +=
-LDFLAGS   = -r
-CONF     ?= unix
-L1LIBS	  =
-L1DEPS    =
-TARG      = l1
-V	  = @
+LDFLAGS    = -r
+ARCH	  := $(shell uname -m | sed 's/x86_64/amd64/')
+OS	  := $(shell uname -s | tr '[:upper:]' '[:lower:]')
+CONF      ?= $(OS).$(ARCH)
+L1LIBS	   =
+L1DEPS     =
+L1FUNS     =
+TARG       = l1
+V	   = @
+L1X        =
 
 .DEFAULT_GOAL := all
 
--include mk.$(CONF)
-
-export CC
-export CFLAGS
-export CPPFLAGS
-export V
-
 all: $(TARG)
 
-MACH=
 HDR = sys.h util.h cqct.h syscqct.h
 L1C =\
 	lex.yy.c\
@@ -71,21 +67,24 @@ L1C =\
 	vm.c\
 	cqct.c\
 	xfd.c\
-	$(MACH)\
 	fns.$(CONF).c\
-	amd64.c\
-	$(L1EXTRAS)
-
-L1O = $(L1C:.c=.o)
+	amd64.c
 
 L1DEPS += x/lib9/lib9.a udis/udis.o
 L1FUNS += fnfmt fnjson fndis
-L1EXTRAS += fnfmt.c fnjson.c fndis.c
+L1C += fnfmt.c fnjson.c fndis.c
+
+include conf/mk.$(CONF)
+
+export CC
+export CFLAGS
+export CPPFLAGS
+export V
 
 FNSDECLS = $(foreach fn, $(L1FUNS), "void $(fn)(Env);\n")
 FNSCALLS = $(foreach fn, $(L1FUNS), "	$(fn)(env);\n")
 
-fns.$(CONF).c: $(L1EXTRAS)
+fns.$(CONF).c:
 	@echo '#include "sys.h"' > $@
 	@echo '#include "util.h"' >> $@
 	@echo '' >> $@
@@ -117,6 +116,10 @@ parser:
 	@echo + cc $<
 	$(V)$(CC) $(CPPFLAGS) $(CFLAGS) -c -o $@ $<
 
+l1.o: $(L1C:.c=.o) $(L1DEPS) $(L1X)
+	@echo + ld $@
+	$(V)$(LD) $(LDFLAGS) -o $@ $^
+
 l1: l1.o main.o
 	@echo + ld $@
 	$(V)$(CC) $(CFLAGS) -o $@ $^ $(L1LIBS)
@@ -124,10 +127,6 @@ l1: l1.o main.o
 l1s: l1.o main.o
 	@echo + ld $@
 	$(V)$(CC) -static $(CFLAGS) -o $@ $^ $(L1LIBS)
-
-l1.o: $(L1O) $(L1DEPS)
-	@echo + ld $@
-	$(V)$(LD) $(LDFLAGS) -o $@ $^
 
 libl1.so: CFLAGS += -fPIC -nostdlib
 
@@ -175,4 +174,4 @@ clean: testclean
 	@$(MAKE) -s -C x/libsec clean
 	@$(MAKE) -s -C udis clean
 	@$(MAKE) -s -C demo clean
-	@$(RM) *~ .gdbhistory core core.* callgrind.out.* vgcore.* c.output l1.names main.o l1.o fns.*.c *.o $(TARG) *.so *.dylib depend
+	@$(RM) *~ .gdbhistory core core.* callgrind.out.* vgcore.* c.output l1.names main.o l1.o fns.*.c *.o $(TARG) *.so *.dylib mkelf heap.l1 depend

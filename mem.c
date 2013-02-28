@@ -3,6 +3,8 @@
 #include "syscqct.h"
 
 static Head constnil;
+extern char heapimage[];
+extern char endheapimage[];
 
 /* if you change this, be sure the
    ordering in MTx enum remains consistent */
@@ -3119,15 +3121,18 @@ saveheap(Tab *toplevel, char *file)
 			if(m->h == 0)
 				continue;
 			if(-1 == xwrite(fd, &mt, sizeof(u8))){
-				fprintf(stderr, "saveheap: write: %s\n", strerror(errno));
+				fprintf(stderr, "saveheap: write: %s\n",
+					strerror(errno));
 				goto fail;
 			}
 			if(-1 == xwrite(fd, &g, sizeof(u8))){
-				fprintf(stderr, "saveheap: write: %s\n", strerror(errno));
+				fprintf(stderr, "saveheap: write: %s\n",
+					strerror(errno));
 				goto fail;
 			}
 			if(-1 == saveroot(fd, (Val)m->scan)){
-				fprintf(stderr, "saveheap: write: %s\n", strerror(errno));
+				fprintf(stderr, "saveheap: write: %s\n",
+					strerror(errno));
 				goto fail;
 			}
 		}
@@ -3160,7 +3165,8 @@ saveheap(Tab *toplevel, char *file)
 	}
 	for(i = 0; i < ncfn; i++)
 		if(-1 == xwrite(fd, cfn[i].name, strlen(cfn[i].name)+1)){
-			fprintf(stderr, "saveheap: write: %s\n", strerror(errno));
+			fprintf(stderr, "saveheap: write: %s\n",
+				strerror(errno));
 			goto fail;
 		}
 
@@ -3186,14 +3192,18 @@ saveheap(Tab *toplevel, char *file)
 			s = a2s(m->h);
 			while(1){
 				if(-1 == xwrite(fd, s2a(s), Segsize)){
-					fprintf(stderr, "saveheap: write: %s\n", strerror(errno));
+					fprintf(stderr,
+						"saveheap: write: %s\n",
+						strerror(errno));
 					goto fail;
 				}
 				if(MTbig(mt)){
 					t = s+1;
 					while(MTbigcont(t->mt)){
 						if(-1 == xwrite(fd, s2a(t), Segsize)){
-							fprintf(stderr, "saveheap: write: %s\n", strerror(errno));
+							fprintf(stderr,
+								"saveheap: write: %s\n",
+								strerror(errno));
 							goto fail;
 						}
 						t++;
@@ -3264,7 +3274,7 @@ restoreheap(char *file)
 	int fd;
 	u64 len;
 	struct stat st;
-	void *op, *p, *top;
+	void *tmp, *op, *p, *top;
 	u32 i, nseg, nsp;
 	Seg *tseg, *s;
 	uptr root[11+Nsgen];
@@ -3279,22 +3289,38 @@ restoreheap(char *file)
 	sptr = 0;
 	p = 0;
 	fd = -1;
-	fd = open(file, O_RDONLY);
-	if(0 > fd){
-		fprintf(stderr, "restoreheap: open: %s\n", strerror(errno));
-		goto fail;
+
+	if(file){
+		fd = open(file, O_RDONLY);
+		if(0 > fd){
+			fprintf(stderr, "restoreheap: open: %s\n",
+				strerror(errno));
+			goto fail;
+		}
+		if(0 > fstat(fd, &st)){
+			fprintf(stderr, "restoreheap: stat: %s\n",
+				strerror(errno));
+			goto fail;
+		}
+		len = st.st_size;
+		tmp = mmap(0, len, PROT_READ|PROT_WRITE, MAP_PRIVATE, fd, 0);
+		if(tmp == MAP_FAILED){
+			fprintf(stderr, "restoreheap: stat: %s\n",
+				strerror(errno));
+			goto fail;
+		}
+		close(fd);
+		op = p = mapmem(len); /* Segsize-aligned */
+		memcpy(p, heapimage, len);
+		munmap(tmp, roundup(len, 4096));
+	}else{
+		len = endheapimage-heapimage;
+		if(len == 0)
+			return 0;
+		op = p = mapmem(len); /* Segsize-aligned and hopefully
+					 close to other segments */
+		memcpy(p, heapimage, len);
 	}
-	if(0 > fstat(fd, &st)){
-		fprintf(stderr, "restoreheap: stat: %s\n", strerror(errno));
-		goto fail;
-	}
-	len = st.st_size;
-	op = p = mmap(0, len, PROT_READ|PROT_WRITE, MAP_PRIVATE, fd, 0);
-	if(p == MAP_FAILED){
-		fprintf(stderr, "restoreheap: stat: %s\n", strerror(errno));
-		goto fail;
-	}
-	close(fd);
 
 #define XRD(to,fr,sz) { 		\
 	if(len < (sz)) goto fail;	\
@@ -3351,7 +3377,8 @@ restoreheap(char *file)
 	while(i < nseg){
 		s = &tseg[i];
 		if(MTbig(s->mt)){
-			importbigseg(s->mt, s->gen, p, (uptr)s->a, s->card, s->crossing);
+			importbigseg(s->mt, s->gen, p,
+				     (uptr)s->a, s->card, s->crossing);
 			loadseg(p, &ls);
 			p += Segsize;
 			i++;
@@ -3360,7 +3387,8 @@ restoreheap(char *file)
 				i++;
 			}
 		}else{
-			importseg(s->mt, s->gen, p, (uptr)s->a, s->card, s->crossing);
+			importseg(s->mt, s->gen, p,
+				  (uptr)s->a, s->card, s->crossing);
 			loadseg(p, &ls);
 			p += Segsize;
 			i++;
@@ -3422,8 +3450,8 @@ restoreheap(char *file)
 
 	return toplevel;
 fail:
-	if(op && op != MAP_FAILED)
-		munmap(op, len);
+	if(file && op && op != MAP_FAILED)
+		munmap(op, roundup(len, 4096));
 	close(fd);
 	efree(tseg);
 	efree(csym);

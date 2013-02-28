@@ -1,0 +1,27 @@
+include conf/mk.unix
+
+L1X     += heap.o
+
+mkelf: mkelf.o
+	@echo + ld $@
+	$(V)$(CC) $(CFLAGS) -o $@ $^
+
+noheap.o: mkelf
+	@echo + mkelf $@
+	$(V)./mkelf -a 0 -s heapimage -l 0 /dev/zero noheap.o
+
+tl1.o: $(L1C:.c=.o) $(L1DEPS) noheap.o 
+	@echo + ld $@
+	$(V)$(LD) $(LDFLAGS) -o $@ $^
+
+tl1: tl1.o main.o
+	@echo + ld $@
+	$(V)$(CC) $(CFLAGS) -o $@ $^ $(L1LIBS)
+
+heap.l1: tl1
+	@echo + dump $@	
+	$(V)./tl1 saveheap.cqct
+
+heap.o: heap.l1 mkelf
+	@echo + mkelf $@
+	$(V)./mkelf -a 0x1000 -s heapimage heap.l1 heap.o

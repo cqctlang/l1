@@ -9,8 +9,6 @@ x/libflate/libflate.a: FORCE
 x/libsec/libsec.a: FORCE
 	$(V)$(MAKE) -s -C x/libsec
 
-L1EXTRAS := $(addsuffix .c, $(UNIX)) \
-	     unix.c
-
-L1FUNS   := $(UNIX)
-L1LIBS  += -ldl
+L1C      += unix.c $(addsuffix .c, $(UNIX))
+L1FUNS   += $(UNIX)
+L1LIBS   += -ldl
