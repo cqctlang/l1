@@ -3352,6 +3352,7 @@ restoreheap(char *file)
 			goto fail;
 		}
 		close(fd);
+		fd = -1;
 		op = p = mapmem(len); /* Segsize-aligned */
 		memcpy(p, tmp, len);
 		munmap(tmp, roundup(len, 4096));
@@ -3523,13 +3524,16 @@ restoreheap(char *file)
 	/* reset dynamic wind */
 	tabput(toplevel, mkvalcid(mkcid0("$winders")), Xnil);
 
+	efree(tseg);
+	efree(sptr);
+	efree(csym);
 	return toplevel;
 fail:
-	if(file && op && op != MAP_FAILED)
+	if(op && op != MAP_FAILED)
 		munmap(op, roundup(len, 4096));
 	close(fd);
 	efree(tseg);
-	efree(csym);
 	efree(sptr);
+	efree(csym);
 	return 0;
 }
