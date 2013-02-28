@@ -2462,7 +2462,7 @@ lookcfnname(char *name)
 }
 
 enum{
-	Segx = 0xfffffffffff,  /* FIXME: define in terms of Segbits */
+	Segx = (((uptr)-1)>>Segbits),
 	Segconst = Segx,
 	Segcfn   = Segx-1,
 };
