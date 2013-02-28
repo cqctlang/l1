@@ -1496,13 +1496,29 @@ calln(VM *vm)
 	x(vm, cl, vm->vc);
 }
 
+static void
+callalien(Code *c)
+{
+	void (*x)(void);
+	switch(Vkind(c->alien)){
+	case Qstr:
+		x = (void*)strdata(valstr(c->alien));
+		break;
+	case Qcval:
+		x = (void*)(uptr)cvalu(valcval(c->alien));
+		break;
+	default:
+		bug();
+	}
+	x();
+}
+
 static Val
 _ccall(VM *vm, Closure *cl, Imm argc, Val *argv)
 {
 	Code *c;
 	Val rv;
 	Imm m;
-	void (*x)(void);
 
 	rv = Xnil;
 	c = cl->code;
@@ -1545,17 +1561,13 @@ _ccall(VM *vm, Closure *cl, Imm argc, Val *argv)
 		}
 		vm->ac = rv;
 		break;
-	case Cxfn:
-		if(Vkind(c->xfn) == Qstr)
-			x = (void*)strdata(valstr(c->xfn));
-		else if(Vkind(c->xfn) == Qcval)
-			x = (void*)(uptr)cvalu(valcval(c->xfn));
-		else
-			bug();
-		x();
+	case Calien:
+		callalien(c);
+		vm->ac = Xnil;
 		break;
+	case Cnative:
 #if 0
-		/* dregs for native code entry */
+		/* broken */
 		fsz = Onfrhd+vm->vc;
 
 		vm->fp += fsz;
@@ -1576,8 +1588,8 @@ _ccall(VM *vm, Closure *cl, Imm argc, Val *argv)
 		vm->vc = fsz-Onfrhd;
 		vm->fp -= fsz;
 		rv = vm->ac;
-		break;
 #endif
+		break;
 	default:
 		bug();
 	}
@@ -1630,9 +1642,9 @@ ccall(VM *vm, Closure *cl, Imm argc, Val *argv)
 		vm->fp -= fsz;
 
 		return rv;
-	case Cxfn:
+	case Cnative:
+	case Calien:
 		bug();
-		break;
 	default:
 		bug();
 	}
@@ -1647,7 +1659,6 @@ vcall(VM *vm)
 {
 	Code *c;
 	Val rv;
-	void (*x)(void);
 
 	if(showvcall)
 		printf("vcall %s\n", ciddata(vm->cl->code->id));
@@ -1673,25 +1684,20 @@ vcall(VM *vm)
 		vm->cl = valcl(vm->fp[Ocl]);
 		vm->pc = stkp(vm->fp[Ora]);
 		break;
-	case Cxfn:
-		if(Vkind(c->xfn) == Qstr)
-			x = (void*)strdata(valstr(c->xfn));
-		else if(Vkind(c->xfn) == Qcval)
-			x = (void*)(uptr)cvalu(valcval(c->xfn));
-		else
-			bug();
-		x();
+	case Calien:
+		callalien(c);
 		vm->ac = Xnil;
 		vm->cl = valcl(vm->fp[Ocl]);
 		vm->pc = stkp(vm->fp[Ora]);
 		break;
+	case Cnative:
 #if 0
-		/* dregs for native call */
+		/* broken dregs for native call */
 		calln(vm);
 		vm->cl = valcl(vm->fp[Ocl]);
 		vm->pc = stkp(vm->fp[Ora]);
-		break;
 #endif
+		break;
 	default:
 		bug();
 	}
@@ -1779,14 +1785,15 @@ vapply(VM *vm)
 		vm->pc = stkp(vm->fp[Ora]);
 		vm->cl = stkp(vm->fp[Ocl]);
 		break;
-	case Cxfn:
+	case Calien:
 		vmerr(vm, "attempt to apply alien code");
 		break;
+	case Cnative:
 /*
   dregs for native code
 		calln(vm);
-		break;
 */
+		break;
 	default:
 		bug();
 	}
@@ -1854,7 +1861,9 @@ ncall(VM *vm)
 		}
 		vm->ac = rv;
 		break;
-	case Cxfn:
+	case Calien:
+		/* probably could be implemented */
+	case Cnative:
 		bug();
 	}
 }
@@ -6754,7 +6763,6 @@ l1_statistics(VM *vm, Imm argc, Val *argv, Val *rv)
 	tabput(t, mkvalcid(mkcid0("postgctime")),
 	       mkvallitcval(Vuvlong, vm->postgctime));
 	gcstatistics(t);
-	cgstatistics(t);
 	*rv = mkvaltab(t);
 }
 

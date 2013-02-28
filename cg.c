@@ -3,15 +3,6 @@
 #include "syscqct.h"
 
 typedef
-struct CGstats
-{
-	u32 nvm;
-	u32 nx86;
-	u64 bytesvm;
-	u64 bytesx86;
-} CGstats;
-
-typedef
 struct CGEnv {
 	Ctlidx Return;
 	HT *labels;
@@ -37,7 +28,6 @@ static Location toploc[Maxtoploc];
 static Location *Effect;
 static Location *AC, *FP, *CL, *ARG0, *ARG1, *ARG2;
 static Code* cglambda(Expr *el, char *id);
-static CGstats cgstats;
 
 static void
 newloc(Location *loc, unsigned kind, unsigned idx, unsigned indirect)
@@ -448,18 +438,6 @@ mkcode(Ckind kind, Imm nbytes)
 	c = (Code*)malv(Qcode, codesize(nbytes));
 	c->sz = codesize(nbytes);
 	c->kind = kind;
-	switch(kind){
-	case Cvm:
-		cgstats.nvm++;
-		cgstats.bytesvm += nbytes;
-		break;
-	case Cxfn:
-		cgstats.nx86++;
-		cgstats.bytesx86 += nbytes;
-		break;
-	default:
-		break;
-	}
 	return c;
 }
 
@@ -1941,17 +1919,4 @@ initcg(void)
 void
 finicg(void)
 {
-}
-
-void
-cgstatistics(Tab *t)
-{
-	tabput(t, mkvalcid(mkcid0("nvm")),
-	       mkvallitcval(Vuvlong, cgstats.nvm));
-	tabput(t, mkvalcid(mkcid0("nx86")),
-	       mkvallitcval(Vuvlong, cgstats.nx86));
-	tabput(t, mkvalcid(mkcid0("bytesvm")),
-	       mkvallitcval(Vuvlong, cgstats.bytesvm));
-	tabput(t, mkvalcid(mkcid0("bytesx86")),
-	       mkvallitcval(Vuvlong, cgstats.bytesx86));
 }

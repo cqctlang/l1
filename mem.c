@@ -396,8 +396,8 @@ scancode(Head *h)
 	gcopy((Val*)&c->lm, &min);
 	gcopy((Val*)&c->dbg, &min);
 	gcopy((Val*)&c->src, &min);
-	if(c->kind == Cxfn)
-		gcopy(&c->xfn, &min);
+	if(c->kind == Calien)
+		gcopy(&c->alien, &min);
 	if(c->reloc == 0)
 		return min;
 	r = (Reloc*)strdata(c->reloc);
@@ -2613,8 +2613,8 @@ loadsavecode(Head *h, LSctx *ls)
 	loadsaveptr((Val*)&c->dbg, ls);
 	loadsaveptr((Val*)&c->src, ls);
 	switch(c->kind){
-	case Cxfn:
-		loadsaveptr(&c->xfn, ls);
+	case Calien:
+		loadsaveptr(&c->alien, ls);
 		break;
 	case Ccfn:
 		if(ls->mode == LSsave)

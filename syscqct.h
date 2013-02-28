@@ -818,7 +818,8 @@ enum Ckind {
 	Cvm,
 	Ccfn,
 	Cccl,
-	Cxfn,
+	Cnative,
+	Calien,
 } Ckind;
 
 struct Code {
@@ -836,7 +837,7 @@ struct Code {
 	union {
 		Cfn *cfn;
 		Ccl *ccl;
-		Val xfn;
+		Val alien;
 	};
 	/* instructions follow */
 };
@@ -1075,7 +1076,6 @@ Expr*		docompiles(U *ctx, Expr *e);
 /* cg.c */
 Code*		kresumecode();
 Closure*	abortthunk(void);
-void		cgstatistics();
 Closure*	codegen(U *ctx, Expr *e);
 void		finicg(void);
 Closure*	haltthunk(void);

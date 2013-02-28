@@ -33,6 +33,7 @@ ra2mask(void *ra, Code *code)
 	Dbg *d;
 
 	switch(code->kind){
+	case Cnative:
 	case Cvm:
 		if(ra >= codeend(code))
 			bug();
@@ -49,7 +50,7 @@ ra2mask(void *ra, Code *code)
 		lm = (1UL<<fsz)-1;
 		lm &= ~(1ULL<<Ora); /* assume everything else is live */
 		return lm;
-	case Cxfn:
+	case Calien:
 	default:
 		bug();
 	}
@@ -63,6 +64,7 @@ ra2size(void *ra, Code *code)
 	Dbg *d;
 
 	switch(code->kind){
+	case Cnative:
 	case Cvm:
 		if(ra >= codeend(code))
 			bug();
@@ -75,7 +77,7 @@ ra2size(void *ra, Code *code)
 	case Cccl:
 		fsz = (Imm)(uptr)ra;
 		return fsz;
-	case Cxfn:
+	case Calien:
 	default:
 		bug();
 	}
@@ -85,7 +87,7 @@ Code*
 mkncode(Imm nbytes)
 {
 	Code *c;
-	c = mkcode(Cxfn, nbytes);
+	c = mkcode(Cnative, nbytes);
 	c->reloc = mkstrn(128);
 	c->nreloc = 0;
 	return c;
@@ -119,7 +121,10 @@ printsrc(Xfd *xfd, Code *c, Insn *pc)
 	case Cccl:
 		cprintf(xfd, "%20s\t(builtin closure)\n", ciddata(c->id));
 		break;
-	case Cxfn:
+	case Cnative:
+		cprintf(xfd, "%20s\t(native code)\n", ciddata(c->id));
+		break;
+	case Calien:
 		cprintf(xfd, "%20s\t(alien code)\n", ciddata(c->id));
 		break;
 	case Cvm:
@@ -153,9 +158,9 @@ l1_mkaliencode(VM *vm, Imm argc, Val *argv, Val *rv)
 		vmerr(vm, "wrong number of arguments to mkaliencode");
 	if(Vkind(argv[0]) != Qstr && Vkind(argv[0]) != Qcval)
 		vmerr(vm, "operand 1 to mkaliencode must be a string or cvalue");
-	code = mkcode(Cxfn, 0);
+	code = mkcode(Calien, 0);
 	code->id = mkcid0("*alien*");
-	code->xfn = argv[0];
+	code->alien = argv[0];
 	*rv = mkvalcode(code);
 }
 
