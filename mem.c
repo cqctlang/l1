@@ -2944,7 +2944,7 @@ saveroot(int fd, Val p)
 			bug();
 		x = mkreloc(s->n, (uptr)p);
 	}
-	if(-1 == xwrite(fd, &x, sizeof(x)))
+	if(-1 == xwrite(fd, &x, sizeof(uptr)))
 		return -1;
 	return 0;
 }
@@ -2963,9 +2963,9 @@ segsummary(int fd, Seg *s)
 	d = s->a-p;
 	if(-1 == xwrite(fd, &d, sizeof(uptr)))
 		goto fail;
-	if(-1 == xwrite(fd, s->card, sizeof(Ncard*sizeof(u8))))
+	if(-1 == xwrite(fd, s->card, Ncard*sizeof(u8)))
 		goto fail;
-	if(-1 == xwrite(fd, s->crossing, sizeof(Ncard*sizeof(u8))))
+	if(-1 == xwrite(fd, s->crossing, Ncard*sizeof(u8)))
 		goto fail;
 
 #if 0
@@ -3411,8 +3411,8 @@ restoreheap(char *file)
 		XRD(&s->mt, p, sizeof(u8));
 		XRD(&s->gen, p, sizeof(u8));
 		XRD(&s->a, p, sizeof(uptr)); /* relative */
-		XRD(s->card, p, sizeof(Ncard*sizeof(u8)));
-		XRD(s->crossing, p, sizeof(Ncard*sizeof(u8)));
+		XRD(s->card, p, Ncard*sizeof(u8));
+		XRD(s->crossing, p, Ncard*sizeof(u8));
 	}
 
 	/* scan pointers */
