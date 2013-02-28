@@ -5,6 +5,7 @@
 static Head constnil;
 extern char heapimage[];
 extern char endheapimage[];
+static u32 heapversion = 1;
 
 /* if you change this, be sure the
    ordering in MTx enum remains consistent */
@@ -3014,14 +3015,13 @@ int
 saveheap(Tab *toplevel, char *file)
 {
 	u8 mt, g;
-	u32 i, sn, nsp;
+	u32 i, sn, nsp, sz;
 	M *m;
 	Seg *s, *t;
 	int fd, err;
 	off_t off;
 	void *op, *p;
 
-	sleep(1);
 	op = p = 0;
 	fd = -1;
 	fd = open(file, O_RDWR|O_TRUNC|O_CREAT, 0600);
@@ -3054,6 +3054,30 @@ saveheap(Tab *toplevel, char *file)
 				s = a2s(s->link);
 			}
 		}
+	}
+
+	/* meta */
+	if(-1 == xwrite(fd, &heapversion, sizeof(u32))){
+		fprintf(stderr, "saveheap: write: %s\n", strerror(errno));
+		goto fail;
+	}
+	sz = strlen(sysos)+1;
+	if(-1 == xwrite(fd, &sz, sizeof(u32))){
+		fprintf(stderr, "saveheap: write: %s\n", strerror(errno));
+		goto fail;
+	}
+	if(-1 == xwrite(fd, sysos, sz)){
+		fprintf(stderr, "saveheap: write: %s\n", strerror(errno));
+		goto fail;
+	}
+	sz = strlen(sysarch)+1;
+	if(-1 == xwrite(fd, &sz, sizeof(u32))){
+		fprintf(stderr, "saveheap: write: %s\n", strerror(errno));
+		goto fail;
+	}
+	if(-1 == xwrite(fd, sysarch, sz)){
+		fprintf(stderr, "saveheap: write: %s\n", strerror(errno));
+		goto fail;
 	}
 
 	/* segment descriptors */
@@ -3273,6 +3297,8 @@ restoreheap(char *file)
 	LSctx ls;
 	Scanptr *sptr, *sp;
 	Tab *toplevel;
+	u32 version, sz;
+	char buf[32];
 
 	tseg = 0;
 	csym = 0;
@@ -3319,6 +3345,39 @@ restoreheap(char *file)
 	(fr) += (sz);			\
 	len -= (sz);			\
 }
+
+	/* meta */
+	XRD(&version, p, sizeof(u32));
+	if(version != heapversion){
+		fprintf(stderr, "restoreheap: heap version mismatch "
+			"(need %u, got %u)\n",
+			heapversion, version);
+		goto fail;
+	}
+	XRD(&sz, p, sizeof(u32));
+	if(sz > sizeof(buf)){
+		fprintf(stderr, "restoreheap: corrupt heap header\n");
+		goto fail;
+	}
+	XRD(buf, p, sz);
+	if(strncmp(buf, sysos, sz)){
+		fprintf(stderr, "restoreheap: os mismatch"
+			"(need \"%s\", got \"%.*s\")\n",
+			sysos, sz, buf);
+		goto fail;
+	}
+	XRD(&sz, p, sizeof(u32));
+	if(sz > sizeof(buf)){
+		fprintf(stderr, "restoreheap: corrupt heap header\n");
+		goto fail;
+	}
+	XRD(buf, p, sz);
+	if(strncmp(buf, sysarch, sz)){
+		fprintf(stderr, "restoreheap: architecture mismatch"
+			"(need \"%s\", got \"%.*s\")\n",
+			sysarch, sz, buf);
+		goto fail;
+	}
 
 	/* segment descriptors */
 	XRD(&nseg, p, sizeof(u32));
