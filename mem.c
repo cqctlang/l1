@@ -3032,7 +3032,7 @@ saveheap(Tab *toplevel, char *file)
 	void *op, *p;
 
 	sleep(1);
-	p = 0;
+	op = p = 0;
 	fd = -1;
 	fd = open(file, O_RDWR|O_TRUNC|O_CREAT, 0600);
 	if(0 > fd){
@@ -3287,7 +3287,8 @@ restoreheap(char *file)
 	tseg = 0;
 	csym = 0;
 	sptr = 0;
-	p = 0;
+	len = 0;
+	op = p = 0;
 	fd = -1;
 
 	if(file){

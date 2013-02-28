@@ -13,6 +13,8 @@ boot(VM *vm)
 	u32 len;
 	Src s;
 
+	src = 0;
+	p = 0;
 	lp = cqctloadpath;
 	while(*lp){
 		len = strlen(*lp)+1+strlen(bootfile)+1;
