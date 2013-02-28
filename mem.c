@@ -1169,8 +1169,6 @@ importseg(MT mt, Gen g, void *p, uptr aoff, u8 *card, u8 *crossing)
 	e = p+Segsize;
 	remapsegmap(p, e);
 	s = a2s(p);
-//	if(s->mt != MThole)
-//		fatal("importseg: desired segment is %s", MTname[s->mt]);
 	s->mt = mt;
 	s->gen = g;
 	if(aoff > Segsize)
@@ -1183,6 +1181,20 @@ importseg(MT mt, Gen g, void *p, uptr aoff, u8 *card, u8 *crossing)
 	H.na += Segsize;
 	H.heapsz += Segsize;
 	H.inuse += Segsize;
+
+#if 0
+	printf("load %10s %d %8x",
+	       MTname[s->mt],
+	       s->gen,
+	       aoff);
+	printf(" card");
+	for(i = 0; i < Ncard; i++)
+		printf(" %2x", s->card[i]);
+	printf(" crossing");
+	for(i = 0; i < Ncard; i++)
+		printf(" %2x", s->crossing[i]);
+	printf("\n");
+#endif
 }
 
 static void
@@ -2956,6 +2968,19 @@ segsummary(int fd, Seg *s)
 	if(-1 == xwrite(fd, s->crossing, sizeof(Ncard*sizeof(u8))))
 		goto fail;
 
+#if 0
+	printf("save %10s %d %8x",
+	       MTname[s->mt],
+	       s->gen,
+	       d);
+	printf(" card");
+	for(i = 0; i < Ncard; i++)
+		printf(" %2x", s->card[i]);
+	printf(" crossing");
+	for(i = 0; i < Ncard; i++)
+		printf(" %2x", s->crossing[i]);
+	printf("\n");
+#endif
 	return 0;
 fail:
 	fprintf(stderr, "saveheap: write: %s\n", strerror(errno));
