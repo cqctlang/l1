@@ -2632,6 +2632,9 @@ loadsavecode(Head *h, LSctx *ls)
 		if(ls->mode == LSload)
 			setgo(c);
 		break;
+	case Cnative:
+		bug();
+		break;
 	}
 	if(r == 0)
 		return 0;
