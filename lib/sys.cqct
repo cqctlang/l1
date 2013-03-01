@@ -1,3 +1,11 @@
+// the purpose of these bindings is to 
+// offer convenient syscall wrappers
+// that offer semantics that closely
+// resemble the low-level semantics
+// available in C programs through
+// libc and friends. 
+{
+@local _unameres;
 
 @global unix;
 @global linuxns;
@@ -5,14 +13,14 @@
 _unameres = nil;
 
 {
-  @local u,r,a,o,w;
+	@local u,r,a,o,w;
 
-  u=uname();
-  o=u[0];
-  a=u[3];
+	u=uname();
+	o=u[0];
+	a=u[3];
 
-  r=myrootns();
-  w=sizeof(r`long);
+	r=myrootns();
+	w=sizeof(r`long);
 
 	switch([o,a,w]) {
 	case ["Linux","x86_64",8]:
@@ -34,83 +42,93 @@ _unameres = nil;
 		fprintf(stderr,"Unsupported OS: %a\n",[o,a,w]);
 	}
 
-  _unameres = u;
+	_unameres = u;
 
 };
 
+@global sys_open;
 sys_open = @lambda(filename,oflag,rest ...) {
-  @local m,r;
+	@local m,r;
 
-  m=malloc(length(filename)+1);
-  putbytes(m,filename);
-  m[length(filename)]=0;
+	m=malloc(length(filename)+1);
+	putbytes(m,filename);
+	m[length(filename)]=0;
 
-  if(oflag & unix`O_CREAT) {
-    r=syscall(unix`open,m,oflag,rest[0]);
-  } else {
-    r=syscall(unix`open,m,oflag);
-  }
-  return r;
+	if(oflag & unix`O_CREAT) {
+		r=syscall(unix`open,m,oflag,rest[0]);
+	} else {
+		r=syscall(unix`open,m,oflag);
+	}
+
+	return r;
 };
 
+@global sys_close;
 sys_close = @lambda(fd) {
-  syscall(unix`close,fd);
+	syscall(unix`close,fd);
 };
 
+@global sys_read;
 sys_read = @lambda(fd,buf,len) {
-  @local m,r,c;
+	@local m,r,c;
 
-  m=malloc(len);
-  r=syscall(unix`read,fd,m,len);
-  if(r>0) {
-    c=getbytes(m,r);
-    putbytes(buf,c);
-  }
-  return r;
+	m=malloc(len);
+	r=syscall(unix`read,fd,m,len);
+	if(r>0) {
+		c=getbytes(m,r);
+		putbytes(buf,c);
+	}
+
+	return r;
 };
 
+@global sys_write;
 sys_write = @lambda(fd,buf,len) {
-  @local m,r;
+	@local m,r;
 
-  m=malloc(len);
+	m=malloc(len);
 
-  if(isstring(buf)) {
-    if(length(buf) > len) {
-      putbytes(m,substr(buf,0,len));
-    } else {
-      putbytes(m,buf);
-    }
-  } else {
-    memcpy(m,buf,len);
-  }
+	if(isstring(buf)) {
+		if(length(buf) > len) {
+			putbytes(m,substr(buf,0,len));
+		} else {
+			putbytes(m,buf);
+		}
+	} else {
+		memcpy(m,buf,len);
+	}
 
-  r=syscall(unix`write,fd,m,len);
+	r=syscall(unix`write,fd,m,len);
 
-  return r;
+	return r;
 };
 
+@global sys_lseek;
 sys_lseek = @lambda(fd,pos,whence) {
-  @local r;
+	@local r;
 
-  r=syscall(unix`lseek,fd,pos,whence);
+	r=syscall(unix`lseek,fd,pos,whence);
 
-  return r;
+	return r;
 };
 
+@global sys_ioctl;
 sys_ioctl = @lambda(fd,req,data) {
-  @local r;
+	@local r;
 
-  r=syscall(unix`ioctl,fd,req,data);
+	r=syscall(unix`ioctl,fd,req,data);
 
-  return r;
+	return r;
 };
 
+@global sys_dup2;
 sys_dup2 = @lambda(fd1,fd2) {
 
 	return syscall(unix`dup2,fd1,fd2);
 
 };
 
+@global posix;
 posix = @names myrootns() {
   enum Stat_modes {
     S_IFMT	= 00170000,
@@ -130,22 +148,27 @@ posix = @names myrootns() {
 //S_ISREG = @lambda(statbuf) {
 //};
 
+@global S_ISDIR;
 S_ISDIR = @lambda(statbuf) {
   return (statbuf->st_mode & posix`S_IFDIR) ? 1 : 0;
 };
 
+@global S_ISCHR;
 S_ISCHR = @lambda(statbuf) {
   return (statbuf->st_mode & posix`S_IFCHR) ? 1 : 0;
 };
 
+@global S_ISBLK;
 S_ISBLK = @lambda(statbuf) {
   return (statbuf->st_mode & posix`S_IFBLK) ? 1 : 0;
 };
 
+@global S_ISFIFO;
 S_ISFIFO = @lambda(statbuf) {
   return (statbuf->st_mode & posix`S_IFIFO) ? 1 : 0;
 };
 
+@global S_ISLNK;
 S_ISLNK = @lambda(statbuf) {
   return (statbuf->st_mode & posix`S_ISLNK) ? 1 : 0;
 };
@@ -153,6 +176,7 @@ S_ISLNK = @lambda(statbuf) {
 //S_ISSOC = @lambda(m) {
 //};
 
+@global sys_fstat;
 sys_fstat = @lambda(fd,statbuf) {
   @local m,r,l;
 
@@ -183,10 +207,12 @@ sys_fstat = @lambda(fd,statbuf) {
   return r;
 };
 
+@global FD_ALLOC;
 FD_ALLOC=@lambda() {
   return (unsigned char *)malloc(128);
 };
 
+@global FD_ISSET;
 FD_ISSET=@lambda(fd,set) {
   @local bit,byte;
   byte=(fd)>>3;
@@ -198,6 +224,7 @@ FD_ISSET=@lambda(fd,set) {
   }
 };
 
+@global FD_SET;
 FD_SET=@lambda(fd,set) {
     @local bit,byte;
     byte=(fd)>>3;
@@ -287,6 +314,7 @@ sys_select = @lambda(n,rfds,wfds,xfds,timeout) {
 };
 }
 
+@global sys_unlink;
 sys_unlink = @lambda(filename) {
   @local m;
 
@@ -310,24 +338,28 @@ if(unix.looksym('mmap2)) {
 
 }
 
+@global sys_msync;
 sys_msync=@lambda(addr,size,flags) {
 
   return syscall(unix`msync,addr,size,flags);
 
 };
 
+@global sys_munmap;
 sys_munmap=@lambda(addr,length) {
 
   return syscall(unix`munmap,addr,length);
 
 };
 
+@global sys_socket;
 sys_socket = @lambda(domain,type,protocol) {
 
   return syscall(unix`socket,domain,type,protocol);
 
 };
 
+@global sys_connect;
 sys_connect = @lambda(fd,sockaddr,size) {
   @local sa;
 
@@ -342,6 +374,7 @@ sys_connect = @lambda(fd,sockaddr,size) {
   return syscall(unix`connect,fd,sa,size);
 };
 
+@global sys_bind;
 sys_bind = @lambda(fd,sockaddr,size) {
   @local sa;
 
@@ -356,11 +389,13 @@ sys_bind = @lambda(fd,sockaddr,size) {
   return syscall(unix`bind,fd,sa,size);
 };
 
+@global sys_listen;
 sys_listen = @lambda(fd,backlog) {
 
   return syscall(unix`listen,fd,backlog);
 };
 
+@global sys_accept;
 sys_accept = @lambda(fd,sockaddr,size) {
   @local sa,ss;
 
@@ -385,10 +420,12 @@ sys_accept = @lambda(fd,sockaddr,size) {
 
 };
 
+@global sys_getsockname;
 sys_getsockname = @lambda(fd,sa,len) {
 	return syscall(unix`getsockname,fd,sa,len);
 };
 
+@global sys_setsockopt;
 sys_setsockopt = @lambda(socket,level,option_name,option_value,option_len) {
 
   return syscall(unix`setsockopt,socket,level,option_name,option_value,option_len);
@@ -399,6 +436,7 @@ sys_setsockopt = @lambda(socket,level,option_name,option_value,option_len) {
  * Process calls
  */
 
+@global sys_exit;
 sys_exit = @lambda(status) {
 
   syscall(unix`exit,status);
@@ -445,36 +483,42 @@ sys_wait4 = @lambda(pid,status,options,rusage) {
 };
 }
 
+@global sys_getpid;
 sys_getpid = @lambda() {
 
   syscall(unix`getpid);
 
 };
 
+@global sys_getppid;
 sys_getppid = @lambda() {
 
   syscall(unix`getppid);
 
 };
 
+@global sys_getpgid;
 sys_getpgid = @lambda(pid) {
 
   syscall(unix`getpgid,pid);
 
 };
 
+@global sys_setpgid;
 sys_setpgid = @lambda(pid,pgid) {
 
   syscall(unix`setpgid,pid,pgid);
 
 };
 
+@global sys_setsid;
 sys_setsid = @lambda() {
 
   syscall(unix`setsid);
 
 };
 
+@global sys_sleep;
 sys_sleep = @lambda(secs) {
   @local r,m,m2;
 
@@ -495,6 +539,7 @@ sys_sleep = @lambda(secs) {
 
 };
 
+@global sys_reboot;
 sys_reboot = @lambda(magic, magic2, cmd, arg) {
   @local r;
 
@@ -503,7 +548,7 @@ sys_reboot = @lambda(magic, magic2, cmd, arg) {
   return r;
 };
 
-
+@global sys_sched_getaffinity;
 sys_sched_getaffinity = @lambda(pid, cpusetsize, mask) {
   @local m,r;
 
@@ -516,6 +561,7 @@ sys_sched_getaffinity = @lambda(pid, cpusetsize, mask) {
 
 };
 
+@global sys_sched_setaffinity;
 sys_sched_setaffinity = @lambda(pid, cpusetsize, mask) {
   @local m,r;
 
@@ -534,6 +580,7 @@ sys_sched_setaffinity = @lambda(pid, cpusetsize, mask) {
 
 // MPOL_DEFAULT, MPOL_BIND, MPOL_INTERLEAVE or MPOL_PREFERRED. All modes except MPOL_DEFAULT
 
+@global sys_getmempolicy;
 sys_getmempolicy = @lambda(mode, nodemask, maxnode,addr,flags) {
   @local m,r;
 
@@ -550,7 +597,7 @@ sys_getmempolicy = @lambda(mode, nodemask, maxnode,addr,flags) {
 
 };
 
-
+@global sys_setmempolicy;
 sys_setmempolicy = @lambda(mode, nodemask, maxnode) {
   @local m,r;
 
@@ -566,55 +613,50 @@ sys_setmempolicy = @lambda(mode, nodemask, maxnode) {
   return r;
 };
 
+@global sys_getuid;
 sys_getuid = @lambda() {
 
   return syscall(unix`getuid);
 
 };
 
+@global sys_geteuid;
 sys_geteuid = @lambda() {
 
   return syscall(unix`geteuid);
 
 };
 
+@global sys_setuid;
 sys_setuid = @lambda(uid) {
 
   return syscall(unix`setuid,uid);
 
 };
 
+@global sys_getgid;
 sys_getgid = @lambda() {
 
   return syscall(unix`getgid);
 
 };
 
+@global sys_getegid;
 sys_getegid = @lambda() {
 
   return syscall(unix`getegid);
 
 };
 
+@global sys_setgid;
 sys_setgid = @lambda(gid) {
 
   return syscall(unix`setgid,gid);
 
 };
 
-
-/*
-filename: a string filename for the executable to run
-argv: a list of the string arguments
-envp: a list of environment assignment strings
-see man execve
-
-example usage:
-execve("/bin/echo",["/bin/echo","hello","world"],[]);
-is the same as running:
-$ /bin/echo hello world
-*/
-@define sys_execve(filename,argv,envp) {
+@global sys_execve;
+sys_execve = @lambda(filename,argv,envp) {
   @local f,fl,a,e;
 
   if(iscvalue(filename) && isptr(@typeof(filename))) {
@@ -660,5 +702,7 @@ $ /bin/echo hello world
   }, [argv,envp]);
 
   return syscall(unix`execve,f,a,e);
+};
+
 };
 
