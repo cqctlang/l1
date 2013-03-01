@@ -2,9 +2,16 @@
 #include "util.h"
 #include "syscqct.h"
 
+enum {
+	Noheap = 0,
+	Heapdefined = 1,
+};
+
 static Head constnil;
-extern char heapimage[];
-extern char endheapimage[];
+#pragma weak heapimage
+#pragma weak endheapimage
+char heapimage[1] = { Noheap };
+char endheapimage[0];
 static u32 heapversion = 1;
 
 /* if you change this, be sure the
@@ -3049,6 +3056,7 @@ saveheap(Tab *toplevel, char *file)
 	int fd, err;
 	off_t off;
 	void *op, *p;
+	u8 magic;
 
 	op = p = 0;
 	fd = -1;
@@ -3085,6 +3093,11 @@ saveheap(Tab *toplevel, char *file)
 	}
 
 	/* meta */
+	magic = Heapdefined;
+	if(-1 == xwrite(fd, &magic, sizeof(u8))){
+		fprintf(stderr, "saveheap: write: %s\n", strerror(errno));
+		goto fail;
+	}
 	if(-1 == xwrite(fd, &heapversion, sizeof(u32))){
 		fprintf(stderr, "saveheap: write: %s\n", strerror(errno));
 		goto fail;
@@ -3327,6 +3340,7 @@ restoreheap(char *file)
 	Tab *toplevel;
 	u32 version, sz;
 	char buf[32];
+	u8 magic;
 
 	tseg = 0;
 	csym = 0;
@@ -3363,6 +3377,8 @@ restoreheap(char *file)
 		len = endheapimage-heapimage;
 		if(len == 0)
 			return 0;
+		if(heapimage[0] != Heapdefined)
+			return 0;
 		op = p = mapmem(len); /* Segsize-aligned; closer to
 					 other segments than executable */
 		memcpy(p, heapimage, len);
@@ -3376,6 +3392,7 @@ restoreheap(char *file)
 }
 
 	/* meta */
+	XRD(&magic, p, sizeof(u8));
 	XRD(&version, p, sizeof(u32));
 	if(version != heapversion){
 		fprintf(stderr, "restoreheap: heap version mismatch "

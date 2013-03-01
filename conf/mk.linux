@@ -6,11 +6,7 @@ mkelf: mkelf.o
 	@echo + ld $@
 	$(V)$(CC) $(CFLAGS) -o $@ $^
 
-noheap.o: mkelf
-	@echo + mkelf $@
-	$(V)./mkelf -m $(ARCH) -a 0 -s heapimage -l 0 /dev/zero noheap.o
-
-tl1.o: $(L1C:.c=.o) $(L1DEPS) noheap.o 
+tl1.o: $(L1C:.c=.o) $(L1DEPS)
 	@echo + ld $@
 	$(V)$(LD) $(LDFLAGS) -o $@ $^
 
