@@ -16,7 +16,7 @@ tl1: tl1.o main.o
 
 heap.l1: tl1
 	@echo + dump $@	
-	$(V)./tl1 saveheap.cqct
+	$(V)./tl1 -x "saveheap(\"./heap.l1\");"
 
 heap.o: heap.l1 mkelf
 	@echo + mkelf $@
