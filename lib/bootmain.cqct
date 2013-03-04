@@ -126,7 +126,7 @@ load("prelude.cqct");
 	});
 }
 
-@defloc loaderror(msg)
+@defloc batcherror(msg)
 {
 	callcc(@lambda(errk){
 			printf("error: %s\n", msg);
@@ -135,7 +135,7 @@ load("prelude.cqct");
 		});
 }
 
-@defloc loadinterrupt()
+@defloc batchinterrupt()
 {
 	callcc(@lambda(k){
 		printf("\ninterrupted\n");
@@ -265,6 +265,12 @@ load("prelude.cqct");
 	cmd = [];
 	while(length(args)){
 		arg = pop(args);
+		if(arg == "-x"){
+			if(length(args) == 0)
+				error("missing form for -x");
+			append(forms, pop(args));
+			continue;
+		}
 		if(arg[0] == '-')
 			continue;
 		append(cmd, arg);
@@ -274,22 +280,27 @@ load("prelude.cqct");
 
 @define $l1start(arg ...)
 {
-	@local cmd, file;
+	@local forms, cmd, file, rv;
 	callcc(@lambda(root){
 			withnullcont = root;
 			return @lambda(){
-				[_, cmd] = parseargs(arg);
-				if(length(cmd) == 0)
-					repl();
-				else{
-					callcc(@lambda(done){
-							defaultreturn = done;
-							defaulterror = loaderror;
-							defaultinterrupt = loadinterrupt;
-							file = pop(cmd);
-							args = cmd;
-							load(file);
-						});
-				}
+				[forms, cmd] = parseargs(arg);
+				if(length(cmd) == 0 && length(forms) == 0)
+					return repl();
+				callcc(@lambda(done){
+						defaultreturn = done;
+						defaulterror = batcherror;
+						defaultinterrupt = batchinterrupt;
+						while(length(forms)){
+							@local form;
+							form = pop(forms);
+							rv = eval(form);
+						}
+						if(length(cmd) == 0)
+							return rv;
+						file = pop(cmd);
+						args = cmd;
+						return load(file);
+					});
 			};})();
 }
