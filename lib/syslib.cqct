@@ -75,6 +75,13 @@ mapfile = @lambda(filename, rest ...) {
     s = st->st_size;
   }
 
+  if (s == 0)
+  {
+    //empty file, length zero mapping
+    sys_close(fd);
+    return "";
+  }
+
   p = sys_mmap(0, s, m, f, fd, 0);
   if(p == -1) {
     // we can try with noreserve on a platform that supports it
