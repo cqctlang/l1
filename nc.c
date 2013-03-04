@@ -81,6 +81,7 @@ emitu64(NC *nc, u64 w)
 	nc->n += sizeof(w);
 }
 
+#if 0
 static void
 loadvm(NC *nc)
 {
@@ -90,6 +91,7 @@ loadvm(NC *nc)
 	MOV(nc, R13, indirect2(RBX, disp(2*8)));	/* vc */
 	MOV(nc, R14, indirect2(RBX, disp(3*8)));	/* ac */
 }
+#endif
 
 static void
 savevm(NC *nc)
