@@ -1,0 +1,15 @@
+@define foo(n)
+{
+        if(n == 0)
+                1ULL;
+        else
+                n*foo(n-1);
+}
+
+foo(1000);
+gc();
+foo(1000);
+foo(10000);
+gc();
+foo(10000);
+gc();

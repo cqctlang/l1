@@ -1,4 +1,4 @@
-/* capture a continuation, save it, then pop it later, twice */
+/* capture a continuation, save it, then pop it later, repeatedly */
 
 thek = nil;
 lim = 20;
@@ -11,7 +11,6 @@ lim = 20;
 }
 
 x = callcc(bar); 
-gc();
 printf("continuation returned %d\n", x);
 if(x < lim){
 	printf("re-invoking continuation\n");

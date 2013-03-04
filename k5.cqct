@@ -1,4 +1,0 @@
-/* dybvig's empty stack segment property:
-   continuation capture on empty stack does not
-   create a new continuation */
-
