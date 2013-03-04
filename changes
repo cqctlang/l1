@@ -53,3 +53,8 @@ generally based on conf/mk.unix
 
 it would be easy to extend for per-arch configurations,
 but this hasn't been necessary.
+
+
+records (implement this!)
+- cids instead of strings
+- no more toplevel weirdness

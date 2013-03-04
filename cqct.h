@@ -137,12 +137,10 @@ Val		cqctcstrval(char *s);
 Val		cqctcstrvalshared(char *s);
 void		cqctenvbind(Env top, char *name, Val v);
 Val		cqctenvlook(VM *vm, char *name);
-void		cqctfini(Env top);
 void		cqctfreecstr(char *s);
 void		cqctfreevm(VM *vm);
 void		cqctgcdisable(VM *vm);
 void		cqctgcenable(VM *vm);
-Env		cqctinit(char **lp, Xfd *in, Xfd *out, Xfd *err);
 Val		cqctint8val(int8_t);
 Val		cqctint16val(int16_t);
 Val		cqctint32val(int32_t);
@@ -187,3 +185,8 @@ void		cqctvmerr(VM *vm, char *fmt, ...);
 
 /* mem.c */
 Env		restoreheap(char *file);
+
+/* vm.c */
+VM*		cqctinit(char *memfile, char **loadpath);
+void		cqctfini(VM *vm);
+

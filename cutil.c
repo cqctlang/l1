@@ -47,7 +47,7 @@ cverror(U *ctx, Expr *e, char *fmt, va_list args)
 {
 	static char buf[128];
 	u32 len;
-	if(e->src)
+	if(e && e->src)
 		snprint(buf, sizeof(buf), "%s:%u: ",
 			 srcfile(e->src), srcline(e->src));
 	else if(e)

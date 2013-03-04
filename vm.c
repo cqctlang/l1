@@ -7514,8 +7514,8 @@ mktopenv(void)
 	return env;
 }
 
-VM*
-cqctmkvm(Env top)
+static VM*
+mkvm(Env top)
 {
 	VM *vm;
 
@@ -7528,15 +7528,15 @@ cqctmkvm(Env top)
 	return vm;
 }
 
-void
-cqctbootvm(VM *vm)
+static void
+bootvm(VM *vm)
 {
 	boot(vm);
 	vmresetctl(vm);
 }
 
-void
-cqctfreevm(VM *vm)
+static void
+freevm(VM *vm)
 {
 	if(nvm != 1)
 		bug();
@@ -7544,6 +7544,95 @@ cqctfreevm(VM *vm)
 		bug();
 	efree(vm);
 	nvm = 0;
+}
+
+static void
+sigint(int sig)
+{
+	cqctinterrupt(vms[0]);
+}
+
+VM*
+cqctinit(char *memfile, char **loadpath)
+{
+	Env top, tmp;
+	VM *vm;
+	Xfd in, out, err;
+	struct sigaction sa;
+
+	/* users cannot disable warnings */
+	cqctflags['w'] = 1;
+
+	memset(&sa, 0, sizeof(sa));
+	sa.sa_handler = sigint;
+	sigaction(SIGINT, &sa, 0);
+
+	memset(&in, 0, sizeof(Xfd));
+	in.read = xfdread;
+	in.fd = 0;
+
+	memset(&out, 0, sizeof(Xfd));
+	out.write = xfdwrite;
+	out.fd = 1;
+
+	memset(&err, 0, sizeof(Xfd));
+	err.write = xfdwrite;
+	err.fd = 2;
+
+	initio(&in, &out, &err);
+	initos();
+	initmem();
+	initqc();
+	initparse();
+	initcid();
+	inittype();
+	initrec();
+	initcg();
+	initnc();
+	initvm();
+
+	/* restoreheap depends on the table of C
+	   built-ins, which is initialized by
+	   mktoplevel.  the storage will be
+	   reclaimed if it is not used. */
+	tmp = mktoplevel();
+
+	if(memfile){
+		top = restoreheap(memfile);
+		if(top == 0)
+			return 0;
+		vm = mkvm(top);
+		cqctloadpath = copystrv(loadpath);
+		return vm;
+	}
+
+	top = restoreheap(0);
+	if(top){
+		vm = mkvm(top);
+		cqctloadpath = copystrv(loadpath);
+		return vm;
+	}else{
+		cqctloadpath = copystrv(loadpath);
+		vm = mkvm(tmp);
+		bootvm(vm);
+		return vm;
+	}
+}
+
+void
+cqctfini(VM *vm)
+{
+	freevm(vm);
+	efree(cqctloadpath);
+	finivm();
+	finicg();
+	finirec();
+	finitype();
+	finicid();
+	finiparse();
+	finimem();
+	finiqc();
+	finiio();
 }
 
 void

@@ -3,8 +3,10 @@
 */
 
 @global
+	args,
 	eval,
 	expand,
+	l1path,
 	load,
 	compile,
 	callfn,
@@ -253,19 +255,40 @@ load("prelude.cqct");
 	       });
 }
 
+@defloc parseargs(args)
+{
+	@local arg;
+	@local forms, cmd;
+
+	l1path = pop(args);
+	forms = [];
+	cmd = [];
+	while(length(args)){
+		arg = pop(args);
+		if(arg[0] == '-')
+			continue;
+		append(cmd, arg);
+	}
+	return [forms, cmd];
+}
+
 @define $l1start(arg ...)
 {
+	@local cmd, file;
 	callcc(@lambda(root){
 			withnullcont = root;
 			return @lambda(){
-				if(length(arg) == 0)
+				[_, cmd] = parseargs(arg);
+				if(length(cmd) == 0)
 					repl();
 				else{
 					callcc(@lambda(done){
 							defaultreturn = done;
 							defaulterror = loaderror;
 							defaultinterrupt = loadinterrupt;
-							load(arg[0]);
+							file = pop(cmd);
+							args = cmd;
+							load(file);
 						});
 				}
 			};})();
