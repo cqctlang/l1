@@ -347,6 +347,7 @@ mkop(u8 bits)
 	xOp op;
 	op.extended = 0;
 	op.op0 = bits;
+	op.op1 = 0; /* unused */
 	return op;
 }
 
