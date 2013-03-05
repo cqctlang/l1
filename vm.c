@@ -7580,10 +7580,6 @@ cqctinit(char *memfile, char **loadpath)
 	/* users cannot disable warnings */
 	cqctflags['w'] = 1;
 
-	memset(&sa, 0, sizeof(sa));
-	sa.sa_handler = sigint;
-	sigaction(SIGINT, &sa, 0);
-
 	memset(&in, 0, sizeof(Xfd));
 	in.read = xfdread;
 	in.fd = 0;
@@ -7614,31 +7610,39 @@ cqctinit(char *memfile, char **loadpath)
 	   reclaimed if it is not used. */
 	tmp = mktoplevel();
 
+	vm = 0;
 	if(memfile){
 		top = restoreheap(memfile);
 		if(top == 0)
 			return 0;
-		vm = mkvm(top);
 		cqctloadpath = copystrv(loadpath);
-		return vm;
-	}
-
-	top = restoreheap(0);
-	if(top){
 		vm = mkvm(top);
+	}else if((top = restoreheap(0))){
 		cqctloadpath = copystrv(loadpath);
-		return vm;
+		vm = mkvm(top);
 	}else{
 		cqctloadpath = copystrv(loadpath);
 		vm = mkvm(tmp);
 		bootvm(vm);
-		return vm;
 	}
+
+	if(vm){
+		memset(&sa, 0, sizeof(sa));
+		sa.sa_handler = sigint;
+		sigaction(SIGINT, &sa, 0);
+	}
+	return vm;
 }
 
 void
 cqctfini(VM *vm)
 {
+	struct sigaction sa;
+
+	memset(&sa, 0, sizeof(sa));
+	sa.sa_handler = SIG_DFL;
+	sigaction(SIGINT, &sa, 0);
+
 	freevm(vm);
 	efree(cqctloadpath);
 	finivm();
