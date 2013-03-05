@@ -392,7 +392,7 @@ expands(char *s, unsigned long len)
 			c = (char)u;
 			break;
 		default:
-			break;
+			return 0;
 		}
 		*w++ = c;
 	}
