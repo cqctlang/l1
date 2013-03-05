@@ -6435,6 +6435,20 @@ l1_isvector(VM *vm, Imm argc, Val *argv, Val *rv)
 }
 
 static void
+l1_iscallable(VM *vm, Imm argc, Val *argv, Val *rv)
+{
+	if(argc != 1)
+		vmerr(vm, "wrong number of arguments to iscallable");
+	if(Vkind(argv[0]) == Qcl
+	   || Vkind(argv[0]) == Qas
+	   || Vkind(argv[0]) == Qns
+	   || Vkind(argv[0]) == Qdom)
+		*rv = mkvalcval2(cval1);
+	else
+		*rv = mkvalcval2(cval0);
+}
+
+static void
 l1_meminuse(VM *vm, Imm argc, Val *argv, Val *rv)
 {
 	USED(vm);
@@ -7411,6 +7425,7 @@ mktopenv(void)
 	FN(index);
 	FN(instguard);  // FIXME: make system routine
 	FN(isas);
+	FN(iscallable);
 	FN(iscid);
 	FN(iscode);
 	FN(isctype);

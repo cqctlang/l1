@@ -80,25 +80,29 @@ Zcntr(Expr *e)
 static Expr*
 Zrecget(Expr *r, char *f)
 {
-	return Zcall(Zcall(G("tablook"), 2,
-			   Zcall(G("rdgettab"), 1, Zcall(G("rdof"), 1, r)),
-			   Zcid(f)),
-		     1, copyexpr(r));
+	if(r->kind != Eid)
+		bug();
+	return Zifelse(Zcall(G("isrec"), 1, r),
+		       Zcall(Zcall(G("tablook"), 2,
+				   Zcall(G("rdgettab"), 1,
+					 Zcall(G("rdof"), 1, copyexpr(r))),
+				   Zcid(f)),
+			     1, copyexpr(r)),
+		       Zerror("invalid left operand to ."));
 }
 
 static Expr*
 Zrecset(Expr *r, char *f, Expr *v)
 {
-	return Zcall(Zcall(G("tablook"), 2,
-			   Zcall(G("rdsettab"), 1, Zcall(G("rdof"), 1, r)),
-			   Zcid(f)),
-		     2, copyexpr(r), v);
-}
-
-static Expr*
-Zerror(char *s)
-{
-	return Zcall(G("error"), 1, Zstr(s));
+	if(r->kind != Eid)
+		bug();
+	return Zifelse(Zcall(G("isrec"), 1, r),
+		       Zcall(Zcall(G("tablook"), 2,
+				   Zcall(G("rdsettab"), 1,
+					 Zcall(G("rdof"), 1, copyexpr(r))),
+				   Zcid(f)),
+			     2, copyexpr(r), v),
+		       Zerror("invalid left operand to ."));
 }
 
 enum { Tmpidsz = 8 };
@@ -620,7 +624,10 @@ expandaform(Aform af, Expr *e, u32 d)
 				   Zset(doid("$o"), expanda(e1, d)),
 				   Zifelse(Zcall(G("isrec"), 1, doid("$o")),
 					   Zrecget(doid("$o"), id),
-					   p),
+					   Zifelse(Zcall(G("iscallable"),
+							 1, doid("$o")),
+						   p,
+						   Zerror("invalid left operand to ."))),
 				   NULL);
 			return putsrc(b, e->src);
 		}
@@ -654,7 +661,10 @@ expandaform(Aform af, Expr *e, u32 d)
 			return putsrc(Zset(Zdot(expanda(e1, d), f), expanda(e3, d)),
 				      e->src);
 		case Mcntr:
-			return putsrc(Zrecset(expanda(e1, d), idsym(f), expanda(e3, d)),
+			return putsrc(Zblock(Zlocals(1, "$o"),
+					     Zset(doid("$o"), expanda(e1, d)),
+					     Zrecset(doid("$o"), idsym(f), expanda(e3, d)),
+					     NULL),
 				      e->src);
 		}
 		bug();

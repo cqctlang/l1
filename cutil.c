@@ -598,6 +598,12 @@ Zmkbox0(Expr *id)
 }
 
 Expr*
+Zerror(char *s)
+{
+	return Zcall(G("error"), 1, Zstr(s));
+}
+
+Expr*
 putsrc(Expr *e, Src src)
 {
 	Expr *p;

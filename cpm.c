@@ -34,8 +34,11 @@ expandm(Expr *e)
 						Zid2sym(m)),
 					  1, o),
 				    copyexpr(a)),
-			     Zapply(G("callmethodx"),
-				    Zcons(o, Zcons(Zstr(idsym(m)), a))));
+			     Zifelse(Zcall(G("iscallable"), 1, o),
+				     Zapply(G("callmethodx"),
+					    Zcons(o,
+						  Zcons(Zstr(idsym(m)), a))),
+				     Zerror("invalid left operand to .")));
 		putsrc(te, e->src);
 		return te;
 	case Eelist:

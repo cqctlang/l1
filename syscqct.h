@@ -1296,6 +1296,7 @@ Expr*		Zcid(char *s);
 Expr*		Zcons(Expr *hd, Expr *tl);
 Expr*		Zconst(Cbase base, Imm val);
 Expr*		Zcval(Expr *dom, Expr *type, Expr *val);
+Expr*		Zerror(char *s);
 Expr*		Zgbinop(unsigned gop, Expr *x, Expr *y);
 Expr*		Zidcid(Cid *s);
 Expr*		Zid2sym(Expr *e);
