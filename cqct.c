@@ -6,18 +6,6 @@ char **cqctloadpath;
 char cqctflags[256];
 
 void
-cqctgcenable(VM *vm)
-{
-	gcenable();
-}
-
-void
-cqctgcdisable(VM *vm)
-{
-	gcdisable();
-}
-
-void
 cqctinterrupt(VM *vm)
 {
 	vm->flags |= VMirq;

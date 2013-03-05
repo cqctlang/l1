@@ -10099,14 +10099,6 @@ call <span class="id">finalize(<span class="arg">v</span>, nil)</span>.
 </p>
 
 <p>
-When shutting down the last VM (via 
-<span class="fnindex"><a href="#fn:cqctfreevm">cqctfreevm</a></span>),
-the Cinquecento system performs a final collection and calls finalizers for unreachable values.
-However, finalizers for objects that are still reachable
-at shutdown may not be called.
-</p>
-
-<p>
 Finalizers are implemented through <a href="#fn:mkguardian">guardians</a>
 and <span class="fnindex"><a href="#fn:postgc">postgc</a></span>.
 </p>
@@ -10766,6 +10758,10 @@ option to L1.
 </p>
 
 <h4 id="sec:cinterface">C Interface</h4>
+
+<p>
+Note: This section is significantly out of date with the implementation.
+</p>
 
 <p>
 The following functions comprise the C interface to the
@@ -11541,74 +11537,6 @@ or (3) <span class="arg">vm</span> is freed.
 <div class="docitem">
 <div class="proto">
 <div class="function">
-<span class="id" id="fn:cqctgcunprotect">void cqctgcunprotect(VM *<span class="arg">vm</span>, Val <span class="arg">v</span>)</span>
-</div>
-</div>
-<div class="desc">
-Unregister <span class="arg">v</span> from the current GC protection frame
-of <span class="arg">vm</span>.
-</div>
-</div>
-
-<div class="docitem">
-<div class="proto">
-<div class="function">
-<span class="id" id="fn:cqctgcpersist">void cqctgcpersist(VM *<span class="arg">vm</span>, Val <span class="arg">v</span>)</span>
-</div>
-</div>
-<div class="desc">
-Protects the value <span class="arg">v</span> from
-garbage collection.  
-Unlike
-values protected by <span class="id"><a href="#fn:cqctgcprotect">cqctgcprotect</a></span>,
-the protection persists beyond return from the current GC protection
-frame.
-References to the value will be valid until
-<span class="arg">vm</span> is freed.
-</div>
-</div>
-
-<div class="docitem">
-<div class="proto">
-<div class="function">
-<span class="id" id="fn:cqctgcunpersist">void cqctgcunpersist(VM *<span class="arg">vm</span>, Val <span class="arg">v</span>)</span>
-</div>
-</div>
-<div class="desc">
-Remove the protection of <span class="arg">v</span>
-established by a previous call to <span class="id"><a href="#fn:cqctgcprotect">cqctgcprotect</a></span>.
-</div>
-</div>
-
-<div class="docitem">
-<div class="proto">
-<div class="function">
-<span class="id" id="fn:cqctgcdisable">void cqctgcdisable(VM *<span class="arg">vm</span>)</span>
-</div>
-</div>
-<div class="desc">
-Disable the garbage collector, if it is enabled.  If
-the concurrent GC is selected, the underlying GC thread
-is killed.
-</div>
-</div>
-
-<div class="docitem">
-<div class="proto">
-<div class="function">
-<span class="id" id="fn:cqctgcenable">void cqctgcenable(VM *<span class="arg">vm</span>)</span>
-</div>
-</div>
-<div class="desc">
-Reenable the garbage collector, if it was previously disabled with
-<span class="fnindex"><a href="#fn:cqctgcdisable">cqctgcdisable</a></span>.
-If the concurrent GC is selected, a fresh GC thread is started.
-</div>
-</div>
-
-<div class="docitem">
-<div class="proto">
-<div class="function">
 <span class="id" id="fn:cqctinterrupt">void cqctinterrupt(VM *<span class="arg">vm</span>)</span>
 </div>
 </div>
@@ -11618,14 +11546,10 @@ if it is executing.
 </div>
 </div>
 
-
 <div class="docitem">
 <div class="proto">
 <div class="function">
 <span class="id" id="fn:cqctfreecstr">void cqctfreecstr(char *<span class="arg">str</span>)</span>
-</div>
-<div class="function">
-<span class="id" id="fn:cqctfreevm">void cqctfreevm(VM *<span class="arg">vm</span>)</span>
 </div>
 <div class="function">
 <span class="id" id="fn:cqctfini">void cqctfini(Toplevel *<span class="arg">top</span>)</span>
@@ -11636,7 +11560,6 @@ These functions free the resources allocated by the above functions.
 <span class="id">Cqctfreecstr</span> frees a C string returned by
 <span class="fnindex"><a href="#fn:cqctval2cstr">cqctval2cstr</a></span>
 or <span class="fnindex"><a href="#fn:cqctsprintval">cqctsprintval</a></span>.
-<span class="id">Cqctfreevm</span> frees a virtual machine.
 <span class="id">Cqctfini</span> frees a top-level
 environment, and should be called only after all virtual
 machines sharing the environment have been freed.
@@ -11777,13 +11700,6 @@ Prentice Hall, 1988.
 <a href="#fn:cqcteval">cqcteval</a><br />
 <a href="#fn:cqctfaulthook">cqctfaulthook</a><br />
 <a href="#fn:cqctfini">cqctfini</a><br />
-<a href="#fn:cqctfreevm">cqctfreevm</a><br />
-<a href="#fn:cqctgcpersist">cqctgcpersist</a><br />
-<a href="#fn:cqctgcprotect">cqctgcprotect</a><br />
-<a href="#fn:cqctgcenable">cqctgcenable</a><br />
-<a href="#fn:cqctgcdisable">cqctgcdisable</a><br />
-<a href="#fn:cqctgcunpersist">cqctgcunpersist</a><br />
-<a href="#fn:cqctgcunprotect">cqctgcunprotect</a><br />
 <a href="#fn:cqctinit">cqctinit</a><br />
 <a href="#fn:cqctint8val">cqctint8val</a><br />
 <a href="#fn:cqctint16val">cqctint16val</a><br />

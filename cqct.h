@@ -126,7 +126,6 @@ struct Xfd {
 
 #define CQCTFN(top,id)	cqctbuiltinfn(top, "%"#id, cqctmkcfn(#id, l1_##id))
 
-void		cqctbootvm(VM *vm);
 void		cqctbuiltinfn(Env top, char *name, Closure *cl);
 int		cqctcallfn(VM *vm, Val cl, int argc, Val *argv, Val *rv);
 int		cqctcallthunk(VM *vm, Val cl, Val *rv);
@@ -138,9 +137,6 @@ Val		cqctcstrvalshared(char *s);
 void		cqctenvbind(Env top, char *name, Val v);
 Val		cqctenvlook(VM *vm, char *name);
 void		cqctfreecstr(char *s);
-void		cqctfreevm(VM *vm);
-void		cqctgcdisable(VM *vm);
-void		cqctgcenable(VM *vm);
 Val		cqctint8val(int8_t);
 Val		cqctint16val(int16_t);
 Val		cqctint32val(int32_t);
