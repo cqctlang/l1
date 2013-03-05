@@ -1524,6 +1524,9 @@ _ccall(VM *vm, Closure *cl, Imm argc, Val *argv)
 	c = cl->code;
 	switch(c->kind){
 	case Cvm:
+		if((void*)(vm->fp+Onfrhd+argc) >= vm->stk+vm->stksz)
+			fatal("unimplemented stack overflow");
+
 		/* insert a halt frame */
 		vm->fp += Onfrhd;
 		vm->fp[Ocl] = mkvalcl(halt);
@@ -1542,13 +1545,8 @@ _ccall(VM *vm, Closure *cl, Imm argc, Val *argv)
 		break;
 	case Ccfn:
 	case Cccl:
-// why bother?  and whose got the storage? 
-//		for(m = 0; m < argc; m++)
-//			vm->fp[Oarg0+m] = argv[m];
-
 		vm->cl = cl;
 		vm->pc = 0;
-
 		switch(c->kind){
 		case Ccfn:
 			c->cfn(vm, argc, argv, &rv);
@@ -1597,8 +1595,6 @@ _ccall(VM *vm, Closure *cl, Imm argc, Val *argv)
 	return rv;
 }
 
-/* FIXME: we need to check for overflow here and _ccall */
-
 Val
 ccall(VM *vm, Closure *cl, Imm argc, Val *argv)
 {
@@ -1613,6 +1609,8 @@ ccall(VM *vm, Closure *cl, Imm argc, Val *argv)
 	case Cvm:
 		/* we are in the middle of a VM operation. */
 		fsz = ra2size(vm->pc, vm->cl->code);
+		if((void*)(vm->fp+fsz+Onfrhd) >= vm->stk+vm->stksz)
+			fatal("unimplemented stack overflow");
 		vm->fp += fsz;
 		vm->fp[Ora] = (Val)(uptr)vm->pc;
 		vm->fp[Ocl] = mkvalcl(vm->cl);
@@ -1629,6 +1627,8 @@ ccall(VM *vm, Closure *cl, Imm argc, Val *argv)
 		   either from VM or a previous call to
 		   a builtin. */
 		fsz = Onfrhd+vm->vc;
+		if((void*)(vm->fp+fsz+Onfrhd) >= vm->stk+vm->stksz)
+			fatal("unimplemented stack overflow");
 		vm->fp += fsz;
 		vm->fp[Ocl] = mkvalcl(vm->cl); /* will be C */
 		vm->fp[Ora] = (Val)(uptr)fsz;
@@ -1759,6 +1759,8 @@ vapply(VM *vm)
 		vmerr(vm, "final argument to apply must be a list");
 	l = vallist(lv);
 	m = listlen(l);
+	if((void*)(vm->fp+Onfrhd+sarg+m) >= vm->stk+vm->stksz)
+		fatal("unimplemented stack overflow");
 	sarg = oarg-2; /* arguments already on stack */
 	memmove(fp+Oarg0, fp+Oarg0+1, sarg*sizeof(Val));
 	for(i = 0; i < m; i++)
