@@ -1759,9 +1759,9 @@ vapply(VM *vm)
 		vmerr(vm, "final argument to apply must be a list");
 	l = vallist(lv);
 	m = listlen(l);
+	sarg = oarg-2; /* arguments already on stack */
 	if((void*)(vm->fp+Onfrhd+sarg+m) >= vm->stk+vm->stksz)
 		fatal("unimplemented stack overflow");
-	sarg = oarg-2; /* arguments already on stack */
 	memmove(fp+Oarg0, fp+Oarg0+1, sarg*sizeof(Val));
 	for(i = 0; i < m; i++)
 		fp[Oarg0+sarg+i] = listref(l, i);
