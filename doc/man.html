@@ -7006,7 +7006,7 @@ the record descriptor.
 <span class="arg">rd</span>: <span class="type">record descriptor</span>
 </div>
 <div class="returns">
-<span class="type">string</span>
+<span class="type">cid</span>
 </div>
 </div>
 <div class="desc">
@@ -7081,20 +7081,20 @@ record system.
 <span class="id">mkrd(<span class="arg">name</span>,<span class="arg">fields</span>)</span>
 </div>
 <div class="param">
-<span class="arg">name</span>: <span class="type">string</span>
+<span class="arg">name</span>: <span class="type">cide</span>
 </div>
 <div class="param">
-<span class="arg">fields</span>: <span class="type">list of string</span>
+<span class="arg">fields</span>: <span class="type">list of cid</span>
 </div>
 <div class="returns">
 <span class="type">record descriptor</span>
 </div>
 </div>
 <div class="desc">
-Creates or updates the record descriptor for the record
+Creates a record descriptor for the record
 type named <span class="arg">name</span>.  The names of
 the fields of the record type are set, in order, to the
-strings in the list <span class="arg">fields</span>.
+cids in the list <span class="arg">fields</span>.
 The record descriptor is returned.
 </div>
 </div>
