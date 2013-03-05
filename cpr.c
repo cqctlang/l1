@@ -44,7 +44,7 @@ expandrec(U *ctx, Expr *e, Expr *s)
 	p = Zblock(Zlocals(1, "$rd"),
 		   Zset(doid("$rd"),
 			Zcall(G("mkrd"), 2,
-			      Zstr(id),
+			      Zcid(id),
 			      Zids2syms(e->e2))),
 		   Zset(doid(id), Zcall(G("rdmk"),
 					1, doid("$rd"))),

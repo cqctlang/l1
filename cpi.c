@@ -232,10 +232,9 @@ match(U *ctx, Expr* exp, Expr* pat, Match *m)
 		m->check = Zand(Zand(m->check, Zcall(doid("isrec"), 1, 
 						     copyexpr(exp))),
 				Zbinop(Eeq, Zid2sym(pat->e1),
-				       Zcall(doid("mkcid"), 1, 
-					     Zcall(doid("rdname"), 1, 
-						   Zcall(doid("rdof"), 1, 
-							 copyexpr(exp))))));
+				       Zcall(doid("rdname"), 1, 
+					     Zcall(doid("rdof"), 1, 
+						   copyexpr(exp)))));
                 /* Two forms of pattern matching:
                    rec(f1=p1,...,fn=pn) where fi are a subset of
                      rec's field names, or

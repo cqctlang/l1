@@ -457,7 +457,7 @@ struct Rec {
 
 struct Rd {
 	Head hd;
-	Str *name;
+	Cid *name;
 	Imm nf;
 	List *fname;
 	Closure *is;		/* predicate */

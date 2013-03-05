@@ -557,7 +557,7 @@ fmtval(VM *vm, Fmt *f, Val val)
 		rd = valrd(val);
 		if(fmtputs0(vm, f, "<rd "))
 			return -1;
-		if(fmtputs(vm, f, strdata(rd->name), rd->name->len))
+		if(fmtputs(vm, f, ciddata(rd->name), rd->name->len))
 			return -1;
 		return fmtputs0(vm, f, ">");
 	case Qcode:
@@ -573,9 +573,9 @@ fmtval(VM *vm, Fmt *f, Val val)
 		rec = valrec(val);
 		rv = ccall(vm, rec->rd->fmt, 1, &val);
 		if(Vkind(rv) != Qstr)
-			vmerr(vm, "formatter for record type %.*s must "
+			vmerr(vm, "formatter for record type %s must "
 			      "return a string",
-			      (int)rec->rd->name->len, strdata(rec->rd->name));
+			      ciddata(rec->rd->name));
 		str = valstr(rv);
 		return fmtputs(vm, f, strdata(str), str->len);
 	case Qexpr:

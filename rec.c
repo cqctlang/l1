@@ -98,15 +98,13 @@ recfmt(VM *vm, Imm argc, Val *argv, Val *disp, Val *rv)
 		vmerr(vm, "wrong number of arguments to %.*s",
 		      (int)mn->len, strdata(mn));
 	if(Vkind(argv[0]) != Qrec)
-		vmerr(vm, "operand 1 to %.*s must be a %.*s record",
-		      (int)mn->len, strdata(mn),
-		      (int)rd->name->len, strdata(rd->name));
+		vmerr(vm, "operand 1 to %.*s must be a %s record",
+		      (int)mn->len, strdata(mn), ciddata(rd->name));
 	r = valrec(argv[0]);
 	len = 1+rd->name->len+1+16+1+1;
 	buf = emalloc(len);
-	snprint(buf, len, "<%.*s %p>",
-		(int)rd->name->len,
-		strdata(rd->name), r);
+	snprint(buf, len, "<%s %p>",
+		ciddata(rd->name), r);
 	*rv = mkvalstr(mkstr0(buf));
 	efree(buf);
 }
@@ -127,20 +125,17 @@ recget(VM *vm, Imm argc, Val *argv, Val *disp, Val *rv)
 		vmerr(vm, "wrong number of arguments to %.*s",
 		      (int)mn->len, strdata(mn));
 	if(Vkind(argv[0]) != Qrec)
-		vmerr(vm, "operand 1 to %.*s must be a %.*s record",
-		      (int)mn->len, strdata(mn),
-		      (int)rd->name->len, strdata(rd->name));
+		vmerr(vm, "operand 1 to %.*s must be a %s record",
+		      (int)mn->len, strdata(mn), ciddata(rd->name));
 	r = valrec(argv[0]);
 	if(r->rd != rd)
-		vmerr(vm, "operand 1 to %.*s must be a %.*s record",
-		      (int)mn->len, strdata(mn),
-		      (int)rd->name->len, strdata(rd->name));
+		vmerr(vm, "operand 1 to %.*s must be a %s record",
+		      (int)mn->len, strdata(mn), ciddata(rd->name));
 
 	/* weak test for compatible record descriptor */
 	if(r->nf <= cvalu(ndx))
-		vmerr(vm, "attempt to call %.*s on incompatible %.*s record",
-		      (int)mn->len, strdata(mn),
-		      (int)rd->name->len, strdata(rd->name));
+		vmerr(vm, "attempt to call %.*s on incompatible %s record",
+		      (int)mn->len, strdata(mn), ciddata(rd->name));
 
 	*rv = recdata(r)[cvalu(ndx)];
 }
@@ -161,20 +156,17 @@ recset(VM *vm, Imm argc, Val *argv, Val *disp, Val *rv)
 		vmerr(vm, "wrong number of arguments to %.*s",
 		      (int)mn->len, strdata(mn));
 	if(Vkind(argv[0]) != Qrec)
-		vmerr(vm, "operand 1 to %.*s must be a %.*s record",
-		      (int)mn->len, strdata(mn),
-		      (int)rd->name->len, strdata(rd->name));
+		vmerr(vm, "operand 1 to %.*s must be a %s record",
+		      (int)mn->len, strdata(mn), ciddata(rd->name));
 	r = valrec(argv[0]);
 	if(r->rd != rd)
-		vmerr(vm, "operand 1 to %.*s must be a %.*s record",
-		      (int)mn->len, strdata(mn),
-		      (int)rd->name->len, strdata(rd->name));
+		vmerr(vm, "operand 1 to %.*s must be a %s record",
+		      (int)mn->len, strdata(mn), ciddata(rd->name));
 
 	/* weak test for compatible record descriptor */
 	if(r->nf <= cvalu(ndx))
-		vmerr(vm, "attempt to call %.*s on incompatible %.*s record",
-		      (int)mn->len, strdata(mn),
-		      (int)rd->name->len, strdata(rd->name));
+		vmerr(vm, "attempt to call %.*s on incompatible %s record",
+		      (int)mn->len, strdata(mn), ciddata(rd->name));
 
 	gcwb(mkvalrec(r));
 	recdata(r)[cvalu(ndx)] = argv[1];
@@ -182,7 +174,7 @@ recset(VM *vm, Imm argc, Val *argv, Val *disp, Val *rv)
 }
 
 static Rd*
-mkrd(VM *vm, Str *name, List *fname, Closure *fmt)
+mkrd(VM *vm, Cid *name, List *fname, Closure *fmt)
 {
 	Rd *rd;
 	Imm n;
@@ -200,12 +192,12 @@ mkrd(VM *vm, Str *name, List *fname, Closure *fmt)
 	len = 3+name->len+1;
 	buf = emalloc(len);
 
-	snprint(buf, len, "is%.*s", (int)name->len, strdata(name));
+	snprint(buf, len, "is%s", ciddata(name));
 	rd->is = mkccl(buf, recis, 2, mkvalrd(rd), mkvalstr(mkstr0(buf)));
-	snprint(buf, len, "%.*s", (int)name->len, strdata(name));
+	snprint(buf, len, "%s", ciddata(name));
 	rd->mk = mkccl(buf, recmk, 2, mkvalrd(rd), mkvalstr(mkstr0(buf)));
 	if(fmt == 0){
-		snprint(buf, len, "fmt%.*s", (int)name->len, strdata(name));
+		snprint(buf, len, "fmt%s", ciddata(name));
 		rd->fmt = mkccl(buf, recfmt, 2,
 				mkvalrd(rd), mkvalstr(mkstr0(buf)));
 	}else
@@ -220,18 +212,17 @@ mkrd(VM *vm, Str *name, List *fname, Closure *fmt)
 		buf = emalloc(len);
 
 		/* get method */
-		snprint(buf, len, "%.*s%.*s",
-			(int)name->len, strdata(name),
-			(int)f->len, ciddata(f));
+		snprint(buf, len, "%s%s",
+			ciddata(name), ciddata(f));
 		mn = mkvalstr(mkstr0(buf));
 		cl = mkccl(buf, recget, 3,
 			   mkvalrd(rd), mn, mkvallitcval(Vuint, n));
 		tabput(rd->get, mkvalcid(f), mkvalcl(cl));
 
 		/* set method */
-		snprint(buf, len, "%.*sset%.*s",
-			(int)name->len, strdata(name),
-			(int)f->len, ciddata(f));
+		snprint(buf, len, "%sset%s",
+			ciddata(name),
+			ciddata(f));
 		mn = mkvalstr(mkstr0(buf));
 		cl = mkccl(buf, recset, 3,
 			   mkvalrd(rd), mn, mkvallitcval(Vuint, n));
@@ -264,7 +255,7 @@ l1_mkrd(VM *vm, Imm argc, Val *argv, Val *rv)
 
 	if(argc != 2 && argc != 3)
 		vmerr(vm, "wrong number of arguments to mkrd");
-	checkarg(vm, argv, 0, Qstr);
+	checkarg(vm, argv, 0, Qcid);
 	checkarg(vm, argv, 1, Qlist);
 
 	fmt = 0;
@@ -280,7 +271,7 @@ l1_mkrd(VM *vm, Imm argc, Val *argv, Val *rv)
 			vmerr(vm, "operand 2 to mkrd must be a "
 			      "list of field names");
 	}
-	*rv = mkvalrd(mkrd(vm, valstr(argv[0]), lst, fmt));
+	*rv = mkvalrd(mkrd(vm, valcid(argv[0]), lst, fmt));
 }
 
 static void
@@ -291,7 +282,7 @@ l1_rdname(VM *vm, Imm argc, Val *argv, Val *rv)
 		vmerr(vm, "wrong number of arguments to rdname");
 	checkarg(vm, argv, 0, Qrd);
 	rd = valrd(argv[0]);
-	*rv = mkvalstr(rd->name);
+	*rv = mkvalcid(rd->name);
 }
 
 static void
