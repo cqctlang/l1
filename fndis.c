@@ -63,7 +63,7 @@ l1_disx86(VM *vm, Imm argc, Val *argv, Val *rv)
 	Str *s;
 	Cval *p, *m;
 	if(argc != 1 && argc != 2)
-		vmerr(vm, "wrong number of arguments to dis");
+		vmerr(vm, "wrong number of arguments to disx86");
 	if(argc == 1){
 		checkarg(vm, argv, 0, Qstr);
 		s = valstr(argv[0]);
