@@ -264,11 +264,12 @@ load("prelude.cqct");
 @defloc parseargs(args)
 {
 	@local arg;
-	@local forms, cmd;
+	@local forms, cmd, entry;
 
 	l1path = pop(args);
 	forms = [];
 	cmd = [];
+	entry = nil;
 	while(length(args)){
 		arg = pop(args);
 		if(arg == "-x"){
@@ -277,20 +278,30 @@ load("prelude.cqct");
 			append(forms, pop(args));
 			continue;
 		}
+		if(arg == "-e"){
+			if(length(args) == 0)
+				error("missing symbol for -e");
+			if(entry)
+				error("multiple uses of -e");
+			entry = mkcid(pop(args));
+			continue;
+		}
 		if(arg[0] == '-')
 			continue;
 		append(cmd, arg);
 	}
-	return [forms, cmd];
+	if(entry && length(cmd) == 0)
+		error("entry specified without a script");
+	return [forms, entry, cmd];
 }
 
 @define $l1start(arg ...)
 {
-	@local forms, cmd, file, rv;
+	@local forms, entry, cmd, file, rv;
 	callcc(@lambda(root){
 			withnullcont = root;
 			return @lambda(){
-				[forms, cmd] = parseargs(arg);
+				[forms, entry, cmd] = parseargs(arg);
 				if(length(cmd) == 0 && length(forms) == 0)
 					return repl();
 				callcc(@lambda(done){
@@ -305,8 +316,21 @@ load("prelude.cqct");
 						if(length(cmd) == 0)
 							return rv;
 						file = pop(cmd);
-						args = cmd;
-						return load(file);
+						if(entry == nil){
+							args = cmd;
+							return load(file);
+						}else{
+							@local f;
+							load(file);
+							f = toplevel[entry];
+							if(f == nil)
+								error("entry %a is undefined",
+								      entry);
+							if(!isprocedure(f))
+								error("entry %a is not a function",
+								      entry);
+							f(cmd);
+						}
 					});
 			};})();
 }
