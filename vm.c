@@ -826,9 +826,9 @@ vvmwarn(VM *vm, char *fmt, va_list args)
 	Val err;
 	vsnprint(buf, sizeof(buf), fmt, args);
 	argv[0] = mkvalstr(mkstr0(buf));
-	err = envlookup(vm->top, "defaultwarning");
+	err = envlookup(vm->top, "currentwarning");
 	if(err == 0)
-		fatal("no default warning handler");
+		fatal("no warning handler");
 	ccall(vm, valcl(err), 1, argv);
 }
 
