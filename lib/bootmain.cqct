@@ -37,8 +37,8 @@
 					done(nil);
 				}
 				dynamicwind(@lambda(){
-						err = defaulterror;
-						defaulterror = myerr;
+						err = errorhandler;
+						errorhandler = myerr;
 					    },
 					    @lambda(){
 						    @local i;
@@ -47,7 +47,7 @@
 						    return e;
 					    },
 					    @lambda(){
-						    defaulterror = err;
+						    errorhandler = err;
 					    });
 			});
 	}
@@ -105,7 +105,7 @@ load("prelude.cqct");
 @define callfn(fn, args ...)
 {
 	callcc(@lambda(ret){
-			defaultreset = ret;
+			currentreset = ret;
 			return apply(fn, args);
     	       }); 
 }
@@ -115,7 +115,7 @@ load("prelude.cqct");
 	callcc(@lambda(errk){
 			printf("error: %s\n", msg);
 			kbacktrace(continuationfr(errk));
-			defaultreset(nil);
+			currentreset(nil);
 		});
 }
 
@@ -132,7 +132,7 @@ load("prelude.cqct");
 	callcc(@lambda(errk){
 			printf("error: %s\n", msg);
 			kbacktrace(continuationfr(errk));
-			exit(1);
+			currentabort();
 		});
 }
 
@@ -180,7 +180,7 @@ load("prelude.cqct");
 			break;
 		case "r":
 		case "reset":
-			defaultreset(nil);
+			currentreset(nil);
 			break;
 		case "new":
 			repl();
@@ -191,8 +191,7 @@ load("prelude.cqct");
 			return;
 		case "a":
 		case "abort":
-			/* FIXME: call abort handler */
-			exit(1);
+			currentabort();
 		        break;
 		default:
 			printf("unrecognized command\n");
@@ -222,7 +221,7 @@ load("prelude.cqct");
 		s = read(stdin, 1024);
 		if(s == nil){
 			printf("\n");
-			defaultreturn(nil);
+			currentreturn(nil);
 			error("unexpected return from return\n");
 		}
 		v = _eval(s, "(stdin)", 1);
@@ -236,26 +235,26 @@ load("prelude.cqct");
 			withnullcont(@lambda(){
 					dynamicwind(
 						@lambda(){
-							oldret = defaultreturn;
-							olderr = defaulterror;
-							oldint = defaultinterrupt;
-							oldreset = defaultreset;
-							defaultreturn = done;
-							defaulterror = replerror;
-							defaultinterrupt = replinterrupt;
-							defaultreset = thisreset;
+							oldret = currentreturn;
+							olderr = errorhandler;
+							oldint = interrupthandler;
+							oldreset = currentreset;
+							currentreturn = done;
+							errorhandler = replerror;
+							interrupthandler = replinterrupt;
+							currentreset = thisreset;
 						},
 						@lambda(){ 
 							callcc(@lambda(reset){
-									defaultreset = thisreset = reset;
+									currentreset = thisreset = reset;
 								});
 							$loop();
 						},
 						@lambda(){
-							defaultreturn = oldret;
-							defaulterror = olderr;
-							defaultinterrupt = oldint;
-							defaultreset = oldreset;
+							currentreturn = oldret;
+							errorhandler = olderr;
+							interrupthandler = oldint;
+							currentreset = oldreset;
 						});
 				});
 	       });
@@ -305,9 +304,9 @@ load("prelude.cqct");
 				if(length(cmd) == 0 && length(forms) == 0)
 					return repl();
 				callcc(@lambda(done){
-						defaultreturn = done;
-						defaulterror = batcherror;
-						defaultinterrupt = batchinterrupt;
+						currentreturn = done;
+						errorhandler = batcherror;
+						interrupthandler = batchinterrupt;
 						while(length(forms)){
 							@local form;
 							form = pop(forms);

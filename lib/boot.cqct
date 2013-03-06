@@ -1,4 +1,9 @@
-@define defaulterror(msg)
+@define currentabort()
+{
+	exit(1);
+}
+
+@define errorhandler(msg)
 {
      printf("boot error: %s\n", msg);
      exit(1);
@@ -16,7 +21,7 @@
 
 callcc(@lambda(done){
 
-@define defaulterror(msg)
+@define errorhandler(msg)
 {
      callcc(@lambda(errk){
 	       printf("boot error: %s\n", msg);
@@ -25,7 +30,7 @@ callcc(@lambda(done){
 	  });
 }
 
-@define defaultinterrupt()
+@define interrupthandler()
 {
      callcc(@lambda(k){
      	     printf("boot interrupted\n");

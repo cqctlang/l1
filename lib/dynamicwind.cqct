@@ -108,12 +108,12 @@
 				done = k;
 				dynamicwind(
 					@lambda(){
-						olderr = defaulterror;
-						defaulterror = err;
+						olderr = errorhandler;
+						errorhandler = err;
 					},
 					$doit,
 					@lambda(){
-						defaulterror = olderr;
+						errorhandler = olderr;
 					});
 			});
 	}

@@ -782,7 +782,7 @@ vmint(VM *vm)
 	if(Vkind(v) != Qcl)
 		bug();
 	cl = valcl(v);
-	v = envlookup(vm->top, "defaultinterrupt");
+	v = envlookup(vm->top, "interrupthandler");
 	if(v == 0)
 		vmerr(vm, "no default interrupt handler");
 	if(Vkind(v) != Qcl)
@@ -804,7 +804,7 @@ vmint(VM *vm)
 	   ra1/cl1 is one past the interrupt insn.
 	   fsz is the size of the ofp frame at that insn.
 	   it is passed to $raiseinterrupt so that it can restore ofp.
-	   v is the user's defaultinterrupt handler.
+	   v is the user's interrupt handler.
 	*/
 
 	vm->flags &= ~VMirq;
@@ -849,7 +849,7 @@ vvmerr(VM *vm, char *fmt, va_list args)
 	Val err;
 	vsnprint(buf, sizeof(buf), fmt, args);
 	argv[0] = mkvalstr(mkstr0(buf));
-	err = envlookup(vm->top, "defaulterror");
+	err = envlookup(vm->top, "errorhandler");
 	if(err == 0)
 		fatal("no default error handler");
 	ccall(vm, valcl(err), 1, argv);
@@ -7019,25 +7019,25 @@ noctl(char *which)
 }
 
 static void
-l1_defaultabort(VM *vm, Imm argc, Val *argv, Val *rv)
+l1_currentabort(VM *vm, Imm argc, Val *argv, Val *rv)
 {
 	noctl("abort");
 }
 
 static void
-l1_defaulterror(VM *vm, Imm argc, Val *argv, Val *rv)
+l1_errorhandler(VM *vm, Imm argc, Val *argv, Val *rv)
 {
 	noctl("error");
 }
 
 static void
-l1_defaultinterrupt(VM *vm, Imm argc, Val *argv, Val *rv)
+l1_interrupthandler(VM *vm, Imm argc, Val *argv, Val *rv)
 {
 	noctl("interrupt");
 }
 
 static void
-l1_defaultwarning(VM *vm, Imm argc, Val *argv, Val *rv)
+l1_currentwarning(VM *vm, Imm argc, Val *argv, Val *rv)
 {
 	Str *s;
 	if(argc != 1)
@@ -7048,13 +7048,13 @@ l1_defaultwarning(VM *vm, Imm argc, Val *argv, Val *rv)
 }
 
 static void
-l1_defaultreset(VM *vm, Imm argc, Val *argv, Val *rv)
+l1_currentreset(VM *vm, Imm argc, Val *argv, Val *rv)
 {
 	noctl("reset");
 }
 
 static void
-l1_defaultreturn(VM *vm, Imm argc, Val *argv, Val *rv)
+l1_currentreturn(VM *vm, Imm argc, Val *argv, Val *rv)
 {
 	noctl("return");
 }
@@ -7062,12 +7062,12 @@ l1_defaultreturn(VM *vm, Imm argc, Val *argv, Val *rv)
 static void
 fnctl(Env env)
 {
-	FN(defaultabort);
-	FN(defaulterror);
-	FN(defaultinterrupt);
-	FN(defaultreset);
-	FN(defaultreturn);
-	FN(defaultwarning);
+	FN(currentabort);
+	FN(currentreset);
+	FN(currentreturn);
+	FN(currentwarning);
+	FN(errorhandler);
+	FN(interrupthandler);
 }
 
 char*
