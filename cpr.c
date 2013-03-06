@@ -2,6 +2,20 @@
 #include "util.h"
 #include "syscqct.h"
 
+static int
+Zcontains(Expr *id, Expr *l)
+{
+	if(l->kind == Enull)
+		return 0;
+	if(l->kind != Eelist)
+		bug();
+	if(l->e1->kind != Eid)
+		bug();
+	if(l->e1->aux == id->aux)
+		return 1;
+	return Zcontains(id, l->e2);
+}
+
 static void
 newlocal(Expr *s, Expr *id)
 {
@@ -11,7 +25,8 @@ newlocal(Expr *s, Expr *id)
 	b = s->e1;
 	if(b->kind != Eblock)
 		bug();
-	sete1(b, putsrc(Zcons(id, b->e1), b->e1->src));
+	if(!Zcontains(id, b->e1))
+		sete1(b, putsrc(Zcons(id, b->e1), b->e1->src));
 }
 
 static Expr*
