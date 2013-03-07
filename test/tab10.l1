@@ -1,0 +1,19 @@
+/* tab dot syntax */
+
+@define disp(v)
+{
+	printf("%d\n", v);
+}
+
+t = [ 'a : 1, 'b : 2 ];
+
+disp(t.a);
+disp(t.b);
+t.a = 5;
+disp(t.a);
+t.b += t.a;
+disp(t.b);
+disp(t.a++);
+disp(t.a);
+disp(++t.a);
+disp(t.a);

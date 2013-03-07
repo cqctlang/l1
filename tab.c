@@ -504,7 +504,7 @@ l1_tabinsert(VM *vm, Imm argc, Val *argv, Val *rv)
 	checkarg(vm, argv, 0, Qtab);
 	t = valtab(argv[0]);
 	tabput(t, argv[1], argv[2]);
-	USED(rv);
+	*rv = argv[2];
 }
 
 static void

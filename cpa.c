@@ -78,6 +78,22 @@ Zcntr(Expr *e)
 }
 
 static Expr*
+Ztabget(Expr *r, char *f)
+{
+	if(r->kind != Eid)
+		bug();
+	return Zcall(G("tablook"), 2, r, Zcid(f));
+}
+
+static Expr*
+Ztabset(Expr *r, char *f, Expr *v)
+{
+	if(r->kind != Eid)
+		bug();
+	return Zcall(G("tabinsert"), 3, r, Zcid(f), v);
+}
+
+static Expr*
 Zrecget(Expr *r, char *f)
 {
 	if(r->kind != Eid)
@@ -622,12 +638,13 @@ expandaform(Aform af, Expr *e, u32 d)
 					    f);
 			b = Zblock(Zlocals(1, "$o"),
 				   Zset(doid("$o"), expanda(e1, d)),
-				   Zifelse(Zcall(G("isrec"), 1, doid("$o")),
-					   Zrecget(doid("$o"), id),
-					   Zifelse(Zcall(G("iscallable"),
-							 1, doid("$o")),
-						   p,
-						   Zerror("invalid left operand to ."))),
+				   Zifelse(Zcall(G("istable"), 1, doid("$o")),
+					   Ztabget(doid("$o"), id),
+					   Zifelse(Zcall(G("isrec"), 1, doid("$o")),
+						   Zrecget(doid("$o"), id),
+						   Zifelse(Zcall(G("iscallable"), 1, doid("$o")),
+							   p,
+							   Zerror("invalid left operand to .")))),
 				   NULL);
 			return putsrc(b, e->src);
 		}
@@ -661,9 +678,12 @@ expandaform(Aform af, Expr *e, u32 d)
 			return putsrc(Zset(Zdot(expanda(e1, d), f), expanda(e3, d)),
 				      e->src);
 		case Mcntr:
-			return putsrc(Zblock(Zlocals(1, "$o"),
+			return putsrc(Zblock(Zlocals(2, "$o", "$v"),
 					     Zset(doid("$o"), expanda(e1, d)),
-					     Zrecset(doid("$o"), idsym(f), expanda(e3, d)),
+					     Zset(doid("$v"), expanda(e3, d)),
+					     Zifelse(Zcall(G("istable"), 1, doid("$o")),
+						     Ztabset(doid("$o"), idsym(f), doid("$v")),
+						     Zrecset(doid("$o"), idsym(f), doid("$v"))),
 					     NULL),
 				      e->src);
 		}
@@ -683,12 +703,18 @@ expandaform(Aform af, Expr *e, u32 d)
 				      e->src);
 		case Mcntr:
 			id = idsym(f);
-			return putsrc(Zblock(Zlocals(1, "$o"),
+			return putsrc(Zblock(Zlocals(2, "$o", "$v"),
 					     Zset(doid("$o"), expanda(e1, d)),
-					     Zrecset(doid("$o"), id,
-						     Zgbinop(e->kind,
-							     Zrecget(doid("$o"), id),
-							     expanda(e3, d))),
+					     Zset(doid("$v"), expanda(e3, d)),
+					     Zifelse(Zcall(G("istable"), 1, doid("$o")),
+						     Ztabset(doid("$o"), id,
+							     Zgbinop(e->kind,
+								     Ztabget(doid("$o"), id),
+								     doid("$v"))), 
+						     Zrecset(doid("$o"), id,
+							     Zgbinop(e->kind,
+								     Zrecget(doid("$o"), id),
+								     doid("$v")))),
 					     NULL),
 				      e->src);
 		}
@@ -711,21 +737,38 @@ expandaform(Aform af, Expr *e, u32 d)
 			case Epredec:
 				return putsrc(Zblock(Zlocals(1, "$o"),
 						     Zset(doid("$o"), expanda(e1, d)),
-						     Zrecset(doid("$o"), id,
-							     Zgbinop(e->kind,
-								     Zrecget(doid("$o"), id),
-								     Zint(1))),
+						     Zifelse(Zcall(G("istable"), 1, doid("$o")),
+							     Ztabset(doid("$o"), id,
+								     Zgbinop(e->kind,
+									     Ztabget(doid("$o"), id),
+									     Zint(1))),
+							     Zrecset(doid("$o"), id,
+								     Zgbinop(e->kind,
+									     Zrecget(doid("$o"), id),
+									     Zint(1)))),
 						     NULL),
 					      e->src);
 			case Epostinc:
 			case Epostdec:
 				return putsrc(Zblock(Zlocals(2, "$o", "$p"),
 						     Zset(doid("$o"), expanda(e1, d)),
-						     Zset(doid("$p"), Zrecget(doid("$o"), id)),
-						     Zrecset(doid("$o"), id,
-							     Zgbinop(e->kind,
-								     doid("$p"),
-								     Zint(1))),
+						     Zifelse(Zcall(G("istable"), 1, doid("$o")),
+							     Zblock(nullelist(),
+								    Zset(doid("$p"),
+									 Ztabget(doid("$o"), id)),
+								    Ztabset(doid("$o"), id,
+									    Zgbinop(e->kind,
+										    doid("$p"),
+										    Zint(1))),
+								    NULL),
+							     Zblock(nullelist(),
+								    Zset(doid("$p"),
+									 Zrecget(doid("$o"), id)),
+								    Zrecset(doid("$o"), id,
+									    Zgbinop(e->kind,
+										    doid("$p"),
+										    Zint(1))),
+								    NULL)),
 						     doid("$p"),
 						     NULL),
 					      e->src);
