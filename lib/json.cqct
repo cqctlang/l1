@@ -11,6 +11,8 @@
 			return list2json(v);
 		else if(istable(v))
 			return tab2json(v);
+		else if(isnil(v))
+                        return "none";
 		else
 			error("invalid value: %a", v);
 	}

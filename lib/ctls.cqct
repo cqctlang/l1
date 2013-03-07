@@ -570,7 +570,7 @@ idxev = [
 			/* sctl has cleared the breakpoints and snappoints */
 			foreach(@lambda(t){
 					if(t.kind == 'brk || t.kind == 'snap){
-						tabdelete(cs.traps, t.id);
+						tabdelete(cs.traps, t.tid);
 						tabdelete(cs.straps, t.sid);
 					}
 				}, traps());
