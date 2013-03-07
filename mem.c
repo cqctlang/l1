@@ -3541,8 +3541,9 @@ restoreheap(char *file)
 		}
 	}
 
-	/* reset dynamic wind */
+	/* reset crap we don't have a better way to reset */
 	tabput(toplevel, mkvalcid(mkcid0("$winders")), Xnil);
+	tabput(toplevel, mkvalcid(mkcid0("$repllevel")), mkvalcval2(cval0));
 
 	efree(tseg);
 	efree(sptr);

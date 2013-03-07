@@ -12,6 +12,7 @@
 	compile,
 	callfn,
 	repl,
+	$repllevel,
 	$l1start,
 	dumpk,
 	withnullcont
@@ -212,14 +213,26 @@ load("prelude.cqct");
 	kbacktrace(continuationfr(k));
 }
 
+$repllevel = 0;
 @define repl()
 {
+	@local prompt, level;
+
+	@defloc mkprompt()
+	{
+		@local i;
+		prompt = "";
+		for(i = 0; i < level; i++)
+			prompt += ";";
+	}
+
 	@defloc $loop()
 	{
 		@local s, v;
-		printf("; ");
+		printf("%s ", prompt);
 		s = read(stdin, 1024);
 		if(s == nil){
+			$repllevel--;
 			printf("\n");
 			currentreturn(nil);
 			error("unexpected return from return\n");
@@ -230,6 +243,8 @@ load("prelude.cqct");
 		$loop();
 	}
 
+	level = ++$repllevel;
+	mkprompt();
 	callcc(@lambda(done){
 			@local oldret, olderr, oldint, oldreset, thisreset;
 			withnullcont(@lambda(){
@@ -239,6 +254,7 @@ load("prelude.cqct");
 							olderr = errorhandler;
 							oldint = interrupthandler;
 							oldreset = currentreset;
+							$repllevel = level;
 							currentreturn = done;
 							errorhandler = replerror;
 							interrupthandler = replinterrupt;
