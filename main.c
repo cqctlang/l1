@@ -294,7 +294,9 @@ main(int argc, char *argv[])
 
 	i = 1;
 	while(i < argc){
-		if(strcmp("-l", argv[i]) == 0){
+		if(strcmp("--", argv[i]) == 0 || argv[i][0] != '-')
+			break;
+		else if(strcmp("-l", argv[i]) == 0){
 			if(i+1 >= argc)
 				usage();
 			if(nlp >= Maxloadpath)

@@ -287,6 +287,12 @@ $repllevel = 0;
 	entry = nil;
 	while(length(args)){
 		arg = pop(args);
+		if(arg == "--")
+			break;
+		if(arg[0] != '-'){
+			push(args, arg); /* command file */
+			break;
+		}
 		if(arg == "-x"){
 			if(length(args) == 0)
 				error("missing form for -x");
@@ -301,10 +307,9 @@ $repllevel = 0;
 			entry = mkcid(pop(args));
 			continue;
 		}
-		if(arg[0] == '-')
-			continue;
-		append(cmd, arg);
+		/* else eat option */
 	}
+	cmd = args;
 	if(entry && length(cmd) == 0)
 		error("entry specified without a script");
 	return [forms, entry, cmd];
@@ -344,7 +349,7 @@ $repllevel = 0;
 							if(!isprocedure(f))
 								error("entry %a is not a function",
 								      entry);
-							f(cmd);
+							return apply(f, cmd);
 						}
 					});
 			};})();
