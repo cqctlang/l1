@@ -335,7 +335,7 @@ $repllevel = 0;
 						}
 						if(length(cmd) == 0)
 							return rv;
-						file = pop(cmd);
+						file = cmd[0];
 						if(entry == nil){
 							args = cmd;
 							return load(file);
