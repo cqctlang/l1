@@ -2573,8 +2573,12 @@ kunderflow(VM *vm)
 	if(k->base == 0 || k->gen != vm->levgen[k->level])
 		vmerr(vm, "attempt to return to stale context");
 
-	/* split the continuation if it exceeds our copy limit */
-	if(0 && k->sz > lim){
+	/* try to split the continuation if it exceeds our copy limit.
+	   FIXME: this code corrupts the stack in the case that the
+	   first frame in the continuation is a halt frame (top == fp).
+	   we don't split in that case.
+	*/
+	if(k->sz > lim){
 		top = k->base+k->sz;
 		fp = (Val*)top;
 		ra = k->ra;
@@ -2595,21 +2599,21 @@ kunderflow(VM *vm)
 			cl = valcl(fp[Ocl]);
 			fsz = ra2size(ra, cl->code);
 		}
-		if(top == fp)
-			bug();
-
-		/* fp points to base of last frame that will fit in
-		   a lim-sized segment */
-		nk = mkcont(k->base, (void*)fp-k->base, ra, cl, k->link,
-			    k->level, k->gen);
-		k->link = nk;
-		k->base = fp;
-		k->sz = top-k->base;
-		if(k->sz > lim)
-			bug();
-		gcwb(mkvalcont(k));
-		fp[Ora] = codeentry(stkunderflow->code);
-		fp[Ocl] = mkvalcl(stkunderflow);
+		if((void*)fp < top){
+			/* fp points to base of last frame that will fit in
+			   a lim-sized segment */
+			nk = mkcont(k->base, (void*)fp-k->base, ra, cl, k->link,
+				    k->level, k->gen);
+			k->link = nk;
+			k->base = fp;
+			k->sz = top-k->base;
+			if(k->sz > lim)
+				bug();
+			gcwb(mkvalcont(k));
+			fp[Ora] = codeentry(stkunderflow->code);
+			fp[Ocl] = mkvalcl(stkunderflow);
+		}else
+			printf("whew\n");
 	}
 
 	/* allocate a new stack if current one is too small */
