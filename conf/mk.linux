@@ -2,6 +2,8 @@ include conf/mk.unix
 
 L1X     += heap.o
 
+MAYBEHEAP = lib/*.cqct
+
 mkelf: mkelf.o
 	@echo + ld $@
 	$(V)$(CC) $(CFLAGS) -o $@ $^
@@ -14,7 +16,7 @@ tl1: tl1.o main.o
 	@echo + ld $@
 	$(V)$(CC) $(CFLAGS) -o $@ $^ $(L1LIBS)
 
-heap.l1: tl1
+heap.l1: tl1 $(MAYBEHEAP)
 	@echo + dump $@	
 	$(V)./tl1 -x "saveheap(\"./heap.l1\");"
 
