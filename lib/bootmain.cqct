@@ -142,6 +142,7 @@ load("prelude.cqct");
 	callcc(@lambda(k){
 		printf("\ninterrupted\n");
 		kbacktrace(continuationfr(k));
+		exit(1);
 	});
 }
 
