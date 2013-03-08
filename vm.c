@@ -2612,8 +2612,7 @@ kunderflow(VM *vm)
 			gcwb(mkvalcont(k));
 			fp[Ora] = codeentry(stkunderflow->code);
 			fp[Ocl] = mkvalcl(stkunderflow);
-		}else
-			printf("whew\n");
+		}
 	}
 
 	/* allocate a new stack if current one is too small */
