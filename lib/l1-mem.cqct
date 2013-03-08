@@ -171,6 +171,7 @@
 		&dom`nextfree,
 		&dom`freeseg,
 		&dom`freerange,
+		&dom`resetmem,
 	];
 
 	init = firstreturn(db, db.interval(), &dom`initmem);
