@@ -1,0 +1,30 @@
+
+@include <sys.cqct>
+
+@global move_to_cpu;
+move_to_cpu=nil;
+
+if(uname()[0]=="Linux") {
+
+	move_to_cpu = @lambda(cpu) {
+		@local m,r;
+
+		m=mkstr(128);
+		m[cpu>>3] |= ( 1 << (cpu%8) );
+
+		r=sys_sched_setaffinity(sys_getpid(), 128, m);
+		if(!r) {
+			return 0;
+		} else {
+			return -1;
+		}
+	};
+
+} else {
+
+	move_to_cpu = @lambda(cpu) {
+		fprintf(stderr,"CPU affinity not supported on %s\n",uname()[0]);
+		return -1;
+	};
+
+}
