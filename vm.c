@@ -2574,7 +2574,7 @@ kunderflow(VM *vm)
 		vmerr(vm, "attempt to return to stale context");
 
 	/* split the continuation if it exceeds our copy limit */
-	if(k->sz > lim){
+	if(0 && k->sz > lim){
 		top = k->base+k->sz;
 		fp = (Val*)top;
 		ra = k->ra;
@@ -2595,6 +2595,8 @@ kunderflow(VM *vm)
 			cl = valcl(fp[Ocl]);
 			fsz = ra2size(ra, cl->code);
 		}
+		if(top == fp)
+			bug();
 
 		/* fp points to base of last frame that will fit in
 		   a lim-sized segment */
