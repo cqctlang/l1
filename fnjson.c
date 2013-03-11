@@ -134,7 +134,7 @@ static int jsmn_parse_primitive(jsmn_parser *parser, const char *js,
 			case ','  : case ']'  : case '}' :
 				goto found;
 		}
-		if (js[parser->pos] < 32 || js[parser->pos] >= 255) {
+		if (js[parser->pos] < 32) {
 			parser->pos = start;
 			return JSMN_ERROR_INVAL;
 		}
