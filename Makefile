@@ -82,8 +82,8 @@ export LDFLAGS
 export CPPFLAGS
 export V
 
-FNSDECLS = $(foreach fn, $(L1FUNS), "void $(fn)(Env);\n")
-FNSCALLS = $(foreach fn, $(L1FUNS), "	$(fn)(env);\n")
+FNSDECLS = $(foreach fn, $(L1FUNS), "void $(fn)(Env);")
+FNSCALLS = $(foreach fn, $(L1FUNS), "	$(fn)(env);")
 
 fns.$(CONF).c:
 	@echo '#include "sys.h"' > $@
