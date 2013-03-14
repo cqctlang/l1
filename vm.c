@@ -694,52 +694,6 @@ putbox(Val box, Val boxed)
 }
 
 static void
-putval(VM *vm, Val v, Location *loc)
-{
-	Val *dst;
-
-	switch(LOCKIND(loc->loc)){
-	case Lreg:
-		switch(LOCIDX(loc->loc)){
-		case Rac:
-			vm->ac = v;
-			break;
-		case Rcl:
-			vm->cl = valcl(v);
-			break;
-		case Rfp:
-		case Rvc:
-		case Rpc:
-		default:
-			fatal("bug");
-		}
-		break;
-	case Lframe:
-		dst = vm->fp+LOCIDX(loc->loc);
-		if(LOCBOX(loc->loc))
-			putbox(*dst, v);
-		else
-			*dst = v;
-		break;
-	case Ldisp:
-		dst = &cldisp(vm->cl)[LOCIDX(loc->loc)];
-		if(LOCBOX(loc->loc))
-			putbox(*dst, v);
-		else
-			*dst = v;
-		break;
-	case Ltopl:
-		envput(vm->top, valcid(loc->v), v);
-		break;
-	case Ltopr:
-		setcdr(loc->v, v);
-		break;
-	default:
-		fatal("bug");
-	}
-}
-
-static void
 kbacktrace(VM *vm, Cont *k)
 {
 	Val *fp;
@@ -876,13 +830,12 @@ cqctvmerr(VM *vm, char *fmt, ...)
 }
 
 static Val
-getval(VM *vm, Location *loc)
+getvalrand(VM *vm, Operand *r)
 {
-	Val p;
-
-	switch(LOCKIND(loc->loc)){
-	case Lreg:
-		switch(LOCIDX(loc->loc)){
+	Val v;
+	switch(OKIND(r->mode)){
+	case Oreg:
+		switch(OIDX(r->mode)){
 		case Rac:
 			return vm->ac;
 		case Rfp:
@@ -892,80 +845,100 @@ getval(VM *vm, Location *loc)
 		case Rvc:
 		case Rpc:
 		default:
-			fatal("bug");
+			bug();
 		}
-		break;
-	case Lframe:
-		p = vm->fp[LOCIDX(loc->loc)];
-		if(LOCBOX(loc->loc))
-			return valboxed(p);
+	case Oframe:
+		v = vm->fp[OIDX(r->mode)];
+		if(OBOX(r->mode))
+			return valboxed(v);
 		else
-			return p;
-	case Ldisp:
-		p = cldisp(vm->cl)[LOCIDX(loc->loc)];
-		if(LOCBOX(loc->loc))
-			return valboxed(p);
+			return v;
+	case Odisp:
+		v = cldisp(vm->cl)[OIDX(r->mode)];
+		if(OBOX(r->mode))
+			return valboxed(v);
 		else
-			return p;
-	case Ltopl:
-		p = envget(vm->top, valcid(loc->v));
-		if(p == 0)
+			return v;
+	case Otopl:
+		v = envget(vm->top, valcid(r->val));
+		if(v == 0)
 			vmerr(vm, "reference to unbound variable: %s",
-			      ciddata(valcid(loc->v)));
-		return p;
-	case Ltopr:
-		p = cdr(loc->v);
-		return p;
-	default:
-		fatal("bug");
-	}
-	return 0; /* not reached */
-}
-
-static Val
-getvalrand(VM *vm, Operand *r)
-{
-	Val v;
-	switch(r->okind){
-	case Oloc:
-		return getval(vm, &r->u.loc);
-	case Oval:
-		v = r->u.val;
-		/* any mutable vals must be copied */
-		switch(Vkind(v)){
-		case Qstr:
-			v = mkvalstr(strcopy(valstr(v)));
-			break;
-		default:
-			break;
-		}
+			      ciddata(valcid(r->val)));
 		return v;
+	case Otopr:
+		return cdr(r->val);
+	case Oval:
+		/* copy mutable values */
+		switch(Vkind(r->val)){
+		case Qstr:
+			return mkvalstr(strcopy(valstr(r->val)));
+		default:
+			return r->val;
+		}
 	case Onil:
 		return Xnil;
 	case Oimm:
-	default:
-		fatal("bug");
-	}
-	return 0; /* not reached */
-}
-
-static Imm
-getimmrand(Operand *r)
-{
-	switch(r->okind){
-	case Oimm:
-		return r->u.imm;
 	default:
 		bug();
 	}
 }
 
+static Imm
+getimmrand(Operand *r)
+{
+	switch(OKIND(r->mode)){
+	case Oimm:
+		return r->imm;
+	default:
+		bug();
+	}
+}
+
+
 static void
 putvalrand(VM *vm, Val v, Operand *r)
 {
-	if(r->okind != Oloc)
-		fatal("bad destination");
-	putval(vm, v, &r->u.loc);
+	Val *dst;
+
+	switch(OKIND(r->mode)){
+	case Oreg:
+		switch(OIDX(r->mode)){
+		case Rac:
+			vm->ac = v;
+			break;
+		case Rcl:
+			vm->cl = valcl(v);
+			break;
+		case Rfp:
+		case Rvc:
+		case Rpc:
+		default:
+			bug();
+		}
+		break;
+	case Oframe:
+		dst = vm->fp+OIDX(r->mode);
+		if(OBOX(r->mode))
+			putbox(*dst, v);
+		else
+			*dst = v;
+		break;
+	case Odisp:
+		dst = &cldisp(vm->cl)[OIDX(r->mode)];
+		if(OBOX(r->mode))
+			putbox(*dst, v);
+		else
+			*dst = v;
+		break;
+	case Otopl:
+		envput(vm->top, valcid(r->val), v);
+		break;
+	case Otopr:
+		setcdr(r->val, v);
+		break;
+	default:
+		fatal("bug");
+	}
 }
 
 static Imm

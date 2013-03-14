@@ -23,10 +23,31 @@ struct Frame
 
 } Frame;
 
-enum { Maxtoploc = 7 };
+typedef
+enum
+{
+	/* these need to match prefix of Okind */
+	Lreg,
+	Lframe,
+	Ldisp,
+	Ltopl,
+	Ltopr,
+} Lkind;
+
+typedef
+struct Location {
+	unsigned loc;		/* access with LOC macros */
+	Val v;			/* topl/topr */
+} Location;
+
+#define LOC(idx,box,kind)	(((idx)<<4)|((box&1)<<3)|((kind)&0x7))
+#define LOCIDX(loc)		((loc)>>4)
+#define LOCBOX(loc)		(((loc)>>3)&0x1)
+#define LOCKIND(loc)		((loc)&0x7)
+
+enum { Maxtoploc = 3 };
 static Location toploc[Maxtoploc];
-static Location *Effect;
-static Location *AC, *FP, *CL, *ARG0, *ARG1, *ARG2;
+static Location *Effect, *AC, *CL;
 static Code* cglambda(Expr *el, char *id);
 
 static void
@@ -267,48 +288,40 @@ printval(Val v)
 static void
 printrand(Operand *r)
 {
-	Location *loc;
-
-	switch(r->okind){
-	case Oloc:
-		loc = &r->u.loc;
-		switch(LOCKIND(loc->loc)){
-		case Lreg:
-			xprintf("%s", regtos(LOCIDX(loc->loc)));
-			break;
-		case Lframe:
-			if(LOCBOX(loc->loc))
-				xprintf("[");
-			xprintf("%d(%s)", LOCIDX(loc->loc), regtos(Rfp));
-			if(LOCBOX(loc->loc))
-				xprintf("]");
-			break;
-		case Ldisp:
-			if(LOCBOX(loc->loc))
-				xprintf("[");
-			xprintf("%d(%s)", LOCIDX(loc->loc), regtos(Rcl));
-			if(LOCBOX(loc->loc))
-				xprintf("]");
-			break;
-		case Ltopl:
-			xprintf("<%s>", ciddata(valcid(loc->v)));
-			break;
-		case Ltopr:
-			xprintf("<%s>", ciddata(valcid(car(loc->v))));
-			break;
-		}
+	switch(OKIND(r->mode)){
+	case Oreg:
+		xprintf("%s", regtos(OIDX(r->mode)));
+	case Oframe:
+		if(OBOX(r->mode))
+			xprintf("[");
+		xprintf("%d(%s)", OIDX(r->mode), regtos(Rfp));
+		if(OBOX(r->mode))
+			xprintf("]");
+		break;
+	case Odisp:
+		if(OBOX(r->mode))
+			xprintf("[");
+		xprintf("%d(%s)", OIDX(r->mode), regtos(Rcl));
+		if(OBOX(r->mode))
+			xprintf("]");
+		break;
+	case Otopl:
+		xprintf("<%s>", ciddata(valcid(r->val)));
+		break;
+	case Otopr:
+		xprintf("<%s>", ciddata(valcid(car(r->val))));
 		break;
 	case Oval:
-		printval(r->u.val);
+		printval(r->val);
 		break;
 	case Oimm:
-		xprintf("%lu", r->u.imm);
+		xprintf("%lu", r->imm);
 		break;
 	case Onil:
 		xprintf("nil");
 		break;
 	default:
-		fatal("unknown operand kind %d", r->okind);
+		fatal("unknown operand kind %d", OKIND(r->mode));
 	}
 }
 
@@ -325,21 +338,15 @@ setrelocobj(Code *c, void *a)
 static void
 setrelocrand(Code *c, Operand *r)
 {
-	void *a;
-	switch(r->okind){
+	switch(OKIND(r->mode)){
 	case Oval:
-		a = &r->u.val;
-		break;
-	case Oloc:
-		if(LOCKIND(r->u.loc.loc) != Ltopl
-		   && LOCKIND(r->u.loc.loc) != Ltopr)
-			return;
-		a = &r->u.loc.v;
+	case Otopl:
+	case Otopr:
+		setrelocobj(c, &r->val);
 		break;
 	default:
-		return;
+		break;
 	}
-	setrelocobj(c, a);
 }
 
 static void
@@ -687,28 +694,37 @@ freelabels(HT *ls)
 static void
 randloc(Operand *rand, Location* loc)
 {
-	rand->okind = Oloc;
-	rand->u.loc = *loc;
+	rand->mode = OMODE(LOCIDX(loc->loc),
+			   LOCBOX(loc->loc),
+			   LOCKIND(loc->loc));
+	switch(OKIND(rand->mode)){
+	case Otopl:
+	case Otopr:
+		rand->val = loc->v;
+		break;
+	default:
+		break;
+	}
 }
 
 static void
 randkon(Operand *rand, Val v)
 {
-	rand->okind = Oval;
-	rand->u.val = v;
+	rand->mode = OMODE(0, 0, Oval);
+	rand->val = v;
 }
 
 static void
 randnil(Operand *rand)
 {
-	rand->okind = Onil;
+	rand->mode = OMODE(0, 0, Onil);
 }
 
 static void
 randimm(Operand *rand, Imm i)
 {
-	rand->okind = Oimm;
-	rand->u.imm = i;
+	rand->mode = OMODE(0, 0, Oimm);
+	rand->imm = i;
 }
 
 /* if DEREF, reference box contents; otherwise the box itself */
@@ -747,22 +763,42 @@ varloc(Frame *f, Location *loc, Var *v, int deref)
 static void
 randvarloc(Frame *f, Operand *rand, Var *v, int deref)
 {
-	rand->okind = Oloc;
-	varloc(f, &rand->u.loc, v, deref);
+	if(deref && !v->box)
+		bug();
+	deref = deref && v->box;
+	switch(v->where){
+	case Vparam:
+		rand->mode = OMODE(Oarg0+v->idx, deref, Oframe);
+		break;
+	case Vlocal:
+		rand->mode = OMODE(Oarg0+f->narg+v->idx, deref, Oframe);
+		break;
+	case Vdisp:
+		rand->mode = OMODE(v->idx, deref, Odisp);
+		break;
+	case Vtopl:
+		rand->mode = OMODE(0, 0, Otopl);
+		rand->val = mkvalcid(v->sym);
+		break;
+	case Vtopr:
+		rand->mode = OMODE(0, 0, Otopr);
+		rand->val = mkvalpair(v->kv);
+		break;
+	default:
+		fatal("bug");
+	}
 }
 
 static void
 randframeloc(Operand *rand, unsigned idx)
 {
-	rand->okind = Oloc;
-	newloc(&rand->u.loc, Lframe, idx, 0);
+	rand->mode = OMODE(idx, 0, Oframe);
 }
 
 static void
 randdisploc(Operand *rand, unsigned idx, int deref)
 {
-	rand->okind = Oloc;
-	newloc(&rand->u.loc, Ldisp, idx, deref);
+	rand->mode = OMODE(idx, deref, Odisp);
 }
 
 static void
@@ -1017,18 +1053,10 @@ fsetarg(Frame *f, u32 i)
 static void
 fsetrand(Frame *f, Operand *r)
 {
-	Location *loc;
-	switch(r->okind){
-	case Oloc:
-		loc = &r->u.loc;
-		switch(LOCKIND(loc->loc)){
-		case Lframe:
-			if(!LOCBOX(loc->loc))
-				fset(f, LOCIDX(loc->loc));
-			break;
-		default:
-			break;
-		}
+	switch(OKIND(r->mode)){
+	case Oframe:
+		if(!OBOX(r->mode))
+			fset(f, OIDX(r->mode));
 		break;
 	default:
 		break;
@@ -1192,8 +1220,9 @@ cg(Expr *e, Precode *code, CGEnv *p, Location *loc, Ctlidx ctl, Ctlidx nxt,
 		}else{
 			L0 = genlabel(code);
 			fpushlm(f);
-			randframeloc(&r1, f->tmp++);
-			cg(e->e1, code, p, &r1.u.loc, L0, L0, f);
+			newloc(&dst, Lframe, f->tmp++, 0);
+			randloc(&r1, &dst);
+			cg(e->e1, code, p, &dst, L0, L0, f);
 			emitlabel(code, L0);
 			femit(f, code);
 			L = genlabel(code);
@@ -1902,16 +1931,8 @@ initcg(void)
 	newloc(Effect, Lreg, Rac, 0);
 	AC = &toploc[m++];
 	newloc(AC, Lreg, Rac, 0);
-	FP = &toploc[m++];
-	newloc(FP, Lreg, Rfp, 0);
 	CL = &toploc[m++];
 	newloc(CL, Lreg, Rcl, 0);
-	ARG0 = &toploc[m++];
-	newloc(ARG0, Lframe, Oarg0+0, 0);
-	ARG1 = &toploc[m++];
-	newloc(ARG1, Lframe, Oarg0+1, 0);
-	ARG2 = &toploc[m++];
-	newloc(ARG2, Lframe, Oarg0+2, 0);
 	if(m != Maxtoploc)
 		bug();
 }

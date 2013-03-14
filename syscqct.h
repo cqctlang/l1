@@ -661,13 +661,6 @@ enum {
 	Rcl,
 } Reg;
 
-enum {
-	Oloc = 0,
-	Oval,
-	Oimm,
-	Onil,
-};
-
 /* frame offsets */
 enum {
 	Ora = 0,
@@ -704,14 +697,17 @@ struct Var
 } Var;
 
 typedef
-enum
-{
-	Lreg,
-	Lframe,
-	Ldisp,
-	Ltopl,
-	Ltopr,
-} Lkind;
+enum {
+	/* these need to match Lkind */
+	Oreg,
+	Oframe,
+	Odisp,
+	Otopl,
+	Otopr,
+	Oval,
+	Oimm,
+	Onil,
+} Okind;
 
 typedef
 struct Lambda
@@ -735,25 +731,18 @@ struct Block
 	unsigned nloc;
 } Block;
 
-typedef
-struct Location {
-	unsigned loc;		/* access with LOC macros */
-	Val v;			/* topl/topr */
-} Location;
-
-#define LOC(idx,box,kind)	(((idx)<<4)|((box&1)<<3)|((kind)&0x7))
-#define LOCIDX(loc)		((loc)>>4)
-#define LOCBOX(loc)		(((loc)>>3)&0x1)
-#define LOCKIND(loc)		((loc)&0x7)
+#define OMODE(idx,box,kind)	(((idx)<<4)|((box&1)<<3)|((kind)&0x7))
+#define OIDX(omode)		((omode)>>4)
+#define OBOX(omode)		(((omode)>>3)&0x1)
+#define OKIND(omode)		((omode)&0x7)
 
 typedef
 struct Operand {
-	u8 okind;
+	u16 mode;
 	union{
-		Location loc;
 		Val val;
 		Imm imm;
-	} u;
+	};
 } Operand;
 
 typedef
