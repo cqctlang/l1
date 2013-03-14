@@ -1,0 +1,5 @@
+t = [ 'a : @lambda(x) { x; } ];
+x = t.a(1);
+printf("%d\n", x);
+printf("%a\n",t.a(1));
+printf("%a\n",t.a(t.a(2)));
