@@ -291,6 +291,7 @@ printrand(Operand *r)
 	switch(OKIND(r->mode)){
 	case Oreg:
 		xprintf("%s", regtos(OIDX(r->mode)));
+		break;
 	case Oframe:
 		if(OBOX(r->mode))
 			xprintf("[");
