@@ -1348,18 +1348,16 @@ cg(Expr *e, Precode *code, CGEnv *p, Location *loc, Ctlidx ctl, Ctlidx nxt,
 			i->kind = Ichkcl;
 			randloc(&i->op1, AC);
 			/* move arguments to base of frame.
-			   FIXME:
-			      it would be nice to emit a block move;
-			      don't move if you don't have to
-			*/
-			for(m = 0; m < narg; m++){
-				i = nextinsn(code, e->src);
-				i->kind = Imov;
-				randframeloc(&i->op1, nap+m);
-				randframeloc(&i->dst, Oarg0+m);
-				fsetarg(f, m);
-				femit(f, code);
-			}
+			   FIXME: a block move might be nice */
+			if(nap != Oarg0)
+				for(m = 0; m < narg; m++){
+					i = nextinsn(code, e->src);
+					i->kind = Imov;
+					randframeloc(&i->op1, nap+m);
+					randframeloc(&i->dst, Oarg0+m);
+					fsetarg(f, m);
+					femit(f, code);
+				}
 			i = nextinsn(code, e->src);
 			i->kind = Imovvc;
 			randimm(&i->op1, narg);
