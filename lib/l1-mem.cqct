@@ -24,7 +24,7 @@
 	// from which we could directly read the 'from' pointer,
 	// but that would be expensive.
 	// just go back to the last call to 'copy'.
-		
+
 	xs = db.scan('lastexec, &dom`copy, gc.beg, ws[0]);
 	if(length(xs) != 1)
 		return ['confusion, nil];
@@ -35,11 +35,17 @@
 
 @defloc findcopyfrom(db, addr, gc)
 {
-	@local ws, t, ldom;
+	@local ws, t, ldom, rt, dom;
 
 	// look forward a forward pointer write
 
-	ws = db.scan('firstwrite, addr, sizeof(*addr), gc.beg, gc.end);
+	dom = db.exedom;
+	rt = db.scan('firstexec, &dom`recycle, gc.beg, gc.end);
+	if(length(rt) != 1){
+		printf("confusion!\n");
+		return ['confusion, nil];
+	}
+	ws = db.scan('firstwrite, addr, sizeof(*addr), gc.beg, rt[0]);
 	if(length(ws) == 0)
 		return [nil, nil];
 	t = ws[0];
@@ -90,7 +96,7 @@
 
 @define valfuture(db, addr, t)
 {
-	@local ct, gcs, dom, agcs, gc, future;
+	@local ct, gcs, dom, agcs, gc, future, e;
 
 	dom = db.exedom;
 
@@ -132,8 +138,12 @@
 		}
 	}
 	
-	// error -- could not find freeseg.
-	return nil;
+	// execution ended before freeseg
+
+	e = db.interval().end-1;
+	append(future, instant(e, {db.dom(e)}addr));
+
+	return future;
 }
 
 @define vallifetime(db, addr, t)
@@ -162,7 +172,7 @@
 			append(rvs, interval(iv.beg, iv.end, [f, Segsize]));
 			f = *(void**)f;
 		}
-		printf("scanning %d segments in %a\n", length(rvs), iv);
+//		printf("scanning %d segments in %a\n", length(rvs), iv);
 		return rvs;
 	}
 
@@ -179,7 +189,6 @@
 	stable = interval(init.t, fini.t, nil);
 	stable = zdiff(stable, anycalls(db, stable, exclude));
 				 
-	printf("scanning %d stable intervals\n", length(stable));
 	foreach(@lambda(iv){ foreach(assertunaccessed, freesegs(iv)); }, stable);
 }
 
