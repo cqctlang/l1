@@ -335,6 +335,17 @@ rdsetfmt(@record interval { beg, end, val },
 						   "ranges" : [ [ "start" : addr, "length" : 1 ] ] ]);
 				rs = chfilter(rs, @lambda(t) { @local v; v = t["type"]; return v && v == "normal"; });
 				return chcollect(rs, "TStamp");
+			case 'firstexec:
+				addr = pop(rest);
+				defrange(rest);
+				rs = chquery(lb, [ "cmd" : "scan",
+						   "map" : "INSTR_EXEC",
+						   "beginTStamp" : beg,
+						   "endTStamp" : end,
+						   "termination" : "findFirst",
+						   "ranges" : [ [ "start" : addr, "length" : 1 ] ] ]);
+				rs = chfilter(rs, @lambda(t) { @local v; v = t["type"]; return v && v == "normal"; });
+				return chcollect(rs, "TStamp");
 			case 'lastexec:
 				addr = pop(rest);
 				defrange(rest);
