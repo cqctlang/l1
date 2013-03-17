@@ -374,7 +374,8 @@ fmtval(VM *vm, Fmt *f, Val val)
 	Rec *rec;
 	Str *str;
 	Val bv, rv;
-	u32 m, n;
+	u32 m;
+	Imm n;
 	Head *hd;
 	Dom *d;
 	As *as;
