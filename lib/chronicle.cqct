@@ -299,11 +299,11 @@ rdsetfmt(@record interval { beg, end, val },
 				vbase = elfloadaddr(f);
 				if(vbase == nil)
 					return; /* presume it's not an elf */
-				printf("\t0x%016p\t%s\n", abase-vbase, f);
+//				printf("\t0x%016p\t%s\n", abase-vbase, f);
 				nsmap.add(abase-vbase, f);
 			}, rs);
 		nsmap.setexe(0); /* hack */
-		printf("\tend timestamp: %d\n", endtstamp);
+//		printf("\tend timestamp: %d\n", endtstamp);
 
 		@defloc scan(kind, rest ...)
 		{
