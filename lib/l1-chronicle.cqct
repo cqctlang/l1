@@ -24,7 +24,7 @@
 @define assertunaccessed(iv)
 {
 	@local addr, len, s;
-	printf("... assert unaccessed: %a\n", iv);
+//	printf("... assert unaccessed: %a\n", iv);
 	[addr, len] = iv.val;
 	s = db.scan('write, addr, len, iv.beg, iv.end);
 	if(length(s) != 0)
