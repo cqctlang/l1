@@ -775,7 +775,7 @@ vmint(VM *vm)
 static void
 vvmwarn(VM *vm, char *fmt, va_list args)
 {
-	static char buf[128];
+	static char buf[4096];
 	Val argv[1];
 	Val err;
 	vsnprint(buf, sizeof(buf), fmt, args);
@@ -798,7 +798,7 @@ vmwarn(VM *vm, char *fmt, ...)
 static void
 vvmerr(VM *vm, char *fmt, va_list args)
 {
-	static char buf[128];
+	static char buf[4096];
 	Val argv[1];
 	Val err;
 	vsnprint(buf, sizeof(buf), fmt, args);
