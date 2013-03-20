@@ -3,6 +3,7 @@
 	mapfile,      
 	open,
 	popen,
+	recvfd,
 	socket,
 	sockpair,
 	stdin,
@@ -10,7 +11,8 @@
 	stderr,
 	tcpaccept,
 	tcplisten,
-	tcpopen
+	tcpopen,
+	unixopen
 ;	
 
 {
@@ -92,6 +94,24 @@ ions = @names c32le {
 	if(fd == nil)
 		return nil;
 	return mksysfdfinal(fd, ions`Fread|ions`Fwrite);
+}
+
+@define unixopen(path)
+{
+	@local fd;
+	fd = _unixopen(path);
+	if(fd == nil)
+		return nil;
+	return mksysfdfinal(fd, ions`Fread|ions`Fwrite);
+}
+
+@define recvfd(fd)
+{
+	@local rfd;
+	rfd = _recvfd(fd);
+	if(rfd == nil)
+		return nil;
+	return mksysfdfinal(rfd, ions`Fread|ions`Fwrite);
 }
 
 @define tcplisten(addr)
