@@ -6,6 +6,6 @@
 		return p;
 	as = mkmas(p, len);
 	finalize(as, @lambda(as) { _free(p); });
-	dom = mkdom(litdom.ns, as);
+	dom = mkdom(myrootns(), as);
 	return {dom}(char*)p;
 }

@@ -161,6 +161,7 @@
 @define checkfreelist(db)
 {
 	@local dom, exclude, init, fini, stable;
+	@local fst, aut, nfs;
 
 	@defloc freesegs(iv)
 	{
@@ -188,8 +189,65 @@
 	fini = lastcall(db, db.interval(), &dom`finimem);
 	stable = interval(init.t, fini.t, nil);
 	stable = zdiff(stable, anycalls(db, stable, exclude));
-				 
-	foreach(@lambda(iv){ foreach(assertunaccessed, freesegs(iv)); }, stable);
+
+	@defloc dofork(db, fn)
+	{
+		@local pid;
+		db.rebind();
+		switch(pid = fork()){
+		case -1:
+			error("fork failed");
+		case 0:
+			switch(fork()){
+			case -1:
+				error("fork failed");
+			default:
+				exit(0);
+			case 0:
+//				printf("forked\n");
+				fn();
+				exit(0);
+			}
+		default:
+			waitpid(pid, 0);
+			return;
+		}
+	}
+
+	fst = [];
+	aut = [];
+	nfs = [];
+	@defloc work(iv)
+	{
+		@local s, b, e;
+
+		b = gettimeofday();
+		s = freesegs(iv);
+		e = gettimeofday();
+		append(fst, e-b);
+
+		append(nfs, length(s));
+
+		b = gettimeofday();
+		foreach(assertunaccessed, s);
+		e = gettimeofday();
+		append(aut, e-b);
+	}
+
+	@defloc tot(ts, name, unit)
+	{
+		@local x;
+		x = 0;
+		foreach(@lambda(t){ x += t; }, ts);
+		printf("%s: %u ops %u %s/op\n", name, length(ts), x/length(ts), unit);
+	}
+
+//	time(@lambda() { foreach(@lambda(iv){ dofork(db, @lambda(){ foreach(assertunaccessed, freesegs(iv)); }); }, stable); });
+//	time(@lambda() { foreach(@lambda(iv){ foreach(assertunaccessed, freesegs(iv)); }, stable); });
+	time(@lambda() { foreach(@lambda(iv){ work(iv); }, stable); });
+	tot(fst, "freesegs", "usec");
+	tot(aut, "assertunaccessed", "usec");
+	tot(nfs, "# freesegs", "freesegs");
 }
 
 }

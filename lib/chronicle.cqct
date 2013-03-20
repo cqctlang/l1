@@ -263,6 +263,447 @@ rdsetfmt(@record interval { beg, end, val },
 		return rv;
 	}
 
+	@defloc mkchctl2(dbpath)
+	{
+		@local endtstamp, lb, rs, nsmap, exedom;
+		@local qsfd, qpath, qcfd, qfd;
+		@local nsfd, npath, ncfd, nfd;
+		@local names;
+
+		@defloc _close()
+		{
+			if(qsfd != nil)
+				close(qsfd);
+			if(nsfd != nil)
+				close(nsfd);
+		}
+
+		@defloc bindq()
+		{
+			if(qcfd != nil)
+				close(qcfd);
+			qcfd = unixopen(qpath);
+			if(qcfd == nil)
+				error("cannot open unix socket");
+			qfd = recvfd(qcfd);
+			if(qfd == nil)
+				error("cannot receive file descriptor for qsrv");
+//			printf("received fd from qsrv\n");
+
+			lb = mklinebuf(qfd);
+		}
+
+		@defloc bindns()
+		{
+			if(ncfd != nil)
+				close(ncfd);
+			ncfd = unixopen(npath);
+			if(ncfd == nil)
+				error("cannot open unix socket");
+			nfd = recvfd(ncfd);
+			if(nfd == nil)
+				error("cannot receive file descriptor for name server");
+//			printf("received fd from sym\n");
+			nsmap.rebind(nfd);
+		}
+
+		@defloc rebind()
+		{
+			bindq();
+			bindns();
+		}
+
+		@defloc init()
+		{
+			qsfd = popen("qsrv", dbpath, 2|8);
+			qsfd = qsfd[0];
+			qpath = fread(qsfd, 6);
+			printf("qpath is %B\n", qpath);
+		
+			bindq();
+
+			rs = chquery(lb, [ "cmd" : "info" ]);
+			rs = chcollect(rs, "endTStamp");
+			if(length(rs) != 1)
+				error("unexpected endTStamp response: %a", rs);
+			endtstamp = rs[0];
+			if(chverbose)
+				printf("*** bound to execution %s; interval [0,%u]\n", db, endtstamp);
+
+			rs = chquery(lb, [ "cmd" : "scan",
+					   "map" : "MEM_MAP",
+					   "beginTStamp" : 0,
+					   "endTStamp" : endtstamp,
+					   "ranges" : [ [ "start" : 0,
+							  "length" : -1ULL ]] ]);
+			rs = chfilter(rs, @lambda(t) { @local v; v = t["filename"]; return v; });
+			rs = chfilter(rs, @lambda(t) { @local v; v = t["offset"]; v != nil && v == 0; });
+			rs = chfilter(rs, @lambda(t) { @local v; v = t["execute"]; v != nil && v; });
+	
+			names = [];
+			foreach(@lambda(t){
+					@local f, abase, vbase;
+					f = t["filename"];
+					if(strstr(f, "valgrind") != nil)
+						return;
+					abase = t["start"];
+					vbase = elfloadaddr(f);
+					if(vbase == nil)
+						return; /* presume it's not an elf */
+					printf("\t0x%016p\t%s\n", abase-vbase, f);
+//					nsmap.add(abase-vbase, f);
+					append(names, [abase-vbase, f]);
+				}, rs);
+			printf("\tend timestamp: %d\n", endtstamp);
+
+			nsfd = popen("sym", 2|4|8);
+			nsfd = nsfd[0];
+			sctlversion(nsfd);
+
+			nsmap = mknsmap(@lambda(path) { printf("path is %s\n", path); mksctlns(nsfd, path); });
+			foreach(@lambda(n){ nsmap.add(n[0], n[1]); }, names);
+			nsmap.setexe(0); /* hack */
+			exedom = dom(1); /* hack */
+
+			npath = sctlsrv(nsfd, 3);
+			bindns();
+		}
+
+		@defloc scan(kind, rest ...)
+		{
+			@local beg, end, addr, len, sp, tid;
+
+			@defloc defrange(args)
+			{
+				if(length(args) == 2){
+					beg = args[0];
+					end = args[1];
+					if(beg > end)
+						error("bad interval [%d,%d]", beg, end);
+					if(end > endtstamp)
+						error("interval exceeds execution");
+				}else{
+					beg = 0;
+					end = endtstamp;
+				}
+			}
+
+			switch(kind){
+			case 'exec:
+				addr = pop(rest);
+				defrange(rest);
+				rs = chquery(lb, [ "cmd" : "scan",
+						   "map" : "INSTR_EXEC",
+						   "beginTStamp" : beg,
+						   "endTStamp" : end,
+						   "ranges" : [ [ "start" : addr, "length" : 1 ] ] ]);
+				rs = chfilter(rs, @lambda(t) { @local v; v = t["type"]; return v && v == "normal"; });
+				return chcollect(rs, "TStamp");
+			case 'firstexec:
+				addr = pop(rest);
+				defrange(rest);
+				rs = chquery(lb, [ "cmd" : "scan",
+						   "map" : "INSTR_EXEC",
+						   "beginTStamp" : beg,
+						   "endTStamp" : end,
+						   "termination" : "findFirst",
+						   "ranges" : [ [ "start" : addr, "length" : 1 ] ] ]);
+				rs = chfilter(rs, @lambda(t) { @local v; v = t["type"]; return v && v == "normal"; });
+				return chcollect(rs, "TStamp");
+			case 'lastexec:
+				addr = pop(rest);
+				defrange(rest);
+				rs = chquery(lb, [ "cmd" : "scan",
+						   "map" : "INSTR_EXEC",
+						   "beginTStamp" : beg,
+						   "endTStamp" : end,
+						   "termination" : "findLast",
+						   "ranges" : [ [ "start" : addr, "length" : 1 ] ] ]);
+				rs = chfilter(rs, @lambda(t) { @local v; v = t["type"]; return v && v == "normal"; });
+				return chcollect(rs, "TStamp");
+			case 'write:
+				addr = pop(rest);
+				len = pop(rest);
+				defrange(rest);
+				rs = chquery(lb, [ "cmd" : "scan",
+						   "map" : "MEM_WRITE",
+						   "beginTStamp" : beg,
+						   "endTStamp" : end,
+						   "ranges" : [ [ "start" : addr, "length" : len ] ] ]);
+				rs = chfilter(rs, @lambda(t) { @local v; v = t["type"]; return v && v == "normal"; });
+				return chcollect(rs, "TStamp");
+			case 'read:
+				addr = pop(rest);
+				len = pop(rest);
+				defrange(rest);
+				rs = chquery(lb, [ "cmd" : "scan",
+						   "map" : "MEM_READ",
+						   "beginTStamp" : beg,
+						   "endTStamp" : end,
+						   "ranges" : [ [ "start" : addr, "length" : len ] ] ]);
+				rs = chfilter(rs, @lambda(t) { @local v; v = t["type"]; return v && v == "normal"; });
+				return chcollect(rs, "TStamp");
+			case 'firstwrite:
+				addr = pop(rest);
+				len = pop(rest);
+				defrange(rest);
+				rs = chquery(lb, [ "cmd" : "scan",
+						   "map" : "MEM_WRITE",
+						   "beginTStamp" : beg,
+						   "endTStamp" : end,
+						   "termination" : "findFirst",
+						   "ranges" : [ [ "start" : addr, "length" : len ] ] ]);
+				rs = chfilter(rs, @lambda(t) { @local v; v = t["type"]; return v && v == "normal"; });
+				return chcollect(rs, "TStamp");
+			case 'firstread:
+				addr = pop(rest);
+				len = pop(rest);
+				defrange(rest);
+				rs = chquery(lb, [ "cmd" : "scan",
+						   "map" : "MEM_READ",
+						   "beginTStamp" : beg,
+						   "endTStamp" : end,
+						   "termination" : "findFirst",
+						   "ranges" : [ [ "start" : addr, "length" : len ] ] ]);
+				rs = chfilter(rs, @lambda(t) { @local v; v = t["type"]; return v && v == "normal"; });
+				return chcollect(rs, "TStamp");
+			case 'lastwrite:
+				addr = pop(rest);
+				len = pop(rest);
+				defrange(rest);
+				rs = chquery(lb, [ "cmd" : "scan",
+						   "map" : "MEM_WRITE",
+						   "beginTStamp" : beg,
+						   "endTStamp" : end,
+						   "termination" : "findLast",
+						   "ranges" : [ [ "start" : addr, "length" : len ] ] ]);
+				rs = chfilter(rs, @lambda(t) { @local v; v = t["type"]; return v && v == "normal"; });
+				return chcollect(rs, "TStamp");
+			case 'lastread:
+				addr = pop(rest);
+				len = pop(rest);
+				defrange(rest);
+				rs = chquery(lb, [ "cmd" : "scan",
+						   "map" : "MEM_READ",
+						   "beginTStamp" : beg,
+						   "endTStamp" : end,
+						   "termination" : "findLast",
+						   "ranges" : [ [ "start" : addr, "length" : len ] ] ]);
+				rs = chfilter(rs, @lambda(t) { @local v; v = t["type"]; return v && v == "normal"; });
+				return chcollect(rs, "TStamp");
+			case 'lastentersp:
+				sp = pop(rest);
+				defrange(rest);
+				rs = chquery(lb, [ "cmd" : "scan",
+						   "map" : "ENTER_SP",
+						   "beginTStamp" : beg,
+						   "endTStamp" : end,
+						   "termination" : "findLast",
+						   /* it seems we need to bound the query.  assume stack is at most 1MB */
+						   "ranges" : [ [ "start" : sp, "length" : sp+10K ]] ]);
+				/* FIXME: sometimes this query returns multiple results!
+				   is picking the last one the right thing? */
+				rs = chfilter(rs, @lambda(t) { @local v; v = t["TStamp"]; return v != nil; });
+				if(length(rs) == 0)
+					return [nil,nil];
+				else{
+					rs = reverse(rs)[0];
+					return [ rs["TStamp"], rs["start"] ];
+				}
+			case 'findspgt:
+				sp = pop(rest);
+				tid = pop(rest);
+				defrange(rest);
+				rs = chquery(lb, [ "cmd" : "findSPGreaterThan",
+						   "beginTStamp" : beg,
+						   "endTStamp" : end,
+						   "thread"    : tid,
+						   "threshold" : sp ]);
+				return chcollect(rs, "TStamp");
+			default:
+				error("invalid scan kind: %a", kind);
+			}
+		}
+
+		@defloc findret(t)
+		{
+			@local rs, x;
+
+			x = ctx(t);
+			rs = chquery(lb, [ "cmd" : "findSPGreaterThan",
+					   "beginTStamp" : t,
+					   "endTStamp" : endtstamp,
+					   "thread"    : x->thread,
+					   "threshold" : x->sp ]);
+			rs = chcollect(rs, "TStamp");
+			if(length(rs) == 0)
+				return nil;
+			else if(length(rs) > 1)
+				error("too many return points");
+			else return rs[0]-1;
+		}
+
+		@defloc mem(tstamp)
+		{
+			if(tstamp >= endtstamp)
+				error("invalid timestamp");
+
+			@defloc get(this, r)
+			{
+				@local rs, ts;
+
+				rs = chquery(lb, [ "cmd" : "readMem",
+						   "TStamp" : tstamp,
+						   "ranges" : [ [ "start"  : rangebeg(r),
+								  "length" : rangelen(r) ] ] ]);
+				ts = chcollect(rs, "bytes");
+				if(length(ts) == 0)
+					error("no bytes -- what do i do?");
+				if(length(ts) > 1){
+					ts = chfilter(rs, @lambda(r) { r["bytes"]; });
+					sort(ts, @lambda(r1, r2) { cvalcmp(r1["start"], r2["start"]); });
+					ts = chcollect(ts, "bytes");
+					return(hextobin(join(ts)));
+				}
+			
+				return hextobin(ts[0]);
+			}
+
+			@defloc put(this, r, s)
+			{
+				error("attempt to write to chronicle address space");
+			}
+
+			@defloc map(this)
+			{
+				return vector(mkrange(0, -1ULL));
+			}
+
+			@defloc ismapped(this, r)
+			{
+				return 1; /* for now */
+			}
+
+			return mkas([ "get" : get,
+				      "put" : put,
+				      "map" : map,
+				      "ismapped" : ismapped
+					    ]);
+		}
+
+		@defloc ctx(tstamp)
+		{
+			@local rs, rv;
+			rs = chquery(lb, [ "cmd" : "readReg",
+					   "TStamp" : tstamp,
+					   "r15"    : 64,
+					   "r14"    : 64,
+					   "r13"    : 64,
+					   "r12"    : 64,
+					   "rbp"    : 64,
+					   "rbx"    : 64,
+					   "r11"    : 64,
+					   "r10"    : 64,
+					   "r9"     : 64,
+					   "r8"     : 64,
+					   "rax"    : 64,
+					   "rcx"    : 64,
+					   "rdx"    : 64,
+					   "rsi"    : 64,
+					   "rdi"    : 64,
+					   "pc"     : 64,
+					   "rsp"    : 64,
+					   "thread" : 64,
+					     ]);
+			rs = chflatten(rs);
+			rv = (ns`Ctx*){mkzas(sizeof(ns`Ctx))}0;
+			rv->r15 = strton(rs["r15"], 16);
+			rv->r14 = strton(rs["r14"], 16);
+			rv->r13 = strton(rs["r13"], 16);
+			rv->r12 = strton(rs["r12"], 16);
+			rv->r11 = strton(rs["r11"], 16);
+			rv->r10 = strton(rs["r10"], 16);
+			rv->r9  = strton(rs["r9"], 16);
+			rv->r8  = strton(rs["r8"], 16);
+			rv->rbp = strton(rs["rbp"], 16);
+			rv->rbx = strton(rs["rbx"], 16);
+			rv->rax = strton(rs["rax"], 16);
+			rv->rcx = strton(rs["rcx"], 16);
+			rv->rdx = strton(rs["rdx"], 16);
+			rv->rsi = strton(rs["rsi"], 16);
+			rv->rdi = strton(rs["rdi"], 16);
+			rv->rip = strton(rs["pc"], 16);
+			rv->rsp = strton(rs["rsp"], 16);
+			rv->thread = strton(rs["thread"], 16);
+			return rv;
+		}
+				
+		@defloc _ns(arg...)
+		{
+			@local idx;
+			if(length(arg) == 0)
+				return nsmap.exe();
+			idx = arg[0];
+			if(isstring(idx))
+				return nsmap.byname(idx);
+			if(iscvalue(idx))
+				return nsmap.byaddr(idx);
+			error("wrong type of index");
+		}
+
+		@defloc dom(t, arg...)
+		{
+			@local n;
+			n = apply(_ns, arg);
+			if(n == nil)
+				return nil;
+			return mkdom(n, mem(t));
+		}
+
+		@defloc ldom(t, arg...)
+		{
+			@local x;
+			if(length(arg) == 0)
+				x = ctx(t);
+			else
+				x = arg[0];
+			return dwlocaldom(x, mem(t), nsmap);
+		}
+
+		@defloc unwind(t) { dwunwind(ctx(t), mem(t), nsmap); }
+
+		@defloc looksrc(addr)
+		{
+			@local n;
+			n = _ns(addr);
+			if(n == nil)
+				return n;
+			n.looksrc(addr);
+		}
+
+		@defloc _interval()
+		{
+			return interval(0, endtstamp, nil);
+		}
+
+		init();
+
+		return [ 'interval : _interval,
+			 'exedom   : exedom,
+			 'scan     : scan,
+			 'findret  : findret,
+			 'mem      : mem,
+			 'ctx      : ctx,
+			 'nsmap    : nsmap,
+			 'ns       : _ns,
+			 'dom      : dom,
+			 'ldom     : ldom,
+			 'unwind   : unwind,
+			 'looksrc  : looksrc,
+			 'close    : _close,
+			 'rebind   : rebind ];
+	}
+
 
 	@record chctl { interval, exedom, scan, findret, mem, ctx, nsmap, ns, dom, ldom, unwind, looksrc };
 
@@ -958,7 +1399,7 @@ rdsetfmt(@record interval { beg, end, val },
 
 	@define chronicledb(db)
 	{
-		mkchctl(db);
+		mkchctl2(db);
 	}
 
 	/* A and B are the values of two colliding intervals.

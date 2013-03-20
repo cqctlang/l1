@@ -18,7 +18,7 @@ isbinop(Kind k)
 static void
 cvwarn(U *ctx, Expr *e, char *fmt, va_list args)
 {
-	static char buf[128];
+	static char buf[4096];
 	u32 len;
 	if(e->src)
 		snprint(buf, sizeof(buf), "%s:%u: warning: ",
@@ -45,7 +45,7 @@ cwarn(U *ctx, Expr *e, char *fmt, ...)
 static void
 cverror(U *ctx, Expr *e, char *fmt, va_list args)
 {
-	static char buf[128];
+	static char buf[4096];
 	u32 len;
 	if(e && e->src)
 		snprint(buf, sizeof(buf), "%s:%u: ",

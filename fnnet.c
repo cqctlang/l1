@@ -242,13 +242,86 @@ l1_getsockname(VM *vm, Imm argc, Val *argv, Val *rv)
 	*rv = mkvalstr(mkstr0(buf));
 }
 
+static void
+l1__unixopen(VM *vm, Imm argc, Val *argv, Val *rv)
+{
+	int fd;
+	Str *str;
+	struct sockaddr_un sa;
+
+	setlasterrno(0);
+	if(argc != 1)
+		vmerr(vm, "wrong number of arguments to unixopen");
+	checkarg(vm, argv, 0, Qstr);
+	str = valstr(argv[0]);
+	if(str->len > 104)
+		/* 104 is the lesser of freebsd's and linux's
+		   max unix pathname */
+		vmerr(vm, "unix domain pathname is too long");
+	fd = socket(AF_UNIX, SOCK_STREAM, 0);
+	if(0 > fd){
+		setlasterrno(errno);
+		return;
+	}
+	sa.sun_family = AF_UNIX;
+	memcpy(sa.sun_path, strdata(str), str->len);
+	if(0 > connect(fd, (struct sockaddr*)&sa,
+		       sizeof(sa_family_t)+str->len)){
+		setlasterrno(errno);
+		return;
+	}
+	*rv = mkvallitcval(Vint, fd);	
+}
+
+static void
+l1__recvfd(VM *vm, Imm argc, Val *argv, Val *rv)
+{
+	int rfd;
+	int fd;
+	Fd *fd0;
+	struct cmsghdr *cmsg;
+	struct msghdr msg;
+	struct iovec iv;
+	unsigned char byte;
+	char buf[CMSG_SPACE(sizeof(rfd))];
+
+	if(argc != 1)
+		vmerr(vm, "wrong number of arguments to recvfd");
+	checkarg(vm, argv, 0, Qfd);
+	fd0 = valfd(argv[0]);
+	if((fd0->flags&Ffn) == 0)
+		vmerr(vm, "file descriptor cannot convey file descriptors");
+	fd = fd0->u.fn.fd;
+	memset(&msg, 0, sizeof(msg));
+	iv.iov_base = &byte;
+	iv.iov_len = sizeof(byte);
+	msg.msg_iov = &iv;
+	msg.msg_iovlen = 1;
+	msg.msg_control = buf;
+	msg.msg_controllen = sizeof(buf);
+	if(0 > recvmsg(fd, &msg, 0)){
+		setlasterrno(errno);
+		return;
+	}
+	cmsg = CMSG_FIRSTHDR(&msg);
+	if(cmsg == 0
+	   || cmsg->cmsg_level != SOL_SOCKET
+	   || cmsg->cmsg_type != SCM_RIGHTS
+	   || cmsg->cmsg_len != CMSG_LEN(sizeof(rfd)))
+		vmerr(vm, "no file descriptor to be received");
+	memcpy(&rfd, CMSG_DATA(cmsg), sizeof(rfd));
+	*rv = mkvallitcval(Vint, rfd);	
+}
+
 void
 fnnet(Env env)
 {
 	FN(getpeername);
 	FN(getsockname);
+	FN(_recvfd);
 	FN(_socket);
 	FN(_tcpaccept);
 	FN(_tcplisten);
 	FN(_tcpopen);
+	FN(_unixopen);
 }
