@@ -1144,6 +1144,11 @@ nexttag = 0;
 		return sctllookpc(fd, nsid, file, line);
 	}
 
+	@defloc rebind(this, nfd)
+	{
+		fd = nfd;
+	}
+
 	nsid = sctlnames(fd, path);
 	if(nsid == nil)
 		return nil;
@@ -1158,6 +1163,7 @@ nexttag = 0;
 		    "enumloc"  : el,
 		    "looksrc"  : lsrc,
 		    "lookpc"   : lpc,
+		    "rebind"   : rebind,
 		  ]);
 	return ns;
 }

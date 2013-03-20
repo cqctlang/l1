@@ -530,6 +530,11 @@ nsutil_defined = 1;
 		return ns.enumloc(pc-off);
 	}
 
+	@defloc rebind(this, fd)
+	{
+		return ns.rebind(fd);
+	}
+
 	@define _addsym(this,id,sym) {
 		sym_cache[id] = sym;
 	}
@@ -544,6 +549,7 @@ nsutil_defined = 1;
 		"enumloc"  : el,
 		"looksrc"  : ls,
 		"lookpc"   : lpc,
+		"rebind"   : rebind,
 		"addsym" : _addsym,
 		"offset" : @lambda(this) { return off; }
 	]);

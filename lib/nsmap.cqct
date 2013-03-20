@@ -7,7 +7,7 @@
 {
 
 @record nsrec    { base, path, ns };
-@record nsmaprec { add, del, exe, setexe, byaddr, byname, nspath, nsbase, each, copy };
+@record nsmaprec { add, del, exe, setexe, byaddr, byname, nspath, nsbase, each, copy, rebind };
 
 @defloc _mknsmap(mkns, rs, x)
 {
@@ -122,6 +122,11 @@
 		return _mknsmap(mkns, copy(rs), x);
 	}
 
+	@defloc rebind(fd)
+	{
+		each(@lambda(base, path, ns){ ns.rebind(fd); });
+	}
+
 	return nsmaprec(add,
 			del,
 			exe,
@@ -131,7 +136,8 @@
 			nspath,
 			nsbase,
 			each,
-			_copy);
+			_copy,
+			rebind);
 }
 
 @define mknsmap(mkns)
