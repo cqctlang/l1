@@ -516,7 +516,7 @@ fmtval(VM *vm, Fmt *f, Val val)
 				return -1;
 		}
 		if(n < listlen(l)){
-			snprint(buf, sizeof(buf), ", ... (%d more)", listlen(l)-n);
+			snprint(buf, sizeof(buf), ", ... (%" PRId64 " more)", (int64_t)listlen(l)-n);
 			if(fmtputs0(vm, f, buf))
 				return -1;
 		}
