@@ -33,7 +33,6 @@ main(int argc, char *argv[])
 	char *ep;
 	char *mach;
 	char *infile, *outfile;
-	Sys *sys;
 
 	maxlen = 0;
 	align = 0;
