@@ -6,6 +6,7 @@
 // libc and friends. 
 {
 @local _unameres;
+@local __malloc;
 
 @global unix;
 @global linuxns;
@@ -42,6 +43,15 @@ _unameres = nil;
 		fprintf(stderr,"Unsupported OS: %a\n",[o,a,w]);
 	}
 
+	__malloc=@lambda(s) {
+		s=malloc(s);
+		if(s) {
+			return {mkdom(r,asof(s))}s;
+		} else {
+			return s;
+		}
+	};
+
 	_unameres = u;
 
 };
@@ -50,7 +60,7 @@ _unameres = nil;
 sys_open = @lambda(filename,oflag,rest ...) {
 	@local m,r;
 
-	m=malloc(length(filename)+1);
+	m=__malloc(length(filename)+1);
 	putbytes(m,filename);
 	m[length(filename)]=0;
 
@@ -72,7 +82,7 @@ sys_close = @lambda(fd) {
 sys_read = @lambda(fd,buf,len) {
 	@local m,r,c;
 
-	m=malloc(len);
+	m=__malloc(len);
 	r=syscall(unix`read,fd,m,len);
 	if(r>0) {
 		c=getbytes(m,r);
@@ -86,7 +96,7 @@ sys_read = @lambda(fd,buf,len) {
 sys_write = @lambda(fd,buf,len) {
 	@local m,r;
 
-	m=malloc(len);
+	m=__malloc(len);
 
 	if(isstring(buf)) {
 		if(length(buf) > len) {
@@ -182,7 +192,7 @@ sys_fstat = @lambda(fd,statbuf) {
 
   l=sizeof(struct unix`stat);
 
-  m=malloc(l);
+  m=__malloc(l);
   if(0 > m)
     error("fstat: couldn't allocate stat buf");
 
@@ -209,7 +219,7 @@ sys_fstat = @lambda(fd,statbuf) {
 
 @global FD_ALLOC;
 FD_ALLOC=@lambda() {
-  return (unsigned char *)malloc(128);
+  return (unsigned char *)__malloc(128);
 };
 
 @global FD_ISSET;
@@ -258,7 +268,7 @@ sys_pselect = @lambda(n,rfds,wfds,xfds,timeout,sigmask) {
   }
 
   if(timeout != 0) {
-    timeout_foo=(unsigned char *)malloc(128);
+    timeout_foo=(unsigned char *)__malloc(128);
     timeout_foo[0]=0;
     timeout_foo[1]=0;
     timeout_foo[2]=0;
@@ -318,7 +328,7 @@ sys_select = @lambda(n,rfds,wfds,xfds,timeout) {
 sys_unlink = @lambda(filename) {
   @local m;
 
-  m=malloc(length(filename)+1);
+  m=__malloc(length(filename)+1);
   putbytes(m,filename);
   m[length(filename)]=0;
 
@@ -366,7 +376,7 @@ sys_connect = @lambda(fd,sockaddr,size) {
   if(isnil(size)) {
     size=sizeof(*sockaddr);
   }
-  sa=malloc(size);
+  sa=__malloc(size);
   if(!sa) return nil;
 
   putbytes(sa,getbytes(sockaddr,size));
@@ -381,7 +391,7 @@ sys_bind = @lambda(fd,sockaddr,size) {
   if(isnil(size)) {
     size=sizeof(*sockaddr);
   }
-  sa=malloc(size);
+  sa=__malloc(size);
   if(!sa) return nil;
 
   putbytes(sa,getbytes(sockaddr,size));
@@ -404,12 +414,12 @@ sys_accept = @lambda(fd,sockaddr,size) {
   } else {
     size=*size;
   }
-  sa=malloc(size);
+  sa=__malloc(size);
   if(!sa) return nil;
 
   putbytes(sa,getbytes(sockaddr,size));
 
-  ss=malloc(sizeof(linuxns`int));
+  ss=__malloc(sizeof(linuxns`int));
   if(!ss) return nil;
 
   ss=(linuxns`int *)ss;
@@ -522,11 +532,11 @@ sys_setsid = @lambda() {
 sys_sleep = @lambda(secs) {
   @local r,m,m2;
 
-  m=malloc(sizeof(struct unix`timespec));
+  m=__malloc(sizeof(struct unix`timespec));
   m=(struct unix`timespec *)m;
   m->tv_sec=secs;
   m->tv_nsec=0;
-  m2=malloc(sizeof(struct unix`timespec));
+  m2=__malloc(sizeof(struct unix`timespec));
   m2=(struct unix`timespec *)m2;
   
   r=syscall(unix`nanosleep,m,m2);
@@ -552,7 +562,7 @@ sys_reboot = @lambda(magic, magic2, cmd, arg) {
 sys_sched_getaffinity = @lambda(pid, cpusetsize, mask) {
   @local m,r;
 
-  m=(unsigned char *)malloc(cpusetsize);    
+  m=(unsigned char *)__malloc(cpusetsize);    
   memset(m,0,cpusetsize);
 
   r=syscall(unix`sched_getaffinity,pid,cpusetsize,m);
@@ -566,7 +576,7 @@ sys_sched_setaffinity = @lambda(pid, cpusetsize, mask) {
   @local m,r;
 
   if(isstring(mask) && length(mask) <= cpusetsize) {
-    m=(unsigned char *)malloc(cpusetsize);    
+    m=(unsigned char *)__malloc(cpusetsize);    
     putbytes(m,mask);
   } else {
     error("BAD MASK!\n");
@@ -585,7 +595,7 @@ sys_getmempolicy = @lambda(mode, nodemask, maxnode,addr,flags) {
   @local m,r;
 
   if(isstring(nodemask)) {
-    m=(unsigned char *)malloc(length(nodemask));
+    m=(unsigned char *)__malloc(length(nodemask));
     putbytes(m,nodemask);
   } else {
     error("nodemask should be a string");
@@ -602,7 +612,7 @@ sys_setmempolicy = @lambda(mode, nodemask, maxnode) {
   @local m,r;
 
   if(isstring(nodemask)) {
-    m=(unsigned char *)malloc(length(nodemask));
+    m=(unsigned char *)__malloc(length(nodemask));
     putbytes(m,nodemask);
   } else {
     error("nodemask should be a string");
@@ -662,12 +672,12 @@ sys_execve = @lambda(filename,argv,envp) {
   if(iscvalue(filename) && isptr(@typeof(filename))) {
     @local fl;
     fl=strlen(filename);
-    f=(unsigned char *)malloc(fl + 1);
+    f=(unsigned char *)__malloc(fl + 1);
     putbytes(f,getbytes(filename,fl));
     f[fl]=0;
   } else if(isstring(filename)) {
     fl=length(filename);
-    f=(unsigned char *)malloc(fl+1);
+    f=(unsigned char *)__malloc(fl+1);
     putbytes(f,filename);
     f[fl]=0;
   } else {
@@ -681,7 +691,7 @@ sys_execve = @lambda(filename,argv,envp) {
       if (isstring(v)) len += length(v)+1; 
       else len += sizeof(v);
     },ary);
-    ret=(char**)malloc(len);
+    ret=(char**)__malloc(len);
     strs = (char*)&ret[length(ary)+1];
     for(i=0; i<length(ary); ++i) {
       ret[i] = strs;
