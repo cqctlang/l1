@@ -10,10 +10,10 @@ enum {
 static Head constnil;
 #pragma weak heapimage
 #pragma weak endheapimage
-#pragma weak heaplen
+#pragma weak lenheapimage
 char heapimage[1] = { Noheap };
 char endheapimage[0];
-u64 heaplen = 0;
+u64 lenheapimage = 0;
 static u32 heapversion = 1;
 
 /* if you change this, be sure the
@@ -3376,10 +3376,10 @@ restoreheap(char *file)
 		memcpy(p, tmp, len);
 		munmap(tmp, roundup(len, 4096));
 	}else{
-		if(!heaplen) {
+		if(!lenheapimage) {
 			len = endheapimage-heapimage;
 		} else {
-			len = heaplen;
+			len = lenheapimage;
 		}
 		if(len == 0)
 			return 0;

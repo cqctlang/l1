@@ -119,7 +119,7 @@ main(int argc, char *argv[])
 
 		fprintf(of,"\n};\n");
 		//fprintf(of,"unsigned char endheapimage[]={0x00};\n");
-		fprintf(of,"unsigned long long heaplen=%d;\n",(int)mlen);
+		fprintf(of,"unsigned long long len%s=%d;\n",sym,(int)mlen);
 		fflush(of);
 	}
 
