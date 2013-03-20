@@ -19,6 +19,7 @@
 	sctllooksrc,
 	sctllookpc,
 	sctlenumloc,
+	sctlsrv,
 
 	/* name space codecs */
 	decodetname,
@@ -973,6 +974,27 @@ nexttag = 0;
 		append(ls, locrec(mkcid(id), nil, vk, le, tn));
 	}
 	return ls;
+}
+
+@define sctlsrv(fd, n)
+{
+	@local p, m, rep, dat;
+
+	p = m = mkxs();
+	p = (sctl`Msg*)p;
+	p->op = sctl`Tsrv;
+	p->tag = freshtag();
+	p++;
+	p = (uint32*)p;
+	*p++ = n;
+	sendsctlmsg(fd, m, (char*)p-m);
+
+	[rep, _, dat] = recvsctlmsg(fd);
+	if(rep == nil)
+		error("recvsctlmsg: pid = %d %a", getpid(), dat);
+	if(checkreplynone(rep, dat, sctl`Rsrv))
+		return nil;
+	return dat;
 }
 
 @define mksctlns(fd, path)

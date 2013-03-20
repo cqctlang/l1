@@ -73,6 +73,8 @@ sctl = @names clp64le {
 		Rlooksrc,
 		Tlookpc,
 		Rlookpc,
+		Tsrv,
+		Rsrv,
 	} Mkind;
 
 	enum Mode {
