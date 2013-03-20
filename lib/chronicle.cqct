@@ -315,7 +315,7 @@ rdsetfmt(@record interval { beg, end, val },
 
 		@defloc init()
 		{
-			qsfd = popen("/z/qsrv/qsrv", dbpath, 2|8);
+			qsfd = popen("qsrv", dbpath, 2|8);
 			qsfd = qsfd[0];
 			qpath = fread(qsfd, 6);
 			printf("qpath is %B\n", qpath);
