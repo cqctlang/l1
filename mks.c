@@ -2,7 +2,6 @@
 #include <stdlib.h>
 #include <sys/types.h>
 #include <sys/stat.h>
-#include <sys/mman.h>
 #include <fcntl.h>
 #include <string.h>
 #include <errno.h>
@@ -11,12 +10,10 @@
 typedef unsigned long long uptr;
 static char opt[256];
 
-#define roundup(l,n)   ((uptr)(((uptr)(l)+((n)-1))&~((n)-1)))
-
 static void
 usage(char *argv0)
 {
-	printf("usage: %s -a <alignment> -s <symbol> -m <arch> [ -l <maxlen> ] <infile> <outfile>\n",
+	printf("usage: %s -a <alignment> -s <symbol> [ -l <maxlen> ] <infile> <outfile>\n",
 	       argv0);
 	exit(1);
 }
@@ -24,22 +21,19 @@ usage(char *argv0)
 int
 main(int argc, char *argv[])
 {
-	int ifd, ofd;
+	int ofd;
 	int c;
-	struct stat st;
-	uptr align, len, maxlen, mlen;
+	uptr align, len, maxlen;
 	char *sym;
-	void *data;
 	char *ep;
-	char *mach;
 	char *infile, *outfile;
+	FILE *of;
 
 	maxlen = 0;
 	align = 0;
 	len = 0;
 	sym = 0;
-	mach = 0;
-	while(-1 != (c = getopt(argc, argv, "a:hl:m:s:")))
+	while(-1 != (c = getopt(argc, argv, "a:hl:s:")))
 		switch(c){
 		case 'a':
 			opt['a'] = 1;
@@ -57,17 +51,13 @@ main(int argc, char *argv[])
 			if(*ep != '\0')
 				usage(argv[0]);
 			break;
-		case 'm':
-			opt['m'] = 1;
-			mach = optarg;
-			break;
 		case 'h':
 		case '?':
 			usage(argv[0]);
 			break;
 		}
 
-	if(opt['a'] == 0 || opt['s'] == 0 || opt['m'] == 0)
+	if(opt['a'] == 0 || opt['s'] == 0)
 		usage(argv[0]);
 
 	if(argc-optind != 2)
@@ -76,63 +66,27 @@ main(int argc, char *argv[])
 	infile = argv[optind];
 	outfile = argv[optind+1];
 
-	ifd = open(infile, O_RDONLY);
-	if(0 > ifd){
-		fprintf(stderr, "open: %s: %s\n", infile, strerror(errno));
-		exit(1);
-	}
-	if(0 > fstat(ifd, &st)){
-		fprintf(stderr, "stat: %s: %s\n", infile, strerror(errno));
-		exit(1);
-	}
-	len = st.st_size;
-	if(opt['l'] && maxlen < len)
-		len = maxlen;
-	mlen = roundup(len, 4096);
-	if(mlen == 0)
-		mlen = 4096;
-	data = mmap(0, mlen, PROT_READ, MAP_PRIVATE, ifd, 0);
-	if(data == MAP_FAILED){
-		fprintf(stderr, "mmap: %s: %s\n", infile, strerror(errno));
-		exit(1);
-	}
-	close(ifd);
 	ofd = open(outfile, O_TRUNC|O_CREAT|O_WRONLY, 0664);
 	if(0 > ofd){
 		fprintf(stderr, "open: %s: %s\n", outfile, strerror(errno));
 		exit(1);
 	}
 
-	{
-		int x;
-		FILE *of;
-
-		of=fdopen(ofd,"w");
-
-		fprintf(of,".section savedheap, \"r\"\n");
-		fprintf(of,".balign 0x1000\n");
-		fprintf(of,"_%s:\n",sym);
-		fprintf(of,".byte ");
-
-		if(mlen)
-			fprintf(of,"0x%02x",*(((unsigned char *)data) + x));
-		for(x=1;x<mlen;x++) {
-			//if(!(x%16)) {
-			//	fprintf(of,"\n");
-			//}
-			fprintf(of,",0x%02x",*(((unsigned char *)data) + x));
-		}
-
-		printf("\n");
-
-		//fprintf(of,"\n};\n");
-		//fprintf(of,"unsigned char endheapimage[]={0x00};\n");
-		//fprintf(of,"unsigned long long len%s=%d;\n",sym,(int)mlen);
-		fprintf(of,"\n_end%s:\n",sym);
-		fflush(of);
+	of=fdopen(ofd,"w");
+	if(!of){
+		fprintf(stderr, "fdopen: %s: %s\n", outfile, strerror(errno));
+		exit(1);
 	}
 
-	munmap(data, mlen);
+	fprintf(of,".section savedheap, \"r\"\n");
+	if(align) {
+		fprintf(of,".balign 0x%x\n",(int)align);
+	}
+	fprintf(of,"_%s:\n",sym);
+	fprintf(of,".incbin \"%s\"\n",infile);
+	fprintf(of,"\n_end%s:\n",sym);
+	fflush(of);
+
 	close(ofd);
 	return 0;
 }
