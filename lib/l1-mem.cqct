@@ -41,10 +41,8 @@
 
 	dom = db.exedom;
 	rt = db.scan('firstexec, &dom`recycle, gc.beg, gc.end);
-	if(length(rt) != 1){
-		printf("confusion!\n");
+	if(length(rt) != 1)
 		return ['confusion, nil];
-	}
 	ws = db.scan('firstwrite, addr, sizeof(*addr), gc.beg, rt[0]);
 	if(length(ws) == 0)
 		return [nil, nil];
@@ -55,43 +53,56 @@
 
 @define valpast(db, addr, t)
 {
-	@local ct, gcs, dom, bgcs, gc, past, ws;
+	@local ct, dom, past, ws, iv;
 
 	dom = db.exedom;
 
 	ct = @typeof(addr);
 	addr = (dom`Head*)addr;
-	gcs = callintervals(db, db.interval(), &dom`_gc);
 
 	past = [];
 
-	// search backward for chain of calls to copy.
+	while(1){
+		/* search backward for the last write to the object head */
+		ws = db.scan('lastwrite, addr, sizeof(*addr), 0, t);
+		if(length(ws) != 1)
+			error("confusion");
+		t = ws[0];
 
-	[bgcs, _] = zsplit(gcs, t);
-	bgcs = reverse(bgcs);
-	while(gc = pop(bgcs)){
-		@local copyt, from;
-		[copyt, from] = findcopyto(db, addr, gc);
-		if(copyt == nil)
+		/* did the write occur in copy? */
+		iv = isincall(db, t, &dom`copy);
+		if(iv){
+			@local args, from;
+			args = chgetargs(db, 1, iv.beg);  /* FIXME: want calls-like interface */
+			from = {@typeof(addr)}args[0];
+			push(past, instant(t, {ct}{db.dom(t)}from));
+			addr = from;
 			continue;
-		if(copyt == 'confusion)
-			return nil;
-		push(past, instant(copyt, {ct}{db.dom(t)}addr));
-		t = copyt;
-		addr = from;
+		}
+		
+		/* did the write occur in an allocation routine? */
+		iv = isincall(db, t, &dom`malv);
+		if(iv == nil)
+			iv = isincall(db, t, &dom`malq);
+		if(iv == nil)
+			iv = isincall(db, t, &dom`malweak);
+		if(iv == nil)
+			iv = isincall(db, t, &dom`malbox);
+		if(iv){
+			push(past, instant(iv.end, {ct}{db.dom(iv.end)}addr));
+			return past;
+		}
+
+		/* did the write occur in heap restore? */
+		iv = isincall(db, t, &dom`restoreheap);
+		if(iv){
+			printf("%p appears to have been allocated in heaprestore %a\n", addr, iv);
+			push(past, instant(iv.end, {ct}{db.dom(iv.end)}addr));
+			return past;
+		}
+
+		error("cannot find a context for write to %p @%d", addr, t);
 	}
-
-	// search backward for last write to header, which we
-	// presume allocation
-
-	ws = db.scan('lastwrite, addr, sizeof(*addr), 0, t);
-	if(length(ws) == 0)
-		return nil;
-	t = ws[0];
-
-	push(past, instant(t, {ct}{db.dom(t)}addr));
-
-	return past;
 }
 
 @define valfuture(db, addr, t)
@@ -110,36 +121,36 @@
 
 	[_, agcs] = zsplit(gcs, t);
 	while(gc = pop(agcs)){
-		@local copyt, to;
+		@local xs, it, copyt, to;
+
+		/* look for call to copy using this addr */
 		[copyt, to] = findcopyfrom(db, addr, gc);
-		if(copyt == nil)
-			continue;
 		if(copyt == 'confusion)
-			return nil;
-		append(future, instant(copyt, {ct}{db.dom(t)}to));
-		t = copyt;
-		addr = to;
-	}
-
-	// search forward for freeseg of Seg containing addr
-
-	[_, agcs] = zsplit(gcs, t);
-	while(gc = pop(agcs)){
-		@local xs, it;
+			error("confusion");
+		if(copyt){
+			append(future, instant(copyt, {ct}{db.dom(t)}to));
+			t = copyt;
+			addr = to;
+			continue;
+		}
+		
+		/* look for call to freeseg releasing this addr;
+		   a hit ends the search */
 		xs = calls(db, gc, &dom`freeseg);
 		while(it = pop(xs)){
 			@local s, a;
 			s = it.val[0]; // Seg*
 			a = s2a(s);
-			if(a <= addr && a+Segsize < addr){
+			if(a <= addr && addr < a+Segsize){
 				append(future, instant(it.t, {ct}{db.dom(t)}addr));
 				return future;
 			}
 		}
 	}
-	
+
 	// execution ended before freeseg
 
+	printf("valfuture: warning: execution ended without freeing object\n");
 	e = db.interval().end-1;
 	append(future, instant(e, {db.dom(e)}addr));
 

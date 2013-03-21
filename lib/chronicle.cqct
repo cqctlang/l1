@@ -32,6 +32,7 @@
 	chgetargs,
 	callintervals,
 	returns,
+	isincall,
 	callstack,
 	lastcall,
 	lastreturn,
@@ -1240,6 +1241,25 @@ rdsetfmt(@record interval { beg, end, val },
 			}, ivs);
 	}
 
+	@define isincall(db, t, fptr)
+	{
+		@local c, r;
+
+		c = db.scan('lastexec, fptr, 0, t);
+		if(length(c) == 0)
+			return nil;
+		if(length(c) != 1)
+			error("confusion");
+		c = c[0];
+		r = db.findret(c);
+		if(r == nil)
+			/* assume it never returned */
+			return interval(c, db.interval().end, nil);
+		if(r >= t)
+			return interval(c, r, nil);
+		return nil;
+	}
+
 	@define fmtframe(ctl, ctx, t)
 	{
 		@local s, src;
@@ -1443,8 +1463,8 @@ rdsetfmt(@record interval { beg, end, val },
    optional third argument MODE determines what happens
    if T occurs within an interval [B,E,V]:
 
-   'split :    it is split into [B,T,V] (which goes into before)
-   and [T,E,V] (which goes into after).
+   'split :    (default) the interval is split into [B,T,V] (which goes into before)
+               and [T,E,V] (which goes into after).
    'before :   [B,E,V] is added to before
    'after :    [B,E,V] is added to after
    'fail :     the call returns nil
