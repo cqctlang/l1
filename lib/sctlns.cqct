@@ -542,6 +542,8 @@ nexttag = 0;
 	q = (uint8*)q;
 	*q++ = (uint8)le.kind;
 	switch(le.kind){
+	case sctl`Lcfa:
+		return q;
 	case sctl`Lreg:
 		*q++ = (uint8)le.no;
 		return q;
@@ -569,6 +571,9 @@ nexttag = 0;
 	q = (uint8*)q;
 	k = *q++;
 	switch(k){
+	case sctl`Lcfa:
+		le = lexprrec(k, nil, nil, nil, nil);
+		return [le, q];
 	case sctl`Lreg:
 		no = *q++;
 		le = lexprrec(k, no, nil, nil, nil);

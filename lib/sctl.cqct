@@ -222,6 +222,7 @@ sctl = @names clp64le {
 		Lsub,
 		Lulit,
 		Lslit,
+		Lcfa,
 	} Lkind;
 
 	enum ELF_SHN {
