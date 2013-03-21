@@ -27,3 +27,12 @@ struct sockaddr_in {
   @16; // minimum size of a struct sockaddr;
 }; 
 
+struct sockaddr_un {
+	@0 unsigned char length;
+	@1 sa_family_t sun_family;       /* AF_UNIX */
+	@2 char sun_path[100]; /* pathname */
+  	@102; // can't use UNIX_PATH_MAX here to set the size.
+        // a proper structure packer will take care of
+        // this later.
+};
+
