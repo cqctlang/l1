@@ -127,15 +127,15 @@
 		    ]);
 }
 
-@defloc localdom(ctx, ns, as, locs)
+@defloc localdom(octx, ns, as, locs)
 {
 	@local lt, ls, et, es, la, nns, dom;
-	@local sym, ctxloc;
+	@local sym, ctx, ctxloc;
 
 	sym = [:];
-	as = mkoveras(as, ctx, 0);
+	as = mkoveras(as, octx, 0);
 	dom = mkdom(ns, as);
-	ctx = {@typeof(ctx)}{dom}0; /* yo! */
+	ctx = {@typeof(octx)}{dom}0; /* yo! */
 
 	@defloc lexpreval(le, ctxloc)
 	{
@@ -158,6 +158,8 @@
 			return le.v;
 		case sctl`Lslit:
 			return le.v;
+		case sctl`Lcfa:
+			return dwcfa(octx, as, ns);
 		default:
 			error("unknown local expression kind: %d", le.lkind);
 		}

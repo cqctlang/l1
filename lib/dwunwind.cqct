@@ -1,4 +1,5 @@
-@global dwunwind,
+@global dwcfa,
+	dwunwind,
 	dwunwind1,
 	decoderules
 	;
@@ -45,6 +46,20 @@ uwns = @names c32le {
 // 	       r.r,
 // 	       r.n);
 // }
+
+@defloc getcfa(rules, getreg)
+{
+	@local r;
+	r = rules[uwns`CFA];
+	switch((uwns`Rulekind)r.kind){
+	case uwns`Rcfaro:
+		return getreg(r.r)+r.n;
+	case uwns`Rcfae:
+		error("unwind: rule Rcfae is unimplemented");
+	default:
+		error("unwind: bug");
+	}
+}
 
 @defloc applyunwind(rules, getreg, setreg, get, spno)
 {
@@ -255,6 +270,19 @@ guess:
 	ctx->pc = *(fp+1);
 	ctx->fp = *fp;
 	return ctx;
+}
+
+@define dwcfa(ctx, as, ns)
+{
+	@local dom, rs, mkuwctx, g;
+
+	dom = mkdom(ns, as);
+	rs = ns.unwind1(ctx->pc);
+	if(rs == nil)
+		error("cannot determine cfa for pc %p", ctx->pc);
+	mkuwctx = sizeof(ns`void*) == 8 ? mkuwctx64 : mkuwctx32;
+	[g, _, _, _, _] = mkuwctx(dom, ctx);
+	return getcfa(rs, g);
 }
 
 @define dwunwind(ctx, as, nsmap)
