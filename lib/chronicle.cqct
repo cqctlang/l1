@@ -269,7 +269,6 @@ rdsetfmt(@record interval { beg, end, val },
 		@local endtstamp, lb, rs, nsmap, exedom;
 		@local qsfd, qpath, qcfd, qfd;
 		@local nsfd, npath, ncfd, nfd;
-		@local names;
 
 		@defloc _close()
 		{
@@ -310,6 +309,10 @@ rdsetfmt(@record interval { beg, end, val },
 
 		@defloc rebind()
 		{
+//			printf("bindq\n");
+//			time(bindq);
+//			printf("bindns\n");
+//			time(bindns);
 			bindq();
 			bindns();
 		}
@@ -341,7 +344,11 @@ rdsetfmt(@record interval { beg, end, val },
 			rs = chfilter(rs, @lambda(t) { @local v; v = t["offset"]; v != nil && v == 0; });
 			rs = chfilter(rs, @lambda(t) { @local v; v = t["execute"]; v != nil && v; });
 	
-			names = [];
+			nsfd = popen("sym", 2|4|8);
+			nsfd = nsfd[0];
+			sctlversion(nsfd);
+			nsmap = mknsmap(@lambda(path) { printf("path is %s\n", path); mksctlns(nsfd, path); });
+
 			foreach(@lambda(t){
 					@local f, abase, vbase;
 					f = t["filename"];
@@ -351,22 +358,13 @@ rdsetfmt(@record interval { beg, end, val },
 					vbase = elfloadaddr(f);
 					if(vbase == nil)
 						return; /* presume it's not an elf */
-					printf("\t0x%016p\t%s\n", abase-vbase, f);
-//					nsmap.add(abase-vbase, f);
-					append(names, [abase-vbase, f]);
+					printf("\t0x%016p\t0x%016p\t0x%016p\t%s\n", abase, vbase, abase-vbase, f);
+					nsmap.add(abase, vbase, f);
 				}, rs);
 			printf("\tend timestamp: %d\n", endtstamp);
-
-			nsfd = popen("sym", 2|4|8);
-			nsfd = nsfd[0];
-			sctlversion(nsfd);
-
-			nsmap = mknsmap(@lambda(path) { printf("path is %s\n", path); mksctlns(nsfd, path); });
-			foreach(@lambda(n){ nsmap.add(n[0], n[1]); }, names);
-			nsmap.setexe(0); /* hack */
+			nsmap.setexebyname("l1"); /* hack */
 			exedom = dom(1); /* hack */
-
-			npath = sctlsrv(nsfd, 3);
+			npath = sctlsrv(nsfd, 100);
 			bindns();
 		}
 
@@ -741,10 +739,11 @@ rdsetfmt(@record interval { beg, end, val },
 				vbase = elfloadaddr(f);
 				if(vbase == nil)
 					return; /* presume it's not an elf */
+				printf("\t0x%016p\t0x%016p\t0x%016p\t%s\n", abase, vbase, abase-vbase, f);
 //				printf("\t0x%016p\t%s\n", abase-vbase, f);
-				nsmap.add(abase-vbase, f);
+				nsmap.add(abase, vbase, f);
 			}, rs);
-		nsmap.setexe(0); /* hack */
+		nsmap.setexebyname("l1"); /* hack */
 //		printf("\tend timestamp: %d\n", endtstamp);
 
 		@defloc scan(kind, rest ...)
