@@ -39,14 +39,26 @@
 		return nil;
 	}
 
-	@defloc add(base, path)
+	/* base: address at which binary is loaded */
+	@defloc add(base, rest ...)
 	{
-		@local ns, r;
+		@local vbase, path, ns, r;
+
+		if(length(rest) == 1)
+			path = rest[0];
+		else if(length(rest) == 2){
+			vbase = rest[0];  /* static load address of binary */
+			path = rest[1];
+		}else
+			error("wrong number of arguments to add");
+
 		ns = mkns(path);
 		if(ns == nil)
 			error("cannot construct name space for %s", path);
-		if(base != 0)
+		if(vbase == nil && base != 0)
 			ns = mknsoff(ns, base);
+		else if(vbase != nil && base != vbase)
+			ns = mknsoff(ns, base-vbase);
 		r = nsrec({litdom}base, path, ns);
 		append(rs, r);
 		resort();
