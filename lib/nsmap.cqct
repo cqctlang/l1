@@ -7,7 +7,7 @@
 {
 
 @record nsrec    { base, path, ns };
-@record nsmaprec { add, del, exe, setexe, byaddr, byname, nspath, nsbase, each, copy, rebind };
+@record nsmaprec { add, del, exe, setexe, setexebyname, byaddr, byname, nspath, nsbase, each, copy, rebind };
 
 @defloc _mknsmap(mkns, rs, x)
 {
@@ -80,6 +80,16 @@
 		return nil;
 	}
 
+	@defloc setexebyname(name)
+	{
+		@local r;
+		r = _byname(name);
+		if(r == nil)
+			error("no name space with name %s", name);
+		x = r;
+		return nil;
+	}
+
 	@defloc each(fn)
 	{
 		foreach(@lambda(r) { fn(r.base, r.path, r.ns); }, rs);
@@ -131,6 +141,7 @@
 			del,
 			exe,
 			setexe,
+			setexebyname,
 			byaddr,
 			byname,
 			nspath,
