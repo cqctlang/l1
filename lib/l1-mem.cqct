@@ -196,14 +196,22 @@
 		&dom`resetmem,
 	];
 
-	init = firstreturn(db, db.interval(), &dom`initmem);
-	fini = lastcall(db, db.interval(), &dom`finimem);
-	stable = interval(init.t, fini.t, nil);
-	stable = zdiff(stable, anycalls(db, stable, exclude));
+	@defloc findstable()
+	{
+		init = firstreturn(db, db.interval(), &dom`initmem);
+		fini = lastcall(db, db.interval(), &dom`finimem);
+		stable = interval(init.t, fini.t, nil);
+		stable = zdiff(stable, anycalls(db, stable, exclude));
+	}
+
+	printf("finding stable regions\n");
+	time(findstable);
 
 	@defloc dofork(db, fn)
 	{
 		@local pid;
+//		printf("rebind\n");
+//		time(db.rebind);
 		db.rebind();
 		switch(pid = fork()){
 		case -1:
@@ -253,12 +261,12 @@
 		printf("%s: %u ops %u %s/op\n", name, length(ts), x/length(ts), unit);
 	}
 
-//	time(@lambda() { foreach(@lambda(iv){ dofork(db, @lambda(){ foreach(assertunaccessed, freesegs(iv)); }); }, stable); });
+	time(@lambda() { foreach(@lambda(iv){ dofork(db, @lambda(){ foreach(assertunaccessed, freesegs(iv)); }); }, stable); });
 //	time(@lambda() { foreach(@lambda(iv){ foreach(assertunaccessed, freesegs(iv)); }, stable); });
-	time(@lambda() { foreach(@lambda(iv){ work(iv); }, stable); });
-	tot(fst, "freesegs", "usec");
-	tot(aut, "assertunaccessed", "usec");
-	tot(nfs, "# freesegs", "freesegs");
+//	time(@lambda() { foreach(@lambda(iv){ work(iv); }, stable); });
+//	tot(fst, "freesegs", "usec");
+//	tot(aut, "assertunaccessed", "usec");
+//	tot(nfs, "# freesegs", "freesegs");
 }
 
 }
