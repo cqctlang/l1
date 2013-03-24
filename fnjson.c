@@ -197,7 +197,6 @@ static int jsmn_parse_string(jsmn_parser *parser, const char *js,
 						parser->pos++;
 						if(!isxdigit(js[parser->pos])){
 							parser->pos = start;
-							printf("u error\n");
 							return JSMN_ERROR_INVAL;
 						}
 					}
@@ -536,8 +535,12 @@ retry:
 		efree(s);
 		vmerr(vm, "json parser returned undefined status");
 	}
+	if(tok[0].start == -1){
+		efree(tok);
+		efree(s);
+		vmerr(vm, "invalid json input");
+	}
 	ndx = 0;
-
 	*rv = convert(vm, s, tok, &ndx);
 	efree(tok);
 	efree(s);
