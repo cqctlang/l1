@@ -108,11 +108,21 @@
 		foreach(@lambda(iv){ foreach(assertunwritten, metalocs(iv)); }, stable);
 				
 		/* verify that storage is not updated */
-//		stable = flatten(map(excludeswap, stable));
+		stable = flatten(map(excludeswap, stable));
 		foreach(@lambda(iv){ assertunwritten(dataloc(iv)); }, stable);
 
 		/* verify that each element is live */
 //		foreach(@lambda(iv){ foreach(assertlive, listcontents(dataloc(iv))); }, stable);
+		foreach(@lambda(iv){
+				@local lcs;
+				lcs = listcontents(dataloc(iv));
+				printf("checking list contents of %a\n", iv);
+				foreach(@lambda(lc){
+						printf("\t%a\n", lc);
+						assertlive(lc);
+					}, lcs);
+			}, stable);
+
 	}
 
 	printf("checking list allocated @%d\n", livs[0].beg);
