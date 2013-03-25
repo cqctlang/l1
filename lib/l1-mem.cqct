@@ -74,8 +74,8 @@
 		if(iv){
 			@local args, from;
 			args = chgetargs(db, 1, iv.beg);  /* FIXME: want calls-like interface */
-			from = {@typeof(addr)}args[0];
-			push(past, instant(t, {ct}{db.dom(t)}from));
+			from = {ct}*{db.dom(t)}(void**)args[0];
+			push(past, instant(t, from));
 			addr = from;
 			continue;
 		}
