@@ -32,12 +32,13 @@ In its most basic instantiation, a library is a file containing
 definitions for various functions and variables. There is currently
 no mechanism for putting macros (i.e. <em>@defstx</em> definitions)
 in a library -- any macros appearing in a library currently get bound
-at the top level. Future version of the library system will remedy the
+at the top level. Future versions of the library system will remedy the
 macro limitations.
 </p>
 
 <p>
-An example library file might look this file, named <b>lib1.cqct</b>:
+Cinquecento library files have the <b>.cql</b> extension. 
+An example library file might look this file, named <b>lib1.cql</b>:
 <div class="code">
 <pre>
 //variables local to the library must be declared 
@@ -51,8 +52,8 @@ An example library file might look this file, named <b>lib1.cqct</b>:
 @define func1() { ... }
 @define helper_func2() { ... }
 //libraries are loaded with a special variable, "args"
-//that is bound to parameters associated set by the
-//person loading the library
+//that is bound to parameters set by the person 
+//loading the library
 @define func2() { printf("%a\n",args); }
 
 </pre>
@@ -60,7 +61,7 @@ An example library file might look this file, named <b>lib1.cqct</b>:
 That code defines and exports two symbols: func1 and func2. 
 It also defines a local variable helper_func2 that is visible only
 within the library. 
-Assuming lib1.cqct is in the load path, Another bit of code can 
+Assuming lib1.cql is in the load path, Another bit of code can 
 then run using those symbols as follows:
 </p>
 <div class="code">
@@ -73,11 +74,11 @@ lib1_v2 = @import_object( lib1(10,"abc") ); //loads lib1 with a parameter
 lib1_v2.func2(); //prints "[ 10, "abc" ]"
 </pre>
 </div>
-The <em>@import_object</em> macro checks that lib1.cqct has been loaded,
+The <em>@import_object</em> macro checks that lib1.cql has been loaded,
 loading it only if necessary, and
 creates an object through which any of the library's exported functions
-can be called. The second load of lib1 loads it with the parameter 10.
-Since lib1.cqct exports both <em>func1</em> and <em>func2</em>
+can be called. The second load of lib1 loads it with the parameters [10,"abc"].
+Since lib1.cql exports both <em>func1</em> and <em>func2</em>
 both symbols will be available in both objects. 
 </p>
 
@@ -93,13 +94,15 @@ a = 10; //a is set to 10 at run time
 lib1 = @import_object( lib1(a,"abc") ); //error! 
 </pre>
 </div>
+One can use separate dynamic import macros to set things at runtime. 
+See <a href=#dynamic>here.</a>
 </p>
 
 <p>
 When writing a library one can also use <em>@import</em> syntax,
 which will make all of the exported symbols from the associated
 library visible without an associated object (as above). 
-Consider for example <b>lib2.cqct</b>
+Consider for example <b>lib2.cql</b>
 <div class="code">
 <pre>
 
@@ -147,8 +150,8 @@ For instance, consider the library name:
 path1/path2/name(1,2)
 </pre>
 </div>
-This will attempt to find the file path1/path2/name.cqct in the current load
-path, and then initialize that library with <em>args</em> set to [1,2]
+This will attempt to find the file path1/path2/name.cql in the current load
+path, and then initialize that library with <em>args</em> set to [1,2].
 </p>
 
 <p>
@@ -161,9 +164,9 @@ The three import specification forms are:
 <div class="code">
 <pre>
 @with_imports( lib1 ) {
-  fn1(); //if lib1 exports a function fn1, this will call that function
-  @defloc fn2() { ... } 
-  fn2(); // will call the local fn2 even if lib1 exports fn2
+  func1(); //this will call lib1's func1.
+  @defloc func2() { ... } 
+  func2(); // will call the local func2 even though lib1 exports func2 
 }
 </pre>
 </div>
@@ -196,24 +199,8 @@ lib1_fn1(); //this will call function fn1 exported by library lib1
 </p>
 
 <p>
-Library names are allowed to include the "/" character to specify
-subdirectories inside of the load path. 
-If one wants to import a library <em>lib</em> 
-that is in a directory <em>dir1/dir2</em> 
-that is in the load path, one may use the following constructions:
-<div class="code">
-<pre>
-
-@import( dir1/dir2/lib, (f1, dir1/dir2/lib.func1) );
-
-@with_imports( dir1/dir2/lib, (f1, dir1/dir2/lib.func1) ) { ... }
-</pre>
-</div>
-</p>
-
-<p>
 Imported libraries must be present in the load path. That is, when importing
-from <em>lib1</em>, there must be a lib1.cqct present in the load path at
+from <em>lib1</em>, there must be a lib1.cql present in the load path at
 compile time. 
 </p>
 
@@ -223,7 +210,7 @@ Any <em>@defstx</em> statements in any library are
 bound globally during compilation. 
 </p>
 
-<h3>Dynamically determined imports</h3>
+<h3 id="dynamic">Dynamically determined imports</h3>
 
 <p>The above macros allow one to specify at compile time which library
 to import and what function renaming to do. 
@@ -235,8 +222,8 @@ For instance:
 <div class="code">
 <pre>
 
-lib = "dir1"; // dir1/somthing.cqct defines fn1
-lib2 = "dir2"; // dir2/something.cqct also defines fn1
+lib = "dir1"; // dir1/somthing.cql defines fn1
+lib2 = "dir2"; // dir2/something.cql also defines fn1
 foreach(@lambda(dir) {
   @dynamic_imports( sprintfa("(f, %s/something.fn1)",dir) ) {
     f();

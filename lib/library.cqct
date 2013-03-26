@@ -69,7 +69,7 @@ if (__library_exports == nil) //might not have been set in a macro
       return; 
     __library_exports[lib][args_v] = [:];
     //determine if that library has been loaded, if not, load it
-    fp = pathto(sprintfa("%s.cqct",lib));
+    fp = pathto(sprintfa("%s.cql",lib));
     //if we are not importing globals (in which case we always reload the file)
     //and we have already parsed the file, simply use the old parse.
     if (!glob && __library_exports[lib]['parsed] != nil)
