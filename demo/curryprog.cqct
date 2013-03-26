@@ -1,0 +1,55 @@
+// A sample program that demonstrates program currying
+//   (and recursive program currying)
+//
+// Try:
+// rm -f /tmp/heap
+// l1 -e main curryprog.cqct --a first_time_through --curry /tmp/heap
+// l1 -m /tmp/heap --b second_time_through
+// rm -f /tmp/heap2
+// l1 -m /tmp/heap --b second_time_through --curry /tmp/heap2
+// l1 -m /tmp/heap2 --c third_time_through
+
+
+@global $l1start;
+
+main=@lambda(progname, eargs ...) {
+	// variables captured in the curry
+	@local var_a,var_b,var_c,sub;
+
+	// one-time initializations
+	var_a=nil;
+	var_b=nil;
+	var_c=nil;
+
+	apply(sub=@lambda(progname, eargs ...) {
+		// we have aliased progname and eargs to avoid
+		// confusion	
+
+		@local x;
+		for(x=0;x<length(eargs);x++) {
+			if( (eargs[x] == "--curry") && (x+1)<length(eargs) ) {
+				printf("Program currying to %s\n",eargs[x+1]);
+				$l1start=sub;
+				saveheap(eargs[x+1]);
+				exit(0);
+			} else if( (eargs[x] == "--a") && (x+1)<length(eargs) ) {
+				var_a = eargs[x+1];
+				x++;
+			} else if( (eargs[x] == "--b") && (x+1)<length(eargs) ) {
+				var_b = eargs[x+1];
+				x++;
+			} else if( (eargs[x] == "--c") && (x+1)<length(eargs) ) {
+				var_c = eargs[x+1];
+				x++;
+			} else {
+				break;
+			}
+		}
+
+		// the main body of the program
+		printf("A IS %a\n",var_a);
+		printf("B IS %a\n",var_b);
+		printf("C IS %a\n",var_c);
+
+	},progname, eargs);
+};
