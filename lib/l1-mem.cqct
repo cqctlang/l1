@@ -159,7 +159,14 @@
 
 @define vallifetime(db, addr, t)
 {
-	@local past, future;
+	@local past, future, dom;
+	dom = db.dom(t);
+	if(addr == dom`Xnil)
+		/* FIXME: nil is a permanent object, although this
+		   interval is an over-approximation of its life. */
+		return it2ivseq([ instant(1, {db.dom(1)}addr),
+				  instant(db.interval().end-1,
+					  {db.dom(db.interval().end-1)}addr) ]);
 	past = valpast(db, addr, t);
 	if(past == nil)
 		return nil;
