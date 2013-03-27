@@ -1,4 +1,0 @@
-sizeof(3) == 4
-sizeof(dom`a) == 24
-sizeof(dom`a[2]) == 8
-sizeof(dom`a[2].i) == 4

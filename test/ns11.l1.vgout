@@ -1,5 +1,0 @@
-ns11.l1:24: warning: reference to unbound variable: nsx
-x: char [101]
-y: char [102]
-error: reference to unbound variable: nsx
-               entry	(ns11.l1:24)

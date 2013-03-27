@@ -1,6 +1,0 @@
-sizeof(dom`Vintmax) = 8
-sizeof(dom`Vlongmax) = 8
-dom`Vuvlongmax = 18446744073709551615
-dom`Vneg = 18446744073709551615
-sizeof(enum dom`foo) = 8
-typeof(enum dom`foo) = unsigned long long

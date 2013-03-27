@@ -1,5 +1,0 @@
-get 0 4
-0
-typeof(x) = enum e
-x is enum e 0
-y is enum e 1

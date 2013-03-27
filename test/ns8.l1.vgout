@@ -1,3 +1,0 @@
-error: circular definition in name space: typedef X
-             mknsraw	(builtin function)
-               entry	(ns8.l1:9)

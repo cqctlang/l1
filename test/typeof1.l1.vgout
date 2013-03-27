@@ -1,8 +1,0 @@
-typeof(int) == int
-typeof(3) == int
-typeof(dom`a) == struct foo [3]
-typeof(v = &dom`a[0]) == struct foo *
-typeof(v = dom`a) == struct foo *
-typeof(v) == struct foo *
-typeof(dom`a[2]) == struct foo
-typeof(dom`a[2].i) == int

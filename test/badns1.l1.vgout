@@ -1,5 +1,0 @@
-warning: name space references undefined types:
-	struct alsonotdef
-	struct blah
-	struct foo
-	notdef

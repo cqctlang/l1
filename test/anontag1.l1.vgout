@@ -1,4 +1,0 @@
-t1 (struct $anon0) == t2 (struct $anon0) => 1
-[ x ]
-[ y ]
-t1 (struct $anon0) == t2 (struct $anon1) => 0

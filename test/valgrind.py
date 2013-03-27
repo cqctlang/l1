@@ -38,7 +38,7 @@ for m in glob.glob('[A-Za-z0-9]*.l1'):
         fault.append(m);
         continue
     del p
-    fn = m+'.vgout'
+    fn = m+'.out'
     if os.path.exists(fn):
         f = open(fn)
         s = f.read()

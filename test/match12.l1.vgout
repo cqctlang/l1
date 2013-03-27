@@ -1,9 +1,0 @@
-elements 2 == 2
-elements "hello" == "hello"
-elements 1 < 2
-elements "hell" < "hello"
-element is local 5
-no bind case OK
-fallthrough with y = [ 6 ]
-fallthrough with y = 6
-no match

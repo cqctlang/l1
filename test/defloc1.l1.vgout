@@ -1,7 +1,0 @@
-defloc1.l1:3: warning: reference to unbound variable: x
-interior baz interior
-interior baz toplevel
-interior bar interior
-toplevel bar toplevel
-interior foo interior
-toplevel foo toplevel

@@ -1,2 +1,0 @@
-ambig2.l1:2: warning: variable defined but not referenced: y
-ambig2.l1:3: warning: reference to unbound variable: dom

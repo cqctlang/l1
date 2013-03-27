@@ -1,2 +1,0 @@
-sizeof(struct foo) = 10 == 10
-[ 1, 2, 3 ]
