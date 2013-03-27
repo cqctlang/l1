@@ -171,7 +171,7 @@ mkcfn(char *id, Cfn *cfn)
 {
 	Code *code;
 	code = mkcode(Ccfn, trampsize);
-	memcpy(codetramp(code), trampentry->buf, trampentry->n);
+//	memcpy(codetramp(code), trampentry->buf, trampentry->n);
 	code->cfn = cfn;
 	code->id = mkcid0(id);
 	return mkcl(code, 0);
@@ -193,7 +193,7 @@ mkccl(char *id, Ccl *ccl, unsigned dlen, ...)
 	unsigned m;
 
 	code = mkcode(Cccl, trampsize);
-	memcpy(codetramp(code), trampentry->buf, trampentry->n);
+//	memcpy(codetramp(code), trampentry->buf, trampentry->n);
 	code->ccl = ccl;
 	code->id = mkcid0(id);
 	cl = mkcl(code, dlen);
@@ -7579,7 +7579,7 @@ cqctinit(char *memfile, char **loadpath)
 	inittype();
 	initrec();
 	initcg();
-	initnc();
+//	initnc();
 	initvm();
 
 	/* restoreheap depends on the table of C
