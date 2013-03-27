@@ -34,6 +34,8 @@ struct Match
 	Bind *binds;
 } Match;
 
+static void freecases(Cases *cs);
+
 static Bind *
 mkbind(Expr *id, Expr *exp, Bind *next)
 {
@@ -85,7 +87,7 @@ Zlabele(char *l, Expr *b)
 }
 
 static int
-match(U *ctx, Expr* exp, Expr* pat, Match *m)
+match(U *ctx, Expr* exp, Expr* pat, Match *m, Cases *cs)
 {
 	Expr *p, *e0, *f0, *k, *v;
         Match m0;
@@ -100,9 +102,13 @@ match(U *ctx, Expr* exp, Expr* pat, Match *m)
 	case Eid:
 		id = idsym(pat);
                 if(strcmp(id, "_") != 0){
-                        if(dupbind(m->binds, pat))
+                        if(dupbind(m->binds, pat)){
+				freecases(cs);
+                                freebinds(m0.binds);
+				freebinds(m->binds);
                                 cerror(ctx, pat,
                                        "duplicate pattern variable %s", id);
+			}
                         m->binds = mkbind(pat, exp, m->binds);
                 }
                 rv = 1; /* pretend this is a binder even if _ used */
@@ -119,19 +125,19 @@ match(U *ctx, Expr* exp, Expr* pat, Match *m)
 			if(p && elistlen(p) == 1)
 				rv |= match(ctx,
 					    Zcall(G("stxid"), 1, copyexpr(exp)),
-					    p->e1, m);
+					    p->e1, m, cs);
 		}else if(!strcmp(id, "val")){
 			if(p && elistlen(p) == 1)
 				rv |= match(ctx,
 					    Zcall(G("stxval"), 1, copyexpr(exp)),
-					    p->e1, m);
+					    p->e1, m, cs);
 		}else{
 			l = elistlen(p);
 			for(i = 0; i < l; i++){
 				rv |= match(ctx, Zcall(G("stxref"), 2,
 						       copyexpr(exp),
 						       Zuint(i)),
-					    p->e1, m);
+					    p->e1, m, cs);
 				p = p->e2;
 			}
 		}
@@ -150,7 +156,7 @@ match(U *ctx, Expr* exp, Expr* pat, Match *m)
 		while(l--){
 			rv |= match(ctx, Zcall(doid("Zcar"), 1,
 					       copyexpr(e0)),
-				    p->e1, m);
+				    p->e1, m, cs);
 			p = p->e2;
 			e0 = Zcall(doid("Zcdr"), 1, e0);
 		}
@@ -158,9 +164,9 @@ match(U *ctx, Expr* exp, Expr* pat, Match *m)
 	case Epair:
 		m->check = Zand(m->check, Zcall(doid("ispair"), 1, exp));
 		rv |= match(ctx, Zcall(doid("car"), 1, copyexpr(exp)),
-			    pat->e1, m);
+			    pat->e1, m, cs);
 		rv |= match(ctx, Zcall(doid("cdr"), 1, copyexpr(exp)),
-			    pat->e2, m);
+			    pat->e2, m, cs);
 		break;
 	case Elist:
 		m->check = Zand(m->check, Zcall(doid("islist"), 1, exp));
@@ -169,9 +175,13 @@ match(U *ctx, Expr* exp, Expr* pat, Match *m)
                 if(hasvarg(p)){
                         isvarg = 1;
                         l -= 2;  /* ignore ellipsis and last variable */
-                        if(l < 0)
+                        if(l < 0){
+				freecases(cs);
+                                freebinds(m0.binds);
+				freebinds(m->binds);
                                 cerror(ctx, pat,
                                        "ellipsis without adjacent binder");
+			}
                         op = Ege;
                 }
                 else
@@ -183,16 +193,20 @@ match(U *ctx, Expr* exp, Expr* pat, Match *m)
 		e0 = exp;
                 for(; l >= 0; l--){
                         if(isvarg && l == 0){
-                                if(p->e1->kind != Eid)
+                                if(p->e1->kind != Eid){
+					freecases(cs);
+					freebinds(m0.binds);
+					freebinds(m->binds);
                                         cerror(ctx, pat,
                                                "ellipsis must "
                                                "adjoin a binder");
-                                rv |= match(ctx, copyexpr(e0), p->e1, m);
+				}
+                                rv |= match(ctx, copyexpr(e0), p->e1, m, cs);
                         }
                         else if(l > 0){
                                 rv |= match(ctx, Zcall(doid("head"), 1,
                                                        copyexpr(e0)),
-                                            p->e1, m);
+                                            p->e1, m, cs);
                                 p = p->e2;
                                 e0 = Zcall(doid("tail"), 1, e0);
                         }
@@ -215,8 +229,10 @@ match(U *ctx, Expr* exp, Expr* pat, Match *m)
                         k = p->e1->e1;
                         v = p->e1->e2->e1;
                         /* check whether key contains pat variables */
-                        if(match(ctx, doid("$dummy"), k, &m0)){
+                        if(match(ctx, doid("$dummy"), k, &m0, cs)){
+				freecases(cs);
                                 freebinds(m0.binds);
+				freebinds(m->binds);
                                 cerror(ctx, pat,
                                        "cannot pattern-match table keys");
                         }
@@ -224,7 +240,7 @@ match(U *ctx, Expr* exp, Expr* pat, Match *m)
                         /* should memoize the result */
                         e0 = Zcall(doid("tablook"), 2, exp, k);
                         m->check = Zand(m->check, Zbinop(Eneq, e0, Znil()));
-			rv |= match(ctx, copyexpr(e0), v, m);
+			rv |= match(ctx, copyexpr(e0), v, m, cs);
 			p = p->e2;
 		}
 		break;
@@ -281,7 +297,7 @@ match(U *ctx, Expr* exp, Expr* pat, Match *m)
                                            copyexpr(exp));
                                 f0 = Zcall(doid("tail"), 1, f0);
                         }
-                        rv |= match(ctx, e0, p0, m);
+                        rv |= match(ctx, e0, p0, m, cs);
                         p = p->e2;
                 }
 		rv = 1; // do not optimize away this m->check later
@@ -369,14 +385,14 @@ addcase(U *ctx, Expr *c, Cases *cs)
 static Expr*
 addmatch(U *ctx, Expr *c, Cases *cs)
 {
-	Expr *se, *e, *f, *b, *ne;
-        char *l, *nl, *eml = 0;
+	Expr *se, *e, *f, *b, *ne, *nl;
+        char *l, *t, *eml = 0;
         int nc;
 	Match m = {0,0};
         Expr *bvs, *lastbvs = 0;
 
         if(!cs || c->kind != Ematch)
-		cerror(ctx, c, "addmatch called improperly");
+		bug();
 	e = cases(ctx, c->e1, 0);
         nc = cs->nc;
 	se = nullelist();
@@ -400,13 +416,14 @@ addmatch(U *ctx, Expr *c, Cases *cs)
 		/* Generate fender code */
 		nl = 0;
 		if(f != 0){
-			nl = genlabel();
-			b = Zcons(Zif(Znot(cases(ctx, f, 0)), 
-				      Zgoto(nl)), b);
+			t = genlabel();
+			nl = Zgoto(t);
+			b = Zcons(Zif(Znot(cases(ctx, f, 0)), nl), b);
+			efree(t);
 		}
 		/* Pattern check and initialization of bound variables */
 		bvs = nullelist();
-                if(match(ctx, doid("$t"), e, &m)){
+                if(match(ctx, doid("$t"), e, &m, cs)){
                         if(m.binds != 0){
                                 bindvars(m.binds, &bvs, &b);
                                 freebinds(m.binds);
@@ -434,28 +451,37 @@ addmatch(U *ctx, Expr *c, Cases *cs)
                 }
 		cs->cases[cs->nc].l = l;
 		cs->cases[cs->nc].e = m.check;
-		cs->cases[cs->nc].nextl = nl;
+		if(nl)
+			cs->cases[cs->nc].nextl = idsym(nl->e1);
 		m.check = 0;
 		cs->nc++;
 		nc++;
 		/* Error checking */
-		if(nc != cs->nc)
+		if(nc != cs->nc){
+			efree(eml);
+			freecases(cs);
 			cerror(ctx, e, "nested case "
 			       "when pattern matching");
+		}
 		if(lastbvs != 0){
 			Expr *x = bvs;
 			if(elistlen(lastbvs) != elistlen(bvs)){
+				efree(eml);
+				freecases(cs);
 				cerror(ctx, e, "# of bound "
 				       "variables differ "
 				       "on fallthrough");
 			}
 			while(x->kind != Enull){
-				if(!containsid(lastbvs, x->e1))
+				if(!containsid(lastbvs, x->e1)){
+					efree(eml);
+					freecases(cs);
 					cerror(ctx, e,
 					       "nonmatching "
 					       "bound variable %s "
 					       "on fallthrough",
 					       idsym(x->e1));
+				}
 				x = x->e2;
 			}
 		}
@@ -469,8 +495,10 @@ addmatch(U *ctx, Expr *c, Cases *cs)
                 else break;
         }
 
-        if(eml != 0)
+        if(eml != 0){
                 se = Zcons(Zlabele(eml, Znop()), se);
+		efree(eml);
+	}
         se = invert(se);
 	se = Zblock(nullelist(), 
 		    Zcall(doid("error"), 1, 
