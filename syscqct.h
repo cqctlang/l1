@@ -831,7 +831,8 @@ struct Code {
 	/* instructions follow */
 };
 
-#define trampsize    64
+//#define trampsize    64
+#define trampsize    0
 #define _codeinsn(x) ((void*)((Code*)(x)+1))
 #define codetramp(x) _codeinsn(x)
 #define codekind(x)  (((Code*)x)->kind)
