@@ -459,7 +459,7 @@ mkvmcode(Precode *o, u32 nfree)
 	n = o->ninsn;
 	c = mkcode(Cvm, trampsize+n*sizeof(Insn));
 	c->id = o->id;
-	memcpy(codetramp(c), trampentry->buf, trampentry->n);
+//	memcpy(codetramp(c), trampentry->buf, trampentry->n);
 	memcpy(codeinsn(c), strdata(o->insn), o->ninsn*sizeof(Insn));
 	c->lm = strrealloc(o->lm, o->nlm*sizeof(u64));
 	c->dbg = strrealloc(o->dbg, o->ndbg*sizeof(Dbg));
