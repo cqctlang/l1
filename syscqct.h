@@ -1045,6 +1045,7 @@ void		l1_cpb(VM *vm, Imm argc, Val *argv, Val *rv);
 
 /* cpv.c */
 Expr*		docompilev(U *ctx, Expr *el);
+void		freevars(Expr *e);
 int		issimple(Expr *e);
 
 /* compileo.c */

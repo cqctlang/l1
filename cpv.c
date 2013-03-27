@@ -973,6 +973,57 @@ exloc(Expr *e, Xenv *lex, Env top)
 	}
 }
 
+void
+freevars(Expr *e)
+{
+	Expr *p;
+	Lambda *l;
+	Block *b;
+	Var *v;
+
+	if(e == 0)
+		return;
+	switch(e->kind){
+	case Elambda:
+		l = (Lambda*)e->xp;
+		efree(l->cap);
+		efree(l->disp);
+		efree(l->arg);
+		efree(l);
+		freevars(e->e1);
+		freevars(e->e2);
+		freevars(e->e3);
+		freevars(e->e4);
+		break;
+	case Eblock:
+		b = (Block*)e->xp;
+		efree(b->loc);
+		efree(b);
+		freevars(e->e1);
+		freevars(e->e2);
+		freevars(e->e3);
+		freevars(e->e4);
+		break;
+	case E_tid:
+		v = (Var*)e->xp;
+		efree(v);
+		break;
+	case Eelist:
+		p = e;
+		while(p->kind == Eelist){
+			freevars(p->e1);
+			p = p->e2;
+		}
+		break;
+	default:
+		freevars(e->e1);
+		freevars(e->e2);
+		freevars(e->e3);
+		freevars(e->e4);
+		break;
+	}
+}
+
 Expr*
 docompilev(U *ctx, Expr *e)
 {

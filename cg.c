@@ -1621,6 +1621,7 @@ codegen(U *ctx, Expr *e)
 	code = cglambda(e, "entry");
 	l = (Lambda*)e->xp;
 	cl = mkcl(code, l->ncap);
+	freevars(e);
 	return cl;
 }
 
