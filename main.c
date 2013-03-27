@@ -327,6 +327,8 @@ main(int argc, char *argv[])
 
 	nlp = finishloadpath(lp, nlp);
 	vm = cqctinit(memfile, lp);
+	for(i = 0; i < nlp; i++)
+		free(lp[i]);
 	if(vm == 0)
 		exit(1);
 	fn = cqctenvlook(vm, "$l1start");
