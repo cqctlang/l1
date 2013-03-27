@@ -409,6 +409,8 @@ convert(VM *vm, char *s, jsmntok_t *t, u32 *ndx)
 	Imm n;
 	Tab *tab;
 	List *l;
+	Str *es;
+	int start, end;
 
 	rv = 0;
 	ti = *ndx;
@@ -471,16 +473,27 @@ convert(VM *vm, char *s, jsmntok_t *t, u32 *ndx)
 				rv = mkvallitcval(Vuvlong, n);
 			break;
 		default:
+			start = tp->start;
+			end = tp->end;
+			efree(t);
+			es = mkstr0(s);
+			efree(s);
 			vmerr(vm, "invalid json primitive: %.*s",
-			      tp->end-tp->start, s+tp->start);
+			      end-start, strdata(es)+start);
 			return 0;
 		}
 		break;
 	case JSMN_STRING:
 		rv = expands(s+tp->start, tp->end-tp->start);
-		if(rv == 0)
+		if(rv == 0){
+			start = tp->start;
+			end = tp->end;
+			efree(t);
+			es = mkstr0(s);
+			efree(s);
 			vmerr(vm, "invalid json string: %.*s",
-			      tp->end-tp->start, s+tp->start);
+			      end-start, strdata(es)+start);
+		}
 		break;
 	default:
 		bug();
