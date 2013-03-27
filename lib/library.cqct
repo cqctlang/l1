@@ -182,28 +182,7 @@ if (__library_exports == nil) //might not have been set in a macro
               @local lib_exports;
               lib_exports = __library_exports[ #,(#val(lnamecid)) ]
                                              [ #,(has_args) ];
-              @defloc internal_dispatch(s,fnnm,args...)
-              {
-                @local fn;
-                fn = lib_exports[mkcid(fnnm)];
-                if (fn == nil)
-                  error("library %s does not provide %s.\nPossible recursive library dependency",#,(#val(lname)),fnnm);
-                return apply(fn,args);
-              }
-
-              #,(#id(fn)) = mkas([
-                //hacky stubs
-                "put" : @lambda(s,args...) 
-                          { return apply(internal_dispatch,s,"put",args); },
-                "get" : @lambda(s,args...) 
-                          { return apply(internal_dispatch,s,"get",args); },
-                "ismapped" : @lambda(s,args...) 
-                          { return apply(internal_dispatch,s,"ismapped",args);},
-                "map" : @lambda(s,args...) 
-                          { return apply(internal_dispatch,s,"map",args); },
-                //actual dispatch
-                "dispatch" : internal_dispatch
-              ]);
+              #,(#id(fn)) = copy(lib_exports);
             }
           }; //end generated code
           append(new_body,s);
