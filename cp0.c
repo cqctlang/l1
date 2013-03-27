@@ -517,14 +517,47 @@ groomc(U *ctx, Expr *e)
 	}
 }
 
-static void checkgoto(U *ctx, Expr *e);
+typedef struct HTlist HTlist;
+
+struct HTlist {
+	HT *ht;
+	HTlist *link;
+};
+
+static void checkgoto(U *ctx, Expr *e, HTlist *ls);
 enum {
 	Unusedlabel = 1,
 	Usedlabel,
 };
 
+static HTlist*
+mkhtlist(HT *ht, HTlist *link)
+{
+	HTlist *l;
+	l = emalloc(sizeof(HTlist));
+	l->ht = ht;
+	l->link = link;
+	return l;
+}
+
 static void
-labels(U *ctx, Expr *e, HT *ls)
+freehtlist(HTlist *l)
+{
+	efree(l);
+}
+
+static void
+freeallhtlist(HTlist *l)
+{
+	if(l == 0)
+		return;
+	freeallhtlist(l->link);
+	freeht(l->ht);
+	freehtlist(l);
+}
+
+static void
+labels(U *ctx, Expr *e, HTlist *ls)
 {
 	char *id;
 	Expr *p;
@@ -538,11 +571,12 @@ labels(U *ctx, Expr *e, HT *ls)
 		return;
 	case Elabel:
 		id = idsym(e->e1);
-		if(hgets(ls, id, strlen(id)))
+		if(hgets(ls->ht, id, strlen(id))){
+			freeallhtlist(ls);
 			cerror(ctx, e, "duplicate label: %s", id);
-		else{
+		}else{
 			e->attr = Unusedlabel;
-			hputs(ls, id, strlen(id), e);
+			hputs(ls->ht, id, strlen(id), e);
 		}
 		break;
 	case Eelist:
@@ -562,7 +596,7 @@ labels(U *ctx, Expr *e, HT *ls)
 }
 
 static void
-reccheckgoto(U *ctx, Expr *e, HT *ls)
+reccheckgoto(U *ctx, Expr *e, HTlist *ls)
 {
 	char *id;
 	Expr *p;
@@ -572,18 +606,19 @@ reccheckgoto(U *ctx, Expr *e, HT *ls)
 		return;
 	switch(e->kind){
 	case Elambda:
-		checkgoto(ctx, e->e2);
+		checkgoto(ctx, e->e2, ls);
 		break;
 	case Edefine:
 	case Edefloc:
-		checkgoto(ctx, e->e3);
+		checkgoto(ctx, e->e3, ls);
 		break;
 	case Egoto:
 		id = idsym(e->e1);
-		q = hgets(ls, id, strlen(id));
-		if(q == 0)
+		q = hgets(ls->ht, id, strlen(id));
+		if(q == 0){
+			freeallhtlist(ls);
 			cerror(ctx, e, "undefined label: %s", id);
-		else{
+		}else{
 			p = q;
 			p->attr = Usedlabel;
 		}
@@ -615,15 +650,16 @@ check1label(void *u, char *k, void *q)
 }
 
 static void
-checkgoto(U *ctx, Expr *e)
+checkgoto(U *ctx, Expr *e, HTlist *link)
 {
-	HT *ls;
+	HTlist *ls;
 
-	ls = mkhts();
+	ls = mkhtlist(mkhts(), link);
 	labels(ctx, e, ls);
 	reccheckgoto(ctx, e, ls);
-	hforeach(ls, check1label, ctx);
-	freeht(ls);
+	hforeach(ls->ht, check1label, ctx);
+	freeht(ls->ht);
+	freehtlist(ls);
 }
 
 // checkctl: check that break and continue statements occur only within
@@ -693,7 +729,7 @@ static Expr*
 compile0(U *ctx, Expr* e)
 {
 	checkctl(ctx, e, 0, 0);
-	checkgoto(ctx, e);
+	checkgoto(ctx, e, 0);
 	groomc(ctx, e);
 	compile_rval(ctx, e, 0);
 	return e;
