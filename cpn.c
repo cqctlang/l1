@@ -267,7 +267,7 @@ static Expr*
 liftspec(U *ctx, Seen *s, Expr *e, Expr **te)
 {
 	Expr *q;
-	char *id;
+	char *t, *id;
 
 	switch(e->kind){
 	case Ebase:
@@ -283,10 +283,11 @@ liftspec(U *ctx, Seen *s, Expr *e, Expr **te)
 
 		/* generate tag if anonymous */
 		if(e->e1 == 0){
-			id = mkanontag();
-			sete1(e, putsrc(doid(id), e->src));
-		}else
-			id = idsym(e->e1);
+			t = mkanontag();
+			sete1(e, putsrc(doid(t), e->src));
+			efree(t);
+		}
+		id = idsym(e->e1);
 
 		q = Z1(e->kind, e->e1);
 		putsrc(q, e->src);
