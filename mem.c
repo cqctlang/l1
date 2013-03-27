@@ -2110,6 +2110,7 @@ _gc(u32 g, u32 tg)
 			fsz = ra2size(vm->pc, vm->cl->code);
 			vm->fp += fsz;
 			fpo = (void*)vm->fp-vm->stk;
+			min = Clean;
 			copystack(&vm->stk, vm->stksz, (void**)&vm->pc, vm->cl, fpo, &min);
 			copy((Val*)&vm->cl);
 			copy((Val*)&vm->klink);
@@ -2126,6 +2127,7 @@ _gc(u32 g, u32 tg)
 			ra = vm->fp[Ora];
 			cl = valcl(vm->fp[Ocl]);
 			fpo = (void*)vm->fp-vm->stk;
+			min = Clean;
 			copystack(&vm->stk, vm->stksz, &ra, cl, fpo, &min);
 			copy((Val*)&vm->cl);
 			copy((Val*)&vm->klink);
