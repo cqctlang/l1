@@ -1656,7 +1656,7 @@ haltthunk(void)
 	i->kind = Ihalt;
 	code = mkvmcode(ode, 0);
 	cl = mkcl(code, 0);
-
+	ffini(&f);
 	return cl;
 }
 
@@ -1677,7 +1677,7 @@ abortthunk(void)
 	i->kind = Iabort;
 	code = mkvmcode(ode, 0);
 	cl = mkcl(code, 0);
-
+	ffini(&f);
 	return cl;
 }
 
@@ -1704,6 +1704,7 @@ mkkcapture(void)
 
 	code = mkvmcode(ode, 0);
 	cl = mkcl(code, 0);
+	ffini(&f);
 	return cl;
 }
 
@@ -1730,6 +1731,7 @@ mkapply(void)
 	i->kind = Iabort;
 
 	code = mkvmcode(ode, 0);
+	ffini(&f);
 	return mkcl(code, 0);
 }
 
@@ -1755,6 +1757,7 @@ stkunderflowthunk(void)
 
 	code = mkvmcode(ode, 0);
 	cl = mkcl(code, 0);
+	ffini(&f);
 	return cl;
 }
 
@@ -1837,7 +1840,7 @@ mkraiseinterrupt(void)
 
 	code = mkvmcode(ode, 0);
 	cl = mkcl(code, 0);
-
+	ffini(&f);
 	return cl;
 }
 
@@ -1918,6 +1921,7 @@ kresumecode(void)
 	i->kind = Iabort;
 
 	code = mkvmcode(ode, 2);
+	ffini(&f);
 	return code;
 }
 
