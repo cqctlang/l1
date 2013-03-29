@@ -358,6 +358,6 @@ linuxns = @names c32le {
 unix = @names c32le {
 
 	@include <linux-arm-enum.names>
-	@include <unix.names>
+	@include <linux-unix.names>
 };
 
