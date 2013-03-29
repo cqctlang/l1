@@ -347,7 +347,7 @@ linuxns = @names clp64le {
 unix = @names clp64le {
 
 	@include <linux-x86_64-enum.names>
-	@include <unix.names>
+	@include <linux-unix.names>
 
 	// x86_64 linux
 	struct stat {

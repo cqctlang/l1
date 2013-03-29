@@ -12,7 +12,7 @@ linuxns = @names c32le {
 unix = @names c32le {
 
         @include <linux-x86-enum.names>
-        @include <unix.names>
+        @include <linux-unix.names>
 
 	struct stat {
 		@0x10 int32 st_mode;
