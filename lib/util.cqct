@@ -135,3 +135,12 @@
 		}, ls);
 	return acc;
 }
+
+@define iota(n)
+{
+	@local acc, i;
+	acc = [];
+	for(i = 0; i < n; i++)
+		append(acc, i);
+	return acc;
+}
