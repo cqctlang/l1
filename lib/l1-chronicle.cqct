@@ -37,7 +37,7 @@
 @define assertunwritten(iv)
 {
 	@local addr, len, ws;
-	printf("... assert unwritten: %a\n", iv);
+//	printf("... assert unwritten: %a\n", iv);
 	[addr, len] = iv.val;
 	ws = db.scan('write, addr, len, iv.beg, iv.end);
 	if(length(ws) != 0)
@@ -47,7 +47,7 @@
 @define assertlive(iv)
 {
 	@local life;
-	printf("... assert live: %a\n", iv);
+//	printf("... assert live: %a\n", iv);
 	life = vallifetime(db, iv.val, iv.beg);
 	if(!containsiv(life, iv))
 		whine("reference to stale object", iv, nil);
@@ -60,4 +60,92 @@
 	printf("\n");
 
 	return nil;
+}
+
+@define forkwithdb(db, fn)
+{
+	@local pid;
+	db.rebind();
+	switch(pid = fork()){
+	case -1:
+		error("fork failed");
+	case 0:
+		switch(fork()){
+		case -1:
+			error("fork failed");
+		default:
+			exit(0);
+		case 0:
+			fn();
+			exit(0);
+		default:
+			waitpid(pid, 0);
+			return;
+		}
+	}
+}
+
+@define exitonerror(fn)
+{
+	@local err;
+
+	@defloc myerr(msg)
+	{
+		callcc(@lambda(errk){
+				printf("error: %s\n", msg);
+				kbacktrace(continuationfr(errk));
+				exit(0);
+			});
+	}
+	dynamicwind(@lambda(){
+			err = errorhandler;
+			errorhandler = myerr;
+		    },
+		    fn,
+		    @lambda(){ errorhandler = err; });
+}
+
+@define foreachpar(db, fn, vs)
+{
+	@local fds, rvs;
+	fds = [];
+
+	@defloc fork1(v)
+	{
+		@local pid, ch;
+		ch = sockpair();
+		switch(pid = fork()){
+		case -1:
+			error("fork failed");
+		case 0:
+			switch(fork()){
+			case -1:
+				error("fork failed");
+			default:
+				exit(0);
+			case 0:
+				close(ch[1]);
+				if(db)
+					db.rebind();
+				exitonerror(@lambda() { fn(v); });
+				exit(0);
+			}
+		default:
+			waitpid(pid, 0);
+			break;
+		}
+		close(ch[0]);
+		append(fds, ch[1]);
+	}
+
+	foreach(fork1, vs);
+	while(length(fds)){
+		rvs = select(fds, [], []);
+		foreach(@lambda(fd){ delete(fds, fd); close(fd); }, rvs[0]);
+	}
+}
+
+@define xforeachpar(db, fn, vs)
+{
+	foreach(fn, vs);
 }
