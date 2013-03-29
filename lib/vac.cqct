@@ -1,4 +1,4 @@
-venti = "localhost";
+venti_host = "localhost";
 
 @define chomp(s)
 {
@@ -13,7 +13,7 @@ venti = "localhost";
 {
 	@local fd, vac;
 	// empty string lets us create an empty vac
-	fd = popen("vac", "-h", venti, "");
+	fd = popen("vac", "-h", venti_host, "");
 	close(fd[0]);
 	vac = fread(fd[1], 100);
 	close(fd[1]);
@@ -63,7 +63,7 @@ venti = "localhost";
 @define mountvac(vac)
 {
 	@local fd;
-	fd = popen("vacfs", "-d", "-h", venti, "-i", vac, 2);
+	fd = popen("vacfs", "-d", "-h", venti_host, "-i", vac, 2);
 	session9p(fd);	
 	attach9p(fd, getenv("USER"));
 	stat9p(fd, 0);
