@@ -23,6 +23,7 @@
 	/* chronicle backend */
 	callrets,
 	calls,
+	chdegree,
 	chverbose,
 	chronicledb,
 	firstcall,
@@ -46,6 +47,7 @@
 	uniqstacks
 ;
 
+chdegree = 1;
 chverbose = 0;
 
 rdsetfmt(@record instant { t, val },
@@ -310,7 +312,7 @@ rdsetfmt(@record interval { beg, end, val },
 
 		@defloc init()
 		{
-			qsfd = popen("qsrv", dbpath, 2|8);
+			qsfd = popen("qsrv", sprintfa("%u", chdegree), dbpath, 2|8);
 			qsfd = qsfd[0];
 			qpath = fread(qsfd, 6);
 			printf("qpath is %B\n", qpath);
@@ -355,7 +357,7 @@ rdsetfmt(@record interval { beg, end, val },
 			printf("\tend timestamp: %d\n", endtstamp);
 			nsmap.setexebyname("l1"); /* hack */
 			exedom = dom(1); /* hack */
-			npath = sctlsrv(nsfd, 100);
+			npath = sctlsrv(nsfd, chdegree);
 			bindns();
 		}
 
