@@ -267,8 +267,8 @@ rdsetfmt(@record interval { beg, end, val },
 	@defloc mkchctl2(dbpath)
 	{
 		@local endtstamp, lb, rs, nsmap, exedom;
-		@local qsfd, qpath, qcfd, qfd;
-		@local nsfd, npath, ncfd, nfd;
+		@local qsfd, qpath, qfd;
+		@local nsfd, npath, nfd;
 
 		@defloc _close()
 		{
@@ -280,30 +280,21 @@ rdsetfmt(@record interval { beg, end, val },
 
 		@defloc bindq()
 		{
-			if(qcfd != nil)
-				close(qcfd);
-			qcfd = unixopen(qpath);
-			if(qcfd == nil)
-				error("cannot open unix socket");
-			qfd = recvfd(qcfd);
+			if(qfd != nil)
+				close(qfd);
+			qfd = unixopen(qpath);
 			if(qfd == nil)
-				error("cannot receive file descriptor for qsrv");
-//			printf("received fd from qsrv\n");
-
+				error("cannot open unix socket");
 			lb = mklinebuf(qfd);
 		}
 
 		@defloc bindns()
 		{
-			if(ncfd != nil)
-				close(ncfd);
-			ncfd = unixopen(npath);
-			if(ncfd == nil)
-				error("cannot open unix socket");
-			nfd = recvfd(ncfd);
+			if(nfd != nil)
+				close(nfd);
+			nfd = unixopen(npath);
 			if(nfd == nil)
-				error("cannot receive file descriptor for name server");
-//			printf("received fd from sym\n");
+				error("cannot open unix socket");
 			nsmap.rebind(nfd);
 		}
 
