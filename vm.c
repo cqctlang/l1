@@ -9,7 +9,7 @@ char *qname[Qnkind] = {
 	[Qcid]=		"cid",
 	[Qcl]=		"closure",
 	[Qcode]=	"code",
-	[Qcont]=	"cont",
+	[Qcont]=	"stack",
 	[Qctype]=	"ctype",
 	[Qcval]=	"cvalue",
 	[Qdom]=		"domain",
@@ -721,6 +721,40 @@ kbacktrace(VM *vm, Cont *k)
 		}
 	}
 	kbacktrace(vm, k->link);
+}
+
+static List*
+stackframes(VM *vm, Cont *k)
+{
+	List *l;
+	Val *fp;
+	Insn *pc;
+	Closure *cl;
+	Code *cp;
+	u64 sz;
+
+	l = mklist();
+	while(1){
+		if(k == 0)
+			return l;
+		if(k->base == 0)
+			/* defunct leftover in restored heap */
+			return l;
+		pc = k->ra;
+		cl = k->cl;
+		fp = k->base+k->sz;
+		while((void*)fp >= k->base){
+			cp = cl->code;
+			sz = ra2size(pc, cp);
+			_listappend(l, mkvallist(frameinfo(cl, pc)));
+			fp -= sz;
+			if((void*)fp >= k->base){
+				pc = stkp(fp[Ora]);
+				cl = valcl(fp[Ocl]);
+			}
+		}
+		k = k->link;
+	}
 }
 
 static void
@@ -4911,6 +4945,15 @@ l1_kbacktrace(VM *vm, Imm argc, Val *argv, Val *rv)
 	kbacktrace(vm, valcont(argv[0]));
 }
 
+static void
+l1_stackframes(VM *vm, Imm argc, Val *argv, Val *rv)
+{
+	if(argc != 1)
+		vmerr(vm, "wrong number of arguments to stackframes");
+	checkarg(vm, argv, 0, Qcont);
+	*rv = mkvallist(stackframes(vm, valcont(argv[0])));
+}
+
 Val
 myrootns(Env env)
 {
@@ -7468,6 +7511,7 @@ mktopenv(void)
 	FN(sizeof);		/* cannot be called directly by user code */
 	FN(sort);
 	FN(split);
+	FN(stackframes);
 	FN(statistics);
 	FN(stringof);
 
