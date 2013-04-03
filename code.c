@@ -112,7 +112,32 @@ off2line(Code *code, u64 off)
 Src
 addr2line(Code *code, Insn *pc)
 {
-	return (Src)vecref(code->src, pc-(Insn*)codeinsn(code));
+	return off2line(code, pc-(Insn*)codeinsn(code));
+}
+
+List*
+frameinfo(Closure *cl, void *pc)
+{
+	List *l;
+	Code *c;
+	l = mklist();
+	_listappend(l, mkvalcl(cl));
+	c = cl->code;
+	switch(c->kind){
+	case Cvm:
+		_listappend(l, mkvallitcval(Vuvlong,
+					    (Insn*)pc-(Insn*)codeinsn(c)));
+		break;
+	case Cnative:
+	case Calien:
+	case Ccfn:
+	case Cccl:
+		_listappend(l, Xnil);
+		break;
+	default:
+		bug();
+	}
+	return l;
 }
 
 static void
