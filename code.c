@@ -196,6 +196,17 @@ l1_mkaliencode(VM *vm, Imm argc, Val *argv, Val *rv)
 }
 
 static void
+l1_codename(VM *vm, Imm argc, Val *argv, Val *rv)
+{
+	Code *c;
+	if(argc != 1)
+		vmerr(vm, "wrong number of arguments to codename");
+	checkarg(vm, argv, 0, Qcode);
+	c = valcode(argv[0]);
+	*rv = mkvalcid(c->id);
+}
+
+static void
 l1_codekind(VM *vm, Imm argc, Val *argv, Val *rv)
 {
 	Code *c;
@@ -256,6 +267,7 @@ l1_codesrc(VM *vm, Imm argc, Val *argv, Val *rv)
 void
 fncode(Env env)
 {
+	FN(codename);
 	FN(codekind);
 	FN(codesrc);
 	FN(mkaliencode);
