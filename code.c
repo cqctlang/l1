@@ -103,6 +103,12 @@ addreloc(Code *code, uptr coff)
 	r->coff = coff;
 }
 
+static Src
+off2line(Code *code, u64 off)
+{
+	return (Src)vecref(code->src, off);
+}
+
 Src
 addr2line(Code *code, Insn *pc)
 {
@@ -164,8 +170,68 @@ l1_mkaliencode(VM *vm, Imm argc, Val *argv, Val *rv)
 	*rv = mkvalcode(code);
 }
 
+static void
+l1_codekind(VM *vm, Imm argc, Val *argv, Val *rv)
+{
+	Code *c;
+	if(argc != 1)
+		vmerr(vm, "wrong number of arguments to codekind");
+	checkarg(vm, argv, 0, Qcode);
+	c = valcode(argv[0]);
+	switch(c->kind){
+	case Cnative:
+		*rv = mkvalcid(mkcid0("native"));
+		break;
+	case Cvm:
+		*rv = mkvalcid(mkcid0("byte"));
+		break;
+	case Ccfn:
+	case Cccl:
+		*rv = mkvalcid(mkcid0("builtin"));
+		break;
+	case Calien:
+		*rv = mkvalcid(mkcid0("alien"));
+		break;
+	default:
+		bug();
+	}
+}
+
+static void
+l1_codesrc(VM *vm, Imm argc, Val *argv, Val *rv)
+{
+	Code *c;
+	Cval *o;
+	Src s;
+	u64 off;
+	if(argc != 2)
+		vmerr(vm, "wrong number of arguments to codesrc");
+	checkarg(vm, argv, 0, Qcode);
+	checkarg(vm, argv, 1, Qcval);
+	c = valcode(argv[0]);
+	o = valcval(argv[1]);
+	switch(c->kind){
+	case Cvm:
+		break;
+	case Cnative:
+	case Ccfn:
+	case Cccl:
+	case Calien:
+		return;
+	default:
+		bug();
+	}
+	off = cvalu(o);
+	if(off >= veclen(c->src))
+		vmerr(vm, "offset out of bounds");
+	s = off2line(c, off);
+	*rv = mkvalvec(s);
+}
+
 void
 fncode(Env env)
 {
+	FN(codekind);
+	FN(codesrc);
 	FN(mkaliencode);
 }
