@@ -15,6 +15,7 @@
 	$repllevel,
 	$l1start,
 	dumpk,
+	printstack,
 	withnullcont
 	;
 
@@ -115,7 +116,7 @@ load("prelude.cqct");
 {
 	callcc(@lambda(errk){
 			printf("error: %s\n", msg);
-			kbacktrace(continuationfr(errk));
+			printstack(stdout, continuationstack(errk));
 			currentreset(nil);
 		});
 }
@@ -132,7 +133,7 @@ load("prelude.cqct");
 {
 	callcc(@lambda(errk){
 			printf("error: %s\n", msg);
-			kbacktrace(continuationfr(errk));
+			printstack(stdout, continuationstack(errk));
 			currentreturn(nil);
 		});
 }
@@ -141,7 +142,7 @@ load("prelude.cqct");
 {
 	callcc(@lambda(k){
 		printf("\ninterrupted\n");
-		kbacktrace(continuationfr(k));
+		kbacktrace(continuationstack(k));
 		exit(1);
 	});
 }
@@ -169,8 +170,10 @@ load("prelude.cqct");
 			return;
 		}
 		if(s == "")
-			debugloop();
+			return debugloop();
 		tok = split(s);
+		if(length(tok) < 1)
+			return debugloop();
 		switch(tok[0]){
 		case "h":
 		case "?":
@@ -178,7 +181,7 @@ load("prelude.cqct");
 			help();
 			break;
 		case "bt":
-			kbacktrace(continuationfr(k));
+			printstack(stdout, continuationstack(k));
 			break;
 		case "r":
 		case "reset":
@@ -209,9 +212,45 @@ load("prelude.cqct");
 	callcc($debug);
 }
 
+@define printstack(fd, stack)
+{
+	@defloc printframe(f)
+	{
+		@local cl, off, code, id, s, src;
+		[cl, off] = f;
+		code = clcode(cl);
+		id = codename(code);
+		s = cid2str(id);
+		if(s[0] == '$')
+			/* elide system functions */
+			return;
+		switch(codekind(code)){
+		case 'builtin:
+			fprintf(fd, "%20s\t(builtin function)\n", id);
+			break;
+		case 'native:
+			fprintf(fd, "%20s\t(native function)\n", id);
+			break;
+		case 'alien:
+			fprintf(fd, "%20s\t(alien function)\n", id);
+			break;
+		case 'byte:
+			src = codesrc(code, off);
+			if(src == nil)
+				fprintf(fd, "%20s\n", id);
+			else if(src[1] == nil)
+				fprintf(fd, "%20s\t(%s)\n", id, src[0]);
+			else
+				fprintf(fd, "%20s\t(%s:%d)\n", id, src[0], src[1]);
+			break;
+		}
+	}
+	foreach(printframe, stackframes(stack));
+}
+
 @define dumpk(k)
 {
-	kbacktrace(continuationfr(k));
+	printstack(stdout, continuationstack(k));
 }
 
 $repllevel = 0;

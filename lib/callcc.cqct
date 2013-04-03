@@ -1,9 +1,9 @@
-@define mkcontinuation(fr, fn)
+@define mkcontinuation(stk, fn)
 {
-	mkcl(kresumecode, fr, fn);
+	mkcl(kresumecode, stk, fn);
 }
 
-@define continuationfr(cl)
+@define continuationstack(cl)
 {
 	return clref(cl, 0);
 }

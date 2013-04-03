@@ -63,7 +63,7 @@
 		syscallcc(@lambda(k){
 				@local save, r;
 				save = $winders;
-				r = mkcontinuation(continuationfr(k),
+				r = mkcontinuation(continuationstack(k),
 						   @lambda(val){
 							   if(!eq(save, $winders))
 								   dowind(save);
@@ -94,7 +94,7 @@
 		{
 			callcc(@lambda(k){
 					printf("error: %s\n", msg);
-					kbacktrace(continuationfr(k));
+					kbacktrace(continuationstack(k));
 					done(fail());
 				});
 		}

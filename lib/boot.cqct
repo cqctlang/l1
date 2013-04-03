@@ -25,7 +25,7 @@ callcc(@lambda(done){
 {
      callcc(@lambda(errk){
 	       printf("boot error: %s\n", msg);
-	       kbacktrace(continuationfr(errk));
+	       kbacktrace(continuationstack(errk));
 	       exit(1);
 	  });
 }
@@ -34,7 +34,7 @@ callcc(@lambda(done){
 {
      callcc(@lambda(k){
      	     printf("boot interrupted\n");
-     	     kbacktrace(continuationfr(k));
+     	     kbacktrace(continuationstack(k));
 	     exit(1);
             });
 }
