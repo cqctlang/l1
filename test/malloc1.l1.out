@@ -9,5 +9,5 @@
 8
 9
 error: address space access out of bounds
-              masput	(builtin closure)
+              masput	(builtin function)
                entry	(malloc1.l1:6)
