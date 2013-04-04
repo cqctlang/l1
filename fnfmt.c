@@ -569,7 +569,7 @@ fmtval(VM *vm, Fmt *f, Val val)
 			return -1;
 		return fmtputs0(vm, f, ">");
 	case Qcont:
-		return fmtputs0(vm, f, "<continuation>");
+		return fmtputs0(vm, f, "<stack>");
 	case Qrec:
 		rec = valrec(val);
 		rv = ccall(vm, rec->rd->fmt, 1, &val);
