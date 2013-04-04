@@ -4,7 +4,7 @@
 
 char *qname[Qnkind] = {
 	[Qnil]=		"nil",
-	[Qas]=		"address space",
+	[Qas]=		"addressspace",
 	[Qbox]=		"box",
 	[Qcid]=		"cid",
 	[Qcl]=		"closure",
@@ -16,12 +16,12 @@ char *qname[Qnkind] = {
 	[Qexpr]=	"stx",
 	[Qfd]=		"fd",
 	[Qlist]=	"list",
-	[Qns]=		"name space",
+	[Qns]=		"namespace",
 	[Qpair]=	"pair",
 	[Qprecode]=	"precode",
 	[Qrange]=	"range",
 	[Qrec]=		"record",
-	[Qrd]=		"record descriptor",
+	[Qrd]=		"recorddescriptor",
 	[Qstr]=		"string",
 	[Qtab]=		"table",
 	[Qvec]=		"vector",
@@ -6472,6 +6472,14 @@ l1_iscallable(VM *vm, Imm argc, Val *argv, Val *rv)
 }
 
 static void
+l1_qtype(VM *vm, Imm argc, Val *argv, Val *rv)
+{
+	if(argc != 1)
+		vmerr(vm, "wrong number of arguments to qtype");
+	*rv = mkvalcid(mkcid0(qname[Vkind(argv[0])]));
+}
+
+static void
 l1_meminuse(VM *vm, Imm argc, Val *argv, Val *rv)
 {
 	USED(vm);
@@ -7501,6 +7509,7 @@ mktopenv(void)
 	FN(pp);
 	FN(printcode);
 	FN(putbytes);
+	FN(qtype);
 	FN(rangebeg);
 	FN(rangelen);
 	FN(resettop);
