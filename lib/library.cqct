@@ -21,7 +21,10 @@ if (__library_exports == nil) //might not have been set in a macro
 
 //bare import statements are the sign of a problem -- let the user know
 @defstx @import(args...) { 
-  error("@import statements not allowed outside of libraries");
+  @local s;
+  s = stxsrc(args);
+  error("error %s:%d: @import statements not allowed outside of libraries",
+      s[0],s[1]);
   return #[]; 
 }
 
@@ -39,7 +42,7 @@ if (__library_exports == nil) //might not have been set in a macro
 }
 
 //this macro allows some code to be run with bindings to some imported symbols 
-@defstx @with_imports_imp(glob, imports...) body {
+@defstx @with_imports_imp(glob, src, imports...) body {
   @local new_body, new_locals, has_dot, has_args;
   @global __library_exports;
 
@@ -58,6 +61,13 @@ if (__library_exports == nil) //might not have been set in a macro
         return fp;
     }
     return nil;
+  }
+
+  @defloc lib_error(msg, args...) {
+    @local s;
+    s = stxsrc(src);
+    msg = "error: %s:%d: " + msg;
+    apply(error,msg,s[0],s[1],args);
   }
 
   @defloc check_and_load(lib,args_v) {
@@ -82,8 +92,9 @@ if (__library_exports == nil) //might not have been set in a macro
     } else {
       //XXX for manually defined @library statements, this may lead
       //to issues if they are imported globally
-      if (fp == nil) 
-        error("could not find library: %s",lib);
+      if (fp == nil) {
+        lib_error("could not find library: %s",lib);
+      }
       l = mapfile(fp);
       l = sprintfa("@library(%s) { %s }",lib,l);
       l = sprintfa(
@@ -91,7 +102,7 @@ if (__library_exports == nil) //might not have been set in a macro
           lib,l);
       parsed = parse(l,fp);
       if (parsed == nil)
-        error("loading library %a",lib);
+        lib_error("loading library %a",lib);
       __library_exports[lib]['parsed] = parsed;
     }
     __library_exports[lib]['args] = @lambda() { return args_v; };
@@ -100,7 +111,7 @@ if (__library_exports == nil) //might not have been set in a macro
     if (args_v == nil) 
       __library_exports[lib]['loaded] = 1;
     if (__library_exports[lib][args_v] == nil) 
-      error("loading library %a", lib);
+      lib_error("loading library %a", lib);
   }
 
   has_dot = nil;
@@ -119,7 +130,7 @@ if (__library_exports == nil) //might not have been set in a macro
         return mklibstr(x);
       @match #id(x): return sprintfa("%a",x);
     }
-    error("Could not parse libname: %a\n",lib);
+    lib_error("Could not parse libname: %a\n",lib);
   }
 
   new_body = [];
@@ -134,7 +145,7 @@ if (__library_exports == nil) //might not have been set in a macro
         fn = x;
         switch(fn) {
         @match #id(d): fn = d; break;
-        default: error("Bad import entry: %a\n",en);
+        default: lib_error("Bad import entry: %a\n",en);
         };
 
         has_dot = nil;
@@ -149,7 +160,7 @@ if (__library_exports == nil) //might not have been set in a macro
                          @lambda() { nil; },
                          []);
           if (args == nil)
-            error("Bad library argument list. Cannot contain variables or runtime state.\nSee doc/library_system.html#compile_time_problems");
+            lib_error("Bad library argument list. Cannot contain variables or runtime state.\nSee doc/library_system.html#compile_time_problems");
         } else {
           has_args = #id('nil);
           args = nil;
@@ -164,7 +175,7 @@ if (__library_exports == nil) //might not have been set in a macro
           @local lfn;
           lfn = has_dot;
           if (__library_exports[lnamecid][args][lfn] == nil)
-              error("Attempt to import non-exported symbol %a in %a",
+              lib_error("Attempt to import non-exported symbol %a in %a",
                   lfn,lname );
           s = #`{
             #,(#id(fn)) = __library_exports
@@ -195,7 +206,7 @@ if (__library_exports == nil) //might not have been set in a macro
           lnamecid = mkcid(lname);
 
           if (lname == nil)
-            error("Could not parse imports at %a\n",en);
+            lib_error("Could not parse imports at %a\n",en);
 
           if (has_args != nil) {
             has_args = #list(has_args);
@@ -240,19 +251,21 @@ if (__library_exports == nil) //might not have been set in a macro
 
 @defstx @with_imports(imports...) body {
   @local new_args;
-  new_args = Zcons(#val(0),imports);
+  new_args = Zcons(imports,imports);
+  new_args = Zcons(#val(0),new_args);
   return #mcall(#id('with_imports_imp),new_args,body);
 }
 
 @defstx @import_globals(imports...) {
   @local new_args;
-  new_args = Zcons(#val(1),imports);
+  new_args = Zcons(imports,imports);
+  new_args = Zcons(#val(1),new_args);
   return #mcall(#id('with_imports_imp),new_args,#[]);
 }
 
 @defstx @import_object(obj) {
   return #`{
-    @with_imports_imp(0,(the_obj, #,(obj))) { the_obj; }
+    @with_imports_imp(0,#,(obj),(the_obj, #,(obj))) { the_obj; }
   };
 }
 
@@ -275,6 +288,13 @@ if (__library_exports == nil) //might not have been set in a macro
 @defstx @with_exports(name,exports...) body {
   @local libname, libnamecid, new_body, new_locals, new_postbody, s;
 
+  @defloc lib_error(msg, args...) {
+    @local s;
+    s = stxsrc(name);
+    msg = "error: %s:%d: " + msg;
+    apply(error,msg,s[0],s[1],args);
+  }
+
   @defloc mklibstr(lib) {
     switch(lib) {
       @match #div(x,y):
@@ -285,7 +305,7 @@ if (__library_exports == nil) //might not have been set in a macro
       //@match #dot(x,y): return mklibstr(x);
       @match #id(x): return sprintfa("%a",x);
     }
-    error("Could not parse libname: %a\n",lib);
+    lib_error("Could not parse libname: %a\n",lib);
   }
 
   libname = mklibstr(name);
@@ -318,7 +338,7 @@ if (__library_exports == nil) //might not have been set in a macro
     append(new_locals,en);
     switch(en) {
     @match #id(x): en = x; break;
-    default: error("Error parsing export %a in %a\n",en,libname);
+    default: lib_error("Error parsing export %a in %a\n",en,libname);
     }
     s = #`{
       __library_exports[#,(#val(libnamecid))][args][#,(#val(en))] = #,(#id(en)); 
@@ -348,6 +368,13 @@ if (__library_exports == nil) //might not have been set in a macro
 @defstx @library(name) body {
   @local libname, export_params, import_params, locals, new_stmts, ret;
 
+  @defloc lib_error(msg, args...) {
+    @local s;
+    s = stxsrc(name);
+    msg = "error: %s:%d: " + msg;
+    apply(error,msg,s[0],s[1],args);
+  }
+
   @defloc mklibstr(lib) {
     switch(lib) {
       @match #div(x,y):
@@ -358,7 +385,7 @@ if (__library_exports == nil) //might not have been set in a macro
       //@match #dot(x,y): return mklibstr(x);
       @match #id(x): return sprintfa("%a",x);
     }
-    error("Could not parse library name: %a\n",lib);
+    lib_error("Could not parse library name: %a\n",lib);
   }
 
   libname = mkcid(mklibstr(name));
@@ -386,7 +413,7 @@ if (__library_exports == nil) //might not have been set in a macro
       }
     },Ztolist(stmts));
     break;
-  default: error("could not parse body: ",body);
+  default: lib_error("could not parse body: ",body);
   }
 
   locals = Zcons(#id('args),locals);
