@@ -126,11 +126,11 @@ Segsize = 1ULL<<20;
 @define Vfwd(o)      { (headbits(o)>>0)&1; }
 @define Vfwdaddr(o)  { headbits(o)&~1ULL; }
 @define Vkind(o)     { headbits(o)>>1&0x1f; }
-@define codekind(c)  { return c->kind; }
+@define l1codekind(c)  { return c->kind; }
 @define _codeinsn(c) { (void*)(c+1); }
 @define codeinsn(c)
 {
-	if(codekind(c) == 0) /* Cvm */
+	if(l1codekind(c) == 0) /* Cvm */
 		return _codeinsn(c)+64; /* FIXME: trampsize */
 	else
 		return _codeinsn(c);
@@ -191,7 +191,7 @@ Segsize = 1ULL<<20;
 @define ra2size(ra, cp)
 {
 	@local off, d;
-	switch(codekind(cp)){
+	switch(l1codekind(cp)){
 	case 0: /* Cvm */
 		if(!pcinrange(ra, cp))
 			error("pc (%p) lies outside text (%p - %p)",
