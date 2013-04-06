@@ -5143,7 +5143,10 @@ l1_fdname(VM *vm, Imm argc, Val *argv, Val *rv)
 		vmerr(vm, "wrong number of arguments to fdname");
 	checkarg(vm, argv, 0, Qfd);
 	fd = valfd(argv[0]);
-	*rv = mkvalstr(fd->name);
+	if(fd->name)
+		*rv = mkvalstr(fd->name);
+	else
+		*rv = mkvalstr(mkstr0(""));
 }
 
 static void
@@ -5172,8 +5175,7 @@ l1_mkfd(VM *vm, Imm argc, Val *argv, Val *rv)
 	if(argc == 4){
 		checkarg(vm, argv, 3, Qstr);
 		n = valstr(argv[3]);
-	}else
-		n = mkstr0("");
+	}
 	fd = mkfdcl(n, Fread|Fwrite, r, w, c);
 	*rv = mkvalfd(fd);
 }
