@@ -1,0 +1,14 @@
+// 9a0a46f: kresumecode: initialize frame correctly
+@global svd;
+
+//printf("start\n");
+
+v = callcc(@lambda(fn) {
+ svd = fn;
+ fn(10);
+});
+
+printf("Got v=%a\n",v);
+
+if (v<40000)
+	svd(v+1);
