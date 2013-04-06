@@ -273,9 +273,7 @@ l1_mksysfd(VM *vm, Imm argc, Val *argv, Val *rv)
 	if(argc == 3){
 		checkarg(vm, argv, 2, Qstr);
 		name = valstr(argv[2]);
-	} else {
-    name = mkstr0("(unnamed)");
-  }
+	}
 	fd = cvalu(valcval(argv[0]));
 	flags = cvalu(valcval(argv[1]));
 	xfd.fd = fd;
