@@ -5166,6 +5166,7 @@ l1_mkfd(VM *vm, Imm argc, Val *argv, Val *rv)
 		vmerr(vm, "argument 3 to mkfd must be a function or nil");
 
 	r = w = c = 0;
+	n = 0;
 	if(Vkind(argv[0]) == Qcl)
 		r = valcl(argv[0]);
 	if(Vkind(argv[1]) == Qcl)
