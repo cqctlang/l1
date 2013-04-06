@@ -1871,7 +1871,7 @@ kresumecode(void)
 	Frame f;
 	Imm nfp;
 
-	finit(&f, 0, 0, 0);
+	finit(&f, 1, 0, 0);
 	fset(&f, Ocl);
 	ode = mkprecode("kresume");
 	femit(&f, ode);
