@@ -72,21 +72,21 @@ main(int argc, char *argv[])
 		exit(1);
 	}
 
-	of=fdopen(ofd,"w");
+	of = fdopen(ofd, "w");
 	if(!of){
 		fprintf(stderr, "fdopen: %s: %s\n", outfile, strerror(errno));
 		exit(1);
 	}
 
-	fprintf(of,".section savedheap, \"r\"\n");
-	if(align) {
-		fprintf(of,".balign 0x%x\n",(int)align);
-	}
-	fprintf(of,"_%s:\n",sym);
-	fprintf(of,".incbin \"%s\"\n",infile);
-	fprintf(of,"\n_end%s:\n",sym);
+	fprintf(of, ".section savedheap, \"r\"\n");
+	if(align)
+		fprintf(of, ".balign 0x%x\n", (int)align);
+	fprintf(of, ".globl\t_%s\n", sym);
+	fprintf(of, ".globl\t_end%s\n", sym);
+	fprintf(of, "_%s:\n", sym);
+	fprintf(of, ".incbin \"%s\"\n", infile);
+	fprintf(of, "_end%s:\n", sym);
 	fflush(of);
-
 	close(ofd);
 	return 0;
 }
