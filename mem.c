@@ -3408,7 +3408,7 @@ restoreheap(char *file)
 		goto fail;
 	}
 	XRD(buf, p, sz);
-	if(strncmp(buf, sysos, sz)){
+	if(0 && strncmp(buf, sysos, sz)){
 		fprintf(stderr, "restoreheap: os mismatch"
 			"(need \"%s\", got \"%.*s\")\n",
 			sysos, sz, buf);
