@@ -10,10 +10,8 @@ enum {
 static Head constnil;
 #pragma weak heapimage
 #pragma weak endheapimage
-#pragma weak lenheapimage
 char heapimage[1] = { Noheap };
 char endheapimage[0];
-u64 lenheapimage = 0;
 static u32 heapversion = 2;
 
 /* if you change this, be sure the
@@ -3380,15 +3378,9 @@ restoreheap(char *file)
 		memcpy(p, tmp, len);
 		munmap(tmp, roundup(len, 4096));
 	}else{
-		if(!lenheapimage) {
-			len = endheapimage-heapimage;
-		} else {
-			len = lenheapimage;
-		}
-		if(len == 0)
-			return 0;
 		if(heapimage[0] != Heapdefined)
 			return 0;
+		len = endheapimage-heapimage;
 		op = p = mapmem(len); /* Segsize-aligned; closer to
 					 other segments than executable */
 		memcpy(p, heapimage, len);
