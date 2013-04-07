@@ -15,8 +15,7 @@
 	$repllevel,
 	$l1start,
 	dumpk,
-	printstack,
-	withnullcont
+	printstack
 	;
 
 @defloc topwrap(e)
@@ -313,31 +312,29 @@ $repllevel = 0;
 	mkprompt();
 	callcc(@lambda(done){
 			@local oldret, olderr, oldint, oldreset, thisreset;
-			withnullcont(@lambda(){
-					dynamicwind(
-						@lambda(){
-							oldret = currentreturn;
-							olderr = errorhandler;
-							oldint = interrupthandler;
-							oldreset = currentreset;
-							$repllevel = level;
-							currentreturn = done;
-							errorhandler = replerror;
-							interrupthandler = replinterrupt;
-							currentreset = thisreset;
-						},
-						@lambda(){ 
-							callcc(@lambda(reset){
-									currentreset = thisreset = reset;
-								});
-							$loop();
-						},
-						@lambda(){
-							currentreturn = oldret;
-							errorhandler = olderr;
-							interrupthandler = oldint;
-							currentreset = oldreset;
+			dynamicwind(
+				@lambda(){
+					oldret = currentreturn;
+					olderr = errorhandler;
+					oldint = interrupthandler;
+					oldreset = currentreset;
+					$repllevel = level;
+					currentreturn = done;
+					errorhandler = replerror;
+					interrupthandler = replinterrupt;
+					currentreset = thisreset;
+				},
+				@lambda(){ 
+					callcc(@lambda(reset){
+							currentreset = thisreset = reset;
 						});
+					$loop();
+				},
+				@lambda(){
+					currentreturn = oldret;
+					errorhandler = olderr;
+					interrupthandler = oldint;
+					currentreset = oldreset;
 				});
 	       });
 }
@@ -385,7 +382,6 @@ $repllevel = 0;
 {
 	@local forms, entry, cmd, file, rv;
 	callcc(@lambda(root){
-			withnullcont = root;
 			return @lambda(){
 				[forms, entry, cmd] = parseargs(arg);
 				if(length(cmd) == 0 && length(forms) == 0)
