@@ -14,7 +14,7 @@ static Head constnil;
 char heapimage[1] = { Noheap };
 char endheapimage[0];
 u64 lenheapimage = 0;
-static u32 heapversion = 1;
+static u32 heapversion = 2;
 
 /* if you change this, be sure the
    ordering in MTx enum remains consistent */
@@ -405,6 +405,7 @@ scancode(Head *h)
 	gcopy((Val*)&c->lm, &min);
 	gcopy((Val*)&c->dbg, &min);
 	gcopy((Val*)&c->src, &min);
+	gcopy((Val*)&c->lex, &min);
 	if(c->kind == Calien)
 		gcopy(&c->alien, &min);
 	if(c->reloc == 0)
@@ -2623,6 +2624,7 @@ loadsavecode(Head *h, LSctx *ls)
 	loadsaveptr((Val*)&c->lm, ls);
 	loadsaveptr((Val*)&c->dbg, ls);
 	loadsaveptr((Val*)&c->src, ls);
+	loadsaveptr((Val*)&c->lex, ls);
 	switch(c->kind){
 	case Calien:
 		loadsaveptr(&c->alien, ls);

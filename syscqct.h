@@ -782,6 +782,7 @@ typedef
 struct Dbg {
 	uptr	off;		/* pc offset in bytes from start of code */
 	u32	fsz;		/* size of frame */
+	u32	lex;		/* index into code's lexical descriptor */
 	u64	lm;		/* live mask (directly encoded or offset) */
 } Dbg;
 
@@ -797,6 +798,8 @@ struct Precode {
 	u32 nlm, mlm;
 	Str *dbg;
 	u32 ndbg, mdbg;
+	Vec *lex;
+	u32 nlex, rlex;
 };
 
 /* live mask */
@@ -823,6 +826,7 @@ struct Code {
 	Str *dbg;	/* debug info, ordered by offset */
 	u32 ndbg;	/* number of debug records */
 	Vec *src;	/* belongs in pure storage? */
+	Vec *lex;	/* lexical descriptor */
 	union {
 		Cfn *cfn;
 		Ccl *ccl;
@@ -1200,6 +1204,7 @@ Val		xunop(VM *vm, ikind op, Val v);
 #define mkvalvec(x)	((Val)(x))
 
 #define valas(v)	((As*)(v))
+#define valbox(v)	((Box*)(v))
 #define valcid(v)	((Cid*)(v))
 #define valcl(v)	((Closure*)(v))
 #define valcode(v)	((Code*)(v))

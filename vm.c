@@ -757,6 +757,64 @@ stackframes(VM *vm, Cont *k)
 	}
 }
 
+static Vec*
+liveinframe(VM *vm, Cont *k, u32 fno)
+{
+	Val *fp, *lp;
+	Insn *pc;
+	Closure *cl;
+	Code *cp;
+	u64 i, sz, lm, *mp, o;
+	u32 fcnt;
+	Vec *v;
+
+	fcnt = 0;
+	while(1){
+		if(k == 0)
+			vmerr(vm, "no such frame");
+		if(k->base == 0)
+			/* defunct leftover in restored heap */
+			vmerr(vm, "defunct stack");
+		pc = k->ra;
+		cl = k->cl;
+		fp = k->base+k->sz;
+		while((void*)fp >= k->base){
+			cp = cl->code;
+			sz = ra2size(pc, cp);
+			fp -= sz;
+			if(fcnt == fno){
+				lm = ra2mask(pc, cp);
+				v = mkvecinit(sz, Xnil);
+
+				/* FIXME: merge with identical code in mem */
+				lp = fp;
+				if((lm>>(mwbits-1))&1){
+					o = lm&~(1ULL<<(mwbits-1));
+					mp = (u64*)strdata(cp->lm)+o;
+					while(sz > 0){
+						lm = *mp++;
+						for(i = 0;
+						    sz > 0 && i < mwbits;
+						    i++, sz--, lp++)
+							if((lm>>i)&1)
+								_vecset(v, i, *lp);
+					}
+				}else
+					for(i = 0; i < sz; i++, lp++)
+						if((lm>>i)&1)
+							_vecset(v, i, *lp);
+				return v;
+			}
+			if((void*)fp >= k->base){
+				pc = stkp(fp[Ora]);
+				cl = valcl(fp[Ocl]);
+			}
+			fcnt++;
+		}
+		k = k->link;
+	}
+}
+
 static void
 vmint(VM *vm)
 {
@@ -4954,6 +5012,16 @@ l1_stackframes(VM *vm, Imm argc, Val *argv, Val *rv)
 	*rv = mkvallist(stackframes(vm, valcont(argv[0])));
 }
 
+static void
+l1_liveinframe(VM *vm, Imm argc, Val *argv, Val *rv)
+{
+	if(argc != 2)
+		vmerr(vm, "wrong number of arguments to liveinframe");
+	checkarg(vm, argv, 0, Qcont);
+	checkarg(vm, argv, 1, Qcval);
+	*rv = mkvalvec(liveinframe(vm, valcont(argv[0]), cvalu(valcval(argv[1]))));
+}
+
 Val
 myrootns(Env env)
 {
@@ -4965,7 +5033,7 @@ myrootns(Env env)
 	if(n == 0)
 		return Xnil;
 	else
-		return n; 
+		return n;
 }
 
 static void
@@ -6285,6 +6353,17 @@ l1_cntrput(VM *vm, Imm argc, Val *argv, Val *rv)
 }
 
 static void
+l1_unbox(VM *vm, Imm argc, Val *argv, Val *rv)
+{
+	Box *b;
+	if(argc != 1)
+		vmerr(vm, "wrong number of arguments to unbox");
+	checkarg(vm, argv, 0, Qbox);
+	b = valbox(argv[0]);
+	*rv = b->v;
+}
+
+static void
 l1_hashq(VM *vm, Imm argc, Val *argv, Val *rv)
 {
 	if(argc != 1)
@@ -7483,6 +7562,7 @@ mktopenv(void)
 	FN(isvector);
 	FN(kbacktrace);
 	FN(length);
+	FN(liveinframe);
 	FN(loadpath);
 	FN(looksym);
 	FN(looktype);
@@ -7526,6 +7606,7 @@ mktopenv(void)
 	FN(stackframes);
 	FN(statistics);
 	FN(stringof);
+	FN(unbox);
 
 	fnalu(env);
 	fnch(env);

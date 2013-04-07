@@ -120,6 +120,7 @@ frameinfo(Closure *cl, void *pc)
 {
 	List *l;
 	Code *c;
+	Dbg *d;
 	l = mklist();
 	_listappend(l, mkvalcl(cl));
 	c = cl->code;
@@ -127,11 +128,14 @@ frameinfo(Closure *cl, void *pc)
 	case Cvm:
 		_listappend(l, mkvallitcval(Vuvlong,
 					    (Insn*)pc-(Insn*)codeinsn(c)));
+		d = lookdbg(c, pc-codeinsn(c));
+		_listappend(l, mkvallitcval(Vuint, d->lex));
 		break;
 	case Cnative:
 	case Calien:
 	case Ccfn:
 	case Cccl:
+		_listappend(l, Xnil);
 		_listappend(l, Xnil);
 		break;
 	default:
@@ -264,11 +268,36 @@ l1_codesrc(VM *vm, Imm argc, Val *argv, Val *rv)
 	*rv = mkvalvec(s);
 }
 
+static void
+l1_codelex(VM *vm, Imm argc, Val *argv, Val *rv)
+{
+	Code *c;
+
+	if(argc != 1)
+		vmerr(vm, "wrong number of arguments to codelex");
+	checkarg(vm, argv, 0, Qcode);
+	c = valcode(argv[0]);
+	switch(c->kind){
+	case Cvm:
+		if(c->lex)
+			*rv = mkvalvec(c->lex);
+		break;
+	case Cnative:
+	case Ccfn:
+	case Cccl:
+	case Calien:
+		return;
+	default:
+		bug();
+	}
+}
+
 void
 fncode(Env env)
 {
-	FN(codename);
 	FN(codekind);
+	FN(codelex);
+	FN(codename);
 	FN(codesrc);
 	FN(mkaliencode);
 }
