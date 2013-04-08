@@ -148,20 +148,67 @@ load("prelude.cqct");
 
 @defloc $debug(k)
 {
+	@local stk, fs;
+
 	@defloc help()
 	{
 		printf("l1 debugger commands\n");
-		printf("help, h, ?         display this help\n");
-		printf("bt                 display current backtrace\n");
-		printf("r, reset           reset repl\n");
-		printf("new                start new repl\n");
-		printf("EOF, exit, quit, q resume execution\n");
-		printf("a, abort           abort l1\n");
+		printf("\thelp, h, ?              display this help\n");
+		printf("\tbt                      display current backtrace\n");
+		printf("\tl, locals <n>           display variables in frame <n>\n");
+		printf("\tr, reset                reset repl\n");
+		printf("\tnew                     start new repl\n");
+		printf("\tEOF, exit, quit, q      resume execution\n");
+		printf("\ta, abort                abort l1\n");
+	}
+
+	@defloc dumplex(fno)
+	{
+		@local cl, code, live, lex, lidx, off, src;
+
+		@defloc loop(lidx)
+		{
+			@local rib, rlex;
+			if(lidx == nil)
+				return;
+			rib = lex[lidx];
+			rlex = rib[0];
+			rib = slice(rib, 1, length(rib));
+			foreach(@lambda(d){
+					@local id, kind, idx, box;
+					[id, kind, idx, box] = d;
+					if(kind == 'free)
+						printf("\t%5s   %10s   %a\n",
+						       kind, id, box ? unbox(clref(cl, idx)) : clref(cl, idx));
+					else
+						printf("\t%5s   %10s   %a\n",
+						       kind, id, box ? unbox(live[idx]) : live[idx]);
+				}, rib);
+			loop(rlex);
+		}
+
+		[cl, off, lidx] = fs[fno];
+		live = liveinframe(stk, fno);
+		code = clcode(cl);
+		lex = codelex(code);
+		if(lex == nil){
+			printf("no lexical information for frame #%d (%s)\n", fno, codename(code));
+			return;
+		}
+		printf("variables in frame #%d in %s", fno, codename(code));
+		src = codesrc(code, off);
+		if(src == nil)
+			printf("\n");
+		else if(src[1] == nil)
+			printf(" (%s)\n", src[0]);
+		else
+			printf(" (%s:%d)\n", src[0], src[1]);
+		loop(lidx);
 	}
 
 	@defloc debugloop()
 	{
-		@local s, tok;
+		@local s, tok, fr;
 		printf("debug> ");
 		s = read(stdin, 1024);
 		if(s == nil){
@@ -178,6 +225,23 @@ load("prelude.cqct");
 		case "?":
 		case "help":
 			help();
+			break;
+		case "l":
+		case "loc":
+		case "locals":
+			if(length(tok) == 1)
+				fr = 0;
+			else if(length(tok) == 2){
+				fr = strton(tok[1]);
+				if(fr == nil){
+					printf("error: \"locals\" requires a frame number\n");
+					break;
+				}
+			}else{
+				printf("error: wrong number of arguments to \"locals\"\n");
+				break;
+			}
+			dumplex(fr);
 			break;
 		case "bt":
 			printstack(stdout, continuationstack(k));
@@ -203,6 +267,9 @@ load("prelude.cqct");
 		}
 		debugloop();
 	}
+
+	stk = continuationstack(k);
+	fs = stackframes(stk);
 	debugloop();
 }
 
@@ -211,33 +278,14 @@ load("prelude.cqct");
 	callcc($debug);
 }
 
-@defloc dumplex(fd, live, lex, lidx)
-{
-	@local rib, rlex;
-	@local id, kind, idx, box;
-	if(lidx == nil)
-		return;
-	rib = lex[lidx];
-	rlex = rib[0];
-	rib = slice(rib, 1, length(rib));
-	foreach(@lambda(d){
-			[id, kind, idx, box] = d;
-			printf("\t\t\t%a\t(%a)\t-> %a\n",
-			       id, kind, box ? unbox(live[idx]) : live[idx]);
-		}, rib);
-	printf("\t\t\t--- scope contour ---\n");
-	dumplex(fd, live, lex, rlex);
-}
-
 @define printstack(fd, stack)
 {
 	@local cnt;
 	@defloc printframe(f)
 	{
-		@local cl, off, code, id, s, src;
-//		@local live, lidx, lex;
+		@local cl, off, code, id, s, src, cur;
 		[cl, off, _] = f;
-		cnt++;
+		cur = cnt++;
 		code = clcode(cl);
 		id = codename(code);
 		s = cid2str(id);
@@ -246,26 +294,22 @@ load("prelude.cqct");
 			return;
 		switch(codekind(code)){
 		case 'builtin:
-			fprintf(fd, "%20s\t(builtin function)\n", id);
+			fprintf(fd, "#%-4d %20s\t(builtin function)\n", cur, id);
 			break;
 		case 'native:
-			fprintf(fd, "%20s\t(native function)\n", id);
+			fprintf(fd, "#%-4d %20s\t(native function)\n", cur, id);
 			break;
 		case 'alien:
-			fprintf(fd, "%20s\t(alien function)\n", id);
+			fprintf(fd, "#%-4d %20s\t(alien function)\n", cur, id);
 			break;
 		case 'byte:
 			src = codesrc(code, off);
-//			lex = codelex(code);
-//			live = liveinframe(stack, cnt-1);
 			if(src == nil)
-				fprintf(fd, "%20s\n", id);
+				fprintf(fd, "#%-4d %20s\n", cur, id);
 			else if(src[1] == nil)
-				fprintf(fd, "%20s\t(%s)\n", id, src[0]);
+				fprintf(fd, "#%-4d %20s\t(%s)\n", cur, id, src[0]);
 			else
-				fprintf(fd, "%20s\t(%s:%d)\n", id, src[0], src[1]);
-//			if(lex)
-//				dumplex(fd, live, lex, lidx);
+				fprintf(fd, "#%-4d %20s\t(%s:%d)\n", cur, id, src[0], src[1]);
 			break;
 		}
 	}
