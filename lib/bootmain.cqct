@@ -115,7 +115,7 @@ load("prelude.cqct");
 {
 	callcc(@lambda(errk){
 			printf("error: %s\n", msg);
-			printstack(stdout, continuationstack(errk));
+			printstack(continuationstack(errk));
 			currentreset(nil);
 		});
 }
@@ -132,7 +132,7 @@ load("prelude.cqct");
 {
 	callcc(@lambda(errk){
 			printf("error: %s\n", msg);
-			printstack(stdout, continuationstack(errk));
+			printstack(continuationstack(errk));
 			currentreturn(nil);
 		});
 }
@@ -245,7 +245,7 @@ load("prelude.cqct");
 			dumplex(fr);
 			break;
 		case "bt":
-			printstack(stdout, continuationstack(k));
+			printstack(continuationstack(k));
 			break;
 		case "r":
 		case "reset":
@@ -279,7 +279,7 @@ load("prelude.cqct");
 	callcc($debug);
 }
 
-@define printstack(fd, stack)
+@define printstack(stack)
 {
 //	@local cnt;
 	@defloc printframe(f)
@@ -296,27 +296,27 @@ load("prelude.cqct");
 			return;
 		switch(codekind(code)){
 		case 'builtin:
-//			fprintf(fd, "#%-4d %20s\t(builtin function)\n", cur, id);
-			fprintf(fd, "%20s\t(builtin function)\n", id);
+//			printf("#%-4d %20s\t(builtin function)\n", cur, id);
+			printf("%20s\t(builtin function)\n", id);
 			break;
 		case 'native:
-//			fprintf(fd, "#%-4d %20s\t(native function)\n", cur, id);
-			fprintf(fd, "%20s\t(native function)\n", id);
+//			printf("#%-4d %20s\t(native function)\n", cur, id);
+			printf("%20s\t(native function)\n", id);
 			break;
 		case 'alien:
-//			fprintf(fd, "#%-4d %20s\t(alien function)\n", cur, id);
-			fprintf(fd, "%20s\t(alien function)\n", id);
+//			printf("#%-4d %20s\t(alien function)\n", cur, id);
+			printf("%20s\t(alien function)\n", id);
 			break;
 		case 'byte:
 			src = codesrc(code, off);
-//			fprintf(fd, "#%-4d %20s", cur, id);
-			fprintf(fd, "%20s", id);
+//			printf("#%-4d %20s", cur, id);
+			printf("%20s", id);
 			if(src == nil)
-				fprintf(fd, "\n");
+				printf("\n");
 			else if(src[1] == nil)
-				fprintf(fd, "\t(%s)\n", src[0]);
+				printf("\t(%s)\n", src[0]);
 			else
-				fprintf(fd, "\t(%s:%d)\n", src[0], src[1]);
+				printf("\t(%s:%d)\n", src[0], src[1]);
 			break;
 		}
 	}
@@ -326,7 +326,7 @@ load("prelude.cqct");
 
 @define dumpk(k)
 {
-	printstack(stdout, continuationstack(k));
+	printstack(continuationstack(k));
 }
 
 $repllevel = 0;
