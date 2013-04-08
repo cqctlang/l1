@@ -290,6 +290,7 @@ l1_codescope(VM *vm, Imm argc, Val *argv, Val *rv)
 	Cval *o;
 	u64 off;
 	u32 idx;
+
 	if(argc != 2)
 		vmerr(vm, "wrong number of arguments to codescope");
 	checkarg(vm, argv, 0, Qcode);
@@ -314,7 +315,8 @@ l1_codescope(VM *vm, Imm argc, Val *argv, Val *rv)
 		vmerr(vm, "offset out of bounds");
 
 	idx = off2scope(c, off);
-	*rv = mkvallitcval(Vuint, idx);
+	if(idx != (u32)-1)
+		*rv = mkvallitcval(Vuint, idx);
 }
 
 static void

@@ -1092,7 +1092,10 @@ femit(Frame *f, Precode *c)
 	dbg = &((Dbg*)strdata(c->dbg))[c->ndbg++];
 	dbg->off = c->ninsn*sizeof(Insn);
 	dbg->fsz = f->fsz;
-	dbg->lex = c->nlex-1;
+	if(c->nlex == 0)
+		dbg->lex = (u32)-1;
+	else
+		dbg->lex = c->nlex-1;
 	if(f->fsz < mwbits-1)
 		/* live mask fits in debug record */
 		dbg->lm = (*f->l)&((1UL<<f->fsz)-1);
