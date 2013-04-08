@@ -280,12 +280,13 @@ load("prelude.cqct");
 
 @define printstack(fd, stack)
 {
-	@local cnt;
+//	@local cnt;
 	@defloc printframe(f)
 	{
-		@local cl, off, code, id, s, src, cur;
+		@local cl, off, code, id, s, src;
+//		@local cur;
 		[cl, off, _] = f;
-		cur = cnt++;
+//		cur = cnt++;
 		code = clcode(cl);
 		id = codename(code);
 		s = cid2str(id);
@@ -294,26 +295,31 @@ load("prelude.cqct");
 			return;
 		switch(codekind(code)){
 		case 'builtin:
-			fprintf(fd, "#%-4d %20s\t(builtin function)\n", cur, id);
+//			fprintf(fd, "#%-4d %20s\t(builtin function)\n", cur, id);
+			fprintf(fd, "%20s\t(builtin function)\n", id);
 			break;
 		case 'native:
-			fprintf(fd, "#%-4d %20s\t(native function)\n", cur, id);
+//			fprintf(fd, "#%-4d %20s\t(native function)\n", cur, id);
+			fprintf(fd, "%20s\t(native function)\n", id);
 			break;
 		case 'alien:
-			fprintf(fd, "#%-4d %20s\t(alien function)\n", cur, id);
+//			fprintf(fd, "#%-4d %20s\t(alien function)\n", cur, id);
+			fprintf(fd, "%20s\t(alien function)\n", id);
 			break;
 		case 'byte:
 			src = codesrc(code, off);
+//			fprintf(fd, "#%-4d %20s", cur, id);
+			fprintf(fd, "%20s", id);
 			if(src == nil)
-				fprintf(fd, "#%-4d %20s\n", cur, id);
+				fprintf(fd, "\n");
 			else if(src[1] == nil)
-				fprintf(fd, "#%-4d %20s\t(%s)\n", cur, id, src[0]);
+				fprintf(fd, "\t(%s)\n", src[0]);
 			else
-				fprintf(fd, "#%-4d %20s\t(%s:%d)\n", cur, id, src[0], src[1]);
+				fprintf(fd, "\t(%s:%d)\n", src[0], src[1]);
 			break;
 		}
 	}
-	cnt = 0;
+//	cnt = 0;
 	foreach(printframe, stackframes(stack));
 }
 
