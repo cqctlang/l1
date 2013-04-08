@@ -115,12 +115,30 @@ addr2line(Code *code, Insn *pc)
 	return off2line(code, pc-(Insn*)codeinsn(code));
 }
 
+static u32
+off2scope(Code *c, u64 off)
+{
+	Dbg *d;
+
+	switch(c->kind){
+	case Cvm:
+		/* expect offset is in Insn units */
+		d = lookdbg(c, off*sizeof(Insn));
+		return d->lex;
+	case Cnative:
+	case Calien:
+	case Ccfn:
+	case Cccl:
+	default:
+		bug();
+	}
+}
+
 List*
 frameinfo(Closure *cl, void *pc)
 {
 	List *l;
 	Code *c;
-	Dbg *d;
 	l = mklist();
 	_listappend(l, mkvalcl(cl));
 	c = cl->code;
@@ -128,14 +146,11 @@ frameinfo(Closure *cl, void *pc)
 	case Cvm:
 		_listappend(l, mkvallitcval(Vuvlong,
 					    (Insn*)pc-(Insn*)codeinsn(c)));
-		d = lookdbg(c, pc-codeinsn(c));
-		_listappend(l, mkvallitcval(Vuint, d->lex));
 		break;
 	case Cnative:
 	case Calien:
 	case Ccfn:
 	case Cccl:
-		_listappend(l, Xnil);
 		_listappend(l, Xnil);
 		break;
 	default:
@@ -269,6 +284,40 @@ l1_codesrc(VM *vm, Imm argc, Val *argv, Val *rv)
 }
 
 static void
+l1_codescope(VM *vm, Imm argc, Val *argv, Val *rv)
+{
+	Code *c;
+	Cval *o;
+	u64 off;
+	u32 idx;
+	if(argc != 2)
+		vmerr(vm, "wrong number of arguments to codescope");
+	checkarg(vm, argv, 0, Qcode);
+	checkarg(vm, argv, 1, Qcval);
+	c = valcode(argv[0]);
+	o = valcval(argv[1]);
+	switch(c->kind){
+	case Cvm:
+		break;
+	case Cnative:
+	case Ccfn:
+	case Cccl:
+	case Calien:
+		return;
+	default:
+		bug();
+	}
+
+	off = cvalu(o);
+	/* FIXME: we need a better offset bound */
+	if(off >= veclen(c->src))
+		vmerr(vm, "offset out of bounds");
+
+	idx = off2scope(c, off);
+	*rv = mkvallitcval(Vuint, idx);
+}
+
+static void
 l1_codelex(VM *vm, Imm argc, Val *argv, Val *rv)
 {
 	Code *c;
@@ -298,6 +347,7 @@ fncode(Env env)
 	FN(codekind);
 	FN(codelex);
 	FN(codename);
+	FN(codescope);
 	FN(codesrc);
 	FN(mkaliencode);
 }

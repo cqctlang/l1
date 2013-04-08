@@ -187,9 +187,10 @@ load("prelude.cqct");
 			loop(rlex);
 		}
 
-		[cl, off, lidx] = fs[fno];
+		[cl, off] = fs[fno];
 		live = liveinframe(stk, fno);
 		code = clcode(cl);
+		lidx = codescope(code, off);
 		lex = codelex(code);
 		if(lex == nil){
 			printf("no lexical information for frame #%d (%s)\n", fno, codename(code));
@@ -285,7 +286,7 @@ load("prelude.cqct");
 	{
 		@local cl, off, code, id, s, src;
 //		@local cur;
-		[cl, off, _] = f;
+		[cl, off] = f;
 //		cur = cnt++;
 		code = clcode(cl);
 		id = codename(code);
