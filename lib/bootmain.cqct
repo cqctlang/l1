@@ -14,7 +14,6 @@
 	repl,
 	$repllevel,
 	$l1start,
-	dumpk,
 	printstack
 	;
 
@@ -279,21 +278,14 @@ load("prelude.cqct");
 	callcc($debug);
 }
 
-@define printstack(stack)
+@defloc $printstack(uframes)
 {
-//	@local cnt;
 	@defloc printframe(f)
 	{
-		@local cl, off, code, id, s, src;
-//		@local cur;
-		[cl, off] = f;
-//		cur = cnt++;
+		@local cl, off, code, id, src, fno;
+		[cl, off, _, fno] = f;
 		code = clcode(cl);
 		id = codename(code);
-		s = cid2str(id);
-		if(s[0] == '$')
-			/* elide system functions */
-			return;
 		switch(codekind(code)){
 		case 'builtin:
 //			printf("#%-4d %20s\t(builtin function)\n", cur, id);
@@ -320,13 +312,38 @@ load("prelude.cqct");
 			break;
 		}
 	}
-//	cnt = 0;
-	foreach(printframe, stackframes(stack));
+
+	foreach(printframe, uframes);
 }
 
-@define dumpk(k)
+@defloc userframes(stack)
 {
-	printstack(continuationstack(k));
+	@local rv, cnt, ucnt;
+
+	@defloc f(fr)
+	{
+		@local cl, s;
+		[cl, _] = fr;
+		s = cid2str(codename(clcode(cl)));
+		append(fr, cnt++);
+		if(s == "error")
+			return;
+		if(s[0] == '$')
+			/* elide system functions */
+			return;
+		append(fr, ucnt++);
+		append(rv, fr);
+	}
+	
+	rv = [];
+	cnt = ucnt = 0;
+	foreach(f, stackframes(stack));
+	return rv;
+}
+
+@define printstack(stack)
+{
+	$printstack(userframes(stack));
 }
 
 $repllevel = 0;
