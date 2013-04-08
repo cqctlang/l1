@@ -1,3 +1,3 @@
 error: invalid raw symbol table
-             mknsraw	(builtin function)
-               entry	(ns3.l1:3)
+	#0                 mknsraw	(builtin function)
+	#1                   entry	(ns3.l1:3)

@@ -1,4 +1,3 @@
 5
 error: undefined type: struct foo *
-               error	(builtin function)
-               entry	(mix2.l1:21)
+	#0                   entry	(mix2.l1:21)

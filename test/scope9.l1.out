@@ -1,4 +1,4 @@
 scope9.l1:5: warning: reference to unbound variable: unboundvar
 error: reference to unbound variable: unboundvar
-                 foo	(scope9.l1:5)
-               entry	(scope9.l1:15)
+	#0                     foo	(scope9.l1:5)
+	#1                   entry	(scope9.l1:15)

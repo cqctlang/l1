@@ -6,5 +6,5 @@ sizeof(dom`a) = 4
 sizeof(typeof(dom`a)) = 4
 typeof(x->foo) = int
 error: attempt to determine size of bitfield
-              sizeof	(builtin function)
-               entry	(typeof2.l1:66)
+	#0                  sizeof	(builtin function)
+	#1                   entry	(typeof2.l1:66)

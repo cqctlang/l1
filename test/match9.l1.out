@@ -1,5 +1,4 @@
 falling through
 ok
 error: attempt to fall through to a @match
-               error	(builtin function)
-               entry	(match9.l1:17)
+	#0                   entry	(match9.l1:17)

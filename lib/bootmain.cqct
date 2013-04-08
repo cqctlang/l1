@@ -177,10 +177,10 @@ load("prelude.cqct");
 					@local id, kind, idx, box;
 					[id, kind, idx, box] = d;
 					if(kind == 'free)
-						printf("\t%5s   %10s   %a\n",
+						printf("\t%-5s   %10s   %a\n",
 						       kind, id, box ? unbox(clref(cl, idx)) : clref(cl, idx));
 					else
-						printf("\t%5s   %10s   %a\n",
+						printf("\t%-5s   %10s   %a\n",
 						       kind, id, box ? unbox(live[idx]) : live[idx]);
 				}, rib);
 			loop(rlex);
@@ -195,7 +195,7 @@ load("prelude.cqct");
 			printf("no lexical information for frame #%d (%s)\n", fno, codename(code));
 			return;
 		}
-		printf("variables in frame #%d in %s", fno, codename(code));
+		printf("frame #%d is in %s", fno, codename(code));
 		src = codesrc(code, off);
 		if(src == nil)
 			printf("\n");
@@ -288,21 +288,17 @@ load("prelude.cqct");
 		id = codename(code);
 		switch(codekind(code)){
 		case 'builtin:
-//			printf("#%-4d %20s\t(builtin function)\n", cur, id);
-			printf("%20s\t(builtin function)\n", id);
+			printf("\t#%-4d %20s\t(builtin function)\n", fno, id);
 			break;
 		case 'native:
-//			printf("#%-4d %20s\t(native function)\n", cur, id);
-			printf("%20s\t(native function)\n", id);
+			printf("\t#%-4d %20s\t(native function)\n", fno, id);
 			break;
 		case 'alien:
-//			printf("#%-4d %20s\t(alien function)\n", cur, id);
-			printf("%20s\t(alien function)\n", id);
+			printf("\t#%-4d %20s\t(alien function)\n", fno, id);
 			break;
 		case 'byte:
 			src = codesrc(code, off);
-//			printf("#%-4d %20s", cur, id);
-			printf("%20s", id);
+			printf("\t#%-4d %20s", fno, id);
 			if(src == nil)
 				printf("\n");
 			else if(src[1] == nil)

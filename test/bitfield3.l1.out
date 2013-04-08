@@ -1,5 +1,5 @@
 warning: name space references undefined type:
 	foo
 error: attempt to read object of undefined type: foo
-                cval	(builtin function)
-               entry	(bitfield3.l1:85)
+	#0                    cval	(builtin function)
+	#1                   entry	(bitfield3.l1:85)

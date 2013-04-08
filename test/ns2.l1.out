@@ -3,5 +3,5 @@ warning: name space references undefined type:
 10 8 struct foo
 20 0 struct bar
 error: attempt to determine size of undefined type: struct baz
-              sizeof	(builtin function)
-               entry	(ns2.l1:27)
+	#0                  sizeof	(builtin function)
+	#1                   entry	(ns2.l1:27)
