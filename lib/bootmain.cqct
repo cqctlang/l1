@@ -244,9 +244,41 @@ load("prelude.cqct");
 		dump(loc[0]);
 	}
 
+	@defloc leval(form, ufno)
+	{
+		@local e, loc, fn;
+
+		@defloc wrap(body, ltab)
+		{
+			@local decl;
+			decl = #null;
+			foreach(@lambda(id, d){
+					@local val;
+					[_, _, _, _, val] = d;
+					decl = Zcons(#id(id), decl);
+					body = Zcons(#g(#id(id), #val(val)), body);
+				}, ltab);
+			return #block(decl, body);
+		}
+
+		loc = getlocs(ufno);
+		if(loc == nil)
+			return eval(form);
+
+		e = parse(form, "<eval-input>", 1);
+		if(e == nil)
+			return nil;
+		e = wrap(e, loc[1]);
+		fn = compile(e);
+		if(fn == nil)
+			return nil;
+		return fn();
+	}
+
 	@defloc debugloop()
 	{
-		@local s, tok, ufno;
+		@local s, tok, ufno, idx, form, rv;
+
 		printf("debug> ");
 		s = read(stdin, 1024);
 		if(s == nil){
@@ -284,6 +316,34 @@ load("prelude.cqct");
 				break;
 			}
 			dumplex(realfno(ufno));
+			break;
+		case "l":
+		case "leval":
+			if(length(tok) < 2){
+				printf("error: wrong number of arguments to \"leval\"\n");
+				break;
+			}
+			ufno = strton(tok[1]);
+			if(ufno == nil){
+				printf("error: \"locals\" requires a frame number\n");
+				break;
+			}
+			if(ufno < 0 || ufno >= length(fs)){
+				printf("error: invalid stack frame\n");
+				break;
+			}
+			idx = strstr(s, tok[1]);
+			form = substr(s, idx+length(tok[1]), length(s));
+			rv = leval(form, ufno);
+			if(rv != nil)
+				printf("%a\n", rv);
+			break;
+		case "e":
+		case "eval":
+			form = substr(s, length(tok[0]), length(s));
+			rv = eval(form);
+			if(rv != nil)
+				printf("%a\n", rv);
 			break;
 		case "bt":
 			$printstack(fs);
