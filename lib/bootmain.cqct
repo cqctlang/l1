@@ -145,9 +145,48 @@ load("prelude.cqct");
 	});
 }
 
+@defloc returnonexception(fn)
+{
+	@local olderr, oldint, done;
+
+	@defloc myerr(msg)
+	{
+		callcc(@lambda(k){
+				printf("error: %s\n", msg);
+				printstack(continuationstack(k));
+				done(nil);
+			});
+	}
+
+	@defloc myint()
+	{
+		callcc(@lambda(k){
+				printf("debugger evaluation interrupted\n");
+				printstack(continuationstack(k));
+				done(nil);
+			});
+	}
+
+	callcc(@lambda(k){
+			done = k;
+			dynamicwind(
+				@lambda(){
+					olderr = errorhandler;
+					oldint = interrupthandler;
+					errorhandler = myerr;
+					interrupthandler = myint;
+				},
+				fn,
+				@lambda(){
+					errorhandler = olderr;
+					interrupthandler = oldint;
+				});
+		});
+}
+
 @defloc $debug(k)
 {
-	@local stk, fs, locs;
+	@local stk, fs, locs, olderr, reset;
 
 	@defloc help()
 	{
@@ -334,14 +373,14 @@ load("prelude.cqct");
 			}
 			idx = strstr(s, tok[1]);
 			form = substr(s, idx+length(tok[1]), length(s));
-			rv = leval(form, ufno);
+			returnonexception(@lambda() { rv = leval(form, ufno); });
 			if(rv != nil)
 				printf("%a\n", rv);
 			break;
 		case "e":
 		case "eval":
 			form = substr(s, length(tok[0]), length(s));
-			rv = eval(form);
+			returnonexception(@lambda () { rv = eval(form); });
 			if(rv != nil)
 				printf("%a\n", rv);
 			break;
@@ -373,7 +412,26 @@ load("prelude.cqct");
 	stk = continuationstack(k);
 	fs = userframes(stk);
 	locs = mkvec(length(fs));
-	debugloop();
+
+	@defloc myerr(msg)
+	{
+		printf("oops!  debugger raised error: %s\n", msg);
+		printf("please report.\n");
+		reset(nil);
+	}
+
+	dynamicwind(
+		@lambda(){
+			olderr = errorhandler;
+			errorhandler = myerr;
+		},
+		@lambda(){
+			callcc(@lambda(k){ reset = k; });
+			debugloop();
+		},
+		@lambda(){
+			errorhandler = olderr;
+		});
 }
 
 @define debug()
