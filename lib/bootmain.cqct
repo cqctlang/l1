@@ -193,11 +193,13 @@ load("prelude.cqct");
 		printf("l1 debugger commands\n");
 		printf("\thelp, h, ?              display this help\n");
 		printf("\tbt                      display current backtrace\n");
-		printf("\tl, locals <n>           display variables in frame <n>\n");
-		printf("\tr, reset                reset repl\n");
+		printf("\tlocals, l <n>           display variables in frame <n>\n");
+		printf("\teval, e <expr>          evaluate <expr> in toplevel\n");
+		printf("\tleval <n> <expr>        evaluate <expr> in context of frame <n>\n");
+		printf("\treset, r                reset repl\n");
 		printf("\tnew                     start new repl\n");
 		printf("\tEOF, exit, quit, q      resume execution\n");
-		printf("\ta, abort                abort l1\n");
+		printf("\tabort, a                abort l1\n");
 	}
 
 	@defloc realfno(ufno)
@@ -336,7 +338,6 @@ load("prelude.cqct");
 			help();
 			break;
 		case "l":
-		case "loc":
 		case "locals":
 			if(length(tok) == 1)
 				ufno = 0;
@@ -356,7 +357,6 @@ load("prelude.cqct");
 			}
 			dumplex(realfno(ufno));
 			break;
-		case "l":
 		case "leval":
 			if(length(tok) < 2){
 				printf("error: wrong number of arguments to \"leval\"\n");
