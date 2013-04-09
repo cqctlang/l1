@@ -1,8 +1,8 @@
 /*
     Convenience functions for working with strings
 */
-
-
+@global strtoupper, strtolower, unistrtostr, utf16toutf8, utf8toutf16;
+{
 // convert cqct string to all upper case
 @define strtoupper(s) {
     @local i,ret;
@@ -102,4 +102,5 @@
     }
 
     return retstr;
+}
 }
