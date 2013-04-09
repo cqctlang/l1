@@ -93,7 +93,7 @@
 		{
 			callcc(@lambda(k){
 					printf("error: %s\n", msg);
-					kbacktrace(continuationstack(k));
+					printstack(continuationstack(k));
 					done(fail());
 				});
 		}

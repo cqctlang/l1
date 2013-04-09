@@ -11,9 +11,11 @@
 	load,
 	compile,
 	callfn,
+	pause,
 	repl,
 	$repllevel,
 	$l1start,
+	$lasterror,
 	printstack
 	;
 
@@ -115,6 +117,8 @@ load("prelude.cqct");
 	callcc(@lambda(errk){
 			printf("error: %s\n", msg);
 			printstack(continuationstack(errk));
+			$lasterror = errk;
+			printf("type \"debug();\" to enter the debugger.\n");
 			currentreset(nil);
 		});
 }
@@ -140,7 +144,7 @@ load("prelude.cqct");
 {
 	callcc(@lambda(k){
 		printf("\ninterrupted\n");
-		kbacktrace(continuationstack(k));
+		printstack(continuationstack(k));
 		exit(1);
 	});
 }
@@ -190,9 +194,9 @@ load("prelude.cqct");
 
 	@defloc help()
 	{
-		printf("l1 debugger commands\n");
+		printf("debugger commands\n");
 		printf("\thelp, h, ?              display this help\n");
-		printf("\tbt                      display current backtrace\n");
+		printf("\tstack, s, bt            display stack\n");
 		printf("\tlocals, l <n>           display variables in frame <n>\n");
 		printf("\teval, e <expr>          evaluate <expr> in toplevel\n");
 		printf("\tleval <n> <expr>        evaluate <expr> in context of frame <n>\n");
@@ -204,7 +208,7 @@ load("prelude.cqct");
 
 	@defloc realfno(ufno)
 	{
-		return fs[ufno][3];
+		return fs[ufno][2];
 	}
 
 	@defloc getlocs(ufno)
@@ -355,7 +359,7 @@ load("prelude.cqct");
 				printf("error: invalid stack frame\n");
 				break;
 			}
-			dumplex(realfno(ufno));
+			dumplex(ufno);
 			break;
 		case "leval":
 			if(length(tok) < 2){
@@ -384,6 +388,8 @@ load("prelude.cqct");
 			if(rv != nil)
 				printf("%a\n", rv);
 			break;
+		case "stack":
+		case "s":
 		case "bt":
 			$printstack(fs);
 			break;
@@ -416,6 +422,7 @@ load("prelude.cqct");
 	@defloc myerr(msg)
 	{
 		printf("oops!  debugger raised error: %s\n", msg);
+//		callcc(@lambda(k){ printstack(continuationstack(k)); });
 		printf("please report.\n");
 		reset(nil);
 	}
@@ -434,13 +441,25 @@ load("prelude.cqct");
 		});
 }
 
-@define debug()
+@define pause()
 {
 	callcc($debug);
 }
 
+@define debug()
+{
+	if($lasterror == nil)
+		printf("no error to debug\n");
+	else
+		$debug($lasterror);
+}
+
 @defloc $printstack(uframes)
 {
+	@local m, maxdepth;
+
+	maxdepth = 30;
+
 	@defloc printframe(f)
 	{
 		@local cl, off, code, id, src, fno;
@@ -470,7 +489,13 @@ load("prelude.cqct");
 		}
 	}
 
-	foreach(printframe, uframes);
+	m = length(uframes);
+	if(m > maxdepth){
+		foreach(printframe, slice(uframes, 0, maxdepth/2));
+		printf("\t...\n");
+		foreach(printframe, slice(uframes, m-maxdepth/2, m));
+	}else
+		foreach(printframe, uframes);
 }
 
 @defloc userframes(stack)
