@@ -147,7 +147,7 @@ load("prelude.cqct");
 
 @defloc $debug(k)
 {
-	@local stk, fs;
+	@local stk, fs, locs;
 
 	@defloc help()
 	{
@@ -161,15 +161,34 @@ load("prelude.cqct");
 		printf("\ta, abort                abort l1\n");
 	}
 
-	@defloc dumplex(fno)
+	@defloc realfno(ufno)
 	{
-		@local cl, code, live, lex, lidx, off, src;
+		return fs[ufno][3];
+	}
 
-		@defloc loop(lidx)
+	@defloc getlocs(ufno)
+	{
+		@local cl, off, code, live, lidx, lex, rv;
+		@local l, t;
+
+		if(locs[ufno] != nil)
+			return locs[ufno];
+
+		[cl, off] = fs[ufno];
+		live = liveinframe(stk, realfno(ufno));
+		code = clcode(cl);
+		lidx = codescope(code, off);
+		if(lidx == nil)
+			return nil;
+		lex = codelex(code);
+		if(lex == nil)
+			return nil;
+
+		@defloc collect(l, lidx)
 		{
 			@local rib, rlex;
 			if(lidx == nil)
-				return;
+				return reverse(l);
 			rib = lex[lidx];
 			rlex = rib[0];
 			rib = slice(rib, 1, length(rib));
@@ -177,25 +196,44 @@ load("prelude.cqct");
 					@local id, kind, idx, box;
 					[id, kind, idx, box] = d;
 					if(kind == 'free)
-						printf("\t%-5s   %10s   %a\n",
-						       kind, id, box ? unbox(clref(cl, idx)) : clref(cl, idx));
+						append(l, [id, kind, idx, box, 
+							   box ? unbox(clref(cl, idx)) : clref(cl, idx) ]);
 					else
-						printf("\t%-5s   %10s   %a\n",
-						       kind, id, box ? unbox(live[idx]) : live[idx]);
+						append(l, [id, kind, idx, box, 
+							   box ? unbox(live[idx]) : live[idx] ]);
 				}, rib);
-			loop(rlex);
+			collect(l, rlex);
 		}
 
-		[cl, off] = fs[fno];
-		live = liveinframe(stk, fno);
+		l = collect([], lidx);
+		t = [:];
+		foreach(@lambda(d) { t[d[0]] = d; }, l);
+		rv = [l, t];
+		locs[ufno] = rv;
+		return rv;
+	}
+
+	@defloc dumplex(ufno)
+	{
+		@local cl, code, off, src, loc;
+
+		@defloc dump(ls)
+		{
+			foreach(@lambda(d){
+					@local id, kind, val;
+					[id, kind, _, _, val] = d;
+					printf("\t%-5s   %10s   %a\n", kind, id, val);
+				}, ls);
+		}
+
+		[cl, off] = fs[ufno];
 		code = clcode(cl);
-		lidx = codescope(code, off);
-		lex = codelex(code);
-		if(lex == nil){
-			printf("no lexical information for frame #%d (%s)\n", fno, codename(code));
+		loc = getlocs(ufno);
+		if(loc == nil){
+			printf("no lexical information for frame #%d (%s)\n", ufno, codename(code));
 			return;
 		}
-		printf("frame #%d is in %s", fno, codename(code));
+		printf("frame #%d is in %s", ufno, codename(code));
 		src = codesrc(code, off);
 		if(src == nil)
 			printf("\n");
@@ -203,12 +241,12 @@ load("prelude.cqct");
 			printf(" (%s)\n", src[0]);
 		else
 			printf(" (%s:%d)\n", src[0], src[1]);
-		loop(lidx);
+		dump(loc[0]);
 	}
 
 	@defloc debugloop()
 	{
-		@local s, tok, fr;
+		@local s, tok, ufno;
 		printf("debug> ");
 		s = read(stdin, 1024);
 		if(s == nil){
@@ -230,10 +268,10 @@ load("prelude.cqct");
 		case "loc":
 		case "locals":
 			if(length(tok) == 1)
-				fr = 0;
+				ufno = 0;
 			else if(length(tok) == 2){
-				fr = strton(tok[1]);
-				if(fr == nil){
+				ufno = strton(tok[1]);
+				if(ufno == nil){
 					printf("error: \"locals\" requires a frame number\n");
 					break;
 				}
@@ -241,10 +279,14 @@ load("prelude.cqct");
 				printf("error: wrong number of arguments to \"locals\"\n");
 				break;
 			}
-			dumplex(fr);
+			if(ufno < 0 || ufno >= length(fs)){
+				printf("error: invalid stack frame\n");
+				break;
+			}
+			dumplex(realfno(ufno));
 			break;
 		case "bt":
-			printstack(continuationstack(k));
+			$printstack(fs);
 			break;
 		case "r":
 		case "reset":
@@ -269,7 +311,8 @@ load("prelude.cqct");
 	}
 
 	stk = continuationstack(k);
-	fs = stackframes(stk);
+	fs = userframes(stk);
+	locs = mkvec(length(fs));
 	debugloop();
 }
 
