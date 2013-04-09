@@ -4,6 +4,5 @@ applyk1.l1:9: warning: assignment to unbound variable: i
 applyk1.l1:9: warning: assignment to unbound variable: x
 okay
 error: hi
-               error	(builtin function)
-               entry	(applyk1.l1:12)
+	#0                   entry	(applyk1.l1:12)
 fail!
