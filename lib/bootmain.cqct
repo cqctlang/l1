@@ -4,6 +4,7 @@
 
 @global
 	args,
+	backtrace,
 	debug,
 	eval,
 	expand,
@@ -526,6 +527,11 @@ load("prelude.cqct");
 @define printstack(stack)
 {
 	$printstack(userframes(stack));
+}
+
+@define backtrace()
+{
+	callcc(@lambda(k){ printstack(continuationstack(k)); });
 }
 
 $repllevel = 0;
