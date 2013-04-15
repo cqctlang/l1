@@ -8,13 +8,6 @@
 @local uwns;	
 
 uwns = @names c32le {
-	enum
-	{
-		Nreg = 67,		/* # dwarf regs in amd64 abi */
-		CFA = Nreg,		/* index of CFA in Rule row */
-		Nrow = Nreg+1,		/* # entries in Rule row */
-	};
-
 	typedef
 	enum Rulekind
 	{
@@ -39,36 +32,11 @@ uwns = @names c32le {
 	return {@typeof(p)}getbytes(p);
 }
 
-// @defloc showrule(r)
-// {
-// 	printf("rule: kind=%e r=%d n=%d\n",
-// 	       (uwns`Rulekind)r.kind,
-// 	       r.r,
-// 	       r.n);
-// }
-
 @defloc getcfa(rules, getreg)
 {
 	@local r;
-	r = rules[uwns`CFA];
-	switch((uwns`Rulekind)r.kind){
-	case uwns`Rcfaro:
-		return getreg(r.r)+r.n;
-	case uwns`Rcfae:
-		error("unwind: rule Rcfae is unimplemented");
-	default:
-		error("unwind: bug");
-	}
-}
 
-@defloc applyunwind(rules, getreg, setreg, get, spno)
-{
-	@local cfa, i, r, needsp;
-
-	@defloc evalcfa()
-	{
-		@local r;
-		r = rules[uwns`CFA];
+	while(r = pop(rules)){
 		switch((uwns`Rulekind)r.kind){
 		case uwns`Rcfaro:
 			return getreg(r.r)+r.n;
@@ -78,28 +46,45 @@ uwns = @names c32le {
 			error("unwind: bug");
 		}
 	}
+	error("unwind: bug");
+}
 
-	cfa = evalcfa();
-	needsp = 0;
-	for(i = 0; i < uwns`Nreg; i++){
-		r = rules[i];
+@defloc applyunwind(rules, getreg, setreg, get, spno)
+{
+	@local cfa, r;
+
+	while(r = pop(rules)){
+		@local c;
+		c = r.c;
 		switch((uwns`Rulekind)r.kind){
+		case uwns`Rcfaro:
+			cfa = getreg(r.r)+r.n;
+//			printf("applyunwind: reg %d rule %e r %d n %d -> %p\n", i, (uwns`Rulekind)r.kind, r.r, r.n, cfa);
+			break;
 		case uwns`Rnone:
-			if(i == spno)
-				needsp = 1;
+//			printf("applyunwind: reg %d rule %e\n", i, (uwns`Rulekind)r.kind);
 			break;
 		case uwns`Rsame:
-			setreg(i, getreg(i));
+			setreg(c, getreg(c));
+//			printf("applyunwind: reg %d rule %e\n", i, (uwns`Rulekind)r.kind);
 			break;
 		case uwns`Roff:
-			setreg(i, get(cfa+r.n));
+			if(cfa == nil)
+				error("unwind: rules reference CFA before defining it");
+			setreg(c, get(cfa+r.n));
+//			printf("applyunwind: reg %d rule %e n %d -> %x\n", i, (uwns`Rulekind)r.kind, r.n, get(cfa+r.n));
 			break;
 		case uwns`Rvoff:
-			setreg(i, cfa+r.n);
+			if(cfa == nil)
+				error("unwind: rules reference CFA before defining it");
+			setreg(c, cfa+r.n);
+//			printf("applyunwind: reg %d rule %e\n", i, (uwns`Rulekind)r.kind);
 			break;
 		case uwns`Rreg:
-			setreg(i, getreg(r.r));
+			setreg(c, getreg(r.r));
+//			printf("applyunwind: reg %d rule %e\n", i, (uwns`Rulekind)r.kind);
 			break;
+		case uwns`Rcfae:
 		case uwns`Rexp:
 		case uwns`Rvexp:
 			error("unwind: rule %e is unimplemented",
@@ -109,8 +94,10 @@ uwns = @names c32le {
 		}
 	}
 
-	if(needsp)
-		setreg(spno, cfa);
+	// we assume the ABI defines SP to be CFA.
+	// however, we cannot find such a definition
+	// published for i386/x86_64.
+	setreg(spno, cfa);
 }
 
 @defloc mkuwctx32(dom, ctx)

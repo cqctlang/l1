@@ -64,6 +64,7 @@ nexttag = 0;
 
 @record uwrulerec {
 	kind,
+	c,
 	r,
 	n,
 };
@@ -605,34 +606,68 @@ nexttag = 0;
 
 @define encodeuwrules(q, rs)
 {
+	@local r;
+
+	if(length(rs) == 0)
+		error("ill-defined rules");
+	rs = copy(rs);
+
+	/* CFA rule */
+	r = pop(rs);
+	q = (uint8*)q;
+	*q++ = r.kind;
+	q = (uint64*)q;
+	*q++ = r.r;
+	q = (int64*)q;
+	*q++ = r.n;
+
+	/* register rules */
 	q = (uint32*)q;
 	*q++ = length(rs);
 	foreach(@lambda(r){
 			q = (uint8*)q;
 			*q++ = r.kind;
 			q = (uint64*)q;
+			*q++ = r.c;
+			q = (uint64*)q;
 			*q++ = r.r;
 			q = (int64*)q;
 			*q++ = r.n;
 		}, rs);
+
 	return q;
 }
 
 @define decodeuwrules(q)
 {
-	@local rs, m, i, k, r, n;
+	@local rs, m, i, c, k, r, n;
+
 	rs = [];
+
+	/* CFA rule */
+	q = (uint8*)q;
+	k = *q++;
+	q = (uint64*)q;
+	r = *q++;
+	q = (int64*)q;
+	n = *q++;
+	append(rs, uwrulerec(k, nil, r, n));
+
+	/* register rules */
 	q = (uint32*)q;
 	m = *q++;
 	for(i = 0; i < m; i++){
 		q = (uint8*)q;
 		k = *q++;
 		q = (uint64*)q;
+		c = *q++;
+		q = (uint64*)q;
 		r = *q++;
 		q = (int64*)q;
 		n = *q++;
-		append(rs, uwrulerec(k, r, n));
+		append(rs, uwrulerec(k, c, r, n));
 	}
+
 	return [rs, q];
 }
 
