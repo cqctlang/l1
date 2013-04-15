@@ -1,5 +1,6 @@
 /* requires <sctlns.cqct> */
 @include <sctlmux.cqct>
+@include <sctl-arm-linux.cqct>
 @include <sctl-x86-linux.cqct>
 @include <dwarf.cqct>
 @include <debugutil.cqct>
