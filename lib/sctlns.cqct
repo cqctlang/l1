@@ -19,13 +19,16 @@
 	sctllooksrc,
 	sctllookpc,
 	sctlenumloc,
+	sctlnsinfo,
 	sctlsrv,
 
 	/* name space codecs */
+	decodensinfo,
 	decodetname,
 	decodeuwrules,
 	encodelexpr,
 	encodectx,
+	encodensinfo,
 	encodesrc,
 	encodesym,
 	encodetdef,
@@ -73,6 +76,14 @@ nexttag = 0;
 	file,
 	line,
 	col,
+};
+
+@record nsinfo {
+	path,
+	size,
+	enc,		
+	abi,
+	arch,
 };
 
 @defloc encodeattrs(p, attrs)
@@ -604,6 +615,31 @@ nexttag = 0;
 	}
 }
 
+@define encodensinfo(q, nsi)
+{
+	q = encodes(q, nsi.path);
+	q = (uint8*)q;
+	*q++ = nsi.size;
+	*q++ = nsi.enc;
+	*q++ = nsi.abi;
+	q = (uint32*)q;
+	*q++ = nsi.arch;
+	return q;
+}
+
+@define decodensinfo(q)
+{
+	@local path, size, enc, abi, arch;
+	[path, q] = decodes(q);
+	q = (uint8*)q;
+	size = *q++;
+	enc = *q++;
+	abi = *q++;
+	q = (uint32*)q;
+	arch = *q++;
+	return [nsinfo(path, size, enc, abi, arch), q];
+}
+
 @define encodeuwrules(q, rs)
 {
 	@local r;
@@ -1016,6 +1052,28 @@ nexttag = 0;
 	return ls;
 }
 
+@define sctlnsinfo(fd, nsid)
+{
+	@local p, m, q, rep, dat, nsi;
+
+	p = m = mkxs();
+	p = (sctl`Msg*)p;
+	p->op = sctl`Tnsinfo;
+	p->tag = freshtag();
+	p++;
+	p = (uint64*)p;
+	*p++ = nsid;
+	p = (char*)p;
+	sendsctlmsg(fd, m, p-m);
+
+	[rep, _, dat] = recvsctlmsg(fd);
+	checkreply(rep, dat, sctl`Rnsinfo);
+
+	q = (uint64*)dat;
+	[nsi, q] = decodensinfo(q);
+	return nsi;
+}
+
 @define sctlsrv(fd, n)
 {
 	@local p, m, rep, dat;
@@ -1184,6 +1242,11 @@ nexttag = 0;
 		return sctllookpc(fd, nsid, file, line);
 	}
 
+	@defloc nsinfo(this)
+	{
+		return sctlnsinfo(fd, nsid);
+	}
+
 	@defloc rebind(this, nfd)
 	{
 		fd = nfd;
@@ -1203,6 +1266,7 @@ nexttag = 0;
 		    "enumloc"  : el,
 		    "looksrc"  : lsrc,
 		    "lookpc"   : lpc,
+		    "nsinfo"   : nsinfo,
 		    "rebind"   : rebind,
 		  ]);
 	return ns;

@@ -96,11 +96,11 @@ uwns = @names c32le {
 
 	// we assume the ABI defines SP to be CFA.
 	// however, we cannot find such a definition
-	// published for i386/x86_64.
+	// published for i386/amd64.
 	setreg(spno, cfa);
 }
 
-@defloc mkuwctx32(dom, ctx)
+@defloc mkuwctxi386(dom, ctx)
 {
 	@local new;
 
@@ -149,7 +149,7 @@ uwns = @names c32le {
 	return [g, s, m, new, 4];
 }
 
-@defloc mkuwctx64(dom, ctx)
+@defloc mkuwctxamd64(dom, ctx)
 {
 	@local new;
 
@@ -232,6 +232,23 @@ uwns = @names c32le {
 	return [g, s, m, new, 7];
 }
 
+@defloc pickmkuwctx(ns)
+{
+	@local nsi;
+	nsi = ns.nsinfo();
+	switch((sctl`Nsarch)nsi.arch){
+	case sctl`i386:
+		return mkuwctxi386;
+	case sctl`amd64:
+		return mkuwctxamd64;
+	case sctl`arm:
+		return mkuwctxarm;
+	default:
+		error("unwind: unsupported architecture: %e",
+		      (sctl`Nsarch)nsi.arch);
+	}
+}
+
 @define dwunwind1(ctx, as, nsmap)
 {
 	@local fp, dom, ns, rs, mkuwctx;
@@ -246,7 +263,7 @@ uwns = @names c32le {
 	rs = ns.unwind1(ctx->pc);
 	if(rs == nil)
 		goto guess;
-	mkuwctx = sizeof(ns`void*) == 8 ? mkuwctx64 : mkuwctx32;
+	mkuwctx = pickmkuwctx(ns);
 	[g, s, m, new, spno] = mkuwctx(dom, ctx);
 	applyunwind(rs, g, s, m, spno);
 	return new; 
@@ -267,7 +284,7 @@ guess:
 	rs = ns.unwind1(ctx->pc);
 	if(rs == nil)
 		error("cannot determine cfa for pc %p", ctx->pc);
-	mkuwctx = sizeof(ns`void*) == 8 ? mkuwctx64 : mkuwctx32;
+	mkuwctx = pickmkuwctx(ns);
 	[g, _, _, _, _] = mkuwctx(dom, ctx);
 	return getcfa(rs, g);
 }
