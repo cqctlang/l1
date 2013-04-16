@@ -38,7 +38,7 @@ stxtab = mktab();
 
 	@defloc dispatch(id, args, body)
 	{
-		@local pat, b, l, ad, i, m;
+		@local pat, b, l, ad, i, m, r;
 		pat = stxtab[id];
 		if(pat == nil)
 			error("cannot expand @%a form", stxid(id));
@@ -66,7 +66,11 @@ stxtab = mktab();
 		}
 		if(body)
 			l = push(l, body);
-		return apply(pat[2], l);
+		r = apply(pat[2], l);
+		if (!isstx(r)) {
+		    error("Macro @%a failed to produce valid syntax",stxid(id));
+		}
+		return r;
 	}
 
 	@defloc unquasi(e)

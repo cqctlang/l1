@@ -1,0 +1,8 @@
+
+
+
+@defstx @badstx(a) body {
+    return nil;
+}
+
+@badstx(1) { 2; }
