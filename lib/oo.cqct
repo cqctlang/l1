@@ -42,7 +42,7 @@ to be the name of the kind of object.
 */
 
 @defstx @object(name) body {
-    @local new_locals, new_body;
+    @local new_locals, new_body, old_body;
 
     @defloc body_stmts_locals(b) {
         switch(b) {
