@@ -1,0 +1,96 @@
+/*
+Object helper macro.
+
+Example usage:
+
+@object(Name) {
+    @locals a,b; //private vars
+
+    [a,b] = args; //args are passed in the constructor
+
+    this.public = a+1; //this refers to this object
+
+    //defines this.ftn1()
+    @define ftn1() {
+        printf("ran ftn1: %d\n",this.public);
+    }
+
+    //defines this.ftn2(param)
+    @define ftn2(param) {
+        this.public = param;
+        ftn2(); 
+        this.ftn2(); //equivalent to above call
+    }
+
+}
+
+name = Name(1,2);
+name.ftn1(); //runs ftn1 defined above
+name.ftn2(); //runs ftn2 defined above
+name.public; //equivalent to "this.public" above
+
+Creates a function Name(args...) that returns a table
+with keys ftn1 and ftn2 set to the given @define's
+
+Inside the @object body, one is provided with the following:
+
+ [this]   refers to the current object (which will be returned)
+ [args]   refers to parameters to the Creation object
+
+The returned table will always have the key 'type defined
+to be the name of the kind of object. 
+*/
+
+@defstx @object(name) body {
+    @local new_locals, new_body;
+
+    @defloc body_stmts_locals(b) {
+        switch(b) {
+        @match #scope(bl):
+            return body_stmts_locals(bl);
+        @match #block(l,c):
+            return [l,c];
+        default:
+            error("b must be a #scope or a #block stx");
+        }
+        error("shouldn't get here.");
+    }
+
+
+    [new_locals,old_body] = body_stmts_locals(body);
+    new_body = #[];
+
+    new_locals = Zcons(#id('this),new_locals);
+
+    foreach(@lambda(e) {
+
+        if (stxkind(e) == 'define) {
+
+            new_locals = Zcons(stxref(e,0),new_locals);
+            //this.ftn_id = ftn_id;
+            new_body = Zcons( #g( #dot( #id('this), 
+                                    stxref(e,0) ), 
+                              stxref(e,0) ), new_body);
+        }
+
+    }, old_body);
+
+    new_body = Zappend(old_body,new_body);
+
+    //__name = stxid(name)
+    new_body = Zcons( #g( #dot(#id('this),#id('type)) , 
+                          #val( stxid(name) )), 
+                      new_body);
+    new_body = Zappend( #'{ 
+        this = mktab(@lambda() 
+                { 
+                    error("reference to undefined member of %s", 
+                            this.type); 
+                });
+    }, new_body);
+
+    new_body = Zappend( new_body, #'{ return this; } );
+
+    return #define( name, #[ #id('args), #ellipsis() ], 
+                    #scope(#block(new_locals,new_body)) );
+}
