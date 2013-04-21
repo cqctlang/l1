@@ -595,6 +595,19 @@ $repllevel = 0;
 	       });
 }
 
+@defloc usage(argv0)
+{
+	fprintf(stderr, "usage: %s [flags] [ <script> [ arg ... ] ]\n", argv0);
+	fprintf(stderr, "\t-h print this usage\n");
+	fprintf(stderr, "\t-l <dir> add <dir> to the load path\n");
+	fprintf(stderr, "\t-m <file> initialize heap from <file>\n");
+	fprintf(stderr, "\t-s suppress default load path\n");
+	fprintf(stderr, "\t-x <expr> evaluate <expr>\n");
+	fprintf(stderr, "\t-e <symbol> enter script at function named <symbol>\n");
+	exit(0);
+
+}
+
 @defloc parseargs(args)
 {
 	@local arg;
@@ -626,7 +639,7 @@ $repllevel = 0;
 			entry = mkcid(pop(args));
 			continue;
 		}
-		/* else eat option */
+		usage(l1path);
 	}
 	cmd = args;
 	if(entry && length(cmd) == 0)

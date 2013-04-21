@@ -28,6 +28,8 @@ usage()
 	fprintf(stderr, "\t-l <dir> add <dir> to the load path\n");
 	fprintf(stderr, "\t-m <file> initialize heap from <file>\n");
 	fprintf(stderr, "\t-s suppress default load path\n");
+	fprintf(stderr, "\t-x <expr> evaluate <expr>\n");
+	fprintf(stderr, "\t-e <symbol> enter script at function named <symbol>\n");
 	exit(0);
 }
 
@@ -317,6 +319,8 @@ main(int argc, char *argv[])
 			opt['s'] = 1;
 			memmove(argv+i, argv+i+1, (argc-i-1)*sizeof(char*));
 			argc--;
+		}else if(strcmp("-h", argv[i]) == 0){
+			usage();
 		}else{
 			/* pass through legacy flags referenced by run time */
 			if(argv[i][0] == '-' && strlen(argv[i]) == 2)
