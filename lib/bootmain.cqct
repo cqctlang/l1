@@ -639,6 +639,8 @@ $repllevel = 0;
 			entry = mkcid(pop(args));
 			continue;
 		}
+		if(arg == "-p" || arg == "-q" || arg == "-w" || arg == "-K")
+			continue; /* legacy flags */
 		usage(l1path);
 	}
 	cmd = args;
