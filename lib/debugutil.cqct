@@ -33,6 +33,16 @@
 	return s;
 }
 
+@define dumpstack(ctl)
+{
+	@local ctxs;
+	ctxs = ctl.unwind();
+	foreach(@lambda(ctx){
+			printf("%s\n", fmtframe(ctl, ctx));
+		}, ctxs);
+	printf("\n");
+}
+
 @define dumpstacklocs(ctl)
 {
 	@local ctxs;

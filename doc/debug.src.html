@@ -2303,6 +2303,24 @@ in <span class="arg">ctl</span>.
 </div>
 </div>
 
+<div class="docitem" id="fn:dumpstack">
+<div class="proto">
+<div class="function">
+<span class="id">dumpstack(<span class="arg">ctl</span>)</span>
+</div>
+<div class="param">
+<span class="arg">ctl</span>: <span class="type">ctl</span>
+</div>
+<div class="returns">
+<span class="type">nil</span>
+</div>
+</div>
+<div class="desc">
+Prints to <span class="id">stdout</span> the current call
+stack of <span class="arg">ctl</span>.
+</div>
+</div>
+
 <div class="docitem" id="fn:dumpstacklocs">
 <div class="proto">
 <div class="function">
@@ -2317,7 +2335,7 @@ in <span class="arg">ctl</span>.
 </div>
 <div class="desc">
 Prints to <span class="id">stdout</span> the current call
-stack of <span class="arg">ctl</span>, including source code
+stack of <span class="arg">ctl</span>, as well as source code
 location and local variable information.
 </div>
 </div>
@@ -3093,6 +3111,7 @@ of the defining object type in parentheses.
 <a href="#fn:ctldetach">detach</a> (ctl)<br />
 <a href="#fn:ctldialect">dialect</a> (ctl)<br />
 <a href="#fn:ctldom">dom</a> (ctl)<br />
+<a href="#fn:dumpstack">dumpstack</a><br />
 <a href="#fn:dumpstacklocs">dumpstacklocs</a><br />
 <a href="#fn:nsmapeach">each</a> (nsmap)<br />
 <a href="#fn:nsenumloc">enumloc</a> (ns)<br />
