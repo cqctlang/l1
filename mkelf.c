@@ -67,6 +67,7 @@ struct Sys
 static Sys systems[] =
 {
 	{ "i386",   ELFCLASS32, EM_386 },
+	{ "i686",   ELFCLASS32, EM_386 },
 	{ "amd64",  ELFCLASS64, EM_X86_64 },
 	{ "x86_64", ELFCLASS64, EM_X86_64 },
 	{ "armv7l", ELFCLASS32, EM_ARM },
@@ -76,13 +77,13 @@ static Sys systems[] =
 static Sys*
 looksys(char *machid)
 {
-	unsigned i;
 	Sys *s;
-	for(i = 0, s = systems;
-	    i < sizeof(systems)/sizeof(systems[0]);
-	    i++, s++)
+	s = systems;
+	while(s->machid){
 		if(!strcmp(machid, s->machid))
 			return s;
+		s++;
+	}
 	return 0;
 }
 
