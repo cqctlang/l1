@@ -1859,7 +1859,7 @@ copystack(void **basep, u32 stxsz, void **rap, Closure *cl, u32 fpo, u8 *min)
 					gcopy(lp, min);
 
 		/* copy code and update ra */
-		if(cp){
+		if(cp->kind == Cvm){
 			coff = (void*)ra-(void*)cp;
 			gcopy((Val*)&cp, min);
 			ra = (void*)cp+coff;
@@ -1877,7 +1877,7 @@ copystack(void **basep, u32 stxsz, void **rap, Closure *cl, u32 fpo, u8 *min)
 
 	/* copy ra at base of stack if any */
 	cp = cl->code;
-	if(cp){
+	if(cp->kind == Cvm){
 		coff = (void*)ra-(void*)cp;
 		gcopy((Val*)&cp, min);
 		ra = (void*)cp+coff;
