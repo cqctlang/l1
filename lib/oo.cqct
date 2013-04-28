@@ -4,24 +4,46 @@ Object helper macro.
 Example usage:
 
 @object(Name) {
-    @locals a,b; //private vars
+    @local a,b; //private vars
+    @local super; //super class
 
-    [a,b] = args; //args are passed in the constructor
+    [a,b] = args; //args is the list of arguments passed to the constructor
+
+    //can reference arbitrary other objects
+    super = OtherObject();
+
+    //at this point, for all X for which super.X is defined, this.X will be
+    //given that value. (any this.X that had been set previously will be over
+    //written)
+    @inherit(super);
+    //alternatively (no direct references to super)
+    //@inherit(OtherObject())
 
     this.public = a+1; //this refers to this object
 
-    //defines this.ftn1()
+    //this.ftn1(); //would give an error b/c ftn1 has not yet been defined
+
+    //defines this.ftn1() (was undefined to this point)
     @define ftn1() {
         printf("ran ftn1: %d\n",this.public);
     }
 
+    //this.ftn1(); //now works.
+
+    //multiple @inherit can be specified. 
+    //Note that if Super2 defines a method named "public" or ftn1, then the
+    //above assignment would be overwritten by this statement (if the local
+    //assignment came after the @inherit, then it wouldn't be overwritten)
+    @inherit(Super2(a,a)); 
+
     //defines this.ftn2(param)
     @define ftn2(param) {
         this.public = param;
-        ftn2(); 
-        this.ftn2(); //equivalent to above call
+        ftn1(); 
+        this.ftn1(); //equivalent to above call
     }
 
+    //not allowed to use 'return'
 }
 
 name = Name(1,2);
@@ -62,20 +84,43 @@ to be the name of the kind of object.
 
     new_locals = Zcons(#id('this),new_locals);
 
-    foreach(@lambda(e) {
+    new_body = map(@lambda(e) {
 
-        if (stxkind(e) == 'define) {
+        switch(stxkind(e)) {
+        case 'define:
 
             new_locals = Zcons(stxref(e,0),new_locals);
-            //this.ftn_id = ftn_id;
-            new_body = Zcons( #g( #dot( #id('this), 
-                                    stxref(e,0) ), 
-                              stxref(e,0) ), new_body);
+            //add this.ftn_id = ftn_id;
+            //after the @define
+            return Zcons( e,
+                          Zcons( #g( #dot( #id('this), 
+                                      stxref(e,0) ), 
+                                  stxref(e,0) ), 
+                                 #[]));
+        case 'mcall:
+
+            if (stxid(stxref(e,0)) == 'inherit) {
+                @local theid;
+                theid = stxref(stxref(e,1),0);
+                return #`{
+                    {
+                        @local super;
+                        super = #,(theid);
+                        if (!istable(super)) {
+                            error("%a is not a table",super);
+                        }
+                        foreach(@lambda(x) {
+                            this[x] = super[x];
+                        }, tabkeys(super));
+                    }
+                };
+            } else return e;
+
+        default:
+            return e;
         }
 
     }, old_body);
-
-    new_body = Zappend(old_body,new_body);
 
     //__name = stxid(name)
     new_body = Zcons( #g( #dot(#id('this),#id('type)) , 
