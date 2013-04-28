@@ -11,6 +11,7 @@
 
 @include <callcc.cqct>
 @include <dynamicwind.cqct>
+@include <dispatch.cqct>
 @include <stx.cqct>
 @include <control.cqct>
 @include <gc.cqct>
