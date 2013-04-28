@@ -1799,7 +1799,7 @@ vapply(VM *vm)
 
 	  vm on exit (when fn is bytecode):
 
-	    ac = unchanged
+	    ac = nil (default return value for builtins)
 	    cl = fn
 	    pc = codeentry(fn->code)
 	    vc = n
@@ -1832,6 +1832,7 @@ vapply(VM *vm)
 		fp[Oarg0+sarg+i] = listref(l, i);
 	vm->vc = sarg+m;
 	vm->cl = valcl(fn);
+	vm->ac = Xnil;
 
 	/* make the call */
 	c = vm->cl->code;
