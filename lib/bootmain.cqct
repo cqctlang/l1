@@ -14,6 +14,7 @@
 	callfn,
 	pause,
 	repl,
+	tracecompiler,
 	$repllevel,
 	$l1start,
 	$lasterror,
@@ -33,6 +34,10 @@
 	{
 		@local err;
 		e = topwrap(e);
+		if(tracecompiler){
+			printf("*** compiler input ***\n");
+			pp(e);
+		}
 		callcc(@lambda(done){
 				@defloc myerr(msg)
 				{
@@ -45,8 +50,13 @@
 					    },
 					    @lambda(){
 						    @local i;
-						    for(i = 0; i < npass; i++)
+						    for(i = 0; i < npass; i++){
 							    e = passes[i](e);
+							    if(tracecompiler && isstx(e)){
+								    printf("*** %s ***\n", codename(clcode(passes[i])));
+								    pp(e);
+							    }
+						    }
 						    return e;
 					    },
 					    @lambda(){
