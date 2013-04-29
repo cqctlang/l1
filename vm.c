@@ -5791,49 +5791,6 @@ l1_ismapped(VM *vm, Imm argc, Val *argv, Val *rv)
 		*rv = mkvalcval2(cval0);
 }
 
-static void
-l1_getbytes(VM *vm, Imm iargc, Val *iargv, Val *rv)
-{
-	Cval *addr, *len;
-	Imm n;
-	Ctype *t;
-
-	if(iargc != 1 && iargc != 2)
-		vmerr(vm, "wrong number of arguments to getbytes");
-	checkarg(vm, iargv, 0, Qcval);
-	addr = valcval(iargv[0]);
-	t = chasetype(addr->type);
-	if(t->tkind != Tptr)
-		vmerr(vm, "operand 1 to getbytes must be a pointer");
-	if(iargc == 2){
-		checkarg(vm, iargv, 1, Qcval);
-		len = valcval(iargv[1]);
-		n = cvalu(len);
-	}else
-		n = typesize(vm, subtype(t));
-	*rv = mkvalstr(getbytes(vm, addr, n));
-}
-
-static void
-l1_putbytes(VM *vm, Imm iargc, Val *iargv, Val *rv)
-{
-	Cval *addr;
-	Str *str;
-	Ctype *t;
-
-	if(iargc != 2)
-		vmerr(vm, "wrong number of arguments to putbytes");
-	checkarg(vm, iargv, 0, Qcval);
-	checkarg(vm, iargv, 1, Qstr);
-	addr = valcval(iargv[0]);
-	str = valstr(iargv[1]);
-	t = chasetype(addr->type);
-	if(t->tkind != Tptr)
-		vmerr(vm, "operand 1 to putbytes must be a pointer");
-	callput(vm, addr->dom->as, cvalu(addr), str->len, str);
-	USED(rv);
-}
-
 static Imm
 cntrlen(VM *vm, char *name, Val v)
 {
@@ -7413,7 +7370,6 @@ mktopenv(void)
 	FN(gc);
 	FN(gcpoll);
 	FN(gcstats);
-	FN(getbytes);
 	FN(gettoplevel);
 	FN(hash);
 	FN(hashq);
@@ -7474,7 +7430,6 @@ mktopenv(void)
 	FN(pop);
 	FN(pp);
 	FN(printcode);
-	FN(putbytes);
 	FN(qtype);
 	FN(rangebeg);
 	FN(rangelen);
