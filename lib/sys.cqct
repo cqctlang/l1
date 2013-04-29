@@ -1,5 +1,4 @@
-// the purpose of these bindings is to 
-// offer convenient syscall wrappers
+// convenient syscall wrappers
 // that offer semantics that closely
 // resemble the low-level semantics
 // available in C programs through
@@ -140,19 +139,19 @@ sys_dup2 = @lambda(fd1,fd2) {
 
 @global posix;
 posix = @names myrootns() {
-  enum Stat_modes {
-    S_IFMT	= 00170000,
-    S_IFSOCK	= 0140000,
-    S_IFLNK	= 0120000,
-    S_IFREG	= 0100000,
-    S_IFBLK	= 0060000,
-    S_IFDIR	= 0040000,
-    S_IFCHR	= 0020000,
-    S_IFIFO	= 0010000,
-    S_ISUID	= 0004000,
-    S_ISGID	= 0002000,
-    S_ISVTX	= 0001000,
-  };
+	enum Stat_modes {
+		S_IFMT	= 00170000,
+		S_IFSOCK	= 0140000,
+		S_IFLNK	= 0120000,
+		S_IFREG	= 0100000,
+		S_IFBLK	= 0060000,
+		S_IFDIR	= 0040000,
+		S_IFCHR	= 0020000,
+		S_IFIFO	= 0010000,
+		S_ISUID	= 0004000,
+		S_ISGID	= 0002000,
+		S_ISVTX	= 0001000,
+	};
 };
 
 //S_ISREG = @lambda(statbuf) {
@@ -160,27 +159,27 @@ posix = @names myrootns() {
 
 @global S_ISDIR;
 S_ISDIR = @lambda(statbuf) {
-  return (statbuf->st_mode & posix`S_IFDIR) ? 1 : 0;
+	return (statbuf->st_mode & posix`S_IFDIR) ? 1 : 0;
 };
 
 @global S_ISCHR;
 S_ISCHR = @lambda(statbuf) {
-  return (statbuf->st_mode & posix`S_IFCHR) ? 1 : 0;
+	return (statbuf->st_mode & posix`S_IFCHR) ? 1 : 0;
 };
 
 @global S_ISBLK;
 S_ISBLK = @lambda(statbuf) {
-  return (statbuf->st_mode & posix`S_IFBLK) ? 1 : 0;
+	return (statbuf->st_mode & posix`S_IFBLK) ? 1 : 0;
 };
 
 @global S_ISFIFO;
 S_ISFIFO = @lambda(statbuf) {
-  return (statbuf->st_mode & posix`S_IFIFO) ? 1 : 0;
+	return (statbuf->st_mode & posix`S_IFIFO) ? 1 : 0;
 };
 
 @global S_ISLNK;
 S_ISLNK = @lambda(statbuf) {
-  return (statbuf->st_mode & posix`S_ISLNK) ? 1 : 0;
+	return (statbuf->st_mode & posix`S_ISLNK) ? 1 : 0;
 };
 
 //S_ISSOC = @lambda(m) {
@@ -188,58 +187,58 @@ S_ISLNK = @lambda(statbuf) {
 
 @global sys_fstat;
 sys_fstat = @lambda(fd,statbuf) {
-  @local m,r,l;
+	@local m,r,l;
 
-  l=sizeof(struct unix`stat);
+	l=sizeof(struct unix`stat);
 
-  m=__malloc(l);
-  if(0 > m)
-    error("fstat: couldn't allocate stat buf");
+	m=__malloc(l);
+	if(0 > m)
+		error("fstat: couldn't allocate stat buf");
 
-  if(isstring(statbuf)) {
-    if(length(statbuf) > l) {
-      putbytes(m,substr(statbuf,0,l));
-    } else {
-      putbytes(m,statbuf);
-    }
-  } else {
-    memcpy(m,statbuf,l);
-  }
+	if(isstring(statbuf)) {
+		if(length(statbuf) > l) {
+			putbytes(m,substr(statbuf,0,l));
+		} else {
+			putbytes(m,statbuf);
+		}
+	} else {
+		memcpy(m,statbuf,l);
+	}
 
-  r=syscall(unix`fstat,fd,m);
+	r=syscall(unix`fstat,fd,m);
 
-  m=(struct unix`stat *)m;
+	m=(struct unix`stat *)m;
 
-  if(!r) {
-    putbytes(statbuf,getbytes(m,sizeof(*m)));
-  }
+	if(!r) {
+		putbytes(statbuf,getbytes(m,sizeof(*m)));
+	}
 
-  return r;
+	return r;
 };
 
 @global FD_ALLOC;
 FD_ALLOC=@lambda() {
-  return (unsigned char *)__malloc(128);
+	return (unsigned char *)__malloc(128);
 };
 
 @global FD_ISSET;
 FD_ISSET=@lambda(fd,set) {
-  @local bit,byte;
-  byte=(fd)>>3;
-  bit=1<<(fd - (byte*8));
-  if(set[byte]&bit) {
-    return 1;
-  } else {
-    return 0;
-  }
+	@local bit,byte;
+	byte=(fd)>>3;
+	bit=1<<(fd - (byte*8));
+	if(set[byte]&bit) {
+		return 1;
+	} else {
+		return 0;
+	}
 };
 
 @global FD_SET;
 FD_SET=@lambda(fd,set) {
-    @local bit,byte;
-    byte=(fd)>>3;
-    bit=1<<(fd - (byte*8));
-    set[byte]|=bit;
+	@local bit,byte;
+	byte=(fd)>>3;
+	bit=1<<(fd - (byte*8));
+	set[byte]|=bit;
 };
 
 @global sys_pselect;
@@ -247,187 +246,186 @@ FD_SET=@lambda(fd,set) {
 @global selnr;
 selnr=nil;
 if(looksym(unix,'select)) {
-  selnr=unix`select;
+	selnr=unix`select;
 } else if(looksym(unix,'_newselect)) {
-  selnr=unix`_newselect;
+	selnr=unix`_newselect;
 }
 if(selnr) {
 sys_pselect = @lambda(n,rfds,wfds,xfds,timeout,sigmask) {
-  @local rfds_foo,wfds_foo,xfds_foo,timeout_foo,r,x,rr,rw,rx;
-  @local maxbyte;
+	@local rfds_foo,wfds_foo,xfds_foo,timeout_foo,r,x,rr,rw,rx;
+	@local maxbyte;
 
-  rfds_foo=FD_ALLOC();
-  wfds_foo=FD_ALLOC();
-  xfds_foo=FD_ALLOC();
+	rfds_foo=FD_ALLOC();
+	wfds_foo=FD_ALLOC();
+	xfds_foo=FD_ALLOC();
 
-  maxbyte=n>>3;
-  for(x=0;x<=maxbyte;x++) {
-    rfds_foo[x]=0;
-    wfds_foo[x]=0;
-    xfds_foo[x]=0;
-  }
+	maxbyte=n>>3;
+	for(x=0;x<=maxbyte;x++) {
+		rfds_foo[x]=0;
+		wfds_foo[x]=0;
+		xfds_foo[x]=0;
+	}
 
-  if(timeout != 0) {
-    timeout_foo=(unsigned char *)__malloc(128);
-    timeout_foo[0]=0;
-    timeout_foo[1]=0;
-    timeout_foo[2]=0;
-    timeout_foo[3]=0;
-    timeout_foo[4]=0;
-    timeout_foo[5]=0;
-    timeout_foo[6]=0;
-    timeout_foo[7]=0;
-  } else {
-    timeout_foo=(unix`unsigned char *)0;
-  }
+	if(timeout != 0) {
+		timeout_foo=(unsigned char *)__malloc(128);
+		timeout_foo[0]=0;
+		timeout_foo[1]=0;
+		timeout_foo[2]=0;
+		timeout_foo[3]=0;
+		timeout_foo[4]=0;
+		timeout_foo[5]=0;
+		timeout_foo[6]=0;
+		timeout_foo[7]=0;
+	} else {
+		timeout_foo=(unix`unsigned char *)0;
+	}
 
-  foreach(@lambda(v) {
-    FD_SET(v,rfds_foo);
-  },rfds);
-  foreach(@lambda(v) {
-    FD_SET(v,wfds_foo);
-  },wfds);
-  foreach(@lambda(v) {
-    FD_SET(v,xfds_foo);
-  },xfds);
+	foreach(@lambda(v) {
+		FD_SET(v,rfds_foo);
+	},rfds);
+	foreach(@lambda(v) {
+		FD_SET(v,wfds_foo);
+	},wfds);
+	foreach(@lambda(v) {
+		FD_SET(v,xfds_foo);
+	},xfds);
 
-  r=syscall(selnr,n,rfds_foo,wfds_foo,xfds_foo,timeout_foo);
+	r=syscall(selnr,n,rfds_foo,wfds_foo,xfds_foo,timeout_foo);
 
-  if(r==-1) {
-    return [[],[],[]];
-  }
+	if(r==-1) {
+		return [[],[],[]];
+	}
 
-  rr=[];
-  foreach(@lambda(v) {
-    if(FD_ISSET(v,rfds_foo)) {
-      append(rr,v);
-    }
-  },rfds);
-  rw=[];
-  foreach(@lambda(v) {
-    if(FD_ISSET(v,wfds_foo)) {
-      append(rw,v);
-    }
-  },wfds);
-  rx=[];
-  foreach(@lambda(v) {
-    if(FD_ISSET(v,xfds_foo)) {
-      append(rx,v);
-    }
-  },xfds);
+	rr=[];
+	foreach(@lambda(v) {
+		if(FD_ISSET(v,rfds_foo)) {
+			append(rr,v);
+		}
+	},rfds);
+	rw=[];
+	foreach(@lambda(v) {
+		if(FD_ISSET(v,wfds_foo)) {
+			append(rw,v);
+		}
+	},wfds);
+	rx=[];
+	foreach(@lambda(v) {
+		if(FD_ISSET(v,xfds_foo)) {
+			append(rx,v);
+		}
+	},xfds);
 
-  return [rr,rw,rx];
+	return [rr,rw,rx];
 };
 
 sys_select = @lambda(n,rfds,wfds,xfds,timeout) {
-  return sys_pselect(n,rfds,wfds,xfds,timeout,0);
+	return sys_pselect(n,rfds,wfds,xfds,timeout,0);
 };
 }
 
 @global sys_unlink;
 sys_unlink = @lambda(filename) {
-  @local m;
+	@local m;
 
-  m=__malloc(length(filename)+1);
-  putbytes(m,filename);
-  m[length(filename)]=0;
+	m=__malloc(length(filename)+1);
+	putbytes(m,filename);
+	m[length(filename)]=0;
 
-  return syscall(unix`unlink,m);
+	return syscall(unix`unlink,m);
 };
 
 @global sys_mmap;
 if(unix.looksym('mmap2)) {
-  // some linuxes don't support old mmap anymore
-  sys_mmap = @lambda(addr,length,prot,flags,fd,offset) {                                
-    return (linuxns`void *)syscall(unix`mmap2,addr,length,prot,flags,fd,offset>>12);                
-  };
+	// some linuxes don't support old mmap anymore
+	sys_mmap = @lambda(addr,length,prot,flags,fd,offset) {                                
+		return (linuxns`void *)syscall(unix`mmap2,addr,length,prot,flags,fd,offset>>12);                
+	};
 } else {
-  sys_mmap = @lambda(addr,length,prot,flags,fd,offset) {                                
-    return (unix`void *)syscall(unix`mmap,addr,length,prot,flags,fd,offset);                
-  };
+	sys_mmap = @lambda(addr,length,prot,flags,fd,offset) {                                
+		return (unix`void *)syscall(unix`mmap,addr,length,prot,flags,fd,offset);                
+	};
 
 }
 
 @global sys_msync;
 sys_msync=@lambda(addr,size,flags) {
 
-  return syscall(unix`msync,addr,size,flags);
+	return syscall(unix`msync,addr,size,flags);
 
 };
 
 @global sys_munmap;
 sys_munmap=@lambda(addr,length) {
 
-  return syscall(unix`munmap,addr,length);
+	return syscall(unix`munmap,addr,length);
 
 };
 
 @global sys_socket;
 sys_socket = @lambda(domain,type,protocol) {
 
-  return syscall(unix`socket,domain,type,protocol);
+	return syscall(unix`socket,domain,type,protocol);
 
 };
 
 @global sys_connect;
 sys_connect = @lambda(fd,sockaddr,size) {
-  @local sa;
+	@local sa;
 
-  if(isnil(size)) {
-    size=sizeof(*sockaddr);
-  }
-  sa=__malloc(size);
-  if(!sa) return nil;
+	if(isnil(size)) {
+		size=sizeof(*sockaddr);
+	}
+	sa=__malloc(size);
+	if(!sa) return nil;
 
-  putbytes(sa,getbytes(sockaddr,size));
+	putbytes(sa,getbytes(sockaddr,size));
 
-  return syscall(unix`connect,fd,sa,size);
+	return syscall(unix`connect,fd,sa,size);
 };
 
 @global sys_bind;
 sys_bind = @lambda(fd,sockaddr,size) {
-  @local sa;
+	@local sa;
 
-  if(isnil(size)) {
-    size=sizeof(*sockaddr);
-  }
-  sa=__malloc(size);
-  if(!sa) return nil;
+	if(isnil(size)) {
+		size=sizeof(*sockaddr);
+	}
+	sa=__malloc(size);
+	if(!sa) return nil;
 
-  putbytes(sa,getbytes(sockaddr,size));
+	putbytes(sa,getbytes(sockaddr,size));
 
-  return syscall(unix`bind,fd,sa,size);
+	return syscall(unix`bind,fd,sa,size);
 };
 
 @global sys_listen;
 sys_listen = @lambda(fd,backlog) {
 
-  return syscall(unix`listen,fd,backlog);
+	return syscall(unix`listen,fd,backlog);
 };
 
 @global sys_accept;
 sys_accept = @lambda(fd,sockaddr,size) {
-  @local sa,ss;
+	@local sa,ss;
 
-  if(isnil(size)) {
-    size=sizeof(*sockaddr);
-  } else {
-    size=*size;
-  }
-  sa=__malloc(size);
-  if(!sa) return nil;
+	if(isnil(size)) {
+		size=sizeof(*sockaddr);
+	} else {
+		size=*size;
+	}
+	sa=__malloc(size);
+	if(!sa) return nil;
 
-  putbytes(sa,getbytes(sockaddr,size));
+	putbytes(sa,getbytes(sockaddr,size));
 
-  ss=__malloc(sizeof(linuxns`int));
-  if(!ss) return nil;
+	ss=__malloc(sizeof(linuxns`int));
+	if(!ss) return nil;
 
-  ss=(linuxns`int *)ss;
+	ss=(linuxns`int *)ss;
 
-  *ss=size;
+	*ss=size;
 
-  return syscall(unix`accept,fd,sa,ss);
-
+	return syscall(unix`accept,fd,sa,ss);
 };
 
 @global sys_getsockname;
@@ -438,7 +436,7 @@ sys_getsockname = @lambda(fd,sa,len) {
 @global sys_setsockopt;
 sys_setsockopt = @lambda(socket,level,option_name,option_value,option_len) {
 
-  return syscall(unix`setsockopt,socket,level,option_name,option_value,option_len);
+	return syscall(unix`setsockopt,socket,level,option_name,option_value,option_len);
 
 };
 
@@ -457,30 +455,30 @@ sys_exit = @lambda(status) {
 
 if(_unameres[0] == "Darwin") {
 
-  sys_fork = @lambda() {
-    @local r,p;
+sys_fork = @lambda() {
+	@local r,p;
 
-    r=syscall(unix`fork);
-    p=sys_getpid();
+	r=syscall(unix`fork);
+	p=sys_getpid();
 
-    if(0 > r) {
-      return r;
-    } else if(r == p) {
-      // this is the child.
-      return 0;
-    } else {
-      return r;
-    }
+	if(0 > r) {
+		return r;
+	} else if(r == p) {
+		// this is the child.
+		return 0;
+	} else {
+		return r;
+	}
 
-  };
+};
 
 } else {
 
-  sys_fork = @lambda() {
+sys_fork = @lambda() {
 
-    syscall(unix`fork);
+	syscall(unix`fork);
 
-  };
+};
 
 }
 
@@ -488,7 +486,7 @@ if(_unameres[0] == "Darwin") {
 if(looksym(unix,'wait4)) {
 sys_wait4 = @lambda(pid,status,options,rusage) {
 
-  syscall(unix`wait4,pid,status,options,rusage);
+	syscall(unix`wait4,pid,status,options,rusage);
 
 };
 }
@@ -496,222 +494,221 @@ sys_wait4 = @lambda(pid,status,options,rusage) {
 @global sys_getpid;
 sys_getpid = @lambda() {
 
-  syscall(unix`getpid);
+	syscall(unix`getpid);
 
 };
 
 @global sys_getppid;
 sys_getppid = @lambda() {
 
-  syscall(unix`getppid);
+	syscall(unix`getppid);
 
 };
 
 @global sys_getpgid;
 sys_getpgid = @lambda(pid) {
 
-  syscall(unix`getpgid,pid);
+	syscall(unix`getpgid,pid);
 
 };
 
 @global sys_setpgid;
 sys_setpgid = @lambda(pid,pgid) {
 
-  syscall(unix`setpgid,pid,pgid);
+	syscall(unix`setpgid,pid,pgid);
 
 };
 
 @global sys_setsid;
 sys_setsid = @lambda() {
 
-  syscall(unix`setsid);
+	syscall(unix`setsid);
 
 };
 
 @global sys_sleep;
 sys_sleep = @lambda(secs) {
-  @local r,m,m2;
+	@local r,m,m2;
 
-  m=__malloc(sizeof(struct unix`timespec));
-  m=(struct unix`timespec *)m;
-  m->tv_sec=secs;
-  m->tv_nsec=0;
-  m2=__malloc(sizeof(struct unix`timespec));
-  m2=(struct unix`timespec *)m2;
-  
-  r=syscall(unix`nanosleep,m,m2);
-  
-  if(!r) {
-    return r;
-  } else {
-    return m2->tv_sec;
-  }
+	m=__malloc(sizeof(struct unix`timespec));
+	m=(struct unix`timespec *)m;
+	m->tv_sec=secs;
+	m->tv_nsec=0;
+	m2=__malloc(sizeof(struct unix`timespec));
+	m2=(struct unix`timespec *)m2;
+
+	r=syscall(unix`nanosleep,m,m2);
+
+	if(!r) {
+		return r;
+	} else {
+		return m2->tv_sec;
+	}
 
 };
 
 @global sys_reboot;
 sys_reboot = @lambda(magic, magic2, cmd, arg) {
-  @local r;
+	@local r;
 
-  r=syscall(unix`reboot, magic, magic2, cmd, arg);
+	r=syscall(unix`reboot, magic, magic2, cmd, arg);
 
-  return r;
+	return r;
 };
 
 @global sys_sched_getaffinity;
 sys_sched_getaffinity = @lambda(pid, cpusetsize, mask) {
-  @local m,r;
+	@local m,r;
 
-  m=(unsigned char *)__malloc(cpusetsize);    
-  memset(m,0,cpusetsize);
+	m=(unsigned char *)__malloc(cpusetsize);    
+	memset(m,0,cpusetsize);
 
-  r=syscall(unix`sched_getaffinity,pid,cpusetsize,m);
+	r=syscall(unix`sched_getaffinity,pid,cpusetsize,m);
 
-  return r;
-
+	return r;
 };
 
 @global sys_sched_setaffinity;
 sys_sched_setaffinity = @lambda(pid, cpusetsize, mask) {
-  @local m,r;
+	@local m,r;
 
-  if(isstring(mask) && length(mask) <= cpusetsize) {
-    m=(unsigned char *)__malloc(cpusetsize);    
-    putbytes(m,mask);
-  } else {
-    error("BAD MASK!\n");
-  }
+	if(isstring(mask) && length(mask) <= cpusetsize) {
+		m=(unsigned char *)__malloc(cpusetsize);    
+		putbytes(m,mask);
+	} else {
+		error("BAD MASK!\n");
+	}
 
-  r=syscall(unix`sched_setaffinity,pid,cpusetsize,m);
+	r=syscall(unix`sched_setaffinity,pid,cpusetsize,m);
 
-  return r;
-
+	return r;
 };
 
 // MPOL_DEFAULT, MPOL_BIND, MPOL_INTERLEAVE or MPOL_PREFERRED. All modes except MPOL_DEFAULT
 
 @global sys_getmempolicy;
 sys_getmempolicy = @lambda(mode, nodemask, maxnode,addr,flags) {
-  @local m,r;
+	@local m,r;
 
-  if(isstring(nodemask)) {
-    m=(unsigned char *)__malloc(length(nodemask));
-    putbytes(m,nodemask);
-  } else {
-    error("nodemask should be a string");
-  }
+	if(isstring(nodemask)) {
+		m=(unsigned char *)__malloc(length(nodemask));
+		putbytes(m,nodemask);
+	} else {
+		error("nodemask should be a string");
+	}
 
-  r=syscall(unix`get_mempolicy,mode, m, maxnode, addr, flags);
+	r=syscall(unix`get_mempolicy,mode, m, maxnode, addr, flags);
 
-  return r;
-
+	return r;
 };
 
 @global sys_setmempolicy;
 sys_setmempolicy = @lambda(mode, nodemask, maxnode) {
-  @local m,r;
+	@local m,r;
 
-  if(isstring(nodemask)) {
-    m=(unsigned char *)__malloc(length(nodemask));
-    putbytes(m,nodemask);
-  } else {
-    error("nodemask should be a string");
-  }
+	if(isstring(nodemask)) {
+		m=(unsigned char *)__malloc(length(nodemask));
+		putbytes(m,nodemask);
+	} else {
+		error("nodemask should be a string");
+	}
 
-  r=syscall(unix`get_setpolicy,mode, m, maxnode);
+	r=syscall(unix`get_setpolicy,mode, m, maxnode);
 
-  return r;
+	return r;
 };
 
 @global sys_getuid;
 sys_getuid = @lambda() {
 
-  return syscall(unix`getuid);
+	return syscall(unix`getuid);
 
 };
 
 @global sys_geteuid;
 sys_geteuid = @lambda() {
 
-  return syscall(unix`geteuid);
+	return syscall(unix`geteuid);
 
 };
 
 @global sys_setuid;
 sys_setuid = @lambda(uid) {
 
-  return syscall(unix`setuid,uid);
+	return syscall(unix`setuid,uid);
 
 };
 
 @global sys_getgid;
 sys_getgid = @lambda() {
 
-  return syscall(unix`getgid);
+	return syscall(unix`getgid);
 
 };
 
 @global sys_getegid;
 sys_getegid = @lambda() {
 
-  return syscall(unix`getegid);
+	return syscall(unix`getegid);
 
 };
 
 @global sys_setgid;
 sys_setgid = @lambda(gid) {
 
-  return syscall(unix`setgid,gid);
+	return syscall(unix`setgid,gid);
 
 };
 
 @global sys_execve;
 sys_execve = @lambda(filename,argv,envp) {
-  @local f,fl,a,e;
+	@local f,fl,a,e;
 
-  if(iscvalue(filename) && isptr(@typeof(filename))) {
-    @local fl;
-    fl=strlen(filename);
-    f=(unsigned char *)__malloc(fl + 1);
-    putbytes(f,getbytes(filename,fl));
-    f[fl]=0;
-  } else if(isstring(filename)) {
-    fl=length(filename);
-    f=(unsigned char *)__malloc(fl+1);
-    putbytes(f,filename);
-    f[fl]=0;
-  } else {
-    error("filename must be a string or a cptr");
-  }
+	if(iscvalue(filename) && isptr(@typeof(filename))) {
+		@local fl;
 
-  [a,e] = map(@lambda(ary) {
-    @local ret,i,len,strs;
-    len = sizeof(char*) * (length(ary)+1);
-    foreach(@lambda(v) { 
-      if (isstring(v)) len += length(v)+1; 
-      else len += sizeof(v);
-    },ary);
-    ret=(char**)__malloc(len);
-    strs = (char*)&ret[length(ary)+1];
-    for(i=0; i<length(ary); ++i) {
-      ret[i] = strs;
-      if (isstring(ary[i])) {
-        putbytes(strs,ary[i]);
-        strs+=length(ary[i]);
-        *strs = 0;
-        strs += 1;
-      } else {
-        @local v;
-        v = ary[i];
-        *{mkctype_ptr(@typeof(v),nsptr(nsof(v)))}strs = v;
-        strs += sizeof(ary[i]);
-      }
-    }
-    ret[i] = 0; //final null pointer (i == length(ary))
-    return ret;
-  }, [argv,envp]);
+		fl=strlen(filename);
+		f=(unsigned char *)__malloc(fl + 1);
+		putbytes(f,getbytes(filename,fl));
+		f[fl]=0;
+	} else if(isstring(filename)) {
+		fl=length(filename);
+		f=(unsigned char *)__malloc(fl+1);
+		putbytes(f,filename);
+		f[fl]=0;
+	} else {
+		error("filename must be a string or a cptr");
+	}
 
-  return syscall(unix`execve,f,a,e);
+	[a,e] = map(@lambda(ary) {
+		@local ret,i,len,strs;
+
+		len = sizeof(char*) * (length(ary)+1);
+		foreach(@lambda(v) { 
+			if (isstring(v)) len += length(v)+1; 
+			else len += sizeof(v);
+		},ary);
+		ret=(char**)__malloc(len);
+		strs = (char*)&ret[length(ary)+1];
+		for(i=0; i<length(ary); ++i) {
+			ret[i] = strs;
+			if (isstring(ary[i])) {
+				putbytes(strs,ary[i]);
+				strs+=length(ary[i]);
+				*strs = 0;
+				strs += 1;
+			} else {
+				@local v;
+				v = ary[i];
+				*{mkctype_ptr(@typeof(v),nsptr(nsof(v)))}strs = v;
+				strs += sizeof(ary[i]);
+			}
+		}
+		ret[i] = 0; //final null pointer (i == length(ary))
+		return ret;
+	}, [argv,envp]);
+
+	return syscall(unix`execve,f,a,e);
 };
 
 };
