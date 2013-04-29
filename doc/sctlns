@@ -48,7 +48,7 @@ space that is compatible with the base type definitions
 of the target name space.  We consider this argument a
 bug in the interface.
 
-The snames library (snames.cqct) uses this library 
+The snames tool (tools/snames.cqct) uses this library 
 for reasons that need to be sorted out.
 
 This also library defines several undocumented

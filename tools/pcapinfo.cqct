@@ -1,0 +1,22 @@
+#!/usr/bin/env l1
+!#
+
+@include <pcap.cqct>
+
+@define main(progname,args ...)
+{
+	@local pdom;
+
+	if (length(args) != 1) {
+		printf("usage: %s <pcapfile>\n",progname);
+		return 0;
+	}
+
+	pdom = mkpcapdom(args[0]);
+	pcap_info(pdom);
+	pcap_dump(pdom);
+
+	return 0;
+}
+
+return apply(main,args);

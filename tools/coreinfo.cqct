@@ -1,6 +1,7 @@
 #!/usr/bin/env l1
 // dump information about a core file
 // usage: coreinfo.cqct <corefile>
+!#
 
 @include <elf.cqct>
 
@@ -85,18 +86,24 @@
 }
 
 
-@define main(args)
+@define main(progname,args ...)
 {
-	@local elfdom, infile;
+	@local elfdom, elfstr, infile;
 	@local ehdr;
 	@local pharray, p, i, is32;
 
 	if (length(args) != 1) {
-		printf("usage: coreinfo.cqct <corefile>\n");
-		return -1;
+		printf("usage: %s <ELF_corefile>\n",progname);
+		return 1;
 	}
 	
 	infile = listref(args, 0);
+
+	elfstr = mapfile(infile);
+	if(!iself(elfstr)) {
+		fprintf(stderr,"core file %s is not ELF. Sorry.\n",infile);
+		return 1;
+	}
 
 	elfdom = mkelfrec(mapfile(infile)).elf;
 
@@ -113,7 +120,7 @@
 
 	if (ehdr->e_type != elfdom`ET_CORE) {
 		printf("Are you sure %s is a corefile?\n", infile);
-		return -1;
+		return 1;
 	}
 
 	for (i = 0; i < ehdr->e_phnum; i++) {
@@ -191,6 +198,8 @@
 						       nhdr->n_descsz);
 					}
 					else {
+						@local j;
+
 						printf("\tpr_cursig: %d\n", prstatus->pr_cursig);
 						printf("\tpr_pid:    %d\n", prstatus->pr_pid);
 						printf("\tpr_ppid:   %d\n", prstatus->pr_ppid);
@@ -216,5 +225,5 @@
 	}
 }
 
-return main(args);
+return apply(main,args);
 

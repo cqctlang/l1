@@ -12,7 +12,7 @@
 //
 //NOTE: when saving an AS, any addresses returned by map()
 //that are not actually mapped will be mapped with a value 
-//of 0 in the loaded version of the AS. 
+//of 0 in the loaded version of the AS.
 
 if (asutil_defined == nil)
 {

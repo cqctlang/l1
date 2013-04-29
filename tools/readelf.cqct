@@ -1,4 +1,5 @@
 #!/usr/bin/env l1
+!#
 // attempt to mimic readelf C program
 
 @include <elf.cqct>
@@ -719,7 +720,6 @@
 			else 
 				printf("   Num:    Value          Size Type    Bind   Vis      Ndx Name\n");
 			for (j = 0; j < symcount; j++) {
-				@local name;
 				if (is32) {
 					sym = (elfdom`Elf32_Sym *)(&symbase[j]);
 					printf("   %3d: %.8x %5d %-7s %-6s %-8s %3s %s\n",
@@ -797,7 +797,7 @@
 
 @define usage()
 {
-	printf("Usage: l1 -e readelf.cqct <option(s)> elf-file(s)\n"
+	printf("Usage: readelf.cqct <option(s)> elf-file(s)\n"
 	       "Display information about the contents of ELF format files\n"
 	       "Options are:\n"
 	       "  -h --file-header       Display the ELF file header\n"
@@ -813,11 +813,11 @@
 		);
 }
 
-@define main(args)
+@define main(progname,args ...)
 {
 	@local cur;
-	@local elfdom, infile;
-	@local do_secheaders, do_fileheader, do_progheaders, do_syms;
+	@local elfdom, elfstr, infile;
+	@local do_secheaders, do_fileheader, do_progheaders, do_syms,do_notes;
 
 	infile = nil;
 	do_secheaders = 0;
@@ -827,7 +827,6 @@
 	do_notes = 0;
 
 	if (length(args) == 0) {
-		printf("args is %d\n", length(args));
 		usage();
 		return 0;
 	}
@@ -896,7 +895,13 @@
 		return 0;
 	}
 
-	elfdom = mkelfrec(mapfile(infile)).elf;
+	elfstr = mapfile(infile);
+	if(!iself(elfstr)) {
+		fprintf(stderr,"%s is not ELF\n",infile);
+		return 1;
+	}
+
+	elfdom = mkelfrec(elfstr).elf;
 
 	if (do_fileheader)
 		print_fileheader(elfdom);
@@ -935,4 +940,4 @@
 
 	
 	
-return main(args);
+return apply(main,args);
