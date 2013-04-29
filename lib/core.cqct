@@ -113,11 +113,16 @@ core_defined = 1;
 */
 @define mkcoreas(fname)
 {
-	@local elfdom;
+	@local elfstr,elfdom;
 	@local addr_ranges, regptr, parseout;
 	@local mapped_ranges,dispatch;
 
-	elfdom = mkelfrec(mapfile(fname)).elf;
+	elfstr = mapfile(fname);
+	if(!iself(elfstr)) {
+		error("%s is not an ELF",fname);
+	}
+
+	elfdom = mkelfrec(elfstr).elf;
 	
 	parseout = parse_core(elfdom, fname);
 	addr_ranges = listref(parseout, 1);
