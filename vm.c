@@ -6449,6 +6449,12 @@ l1_gc(VM *vm, Imm argc, Val *argv, Val *rv)
 }
 
 static void
+l1_fullgc(VM *vm, Imm argc, Val *argv, Val *rv)
+{
+	fullgc(vm);
+}
+
+static void
 l1_compact(VM *vm, Imm argc, Val *argv, Val *rv)
 {
 	if(argc != 0)
@@ -7367,6 +7373,7 @@ mktopenv(void)
 	FN(error);
 	FN(fault);
 	FN(fdname);
+	FN(fullgc);
 	FN(gc);
 	FN(gcpoll);
 	FN(gcstats);

@@ -2216,6 +2216,15 @@ gc(VM *vm)
 }
 
 void
+fullgc(VM *vm)
+{
+	/* alas, gc is unsafe when C contexts are active */
+	if(vm->level > 1)
+		return;
+	dogc(vm, Ngen-1, Ngen-1);
+}
+
+void
 compact(VM *vm)
 {
 	dogc(vm, Ngen-1, Gstatic);
