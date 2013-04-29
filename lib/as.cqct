@@ -1,0 +1,55 @@
+@global
+	getbytes,
+	putbytes
+;
+
+{
+
+@defloc chasetype(t)
+{
+	if(istypedef(t))
+		return chasetype(typedeftype(t));
+	return t;
+}
+
+@define getbytes(arg ...)
+{
+	@local p, t, len;
+	if(length(arg) == 1){
+		p = arg[0];
+		if(!iscvalue(p))
+			error("operand 1 must be a pointer");
+		t = chasetype(@typeof(p));
+		if(!isptr(t))
+			error("operand 1 must be a pointer");
+		len = sizeof(subtype(t));
+	}else if(length(arg) == 2){
+		p = arg[0];
+		if(!iscvalue(p))
+			error("operand 1 must be a pointer");
+		t = chasetype(@typeof(p));
+		if(!isptr(t))
+			error("operand 1 must be a pointer");
+		len = arg[1];
+		if(!iscvalue(p))
+			error("operand 2 must be a cvalue");
+	}else
+		error("wrong number of arguments to getbytes");
+
+	return $callmethodx(domof(p).as, "get", mkrange(p, len));
+}
+
+@define putbytes(p, s)
+{
+	@local t;
+	if(!iscvalue(p))
+		error("operand 1 must be a pointer");
+	if(!isstring(s))
+		error("operand 2 must be a string");
+	t = chasetype(@typeof(p));
+	if(!isptr(t))
+		error("operand 1 must be a pointer");
+	return $callmethodx(domof(p).as, "put", mkrange(p, length(s)), s);
+}
+
+}

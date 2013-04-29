@@ -630,7 +630,7 @@ expandaform(Aform af, Expr *e, u32 d)
 			else
 				p = Zlambdn(Zvararg(doid("$args")),
 					    Zblock(nullelist(),
-						   Zret(Zcall(G("callmethod"), 3,
+						   Zret(Zcall(doid("$callmethod"), 3,
 							      doid("$o"),
 							      Zstr(id),
 							      doid("$args"))),

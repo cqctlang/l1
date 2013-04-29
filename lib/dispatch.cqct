@@ -1,0 +1,58 @@
+@global
+	$callmethod,
+	$callmethodx
+;
+
+{
+
+@define $callmethod(this, id, args)
+{
+	@local fn, dfn, atab, ntab;
+
+	switch(qtype(this)){
+	case 'domain:
+		atab = dispatchtab(this.as);
+		fn = atab[id];
+		if(fn)
+			break;
+		ntab = dispatchtab(this.ns);
+		fn = ntab[id];
+		if(fn)
+			break;
+		dfn = atab["dispatch"];
+		if(dfn)
+			break;
+		dfn = ntab["dispatch"];
+		break;
+	case 'addressspace:
+		atab = dispatchtab(this);
+		fn = atab[id];
+		if(fn)
+			break;
+		dfn = atab["dispatch"];
+		break;
+	case 'namespace:
+		ntab = dispatchtab(this);
+		fn = ntab[id];
+		if(fn)
+			break;
+		dfn = ntab["dispatch"];
+		break;
+	default:
+		error("invalid object");
+	}
+
+	if(fn)
+		return apply(fn, this, args);
+	else if(dfn)
+		return apply(dfn, this, id, args);
+	else
+		error("object does not define method '%s' nor a dispatch method", id);
+}
+
+@define $callmethodx(this, id, arg ...)
+{
+	return $callmethod(this, id, arg);
+}
+
+}

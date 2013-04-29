@@ -48,7 +48,7 @@ expandm(Expr *e)
 						  1, copyexpr(o)),
 					    copyexpr(a)),
 				     Zifelse(Zcall(G("iscallable"), 1, copyexpr(o)),
-					     Zapply(G("callmethodx"),
+					     Zapply(doid("$callmethodx"),
 						    Zcons(o, Zcons(Zstr(idsym(m)), a))),
 					     Zerror("invalid left operand to ."))));
 		putsrc(te, e->src);

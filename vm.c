@@ -1799,7 +1799,7 @@ vapply(VM *vm)
 
 	  vm on exit (when fn is bytecode):
 
-	    ac = unchanged
+	    ac = nil (default return value for builtins)
 	    cl = fn
 	    pc = codeentry(fn->code)
 	    vc = n
@@ -1832,6 +1832,7 @@ vapply(VM *vm)
 		fp[Oarg0+sarg+i] = listref(l, i);
 	vm->vc = sarg+m;
 	vm->cl = valcl(fn);
+	vm->ac = Xnil;
 
 	/* make the call */
 	c = vm->cl->code;
@@ -5533,139 +5534,22 @@ l1_nsof(VM *vm, Imm argc, Val *argv, Val *rv)
 }
 
 static void
-l1_callmethod(VM *vm, Imm argc, Val *argv, Val *rv)
+l1_dispatchtab(VM *vm, Imm argc, Val *argv, Val *rv)
 {
-	Val this, id, args, v;
-	Dom *dom;
 	As *as;
 	Ns *ns;
-	Str *s;
-	Closure *cl, *dcl;
-	Imm i, ll, xargc;
-	Vec *xargv;
 
-	if(argc != 3)
-		vmerr(vm, "wrong number of arguments to callmethod");
-	checkarg(vm, argv, 1, Qstr);
-	checkarg(vm, argv, 2, Qlist);
-	this = argv[0];
-	id = argv[1];
-	args = argv[2];
-	dcl = 0;
-	v = 0;
-
-	if(Vkind(this) == Qas){
-		as = valas(this);
-		v = tabget(as->mtab, id);
-		if(v == 0)
-			dcl = as->dispatch;
-	}else if(Vkind(this) == Qns){
-		ns = valns(this);
-		v = tabget(ns->mtab, id);
-		if(v == 0)
-			dcl = ns->dispatch;
-	}else if(Vkind(this) == Qdom){
-		dom = valdom(this);
-		/* search as, then ns */
-		v = tabget(dom->as->mtab, id);
-		if(v == 0)
-			v = tabget(dom->ns->mtab, id);
-		if(v == 0)
-			dcl = dom->as->dispatch;
-		if(dcl == 0)
-			dcl = dom->ns->dispatch;
+	if(argc != 1)
+		vmerr(vm, "wrong number of arguments to dispatchtab");
+	if(Vkind(argv[0]) == Qns){
+		ns = valns(argv[0]);
+		*rv = mkvaltab(ns->mtab);
+	}else if(Vkind(argv[0]) == Qas){
+		as = valas(argv[0]);
+		*rv = mkvaltab(as->mtab);
 	}else
-		vmerr(vm,
-		      "operand 2 to callmethod must be an address space, "
-		      "name space, or domain");
-
-	if(v == 0 && dcl == 0){
-		s = valstr(id);
-		vmerr(vm, "callmethod target must define %.*s or dispatch",
-		      (int)s->len, strdata(s));
-	}
-
-	ll = listlen(vallist(args));
-	if(v){
-		cl = valcl(v);
-		xargc = ll+1;
-		xargv = mkvec(xargc);
-		_vecset(xargv, 0, this);
-		for(i = 0; i < ll; i++)
-			_vecset(xargv, i+1, listref(vallist(args), i));
-	}else{
-		cl = dcl;
-		xargc = ll+2;
-		xargv = mkvec(xargc);
-		_vecset(xargv, 0, this);
-		_vecset(xargv, 1, id);
-		for(i = 0; i < ll; i++)
-			_vecset(xargv, i+2, listref(vallist(args), i));
-	}
-	*rv = ccall(vm, cl, xargc, vecdata(xargv));
-}
-
-static void
-l1_callmethodx(VM *vm, Imm argc, Val *argv, Val *rv)
-{
-	Val this, id, v, *xargv;
-	Dom *dom;
-	As *as;
-	Ns *ns;
-	Str *s;
-	Closure *cl, *dcl;
-	Imm xargc;
-
-	if(argc < 2)
-		vmerr(vm, "wrong number of arguments to callmethodx");
-	checkarg(vm, argv, 1, Qstr);
-	this = argv[0];
-	id = argv[1];
-	dcl = 0;
-	v = 0;
-
-	if(Vkind(this) == Qas){
-		as = valas(this);
-		v = tabget(as->mtab, id);
-		if(v == 0)
-			dcl = as->dispatch;
-	}else if(Vkind(this) == Qns){
-		ns = valns(this);
-		v = tabget(ns->mtab, id);
-		if(v == 0)
-			dcl = ns->dispatch;
-	}else if(Vkind(this) == Qdom){
-		dom = valdom(this);
-		/* search as, then ns */
-		v = tabget(dom->as->mtab, id);
-		if(v == 0)
-			v = tabget(dom->ns->mtab, id);
-		if(v == 0)
-			dcl = dom->as->dispatch;
-		if(dcl == 0)
-			dcl = dom->ns->dispatch;
-	}else
-		vmerr(vm,
-		      "operand 2 to callmethod must be an address space, "
-		      "name space, or domain");
-
-	if(v == 0 && dcl == 0){
-		s = valstr(id);
-		vmerr(vm, "callmethod target must define %.*s or dispatch",
-		      (int)s->len, strdata(s));
-	}
-
-	if(v){
-		cl = valcl(v);
-		xargc = argc-1;
-		xargv = argv+1;
-		xargv[0] = this;
-	}else{
-		cl = dcl;
-		xargc = argc;
-		xargv = argv;
-	}
-	*rv = ccall(vm, cl, xargc, xargv);
+		vmerr(vm, "operand 1 to dispatchtab must be a name space "
+		      "or address space");
 }
 
 static void
@@ -5905,49 +5789,6 @@ l1_ismapped(VM *vm, Imm argc, Val *argv, Val *rv)
 		*rv = mkvalcval2(cval1);
 	else
 		*rv = mkvalcval2(cval0);
-}
-
-static void
-l1_getbytes(VM *vm, Imm iargc, Val *iargv, Val *rv)
-{
-	Cval *addr, *len;
-	Imm n;
-	Ctype *t;
-
-	if(iargc != 1 && iargc != 2)
-		vmerr(vm, "wrong number of arguments to getbytes");
-	checkarg(vm, iargv, 0, Qcval);
-	addr = valcval(iargv[0]);
-	t = chasetype(addr->type);
-	if(t->tkind != Tptr)
-		vmerr(vm, "operand 1 to getbytes must be a pointer");
-	if(iargc == 2){
-		checkarg(vm, iargv, 1, Qcval);
-		len = valcval(iargv[1]);
-		n = cvalu(len);
-	}else
-		n = typesize(vm, subtype(t));
-	*rv = mkvalstr(getbytes(vm, addr, n));
-}
-
-static void
-l1_putbytes(VM *vm, Imm iargc, Val *iargv, Val *rv)
-{
-	Cval *addr;
-	Str *str;
-	Ctype *t;
-
-	if(iargc != 2)
-		vmerr(vm, "wrong number of arguments to putbytes");
-	checkarg(vm, iargv, 0, Qcval);
-	checkarg(vm, iargv, 1, Qstr);
-	addr = valcval(iargv[0]);
-	str = valstr(iargv[1]);
-	t = chasetype(addr->type);
-	if(t->tkind != Tptr)
-		vmerr(vm, "operand 1 to putbytes must be a pointer");
-	callput(vm, addr->dom->as, cvalu(addr), str->len, str);
-	USED(rv);
 }
 
 static Imm
@@ -7504,8 +7345,6 @@ mktopenv(void)
 
 	FN(asof);
 	FN(bsearch);
-	FN(callmethod);
-	FN(callmethodx);
 	FN(close);
 	FN(clcode);
 	FN(clref);
@@ -7520,6 +7359,7 @@ mktopenv(void)
 	FN(cval2str);
 	FN(delete);
 	FN(delq);
+	FN(dispatchtab);
 	FN(domof);
 	FN(eq);
 	FN(equal);
@@ -7530,7 +7370,6 @@ mktopenv(void)
 	FN(gc);
 	FN(gcpoll);
 	FN(gcstats);
-	FN(getbytes);
 	FN(gettoplevel);
 	FN(hash);
 	FN(hashq);
@@ -7591,7 +7430,6 @@ mktopenv(void)
 	FN(pop);
 	FN(pp);
 	FN(printcode);
-	FN(putbytes);
 	FN(qtype);
 	FN(rangebeg);
 	FN(rangelen);
