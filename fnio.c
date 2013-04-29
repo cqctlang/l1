@@ -518,13 +518,14 @@ l1__open(VM *vm, Imm argc, Val *argv, Val *rv)
 
 	fd = open(name, oflags, 0777); /* ~umask */
 	efree(name);
-	efree(mode);
 	if(0 > fd){
+		efree(mode);
 		setlasterrno(errno);
 		return;
 	}
 	if(strchr(mode, 'a'))
 		lseek(fd, 0, SEEK_END);
+	efree(mode);
 	*rv = mkvallitcval(Vint, fd);
 }
 
