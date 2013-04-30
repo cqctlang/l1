@@ -6490,6 +6490,7 @@ l1_saveheap(VM *vm, Imm argc, Val *argv, Val *rv)
 		vmerr(vm, "wrong number of arguments to saveheap");
 	checkarg(vm, argv, 0, Qstr);
 	s = str2cstr(valstr(argv[0]));
+	fullgc(vm);
 	saveheap(vm->top, s);
 	efree(s);
 }

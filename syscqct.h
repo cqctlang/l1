@@ -1335,7 +1335,7 @@ Expr*		Zxcast(Expr *type, Expr *cval);
 /* mem.c */
 void		compact(VM *vm);
 void		finimem();
-void		fullgc();
+void		fullgc(VM *vm);
 void		_gc(u32 g, u32 tg);
 void		gc(VM *vm);
 void		gcdisable();
