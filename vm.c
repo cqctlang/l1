@@ -69,6 +69,7 @@ static Ctype* dolooktype(VM *vm, Ctype *t, Ns *ns);
 static Env mktopenv(void);
 static void l1_sort(VM *vm, Imm argc, Val *argv, Val *rv);
 static Cont* kcapture(VM *vm);
+static void checkoverflow(VM *vm, unsigned m);
 
 /* global roots */
 Val Xnil;
@@ -1590,7 +1591,8 @@ _ccall(VM *vm, Closure *cl, Imm argc, Val *argv)
 	switch(c->kind){
 	case Cvm:
 		if((void*)(vm->fp+Onfrhd+argc) >= vm->stk+vm->stksz)
-			fatal("unimplemented stack overflow");
+			/* compare current stack to definition of Redline */
+			bug();
 
 		/* insert a halt frame */
 		vm->fp += Onfrhd;
@@ -1675,7 +1677,8 @@ ccall(VM *vm, Closure *cl, Imm argc, Val *argv)
 		/* we are in the middle of a VM operation. */
 		fsz = ra2size(vm->pc, vm->cl->code);
 		if((void*)(vm->fp+fsz+Onfrhd) >= vm->stk+vm->stksz)
-			fatal("unimplemented stack overflow");
+			/* compare current stack to definition of Redline */
+			bug();
 		vm->fp += fsz;
 		vm->fp[Ora] = (Val)(uptr)vm->pc;
 		vm->fp[Ocl] = mkvalcl(vm->cl);
@@ -1693,7 +1696,8 @@ ccall(VM *vm, Closure *cl, Imm argc, Val *argv)
 		   a builtin. */
 		fsz = Onfrhd+vm->vc;
 		if((void*)(vm->fp+fsz+Onfrhd) >= vm->stk+vm->stksz)
-			fatal("unimplemented stack overflow");
+			/* compare current stack to definition of Redline */
+			bug();
 		vm->fp += fsz;
 		vm->fp[Ocl] = mkvalcl(vm->cl); /* will be C */
 		vm->fp[Ora] = (Val)(uptr)fsz;
@@ -1825,8 +1829,10 @@ vapply(VM *vm)
 	l = vallist(lv);
 	m = listlen(l);
 	sarg = oarg-2; /* arguments already on stack */
-	if((void*)(vm->fp+Onfrhd+sarg+m) >= vm->stk+vm->stksz)
-		fatal("unimplemented stack overflow");
+	if(sarg+m > Maxargs)
+		vmerr(vm, "too many arguments to apply");
+	checkoverflow(vm, Onfrhd+sarg+m);
+	fp = vm->fp;
 	memmove(fp+Oarg0, fp+Oarg0+1, sarg*sizeof(Val));
 	for(i = 0; i < m; i++)
 		fp[Oarg0+sarg+i] = listref(l, i);
@@ -2733,18 +2739,18 @@ checkoverflow(VM *vm, unsigned m)
 	if((void*)vm->fp < vm->stk)
 		/* stack is insane */
 		bug();
-	if((void*)vm->fp >= vm->stk+vm->stksz)
+	if((void*)vm->fp >= vm->stk+vm->stksz-Redline)
 		/* stack is insane */
 		bug();
-	if((void*)(vm->fp+m) >= vm->stk+vm->stksz){
+	if((void*)(vm->fp+m) >= vm->stk+vm->stksz-Redline){
 		koverflow(vm);
 		/* eventually unnecessary sanity checks */
 		if((void*)vm->fp < vm->stk)
 			bug();
-		if((void*)vm->fp >= vm->stk+vm->stksz)
+		if((void*)vm->fp >= vm->stk+vm->stksz-Redline)
 			/* stack is insane */
 			bug();
-		if((void*)(vm->fp+m) >= vm->stk+vm->stksz)
+		if((void*)(vm->fp+m) >= vm->stk+vm->stksz-Redline)
 			bug();
 	}
 }

@@ -3,11 +3,6 @@
 
 #include "cqct.h"
 
-enum{
-	Maxlit		= 70,	/* longest literal (binary) plus null */
-	Maxspec		= 32,
-};
-
 /* #define since these are not all int-sized */
 #define	Vintmax		2147483647ULL
 #define	Vuintmax	4294967295ULL
@@ -223,8 +218,18 @@ enum {
 	Typepos=0,
 	Idpos=1,
 	Attrpos=2,
-	Errinitdepth=128,	/* initial max error stack */
-	Maxstk = 65536,
+
+	/* frame offsets */
+	Ora = 0,		/* offset of return address */
+	Ocl,			/* offset of caller */
+	Onfrhd,			/* number of words in frame preamble */
+	Oarg0=Onfrhd,		/* offset of first argument */
+
+	Maxstk = 16384,
+	Redline = 16*sizeof(uptr),
+	Maxargs = ((Maxstk-Onfrhd*sizeof(uptr)-Redline)/sizeof(uptr)),
+
+	Maxlit		= 70,	/* longest literal (binary) plus null */
 	InsnAlloc = 10,
 	AllocBatch = 128,
 };
@@ -660,14 +665,6 @@ enum {
 	Rac,
 	Rcl,
 } Reg;
-
-/* frame offsets */
-enum {
-	Ora = 0,
-	Ocl,
-	Onfrhd,			/* number of words in frame preamble */
-	Oarg0=Onfrhd,		/* offset of first argument */
-};
 
 typedef
 struct Vs
