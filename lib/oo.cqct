@@ -102,16 +102,24 @@ to be the name of the kind of object.
 		case 'mcall:
 
 			if (stxid(stxref(e,0)) == 'inherit) {
-				@local theid;
+				@local theid,tmp;
 
 				theid = stxref(stxref(e,1),0);
+				while((tmp=gensym()) == theid);
 
 				return #`{
-                    if (!istable(#,(theid))) {
-                        error("%a is not an object, it cannot be inherited from",#,(theid));
-                    }
-                    foreach( @lambda(x,y) { this[x] = y; }, #,(theid) );
-                };
+					{
+						@local #,(tmp);
+
+						#,(tmp) = #,(theid);
+						if (!istable(#,(tmp))) {
+							error("%a is not a table",#,(tmp));
+						}
+						foreach(@lambda(x) {
+							this[x] = #,(tmp)[x];
+						}, tabkeys(#,(tmp)));
+					}
+				};
 			} else return e;
 
 		default:
@@ -120,6 +128,7 @@ to be the name of the kind of object.
 
 	}, old_body);
 
+	//__name = stxid(name)
 	new_body = Zcons( #g( #dot(#id('this),#id('type)) , 
 				#val( stxid(name) )), 
 			new_body);
