@@ -3,55 +3,55 @@ Object helper macro.
 
 Example usage:
 
-@object(Name) {
-    @local a,b; //private vars
-    @local super; //super class
+@object(name) {
+	@local a,b; //private vars
+	@local super; //super class
 
-    [a,b] = args; //args is the list of arguments passed to the constructor
+	[a,b] = args; //args is the list of arguments passed to the constructor
 
-    //can reference arbitrary other objects
-    super = OtherObject();
+	//can reference arbitrary other objects
+	super = other_object();
 
-    //at this point, for all X for which super.X is defined, this.X will be
-    //given that value. (any this.X that had been set previously will be over
-    //written)
-    @inherit(super);
-    //alternatively (no direct references to super)
-    //@inherit(OtherObject())
+	//at this point, for all X for which super.X is defined, this.X will be
+	//given that value. (any this.X that had been set previously will be over
+	//written)
+	@inherit(super);
+	//alternatively (no direct references to super)
+	//@inherit(other_object())
 
-    this.public = a+1; //this refers to this object
+	this.public = a+1; //this refers to this object
 
-    //this.ftn1(); //would give an error b/c ftn1 has not yet been defined
+	//this.ftn1(); //would give an error b/c ftn1 has not yet been defined
 
-    //defines this.ftn1() (was undefined to this point)
-    @define ftn1() {
-        printf("ran ftn1: %d\n",this.public);
-    }
+	//defines this.ftn1() (was undefined to this point)
+	@define ftn1() {
+		printf("ran ftn1: %d\n",this.public);
+	}
 
-    //this.ftn1(); //now works.
+	//this.ftn1(); //now works.
 
-    //multiple @inherit can be specified. 
-    //Note that if Super2 defines a method named "public" or ftn1, then the
-    //above assignment would be overwritten by this statement (if the local
-    //assignment came after the @inherit, then it wouldn't be overwritten)
-    @inherit(Super2(a,a)); 
+	//multiple @inherit can be specified. 
+	//Note that if Super2 defines a method named "public" or ftn1, then the
+	//above assignment would be overwritten by this statement (if the local
+	//assignment came after the @inherit, then it wouldn't be overwritten)
+	@inherit(Super2(a,a)); 
 
-    //defines this.ftn2(param)
-    @define ftn2(param) {
-        this.public = param;
-        ftn1(); 
-        this.ftn1(); //equivalent to above call
-    }
+	//defines this.ftn2(param)
+	@define ftn2(param) {
+		this.public = param;
+		ftn1(); 
+		this.ftn1(); //equivalent to above call
+	}
 
-    //not allowed to use 'return'
+	//not allowed to use 'return'
 }
 
-name = Name(1,2);
-name.ftn1(); //runs ftn1 defined above
-name.ftn2(); //runs ftn2 defined above
-name.public; //equivalent to "this.public" above
+instance = name(1,2);
+instance.ftn1(); //runs ftn1 defined above
+instance.ftn2(); //runs ftn2 defined above
+instance.public; //equivalent to "this.public" above
 
-Creates a function Name(args...) that returns a table
+Creates a function name(args...) that returns a table
 with keys ftn1 and ftn2 set to the given @define's
 
 Inside the @object body, one is provided with the following:
@@ -64,78 +64,83 @@ to be the name of the kind of object.
 */
 
 @defstx @object(name) body {
-    @local new_locals, new_body, old_body;
+	@local new_locals, new_body, old_body;
 
-    @defloc body_stmts_locals(b) {
-        switch(b) {
-        @match #scope(bl):
-            return body_stmts_locals(bl);
-        @match #block(l,c):
-            return [l,c];
-        default:
-            error("b must be a #scope or a #block stx");
-        }
-        error("shouldn't get here.");
-    }
+	@defloc body_stmts_locals(b) {
+		switch(b) {
+		@match #scope(bl):
+			return body_stmts_locals(bl);
+		@match #block(l,c):
+			return [l,c];
+		default:
+			error("b must be a #scope or a #block stx");
+		}
+		error("shouldn't get here.");
+		error("really, really shouldn't get here.");
+		error("something has definitely gone wrong.");
+	}
 
 
-    [new_locals,old_body] = body_stmts_locals(body);
-    new_body = #[];
+	[new_locals,old_body] = body_stmts_locals(body);
+	new_body = #[];
 
-    new_locals = Zcons(#id('this),new_locals);
+	new_locals = Zcons(#id('this),new_locals);
 
-    new_body = map(@lambda(e) {
+	new_body = map(@lambda(e) {
 
-        switch(stxkind(e)) {
-        case 'define:
+		switch(stxkind(e)) {
+		case 'define:
 
-            new_locals = Zcons(stxref(e,0),new_locals);
-            //add this.ftn_id = ftn_id;
-            //after the @define
-            return Zcons( e,
-                          Zcons( #g( #dot( #id('this), 
-                                      stxref(e,0) ), 
-                                  stxref(e,0) ), 
-                                 #[]));
-        case 'mcall:
+			new_locals = Zcons(stxref(e,0),new_locals);
+			//add this.ftn_id = ftn_id;
+			//after the @define
+			return Zcons( e,
+				Zcons( #g( #dot( #id('this), 
+						stxref(e,0) ), 
+					stxref(e,0) ), 
+					#[]));
+		case 'mcall:
 
-            if (stxid(stxref(e,0)) == 'inherit) {
-                @local theid;
-                theid = stxref(stxref(e,1),0);
-                return #`{
-                    {
-                        @local super;
-                        super = #,(theid);
-                        if (!istable(super)) {
-                            error("%a is not a table",super);
-                        }
-                        foreach(@lambda(x) {
-                            this[x] = super[x];
-                        }, tabkeys(super));
-                    }
-                };
-            } else return e;
+			if (stxid(stxref(e,0)) == 'inherit) {
+				@local theid,tmp;
 
-        default:
-            return e;
-        }
+				theid = stxref(stxref(e,1),0);
+				while((tmp=gensym()) == theid);
 
-    }, old_body);
+				return #`{
+					{
+						@local #,(tmp);
 
-    //__name = stxid(name)
-    new_body = Zcons( #g( #dot(#id('this),#id('type)) , 
-                          #val( stxid(name) )), 
-                      new_body);
-    new_body = Zappend( #'{ 
-        this = mktab(@lambda() 
-                { 
-                    error("reference to undefined member of %s", 
-                            this.type); 
-                });
-    }, new_body);
+						#,(tmp) = #,(theid);
+						if (!istable(#,(tmp))) {
+							error("%a is not a table",#,(tmp));
+						}
+						foreach(@lambda(x) {
+							this[x] = #,(tmp)[x];
+						}, tabkeys(#,(tmp)));
+					}
+				};
+			} else return e;
 
-    new_body = Zappend( new_body, #'{ return this; } );
+		default:
+			return e;
+		}
 
-    return #define( name, #[ #id('args), #ellipsis() ], 
-                    #scope(#block(new_locals,new_body)) );
+	}, old_body);
+
+	//__name = stxid(name)
+	new_body = Zcons( #g( #dot(#id('this),#id('type)) , 
+				#val( stxid(name) )), 
+			new_body);
+	new_body = Zappend( #'{ 
+		this = mktab(@lambda() { 
+			error("reference to undefined member of %s", 
+				this.type); 
+		});
+	}, new_body);
+
+	new_body = Zappend( new_body, #'{ return this; } );
+
+	return #define( name, #[ #id('args), #ellipsis() ], 
+		#scope(#block(new_locals,new_body)) );
 }

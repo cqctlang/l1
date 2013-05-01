@@ -7,7 +7,7 @@ struct Vector at 0x20 {
 Pre-refinement:
 struct Vector at 0x8 {
    int size = 5
-   int [] data = [] //unknown size
+   int [] data = [] // unknown size
 };
 Post-refinement:
 struct Vector at 0x8 {
