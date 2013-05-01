@@ -151,7 +151,7 @@ An example of how one might use dynamic types.
 	{
 		q->data[i] = i*i*i;
 	}
-	printf("%s\n",objectStr(q));
+	printf("%s\n",objectstr(q));
 	q++;
 	q = (struct dom`EnumPtr*)q;
 	q->type = dom`T_INT;
@@ -162,19 +162,19 @@ An example of how one might use dynamic types.
 	//traversing the data struct
 	q = &dom`vector;
 	printf("Pre-refinement:\n");
-	printf("%s\n",objectStr(q));
+	printf("%s\n",objectstr(q));
 	q = refine(q);
 	printf("Post-refinement:\n");
-	printf("%s\n",objectStr(q));
+	printf("%s\n",objectstr(q));
 	printf("Type size: %d bytes (dec)\n",sizeof(subtype(@typeof(q))));
 	q = refine(q+1);
-	printf("%s\n",objectStr(q));
+	printf("%s\n",objectstr(q));
 	q = (struct dom`EnumPtr*)(q+1);
 	printf("Pre-refinement:\n");
-	printf("%s\n",objectStr(q));
+	printf("%s\n",objectstr(q));
 	q = refine(q);
 	printf("Post-refinement:\n");
-	printf("%s\n",objectStr(q));
+	printf("%s\n",objectstr(q));
 
 }
 

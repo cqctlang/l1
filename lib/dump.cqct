@@ -9,11 +9,9 @@ with typed pointers.
 
 if (dump_defined == nil)
 {
-@local foo;
-@global printtype, dumpns, objectStr;
+@global printtype, dumpns, objectstr;
 
 dump_defined = 1;
-
 
 /**
 Prints the type t in a way parsable in a .names file.
@@ -74,71 +72,23 @@ print a namespace in .names file format.
 		ns = dn;
 	
 	vec = copy(tabvals(ns.enumtype()));
-  sort(vec,@lambda(x,y) { 
-    return strcmp(sprintfa("%t",x),sprintfa("%t",y));
-  }); //possibly wasteful, but makes the output cleaner.
+	sort(vec,@lambda(x,y) { 
+		return strcmp(sprintfa("%t",x),sprintfa("%t",y));
+	}); //possibly wasteful, but makes the output cleaner.
 	for(i = 0; i < length(vec); i++) {
-    if (isbase(vecref(vec,i))) continue;
-    if (isptr(vecref(vec,i))) continue;
-		printtype(vecref(vec, i));
-  }
+		if (isbase(vecref(vec,i))) continue;
+		if (isptr(vecref(vec,i))) continue;
+			printtype(vecref(vec, i));
+	}
 
 	vec = copy(tabvals(ns.enumsym()));
-  sort(vec,@lambda(x,y) { 
-    return strcmp(sprintfa("%s",symid(x)),sprintfa("%s",symid(y)));
-  }); //possibly wasteful, but makes the output cleaner.
+	sort(vec,@lambda(x,y) { 
+		return strcmp(sprintfa("%s",symid(x)),sprintfa("%s",symid(y)));
+	}); //possibly wasteful, but makes the output cleaner.
 	for(i = 0; i < length(vec); i++)
 		if(!isenumconst(symtype(vecref(vec, i))))
 			printf("%t;\n", vecref(vec, i));
 }
-
-/**
-Function for testing.
-*/
-@define foo(){
-	@local ns, fn, vec, i;
-
- 	ns = @names c32le {
- 		typedef struct foo foo_t;
-		enum et {
-			a = 1,
-			b = 2,
-			c = 3,
-		};
- 		struct abc { int x; @0x4; };
- 		struct foo {
- 			@0x00 int x;
- 			@0x04 int y;
- 			@0x08 int z;
- 			@0x0c int *xp;
- 			@0x10 int (*foo)();
- 			@0x14 int (*bar)(void);
- 			@0x18 int (*baz)(int p1);
- 			@0x20 int (*baz)(int p1, struct foo *p2);
- 			@0x24 char *a[10];
-			@0x30 struct blah {
-				@0x0	int x;
-				@@35	int y : 4;
-				@0x8;
-			} blahvar;
-			@0x34 foo_t *ptrtofoo;
- 			@0x28;
- 		};
- 		struct bar {
- 			@0x0 int x, y;
-			@0x8;
- 		};
- 		struct foo a;
-		@0x100 struct t2 { int x; @0x4; } x;
-		@0x100 struct t2 { int x, y; @0x8; } x;
-		@0x100 struct t2 { int z; @0x4; } x;
- 	};
-
-	fn = ns.enumtype();
-	vec = tabvals(fn(ns));
-	for(i = 0; i < length(vec); i++)
-		printtype(vecref(vec, i));
-};
 
 /**
 * returns a string representation of the object pointed to by x (including 
@@ -146,9 +96,10 @@ Function for testing.
 * params: x is a pointer to an object
 * returns: a string representation of x and its content
 */
-@define objectStr(argv ...)
+@define objectstr(argv ...)
 {
 	@local p, t, indent;
+
 	if (length(argv) == 0) fault();
 	p = argv[0]; 
 	//indent is the amount to indent all except the first line
@@ -157,16 +108,20 @@ Function for testing.
 	t = @typeof(p); 
 	if (isptr(t)) {
 		@local t2;
+
 		t2 = subtype(t);
 		while(istypedef(t2))
 			t2 = typedeftype(t2);
-    if (isvoid(t2)) return "VOID";
-    //check if it is an unspecified array before checking if it is mapped.
-    if (isarray(t2) && arraynelm(t2) == nil)
-      ; //do nothing, no need to check if unspecified array is mapped
+
+		if (isvoid(t2)) return "VOID";
+		//check if it is an unspecified array before checking if it is mapped.
+		if (isarray(t2) && arraynelm(t2) == nil)
+			; //do nothing, no need to check if unspecified array is mapped
 		else if (!ismapped(p)) return "UNMAPPED";
+
 		if (issu(t2)) {
 			@local flds, i, nxt_indent, ret;
+
 			if (strlen(indent)>70 ) return sprintfa("...",p);
 			flds = fields(t2);
 			if (isstruct(t2)) ret = "struct ";
@@ -176,6 +131,7 @@ Function for testing.
 			for(i=0; i<length(flds); ++i)
 			{
 				@local buf;
+
 				buf = sprintfa("\n%s%t %s = ",
 					indent + "   ",
 					fieldtype(flds[i]),
@@ -184,7 +140,7 @@ Function for testing.
 				foreach(@lambda(x) {
 					nxt_indent += " "; 
 				}, mkvec(strlen(buf)-1));
-				ret += buf + objectStr(
+				ret += buf + objectstr(
 					{mkctype_ptr(fieldtype(flds[i]),
 						nsptr(domof(p).ns))}
 					(((void*)p) +
@@ -195,8 +151,8 @@ Function for testing.
 			return ret;
 		} else if (isbase(t2) && baseid(t2)=="char") {
 			return stringof(p);
-    } else if (isenum(t2)) {
-      return sprintfa("%e (%d)",{t2}*p,*p);
+		} else if (isenum(t2)) {
+			return sprintfa("%e (%d)",{t2}*p,*p);
 		} else if (isbase(t2)) {
 			if (baseid(t2)=="int") 
 				return sprintfa("%d",*p);
@@ -213,13 +169,14 @@ Function for testing.
 			return sprintfa("<function:0x%x>",p);
 		} else if (isarray(t2)) {
 			@local len, i, nxt_indent, ret;
+
 			nxt_indent = indent+" ";
 			len = arraynelm(t2);
-			if (len == nil) return sprintfa("[] //unknown size");
+			if (len == nil) return sprintfa("[] /* unknown size */");
 			ret = "[";
 			for(i=0; i<len; ++i) {
 				if (i != 0) ret += ",\n"+nxt_indent;
-				ret += objectStr((*p)[i],nxt_indent);
+					ret += objectstr((*p)[i],nxt_indent);
 			}
 			ret += "]";
 			return ret;
@@ -231,7 +188,5 @@ Function for testing.
 		return sprintfa("%d",p);
 	}
 }
-
-if(0)foo();
 
 }
