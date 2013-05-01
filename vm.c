@@ -1830,7 +1830,7 @@ vapply(VM *vm)
 	m = listlen(l);
 	sarg = oarg-2; /* arguments already on stack */
 	if(sarg+m > Maxargs)
-		vmerr(vm, "too many arguments to apply");
+		vmerr(vm, "too many arguments to apply (limit is %u)", Maxargs);
 	checkoverflow(vm, Onfrhd+sarg+m);
 	fp = vm->fp;
 	memmove(fp+Oarg0, fp+Oarg0+1, sarg*sizeof(Val));
@@ -2742,7 +2742,7 @@ checkoverflow(VM *vm, unsigned m)
 	if((void*)vm->fp >= vm->stk+vm->stksz-Redline)
 		/* stack is insane */
 		bug();
-	if((void*)(vm->fp+m) >= vm->stk+vm->stksz-Redline){
+	if((void*)(vm->fp+m) > vm->stk+vm->stksz-Redline){
 		koverflow(vm);
 		/* eventually unnecessary sanity checks */
 		if((void*)vm->fp < vm->stk)
@@ -2750,7 +2750,7 @@ checkoverflow(VM *vm, unsigned m)
 		if((void*)vm->fp >= vm->stk+vm->stksz-Redline)
 			/* stack is insane */
 			bug();
-		if((void*)(vm->fp+m) >= vm->stk+vm->stksz-Redline)
+		if((void*)(vm->fp+m) > vm->stk+vm->stksz-Redline)
 			bug();
 	}
 }
