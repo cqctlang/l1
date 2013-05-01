@@ -113,11 +113,9 @@ to be the name of the kind of object.
 
 						#,(tmp) = #,(theid);
 						if (!istable(#,(tmp))) {
-							error("%a is not a table",#,(tmp));
+							error("%a is not an object, it cannot be inherited",#,(tmp));
 						}
-						foreach(@lambda(x) {
-							this[x] = #,(tmp)[x];
-						}, tabkeys(#,(tmp)));
+						foreach(@lambda(x,y) { this[x] = y; }, #,(tmp));
 					}
 				};
 			} else return e;
