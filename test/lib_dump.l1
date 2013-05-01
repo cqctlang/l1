@@ -33,9 +33,9 @@ memset((char*){as}0,'A',0x1000);
 
 dom = mkdom(ns,as);
 
-printf("%s\n",objectStr(&dom`ttt));
-printf("%s\n",objectStr(&dom`lala[5]));
-printf("%s\n",objectStr(&dom`an_int));
+printf("%s\n",objectstr(&dom`ttt));
+printf("%s\n",objectstr(&dom`lala[5]));
+printf("%s\n",objectstr(&dom`an_int));
 
 printtype(@typeof(dom`an_int));
 printtype(@typeof(dom`lala));

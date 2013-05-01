@@ -172,7 +172,7 @@ print a namespace in .names file format.
 
 			nxt_indent = indent+" ";
 			len = arraynelm(t2);
-			if (len == nil) return sprintfa("[] /* unknown size */");
+			if (len == nil) return sprintfa("[] // unknown size");
 			ret = "[";
 			for(i=0; i<len; ++i) {
 				if (i != 0) ret += ",\n"+nxt_indent;

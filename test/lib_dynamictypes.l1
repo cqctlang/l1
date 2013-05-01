@@ -6,11 +6,11 @@
 dynamictypes_example();
 
 ns = @names clp64le {
-  struct Test {
-    @0 int size;
-    @4 int data[];
-    @4;
-  };
+	struct Test {
+		@0 int size;
+		@4 int data[];
+		@4;
+	};
 };
 
 as = mkzas(100);
