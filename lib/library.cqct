@@ -363,7 +363,7 @@ if (__library_exports == nil) //might not have been set in a macro
 }
 
 //This macro is used to define a library -- it is not expected to be used
-//by the user, but instead to be wrapped around the bodies of librarys before
+//by the user, but instead to be wrapped around the bodies of libraries before
 //the libraries are compiled. 
 @defstx @library(name) body {
   @local libname, export_params, import_params, locals, new_stmts, ret;
