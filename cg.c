@@ -1475,6 +1475,8 @@ cg(Expr *e, Precode *code, CGEnv *p, Location *loc, Ctlidx ctl, Ctlidx nxt,
 				fsetrand(f, &i->dst);
 				femit(f, code);
 			}
+			i = nextinsn(code, e->src);
+			i->kind = Ichksp;
 			cgctl(code, p, ctl, nxt, e->src);
 		}else{
 			/* make sure callee is in AC,
@@ -1669,12 +1671,11 @@ cglambda(Expr *e, char *id)
 	Lambda *l;
 	Precode *ode;
 	Code *code;
-	Insn *i;
+	Insn *i, *ec;
 	CGEnv p;
 	unsigned m;
 	Src src;
 	Frame f;
-	unsigned long idx;
 	Xenv *lex;
 	u32 rlex;
 
@@ -1716,9 +1717,8 @@ cglambda(Expr *e, char *id)
 	i = nextinsn(ode, src);
 	i->kind = Igcpoll;
 
-	/* begin chksp; finish below, after cg for body,
+	/* begin chksp; patch below, after cg for body,
 	   when we know stack size */
-	idx = ode->ninsn;
 	i = nextinsn(ode, src);
 	i->kind = Ichksp;
 
@@ -1735,10 +1735,6 @@ cglambda(Expr *e, char *id)
 	poplex(ode, rlex);
 	freexenv(lex);
 
-	/* finish Ichksp */
-	i = &((Insn*)strdata(ode->insn))[idx];
-	randimm(&i->op1, f.maxfsz);
-
 	/* FIXME: is this redundant wrt p.Return?
 	   (I bet not always; I bet we've tried this before.) */
 
@@ -1750,6 +1746,14 @@ cglambda(Expr *e, char *id)
 	ffini(&f);
 
 	code = mkvmcode(ode, l->ncap);
+
+	/* backpatch Ichksp insns */
+	i = codeinsn(code);
+	ec = codeend(code);
+	for(; i < ec; i++)
+		if(i->kind == Ichksp)
+			randimm(&i->op1, f.maxfsz);
+
 	if(cqctflags['o']){
 		xprintf("code for %s (%s:%u):\n", id,
 			srcfile(e->src), srcline(e->src));
