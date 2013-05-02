@@ -358,5 +358,16 @@ unix = @names clp64le {
 
 		@144;
 	};
+
+	typedef long unsigned int __ino_t;
+	typedef long int __off_t;
+	struct dirent {
+		@0x0    __ino_t d_ino;
+		@0x8    __off_t d_off;
+		@0x10   short unsigned int d_reclen;
+		@0x12   unsigned char d_type;
+		@0x13   char d_name[0x100];
+		@0x118;
+	};
 };
 

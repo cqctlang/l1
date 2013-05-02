@@ -357,11 +357,23 @@ linuxns = @names clp64le {
 
 	typedef
 	struct Ctx {
-        @0;
+	@0;
 	} Ctx;
 };
 
 unix = @names clp64le {
-  @include <darwin-x86_64-enum.names>
-  @include <darwin-unix.names>
+	@include <darwin-x86_64-enum.names>
+	@include <darwin-unix.names>
+
+	typedef long unsigned int __ino_t;
+	typedef long int __off_t;
+	struct dirent {
+		@0x0    __ino_t d_ino;
+		@0x8    __off_t d_off;
+		@0x10   short unsigned int d_reclen;
+		@0x12	short unsigned int d_namlen;
+		@0x14   unsigned char d_type;
+		@0x15   char d_name[0x400]; //__DARWIN_MAXPATHLEN
+		@0x415;
+	};
 };

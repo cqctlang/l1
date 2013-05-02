@@ -1,21 +1,14 @@
-linux64 = @names clp64le {
-	typedef long unsigned int __ino_t;
-	typedef long int __off_t;
-	struct dirent {
-		@0x0	__ino_t d_ino;
-		@0x8	__off_t d_off;
-		@0x10	short unsigned int d_reclen;
-		@0x12	unsigned char d_type;
-		@0x13	char d_name[0x100];
-		@0x118;
-	};
-};
+@include <sys.cqct>
 
 @define ls(dir)
 {
 	@local das, dom, p, e, len;
+
+	if(!looktype(unix,@typename(struct dirent)))
+		error("no dirent for this platform");
+
 	das = _readdir(dir);
-	dom = mkdom(linux64, das);
+	dom = mkdom(unix, das);
 	p = (void*){dom}0;
 	len = rangelen(das.map()[0]);
 	e = p+len;
@@ -30,8 +23,12 @@ linux64 = @names clp64le {
 @define foreachfile(dir,fn)
 {
 	@local das, dom, p, e, len;
+
+	if(!looktype(unix,@typename(struct dirent)))
+		error("no dirent for this platform");
+
 	das = _readdir(dir);
-	dom = mkdom(linux64, das);
+	dom = mkdom(unix, das);
 	p = (void*){dom}0;
 	len = rangelen(das.map()[0]);
 	e = p+len;
