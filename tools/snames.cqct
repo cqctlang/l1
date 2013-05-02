@@ -259,6 +259,30 @@ sns = @names clp64be {
 	return 'ok;
 }
 
+@define tnsinfo(fd, tag, dat)
+{
+	@local m, p, nsid, ns, rs;
+
+	p = (uint64*)dat;
+	nsid = *p++;
+
+	ns = looknsid(nsid);
+	if(ns == nil){
+		sctlrerror(fd, tag, "unknown name space");
+		return 'ok;
+	}
+
+	rs = ns.nsinfo();
+	if(rs == nil){
+		sctlrerror(fd, tag, Enone);
+		return 'ok;
+	}
+	[m, p] = mkreply(sctl`Rnsinfo, tag);
+	p = encodensinfo(p, rs);
+	sendsctlmsg(fd, m, (char*)p-(char*)m);
+	return 'ok;
+}
+
 @define tlooksrc(fd, tag, dat)
 {
 	@local m, p, nsid, addr, ns, src;
@@ -379,6 +403,7 @@ handle = [
 	(sctl`Mkind)sctl`Tlookpc   : tlookpc,
 	(sctl`Mkind)sctl`Tenumseg  : notimpl,
 	(sctl`Mkind)sctl`Tnames    : tnames,
+	(sctl`Mkind)sctl`Tnsinfo   : tnsinfo,
 ];
 
 @define tdispatch(fd)
