@@ -1,9 +1,14 @@
 /* native syscall replacements for system functions in l1 */
 @include <sys.cqct>
 
-// mapfile has itself since been implemented in l1.
-mapfile = @lambda(filename, rest ...) {
-	@local fd,st,p,r,s,m,f,fm;
+_munmap = @lambda(addr, len) {
+	sys_munmap(addr ,len);
+
+	return nil;
+};
+
+_mapfile = @lambda(filename, rest ...) {
+	@local fd,st,p,s,m,f,fm;
 
 	m = 0;
 	f = unix`MAP_PRIVATE;
@@ -97,14 +102,7 @@ mapfile = @lambda(filename, rest ...) {
 		error("could not map %s",filename);
 	}
 
-	r=mkstrm(p, s);
-
-	finalize(r,@lambda(args ...) {
-		sys_munmap(p,s);
-		nil;
-	});
-
-	r;
+	return [p, s];
 };
 
 @global iohash;
