@@ -80,7 +80,7 @@
 			fprintf(fd, "%s %s {\n", suekind(t), suetag(t));
 			flds = fields(t);
 			for(i = 0; i < length(flds); i++){
-				fld = vecref(flds, i);
+				fld = flds[i];
 				off = fieldoff(fld);
 				ft = fieldtype(fld);
 				id = fieldid(fld);

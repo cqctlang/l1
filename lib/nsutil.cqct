@@ -55,8 +55,8 @@ nsutil_defined = 1;
 		if(length(ps1) != length(ps2))
 			return 0;
 		for(i = 0; i < length(ps1); i++){
-			p1 = vecref(ps1, i);
-			p2 = vecref(ps2, i);
+			p1 = ps1[i];
+			p2 = ps2[i];
 			if(!typenameequal(paramtype(p1), paramtype(p2)))
 				return 0;
 		}
@@ -143,8 +143,8 @@ nsutil_defined = 1;
 		if(length(ps1) != length(ps2))
 			return 0;
 		for(i = 0; i < length(ps1); i++){
-			p1 = vecref(ps1, i);
-			p2 = vecref(ps2, i);
+			p1 = ps1[i];
+			p2 = ps2[i];
 			if(!typeequal(paramtype(p1), paramtype(p2)))
 				return 0;
 		}
@@ -178,8 +178,8 @@ nsutil_defined = 1;
 		if(length(flds1) != length(flds2))
 			return 0;
 		for(i = 0; i < length(flds1); i++){
-			f1 = vecref(flds1, i);
-			f2 = vecref(flds2, i);
+			f1 = flds1[i];
+			f2 = flds2[i];
 			if(fieldoff(f1) != fieldoff(f2))
 				return 0;
 			if(fieldid(f1) != fieldid(f2))
@@ -202,11 +202,11 @@ nsutil_defined = 1;
 		if(length(cs1) != length(cs2))
 			return 0;
 		for(i = 0; i < length(cs1); i++){
-			c1 = vecref(cs1, i);
+			c1 = cs1[i];
 			for(j = 0; j < length(cs2); j++){
-				c2 = vecref(cs2, j);
-				if(vecref(c1, 0) == vecref(c2, 0)
-				   && vecref(c1, 1) == vecref(c2, 1))
+				c2 = cs2[j];
+				if( (c1[0] == c2[0])
+				   && (c1[1] == c2[1]))
 					break;
 			}
 			if(j >= length(cs2))
@@ -225,16 +225,16 @@ nsutil_defined = 1;
 */
 @define nsiter(ns, fn)
 {
-        @local ttable, tlist, numtypes, i;
+	@local ttable, tlist, numtypes, i;
 
-        ttable = ns.enumtype();
-        tlist = tabenum(ttable);
+	ttable = ns.enumtype();
+	tlist = tabenum(ttable);
 
-        numtypes = length(tlist) / 2;
+	numtypes = length(tlist) / 2;
 
-        for (i = 0; i < numtypes; i++) {
-                fn(vecref(tlist, i + numtypes));
-        }
+	for (i = 0; i < numtypes; i++) {
+		fn(tlist[i + numtypes]);
+	}
 }
 
 
@@ -314,7 +314,7 @@ nsutil_defined = 1;
 		printf("%s %s {\n", suekind(t), suetag(t));
 		flds = fields(t);
 		for(i = 0; i < length(flds); i++){
-			fld = vecref(flds, i);
+			fld = flds[i];
 			off = fieldoff(fld);
 			ft = fieldtype(fld);
 			id = fieldid(fld);
@@ -343,8 +343,8 @@ nsutil_defined = 1;
 		printf("%s %s {\n", suekind(t), suetag(t));
 		ens = enumconsts(t);
 		for(i = 0; i < length(ens); i++){
-			en = vecref(ens, i);
-			printf("\t%s = %d,\n", vecref(en, 0), vecref(en, 1));
+			en = ens[i];
+			printf("\t%s = %d,\n", en[0], en[1]);
 		}
 		printf("};\n");
 	}
@@ -359,11 +359,11 @@ nsutil_defined = 1;
 	@local i, vec;
 	vec = tabvals(ns.enumtype());
 	for(i = 0; i < length(vec); i++)
-		printtype(vecref(vec, i));
+		printtype(vec[i]);
 	vec = tabvals(ns.enumsym());
 	for(i = 0; i < length(vec); i++){
 		@local sym, off, type;
-		sym = vecref(vec, i);
+		sym = vec[i];
 		type = symtype(sym);
 		if(isenumconst(type))
 			continue;

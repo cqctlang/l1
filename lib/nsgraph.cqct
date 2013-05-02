@@ -47,7 +47,7 @@ type_debug = 0;
 		@local flds,i;
 		flds = fields(t);
 		for(i=0; i < length(flds); i++) {
-			if (hasstructptr(fieldtype(vecref(flds, i))))
+			if (hasstructptr(fieldtype(flds[i])))
 				return 1;
 		}
 	}
@@ -112,10 +112,10 @@ type_debug = 0;
 	// didn't find in cache
 	flds = fields(t);
 	for (i=0; i < length(flds); i++) {
-		ft = fieldtype(vecref(flds, i));
+		ft = fieldtype(flds[i]);
 		plist = cachehelper(ft, cache);
 		for (j = 0; j < length(plist); j++) {
-			tabinsert(ptrtab, vecref(plist, j), 1);
+			tabinsert(ptrtab, plist[j], 1);
 		}		
 	}
 
@@ -164,7 +164,7 @@ type_debug = 0;
 	numentries = length(entries) / 2;
 
 	for (i = 0; i < numentries; i++) {
-		fn(vecref(entries, i), vecref(entries, i + numentries));
+		fn(entries[i], entries[i + numentries]);
 	}
 }
 
@@ -181,7 +181,7 @@ type_debug = 0;
 	edgefn = @lambda(from, tolist) {
 		@local j;
 		for (j = 0; j < length(tolist); j++) {
-			fn(from, vecref(tolist, j));
+			fn(from, tolist[j]);
 		}		
 	};
 	
@@ -200,7 +200,7 @@ type_debug = 0;
 
 		printf("%16s: ", suetag(from));
 		for (j = 0; j < length(tolist); j++) {
-			printf(" %s", suetag(vecref(tolist, j)));
+			printf(" %s", suetag(tolist[j]));
 		}
 		printf("\n");
 	};

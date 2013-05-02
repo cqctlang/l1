@@ -125,13 +125,13 @@ core_defined = 1;
 	elfdom = mkelfrec(elfstr).elf;
 	
 	parseout = parse_core(elfdom, fname);
-	addr_ranges = listref(parseout, 1);
-	regptr = listref(parseout, 0);
+	addr_ranges = parseout[1];
+	regptr = parseout[0];
 	
 	//for (i = 0; i < length(addr_ranges); i++) {
 		//@local l;
-		//l = listref(addr_ranges, i);
-		// printf("%x: %x - %x\n", listref(l, 2), listref(l, 0), listref(l, 1));
+		//l = addr_ranges[i];
+		// printf("%x: %x - %x\n", l[2], l[0], l[1]);
 	//}
 
 	//precompute ranges for .map().
@@ -143,21 +143,21 @@ core_defined = 1;
 	@define dispatch (args ...) {
 		@local arg, r, beg, len, i;
 
-		arg = listref(args, 1);
+		arg = args[1];
 
 		if (arg == "get") {
-			r = listref(args, 2);
+			r = args[2];
 			beg = rangebeg(r);
 			len = rangelen(r);
 			//check for overflow
 			if (beg + len < beg) fault();
 			for (i = 0; i < length(addr_ranges); i++) {
 				@local l, vbeg, vend;
-				l = listref(addr_ranges, i); 
-				vbeg = listref(l, 0);
-				vend = listref(l, 1);
+				l = addr_ranges[i];
+				vbeg = l[0];
+				vend = l[1];
 				if (vbeg <= beg && vend > beg + len) {
-					return getbytes(listref(l,2) + (beg - vbeg), len);
+					return getbytes(l[2] + (beg - vbeg), len);
 				}
 			}
 			fault();

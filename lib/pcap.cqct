@@ -156,7 +156,7 @@ eth_names = @names c32be {
 }
 
 @define pcap_domlen(pdom){
-	return rangelen(vecref(pdom.map(),0)); 
+	return rangelen(pdom.map()[0]);
 }
 
 

@@ -90,42 +90,42 @@ asfile_identifier="AS1";
 	}
 	@define dispatch(args ...) {
 		@local ftn;
-		ftn = listref(args,1);
+		ftn = args[1];
 		if (ftn == "get")
 		{
 			@local r, beg, len, vbeg, vlen;
-			r = listref(args,2);
+			r = args[2];
 			beg = rangebeg(r);
-                        len = rangelen(r);
+			len = rangelen(r);
 			if (beg + len < beg) fault();
-                        for (i = 0; i < p->num_ranges; i++) {
-                                vbeg = p->ranges[i].beg;
-                                vlen = p->ranges[i].len;
-                                if (vbeg <= beg && vbeg + vlen >= beg+len) {
-                                        return asdom.get(mkrange(
+			for (i = 0; i < p->num_ranges; i++) {
+				vbeg = p->ranges[i].beg;
+				vlen = p->ranges[i].len;
+				if (vbeg <= beg && vbeg + vlen >= beg+len) {
+					return asdom.get(mkrange(
 					  (beg - vbeg) + offsets[i], len));
-                                }
-                        }
-                        fault();
+				}
+			}
+			fault();
 		} else if (ftn == "map") {
 			return ranges;
 		} else if (ftn == "put") {
 			@local r, beg, len, vbeg, vlen;
-			r = listref(args,2);
+			r = args[2];
 			beg = rangebeg(r);
-                        len = rangelen(r);
+			len = rangelen(r);
 			if (beg + len < beg) fault();
-                        for (i = 0; i < p->num_ranges; i++) {
-                                vbeg = p->ranges[i].beg;
-                                vlen = p->ranges[i].len;
-                                if (vbeg <= beg && vbeg + vlen >= beg+len) {
-                                        return asdom.put(mkrange(
+			for (i = 0; i < p->num_ranges; i++) {
+				vbeg = p->ranges[i].beg;
+				vlen = p->ranges[i].len;
+				if (vbeg <= beg && vbeg + vlen >= beg+len) {
+					return asdom.put(mkrange(
 					  (beg - vbeg) + offsets[i], len),
-					  listref(args,3)
+					  args[3]
 					);
-                                }
-                        }
-                        fault();
+				}
+			}
+			fault();
 		} else if (ftn == "ismapped") {
 			return isrinr(args[2], ranges);
 		} else

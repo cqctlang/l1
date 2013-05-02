@@ -24,7 +24,7 @@ Prints the type t in a way parsable in a .names file.
 		flds = fields(t);
 		for(i = 0; i < length(flds); i++){
 			@local ft,id;
-			fld = vecref(flds, i);
+			fld = flds[i];
 			off = fieldoff(fld);
 			ft = fieldtype(fld);
 			id = fieldid(fld);
@@ -53,8 +53,8 @@ Prints the type t in a way parsable in a .names file.
 		printf("%s %s {\n", suekind(t), suetag(t));
 		ens = enumconsts(t);
 		for(i = 0; i < length(ens); i++){
-			en = vecref(ens, i);
-			printf("\t%s = %d,\n", vecref(en, 0), vecref(en, 1));
+			en = ens[i];
+			printf("\t%s = %d,\n", en[0], en[1]);
 		}
 		printf("};\n");
 	}else
@@ -76,9 +76,9 @@ print a namespace in .names file format.
 		return strcmp(sprintfa("%t",x),sprintfa("%t",y));
 	}); //possibly wasteful, but makes the output cleaner.
 	for(i = 0; i < length(vec); i++) {
-		if (isbase(vecref(vec,i))) continue;
-		if (isptr(vecref(vec,i))) continue;
-			printtype(vecref(vec, i));
+		if (isbase(vec[i])) continue;
+		if (isptr(vec[i])) continue;
+			printtype(vec[i]);
 	}
 
 	vec = copy(tabvals(ns.enumsym()));
@@ -86,8 +86,8 @@ print a namespace in .names file format.
 		return strcmp(sprintfa("%s",symid(x)),sprintfa("%s",symid(y)));
 	}); //possibly wasteful, but makes the output cleaner.
 	for(i = 0; i < length(vec); i++)
-		if(!isenumconst(symtype(vecref(vec, i))))
-			printf("%t;\n", vecref(vec, i));
+		if(!isenumconst(symtype(vec[i])))
+			printf("%t;\n", vec[i]);
 }
 
 /**

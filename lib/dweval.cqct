@@ -1,3 +1,4 @@
+/* this file has not been used in years */
 /* set up a stack (for structs and unions, initialize to 0 (what about nested */
 /* structs?) */
 /* 		                               no.operand */
@@ -8,7 +9,7 @@ _dwstack = [];
 
 @define _dw_push (val)
 {
-  push (_dwstack, val);
+	push (_dwstack, val);
 }
 
 @define _dw_pop ()
@@ -34,14 +35,14 @@ _dwcqct_reg_type = 3;
 	       return values when necessary as well as any updates to
 	       cptr. The return value is [rv, rvtype, lptr] */
   rvtype = nil;
-  lptr = (`uint8 *) cptr;
+  lptr = (uint8 *) cptr;
   op = *lptr;
   lptr++;
   switch (op) {
   case dom`DW_OP_plus_uconst: {
     @local val1, val2;
     val2 = decodeuleb128 (lptr);
-    lptr = listref (val2, 1);
+    lptr = val2[1];
     val2 = head (val2);
     val1 = _dw_pop ();
       rv = (val2 + val1);
@@ -49,8 +50,8 @@ _dwcqct_reg_type = 3;
     break;
   }
   case dom`DW_OP_addr:{
-    val = * (`uintptr *) lptr;
-    lptr += sizeof (`uintptr);
+    val = * (uintptr *) lptr;
+    lptr += sizeof (uintptr);
     rv = (@lambda (as) {return val;});
     _dw_push (rv);
     break;
@@ -128,7 +129,7 @@ _dwcqct_reg_type = 3;
   case dom`DW_OP_breg31:{
     @local offset, basereg, base;
     offset = decodesleb128 (lptr);
-    lptr = listref (offset, 1);
+    lptr = offset[1];
     offset = head (offset);
     basereg = op - dom`DW_OP_breg0;
     rvtype = _dwcqct_addr_type;
@@ -141,7 +142,7 @@ _dwcqct_reg_type = 3;
   case dom`DW_OP_fbreg: {
     @local offset, fbaddr;
     offset = decodesleb128 (lptr);
-    lptr = listref (offset, 1);
+    lptr = offset[1];
     offset = head (offset);
     rv = @lambda (as) {
       @local ret;
@@ -153,10 +154,10 @@ _dwcqct_reg_type = 3;
       }
       if (isprocedure (fbaddr)) {
 	@local tres;
-	fbaddr = (`uintptr) fbaddr(as);
+	fbaddr = (uintptr) fbaddr(as);
       }
       ret = fbaddr + offset;
-      return (`uintptr) ret;
+      return (uintptr) ret;
     };
     rvtype = _dwcqct_addr_type;
     _dw_push (rv);
@@ -181,7 +182,7 @@ _dwcqct_reg_type = 3;
   case dom`DW_OP_deref: {
     @local ptr, rv, val1;
     val1 = _dw_pop();
-    ptr = (`uintptr *) {dom}(val1);
+    ptr = (uintptr *) {dom}(val1);
     rv = (*ptr);
     _dw_push (rv);
     break;
@@ -192,24 +193,24 @@ _dwcqct_reg_type = 3;
     lptr++;
     val1 = _dw_pop();
     switch (size) {
-    case 1: ptr = (`uint8 *) {dom}(val1);
+    case 1: ptr = (uint8 *) {dom}(val1);
       break;
-    case 2: ptr = (`uint16 *) {dom}(val1);
+    case 2: ptr = (uint16 *) {dom}(val1);
       break;
-    case 4: ptr = (`uint32 *) {dom}(val1);
+    case 4: ptr = (uint32 *) {dom}(val1);
       break;
-    case 8: ptr = (`uint64 *) {dom}(val1);
+    case 8: ptr = (uint64 *) {dom}(val1);
       break;
     default: printf ("Accesses of size %d not allowed.\n", size);
       break;
     }
-    rv = (`uintptr) (*ptr);
+    rv = (uintptr) (*ptr);
     /* Is this cast adequate to zero extend *ptr before pushing? */
     _dw_push (rv);
     break;
   }
   case dom`DW_OP_dup:
-    _dw_push (listref (_dwstack, 0));
+    _dw_push (_dwstack[0]);
     break;
   case dom`DW_OP_drop:
     _dw_pop ();
@@ -218,7 +219,7 @@ _dwcqct_reg_type = 3;
     if (length (_dwstack) < 2)
       printf ("Bad evaluation stack.\n");
     else
-      _dw_push (listref (_dwstack, 1));
+      _dw_push (_dwstack[1]);
     break;
   }
   case dom`DW_OP_pick: {
@@ -228,7 +229,7 @@ _dwcqct_reg_type = 3;
     if (length (_dwstack) <= ind )
       printf ("Bad evaluation stack.\n");
     else
-      _dw_push (listref (_dwstack, ind));
+      _dw_push (_dwstack[ind]);
     break;
   }
   case dom`DW_OP_swap: {
@@ -262,7 +263,7 @@ _dwcqct_reg_type = 3;
     @local a1, a2, asid, rv;
     a1 = _dw_pop();
     asid = _dw_pop (); /* for now ignore the address space id */
-    a2 = (`uintptr *) {dom}a1;
+    a2 = (uintptr *) {dom}a1;
     rv = *a2;
     _dw_push (rv);
     break;
@@ -271,21 +272,21 @@ _dwcqct_reg_type = 3;
     @local a1, ptr, asid, size, rv;
     a1 = _dw_pop ();
     asid = _dw_pop (); /* for now ignore the address space id */
-    size = (`uint32) (*lptr);
+    size = (uint32) (*lptr);
     lptr++;
     switch (size) {
-    case 1: ptr = (`uint8 *) {dom}a1;
+    case 1: ptr = (uint8 *) {dom}a1;
       break;
-    case 2: ptr = (`uint16 *) {dom}a1;
+    case 2: ptr = (uint16 *) {dom}a1;
       break;
-    case 4: ptr = (`uint32 *) {dom}a1;
+    case 4: ptr = (uint32 *) {dom}a1;
       break;
-    case 8: ptr = (`uint64 *) {dom}a1;
+    case 8: ptr = (uint64 *) {dom}a1;
       break;
     default: printf ("Accesses of size %d not allowed.\n", size);
       break;
     }
-    rv = (`uintptr) (*ptr);
+    rv = (uintptr) (*ptr);
     /* Is this cast adequate to zero extend *ptr before pushing? */
     _dw_push (rv);
     break;
@@ -379,15 +380,15 @@ _dwcqct_reg_type = 3;
   }
   case dom`DW_OP_skip: {
     @local val;
-    val = *(`uint16 *) lptr;
-    lptr += sizeof (`uint16);
+    val = *(uint16 *) lptr;
+    lptr += sizeof (uint16);
     lptr += val;
     break;
   }
   case dom`DW_OP_bra: {
     @local val, cval;
-    val = *(`uint16 *) lptr;
-    lptr += sizeof (`uint16);
+    val = *(uint16 *) lptr;
+    lptr += sizeof (uint16);
     cval = _dw_pop ();
     if (!cval) {
       lptr += val;
@@ -401,57 +402,57 @@ _dwcqct_reg_type = 3;
     break;
   }
   case dom`DW_OP_const1s: {
-    val = * (`int8 *)lptr;
+    val = * (int8 *)lptr;
     lptr++;
     _dw_push (val);
     break;
   }
   case dom`DW_OP_const2u: {
-    val = * (`uint16 *)lptr;
-    lptr += sizeof (`uint16);
+    val = * (uint16 *)lptr;
+    lptr += sizeof (uint16);
     _dw_push (val);
     break;
   }
   case dom`DW_OP_const2s: {
-    val = * (`int16 *)lptr;
-    lptr += sizeof (`int16);
+    val = * (int16 *)lptr;
+    lptr += sizeof (int16);
     _dw_push (val);
     break;
   }
   case dom`DW_OP_const4u: {
-    val = * (`uint32 *)lptr;
-    lptr += sizeof (`uint32);
+    val = * (uint32 *)lptr;
+    lptr += sizeof (uint32);
     _dw_push (val);
     break;
   }
   case dom`DW_OP_const4s: {
-    val = * (`int32 *)lptr;
-    lptr += sizeof (`int32);
+    val = * (int32 *)lptr;
+    lptr += sizeof (int32);
     _dw_push (val);
     break;
   }
   case dom`DW_OP_const8u: {
-    val = * (`uint64 *)lptr;
-    lptr += sizeof (`uint64);
+    val = * (uint64 *)lptr;
+    lptr += sizeof (uint64);
     _dw_push (val);
     break;
   }
   case dom`DW_OP_const8s: {
-    val = * (`int64 *)lptr;
-    lptr += sizeof (`int64);
+    val = * (int64 *)lptr;
+    lptr += sizeof (int64);
     _dw_push (val);
     break;
   }
   case dom`DW_OP_constu: {
     val = decodeuleb128 (lptr);
-    lptr = listref (val, 1);
+    lptr = val[1];
     val = head (val);
     _dw_push (val);
     break;
   }
   case dom`DW_OP_consts: {
     val = decodesleb128 (lptr);
-    lptr = listref (val, 1);
+    lptr = val[1];
     val = head (val);
     _dw_push (val);
     break;
@@ -459,10 +460,10 @@ _dwcqct_reg_type = 3;
   case dom`DW_OP_bregx:{
     @local offset, basereg, base;
     offset = decodesleb128 (lptr);
-    lptr = listref (offset, 1);
+    lptr = offset[1];
     offset = head (offset);
     basereg = decodeuleb128 (lptr);
-    lptr = listref (basereg, 1);
+    lptr = basereg[1];
     basereg = head (basereg);
     rvtype = _dwcqct_addr_type;
     rv = @lambda (as) {
@@ -552,14 +553,14 @@ _dwcqct_reg_type = 3;
   case dom`DW_OP_piece: {
     @local size;
     size = decodeuleb128 (lptr);
-    lptr = listref (size, 1);
+    lptr = size[1];
     size = head (size);
     break;
   }
   case dom`DW_OP_regx: {
     @local rno;
     rno = decodeuleb128 (lptr);
-    lptr = listref (rno, 1);
+    lptr = rno[1];
     rno = head (rno);
     /* This code will break. The address space for dom here is a DWARF
     section, not something that can get register values. */
@@ -588,12 +589,12 @@ _dwcqct_reg_type = 3;
   cnt = 0;
   if (!isnil (current_compilation_unit)
       && cubase == head (current_compilation_unit)) {
-    cubaseaddr = listref (current_compilation_unit, 2);
+    cubaseaddr = current_compilation_unit[2];
   }
   else {
     @local indom, abdom, strdom, cuinfo;
     cuinfo = get_cu_baseaddr (bdrec, cubase);
-    cubaseaddr = listref (cuinfo, 2);
+    cubaseaddr = cuinfo[2];
   }
   if (asize == 4)
     baseaddrflag = 0xffffffff;
@@ -608,9 +609,9 @@ _dwcqct_reg_type = 3;
     /* for each location list, get the start address, the end address,
        and the location function (from _dw_eval) */
     if (asize == 4)
-      cptr = (`uint32 *){dom}cptr;
+      cptr = (uint32 *){dom}cptr;
     else
-      cptr = (`uint64 *){dom}cptr;
+      cptr = (uint64 *){dom}cptr;
     sloc = *cptr;
     cptr++;
     eloc = *cptr;
@@ -628,7 +629,7 @@ _dwcqct_reg_type = 3;
       /* store the pointer to the Dwarf Expression code and the length
 	 along with the address interval. Leave evaluation until runtime */
       len = *(unsigned short *)cptr;
-      cptr = (`uint8 *) {dom}((unsigned int) cptr + sizeof (unsigned short));
+      cptr = (uint8 *) {dom}((unsigned int) cptr + sizeof (unsigned short));
       end = (unsigned int) cptr + {dom} len;
       append (l, [cubaseaddr + sloc, cubaseaddr + eloc, dom, cptr, len]);
       cptr = end;
