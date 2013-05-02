@@ -1,9 +1,9 @@
 testing strtoupper...
-FOO
-FOO
+FOO6!
+FOO6!
 testing strtolower...
-foo
-foo
+foo6!
+foo6!
 testing ucs2_to_ascii,ucs2n_to_ascii...
 testing big endian...
 converted: "hello there"

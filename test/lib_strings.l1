@@ -23,12 +23,12 @@
 
 
 printf("testing strtoupper...\n");
-printf("%s\n",strtoupper("foo"));
-printf("%s\n",strtoupper("FOO"));
+printf("%s\n",strtoupper("foo6!"));
+printf("%s\n",strtoupper("FOO6!"));
 
 printf("testing strtolower...\n");
-printf("%s\n",strtolower("foo"));
-printf("%s\n",strtolower("FOO"));
+printf("%s\n",strtolower("foo6!"));
+printf("%s\n",strtolower("FOO6!"));
 
 printf("testing ucs2_to_ascii,ucs2n_to_ascii...\n");
 
