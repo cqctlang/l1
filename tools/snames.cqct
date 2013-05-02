@@ -253,7 +253,7 @@ sns = @names clp64be {
 		sctlrerror(fd, tag, Enone);
 		return 'ok;
 	}
-	[m, p] = mkreply(sctl`Rlookunwind1, tag);
+	[m, p] = mkreply(sctl`Runwind1, tag);
 	p = encodeuwrules(p, rs);
 	sendsctlmsg(fd, m, (char*)p-(char*)m);
 	return 'ok;
