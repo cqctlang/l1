@@ -374,6 +374,6 @@ unix = @names clp64le {
 		@0x12	short unsigned int d_namlen;
 		@0x14   unsigned char d_type;
 		@0x15   char d_name[0x400]; //__DARWIN_MAXPATHLEN
-		@0x415;
+		@0x418;
 	};
 };
