@@ -29,7 +29,7 @@ pcap_names = @names c32le {
 	// from libpcap/savefile.c
 	// there are others possible
 	enum pcap_magic {
-		TCPDUMP_MAGIC	        =   0xa1b2c3d4, 
+		TCPDUMP_MAGIC		=   0xa1b2c3d4, 
 		KUZNETZOV_TCPDUMP_MAGIC	=   0xa1b2cd34,
 		FMESQUITA_TCPDUMP_MAGIC	=   0xa1b234cd,
 		NAVTEL_TCPDUMP_MAGIC	=   0xa12b3c4d,

@@ -85,33 +85,34 @@ nrand = @lambda (n)
 	@local slop, v; /* long */
 
 	n=(int)n;
-        if(n < 0)
-                return n;
-        slop = (long) (MASK % n);
-        do {
-                v = (long) lrand();
-        } while(v <= slop) ;
-        return (int)(v % n);
+	if(n < 0)
+		return n;
+	slop = (long) (MASK % n);
+	do {
+		v = (long) lrand();
+	} while(v <= slop) ;
+
+	return (int)(v % n);
 };
 
 @define randseed(x) {
 
-  if(!iscvalue(x)) {
-    error("argument 1 must be an integer");
-  }
+	if(!iscvalue(x)) {
+		error("argument 1 must be an integer");
+	}
 
-  return isrand(x);
+	return isrand(x);
 }
 
 @define rand(n) {
 
-  if(!iscvalue(n))
-    error("argument 1 must be an integer");
-  
-  if(n<1)
-    error("argument 1 must be a positive integer");
+	if(!iscvalue(n))
+		error("argument 1 must be an integer");
 
-  return nrand(n);
+	if(n<1)
+		error("argument 1 must be a positive integer");
+
+	return nrand(n);
 }
 
 }
