@@ -1,0 +1,41 @@
+testing strtoupper...
+FOO
+FOO
+testing strtolower...
+foo
+foo
+testing ucs2_to_ascii,ucs2n_to_ascii...
+testing big endian...
+converted: "hello there"
+converted: ""
+converted: "hello"
+converted: "hello there\000"
+testing little endian...
+converted: "\000\000\000\000\000\000\000\000\000\000\000"
+converted: ""
+converted: "\000\000\000\000\000"
+converted: "\000\000\000\000\000\000\000\000\000\000\000\000"
+testing big endian with a big endian BOM
+converted: "\377hello there"
+converted: ""
+converted: "\377hello"
+converted: "\377hello there\000"
+testing little endian with a big endian BOM
+converted: "\377hello there"
+converted: ""
+converted: "\377hello"
+converted: "\377hello there\000"
+testing big endian with a little endian BOM
+converted: "\377\000\000\000\000\000\000\000\000\000\000\000"
+converted: ""
+converted: "\377\000\000\000\000\000"
+converted: "\377\000\000\000\000\000\000\000\000\000\000\000\000"
+testing little endian with a little endian BOM
+converted: "\377\000\000\000\000\000\000\000\000\000\000\000"
+converted: ""
+converted: "\377\000\000\000\000\000"
+converted: "\377\000\000\000\000\000\000\000\000\000\000\000\000"
+testing exception check for U+DC00...
+happily failed with invalid UCS2 code point U+DC00
+testing length override...
+happily failed with address space access out of bounds

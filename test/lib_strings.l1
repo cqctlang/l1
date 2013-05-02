@@ -1,0 +1,93 @@
+
+@include <strings.cqct>
+
+// (portions of applyk reimplemented here to make the tests deterministic)
+@define happily_fail(thunk) {
+	@local olderr;
+
+	callcc(@lambda(k){
+		dynamicwind(
+			@lambda(){
+				olderr = errorhandler;
+				errorhandler = @lambda(msg) {
+					printf("happily failed with %s\n",msg);
+					k(nil);
+				};
+			},
+			thunk,
+			@lambda(){
+				errorhandler = olderr;          
+			});
+	});
+} 
+
+
+printf("testing strtoupper...\n");
+printf("%s\n",strtoupper("foo"));
+printf("%s\n",strtoupper("FOO"));
+
+printf("testing strtolower...\n");
+printf("%s\n",strtolower("foo"));
+printf("%s\n",strtolower("FOO"));
+
+printf("testing ucs2_to_ascii,ucs2n_to_ascii...\n");
+
+foo="\x00h\x00""e\x00l\x00l\x00o\x00 \x00t\x00h\x00""e\x00r\x00""e\x00\x00";    
+
+printf("testing big endian...\n");
+// show that we get hello world
+printf("converted: %a\n",ucs2_to_ascii({mkdom(c32be,mksas(foo))}(char *)0));    
+printf("converted: %a\n",ucs2n_to_ascii({mkdom(c32be,mksas(foo))}(char *)0,0)); 
+printf("converted: %a\n",ucs2n_to_ascii({mkdom(c32be,mksas(foo))}(char *)0,5)); 
+printf("converted: %a\n",ucs2n_to_ascii({mkdom(c32be,mksas(foo))}(char *)0,12)); 
+
+printf("testing little endian...\n");
+// show that we get strings with nulls 
+printf("converted: %a\n",ucs2_to_ascii({mkdom(c32le,mksas(foo))}(char *)0));    
+printf("converted: %a\n",ucs2n_to_ascii({mkdom(c32le,mksas(foo))}(char *)0,0)); 
+printf("converted: %a\n",ucs2n_to_ascii({mkdom(c32le,mksas(foo))}(char *)0,5)); 
+printf("converted: %a\n",ucs2n_to_ascii({mkdom(c32le,mksas(foo))}(char *)0,12)); 
+
+bar="\xfe\xff\x00h\x00""e\x00l\x00l\x00o\x00 \x00t\x00h\x00""e\x00r\x00""e\x00\x00";
+
+printf("testing big endian with a big endian BOM\n");
+printf("converted: %a\n",ucs2_to_ascii({mkdom(c32be,mksas(bar))}(char *)0));    
+printf("converted: %a\n",ucs2n_to_ascii({mkdom(c32be,mksas(bar))}(char *)0,0)); 
+printf("converted: %a\n",ucs2n_to_ascii({mkdom(c32be,mksas(bar))}(char *)0,6)); 
+printf("converted: %a\n",ucs2n_to_ascii({mkdom(c32be,mksas(bar))}(char *)0,13)); 
+
+printf("testing little endian with a big endian BOM\n");
+printf("converted: %a\n",ucs2_to_ascii({mkdom(c32le,mksas(bar))}(char *)0));    
+printf("converted: %a\n",ucs2n_to_ascii({mkdom(c32le,mksas(bar))}(char *)0,0)); 
+printf("converted: %a\n",ucs2n_to_ascii({mkdom(c32le,mksas(bar))}(char *)0,6)); 
+printf("converted: %a\n",ucs2n_to_ascii({mkdom(c32le,mksas(bar))}(char *)0,13)); 
+
+baz="\xff\xfe\x00h\x00""e\x00l\x00l\x00o\x00 \x00t\x00h\x00""e\x00r\x00""e\x00\x00";
+
+printf("testing big endian with a little endian BOM\n");
+printf("converted: %a\n",ucs2_to_ascii({mkdom(c32be,mksas(baz))}(char *)0));    
+printf("converted: %a\n",ucs2n_to_ascii({mkdom(c32be,mksas(baz))}(char *)0,0)); 
+printf("converted: %a\n",ucs2n_to_ascii({mkdom(c32be,mksas(baz))}(char *)0,6)); 
+printf("converted: %a\n",ucs2n_to_ascii({mkdom(c32be,mksas(baz))}(char *)0,13)); 
+
+printf("testing little endian with a little endian BOM\n");
+printf("converted: %a\n",ucs2_to_ascii({mkdom(c32le,mksas(baz))}(char *)0));    
+printf("converted: %a\n",ucs2n_to_ascii({mkdom(c32le,mksas(baz))}(char *)0,0)); 
+printf("converted: %a\n",ucs2n_to_ascii({mkdom(c32le,mksas(baz))}(char *)0,6)); 
+printf("converted: %a\n",ucs2n_to_ascii({mkdom(c32le,mksas(baz))}(char *)0,13)); 
+
+bartoo="\xff\xfe\x00h\x00""e\x00l\x00l\x00o\x00\xdc\x00t\x00h\x00""e\x00r\x00""e\x00\x00";
+
+printf("testing exception check for U+DC00...\n");
+happily_fail(@lambda() {
+	printf("converted: %a\n",
+		ucs2_to_ascii({mkdom(c32be,mksas(bartoo))}(char *)0));
+	error("huh?");
+});
+
+printf("testing length override...\n");
+happily_fail(@lambda() {
+	printf("converted: %a\n",
+		ucs2n_to_ascii({mkdom(c32be,mksas(foo))}(char *)0,128));
+	error("huh?");
+});
