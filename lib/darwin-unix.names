@@ -1,38 +1,38 @@
 
 
 struct stat {
-  @0x8 uint16 st_mode;
-  @0x48 int64 st_size;
-  @0x90;
+	@0x8 uint16 st_mode;
+	@0x48 int64 st_size;
+	@0x90;
 };
 
 struct timespec {                                                                
-  @0 int tv_sec; /* seconds */
-  @4 int tv_nsec; /* nanoseconds */
-  @8;
+	@0 int tv_sec; /* seconds */
+	@4 int tv_nsec; /* nanoseconds */
+	@8;
 };
 
 struct in_addr {
-  @0 unsigned int s_addr;
-  @4;
+	@0 unsigned int s_addr;
+	@4;
 };
 
 typedef int8 sa_family_t;
 
 struct sockaddr_in {
-  @0 unsigned char length;
-  @1 sa_family_t sin_family;      /* AF_INET */
-  @2 unsigned short int sin_port;
-  @4 struct in_addr sin_addr;
-  @16; // minimum size of a struct sockaddr;
+	@0 unsigned char length;
+	@1 sa_family_t sin_family;      /* AF_INET */
+	@2 unsigned short int sin_port;
+	@4 struct in_addr sin_addr;
+	@16; // minimum size of a struct sockaddr;
 }; 
 
 struct sockaddr_un {
 	@0 unsigned char length;
 	@1 sa_family_t sun_family;       /* AF_UNIX */
 	@2 char sun_path[100]; /* pathname */
-  	@102; // can't use UNIX_PATH_MAX here to set the size.
-        // a proper structure packer will take care of
-        // this later.
+	@102; // can't use UNIX_PATH_MAX here to set the size.
+	// a proper structure packer will take care of
+	// this later.
 };
 

@@ -12,6 +12,7 @@
 
 _unameres = nil;
 
+// this entire mechanism is a crock.
 {
 	@local u,r,a,o,w;
 
@@ -26,6 +27,7 @@ _unameres = nil;
 	case ["Linux","x86_64",8]:
 		eval("@include <linux-x86_64.cqct>"); 
 		break;
+	case ["Linux","x86_64",4]:
 	case ["Linux","i686",4]:
 		eval("@include <linux-x86.cqct>"); 
 		break;
@@ -35,7 +37,6 @@ _unameres = nil;
 	case ["Darwin","x86_64",8]:
 		eval("@include <darwin-x86_64.cqct>"); 
 		break;
-	case ["Linux","x86_64",4]:
 	case ["Darwin","x86_64",4]:
 	default:
 	// no direct syscalls for you
@@ -52,7 +53,6 @@ _unameres = nil;
 	};
 
 	_unameres = u;
-
 };
 
 @global sys_open;
@@ -134,7 +134,6 @@ sys_ioctl = @lambda(fd,req,data) {
 sys_dup2 = @lambda(fd1,fd2) {
 
 	return syscall(unix`dup2,fd1,fd2);
-
 };
 
 @global posix;
@@ -351,21 +350,18 @@ if(unix.looksym('mmap2)) {
 sys_msync=@lambda(addr,size,flags) {
 
 	return syscall(unix`msync,addr,size,flags);
-
 };
 
 @global sys_munmap;
 sys_munmap=@lambda(addr,length) {
 
 	return syscall(unix`munmap,addr,length);
-
 };
 
 @global sys_socket;
 sys_socket = @lambda(domain,type,protocol) {
 
 	return syscall(unix`socket,domain,type,protocol);
-
 };
 
 @global sys_connect;
@@ -437,7 +433,6 @@ sys_getsockname = @lambda(fd,sa,len) {
 sys_setsockopt = @lambda(socket,level,option_name,option_value,option_len) {
 
 	return syscall(unix`setsockopt,socket,level,option_name,option_value,option_len);
-
 };
 
 /*
@@ -447,8 +442,7 @@ sys_setsockopt = @lambda(socket,level,option_name,option_value,option_len) {
 @global sys_exit;
 sys_exit = @lambda(status) {
 
-  syscall(unix`exit,status);
-
+	syscall(unix`exit,status);
 };
 
 @global sys_fork;
@@ -469,7 +463,6 @@ sys_fork = @lambda() {
 	} else {
 		return r;
 	}
-
 };
 
 } else {
@@ -477,7 +470,6 @@ sys_fork = @lambda() {
 sys_fork = @lambda() {
 
 	syscall(unix`fork);
-
 };
 
 }
@@ -487,7 +479,6 @@ if(looksym(unix,'wait4)) {
 sys_wait4 = @lambda(pid,status,options,rusage) {
 
 	syscall(unix`wait4,pid,status,options,rusage);
-
 };
 }
 
@@ -495,35 +486,30 @@ sys_wait4 = @lambda(pid,status,options,rusage) {
 sys_getpid = @lambda() {
 
 	syscall(unix`getpid);
-
 };
 
 @global sys_getppid;
 sys_getppid = @lambda() {
 
 	syscall(unix`getppid);
-
 };
 
 @global sys_getpgid;
 sys_getpgid = @lambda(pid) {
 
 	syscall(unix`getpgid,pid);
-
 };
 
 @global sys_setpgid;
 sys_setpgid = @lambda(pid,pgid) {
 
 	syscall(unix`setpgid,pid,pgid);
-
 };
 
 @global sys_setsid;
 sys_setsid = @lambda() {
 
 	syscall(unix`setsid);
-
 };
 
 @global sys_sleep;
@@ -544,7 +530,6 @@ sys_sleep = @lambda(secs) {
 	} else {
 		return m2->tv_sec;
 	}
-
 };
 
 @global sys_reboot;
@@ -622,42 +607,36 @@ sys_setmempolicy = @lambda(mode, nodemask, maxnode) {
 sys_getuid = @lambda() {
 
 	return syscall(unix`getuid);
-
 };
 
 @global sys_geteuid;
 sys_geteuid = @lambda() {
 
 	return syscall(unix`geteuid);
-
 };
 
 @global sys_setuid;
 sys_setuid = @lambda(uid) {
 
 	return syscall(unix`setuid,uid);
-
 };
 
 @global sys_getgid;
 sys_getgid = @lambda() {
 
 	return syscall(unix`getgid);
-
 };
 
 @global sys_getegid;
 sys_getegid = @lambda() {
 
 	return syscall(unix`getegid);
-
 };
 
 @global sys_setgid;
 sys_setgid = @lambda(gid) {
 
 	return syscall(unix`setgid,gid);
-
 };
 
 @global sys_execve;
