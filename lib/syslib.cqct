@@ -86,7 +86,7 @@ _mapfile = @lambda(filename, rest ...) {
 	{
 		//empty file, length zero mapping
 		sys_close(fd);
-		return "";
+		return [ 0, 0];
 	}
 
 	p = sys_mmap(0, s, m, f, fd, 0);
