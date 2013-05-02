@@ -1,0 +1,49 @@
+@include <chase.cqct>
+
+@define fmtnode(p)
+{
+	return sprintfa("(%t)0x%p", p, p);
+}
+
+
+@define chasecb(p, ls)
+{
+	printf("%s:\n", fmtnode(p));
+	foreach(@lambda(p) { printf("\t%s\n", fmtnode(p)); }, ls);
+}
+
+
+@define testchase()
+{
+	@local ns, as, dom, p, q, i, j,chase;
+
+	ns = @names c32le {
+		struct Y;
+		struct X {
+			@0x00 struct X *x1;
+			@0x10 struct Y y;
+			@0x20 struct X *x[10];
+			@0x100;
+		};
+		struct Y {
+			@0x00 struct X *x2;
+			@0x10;
+		};
+		@0x0 struct X root;
+	};
+	as = mkzas(10240);
+	dom = mkdom(ns, as);
+	q = p = &dom`root;
+	for(i = 0; i < 10; i++){
+		p->x1 = p+1;
+		p->y.x2 = p+2;
+		for(j = 0; j < 9; j++)
+			p->x[j] = &q[j];
+		p++;
+	}
+	chase = mkchaser(chasecb);
+	chase(q+1);
+	return nil;
+}
+
+testchase();
