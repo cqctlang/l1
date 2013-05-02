@@ -1,5 +1,3 @@
-// 
-
 
 @global taskset_defined;
 if (taskset_defined == nil)
@@ -29,11 +27,10 @@ boot=@lambda() {
 			m[cpu>>3] |= ( 1 << (cpu%8) );
 
 			r=sys_sched_setaffinity(sys_getpid(), 128, m);
-			if(!r) {
+			if(!r)
 				return 0;
-			} else {
-				return -1;
-			}
+
+			return -1;
 		};
 
 	} else {
@@ -50,5 +47,7 @@ $l1start = @lambda(args ...) {
 	boot();
 	return apply(oldstart,args);
 };
+
+boot();
 
 }
