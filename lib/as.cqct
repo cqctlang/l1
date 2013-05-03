@@ -36,7 +36,7 @@
 	}else
 		error("wrong number of arguments to getbytes");
 
-	return $callmethodx(domof(p).as, "get", mkrange(p, len));
+	return $callmethodx(domof(p).as, "get", mkrange((uintptr)p, len));
 }
 
 @define putbytes(p, s)
@@ -49,7 +49,7 @@
 	t = chasetype(@typeof(p));
 	if(!isptr(t))
 		error("operand 1 must be a pointer");
-	return $callmethodx(domof(p).as, "put", mkrange(p, length(s)), s);
+	return $callmethodx(domof(p).as, "put", mkrange((uintptr)p, length(s)), s);
 }
 
 }
