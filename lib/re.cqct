@@ -107,9 +107,9 @@ debug = 0;
             case 'or:
                 if (lst[i][1] != nil) {
                   if (lst[i][2] == nil)
-                    error("Baddly formed re: %s",re);
+                    error("Badly formed re: %s",re);
                 } else if (i == 0) {
-                  error("Baddly formed re: %s",re);
+                  error("Badly formed re: %s",re);
                 } else {
                   lst[i-1] = ['or,lst[i-1], lst[i+1]];
                   listdel(lst,i);
