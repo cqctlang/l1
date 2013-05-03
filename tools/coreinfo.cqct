@@ -85,6 +85,58 @@
 	return s;
 }
 
+// from RFC 1952
+gzip_names = @names c32le {
+	enum gzip_os {
+		FAT		= 0,
+		AMIGA		= 1,
+		VMS		= 2,
+		UNIX		= 3,
+		VMCMS		= 4,
+		TOS		= 5,
+		HPFS		= 6,
+		MACINTOSH	= 7,
+		ZSYSTEM		= 8,
+		CPM		= 9,
+		TOPS20		= 10,
+		NTFS		= 11,
+		QDOS		= 12,
+		RISCOS		= 13,
+		UNKNOWN		= 255
+	};
+
+	enum gzip_cm {
+		DEFLATE		= 8
+	};
+
+	enum gzip_flg {
+		FTEXT		= 1,
+		FHCRC		= 2,
+		FEXTRA		= 4,
+		FNAME		= 8,
+		FCOMMENT	= 16
+	};
+	
+	struct gzip_header {
+		@0 unsigned char ID1;
+		@1 unsigned char ID2;
+		@2 unsigned char CM;
+		@3 unsigned char FLG;
+		@4 unsigned long MTIME;
+		@8 unsigned char XFL;
+		@9 unsigned char OS;
+		@10;
+	};
+
+	struct gzip_header_fextra {
+		@0 unsigned short XLEN;
+		@2 unsigned char EXTRA[0];
+		@2;
+	};
+
+	@0 struct gzip_header gzip;
+};
+
 
 @define main(progname,args ...)
 {
@@ -101,11 +153,53 @@
 
 	elfstr = mapfile(infile);
 	if(!iself(elfstr)) {
-		fprintf(stderr,"core file %s is not ELF. Sorry.\n",infile);
-		return 1;
+		@local gzd,gz,c,r;
+
+		gzd=mkdom(gzip_names,mksas(elfstr));
+		gz=&gzd`gzip;
+	
+		if( (gz->ID1 != 0x1f) || (gz->ID2 != 0x8b) ) {
+			fprintf(stderr,"core file %s is neither ELF nor gzipped ELF. Sorry.\n",infile);
+			return 1;
+		}
+
+		if( gz->CM != gzd`DEFLATE ) {
+			fprintf(stderr,"unsupported compression method for core file %s\n",infile);
+			return 1;
+		}
+
+		c=(unsigned char *)(gz+1);
+		
+		if(gz->FLG & gzd`FEXTRA) {
+			fprintf(stderr,"gzip files with extra headers not yet supported\n");
+			return 1;
+		}
+
+		if(gz->FLG & gzd`FNAME) {
+			c+=strlen(c)+1;
+		}
+
+		if(gz->FLG & gzd`FCOMMENT) {
+			c+=strlen(c)+1;
+		}
+
+		if(gz->FLG & gzd`FHCRC) {
+			c+=2;
+		}
+		
+		r = inflate(c);
+		if(!r) {
+			fprintf(stderr,"could not decompress %s\n",infile);
+			return 1;
+		}
+		[elfstr, _] = r;
+		if(!iself(elfstr)) {
+			fprintf(stderr,"core file %s is not ELF. Sorry.\n",infile);
+			return 1;
+		}
 	}
 
-	elfdom = mkelfrec(mapfile(infile)).elf;
+	elfdom = mkelfrec(elfstr).elf;
 
 	if (sizeof (nsptr (elfdom.ns)) == 4) {
 		ehdr = (elfdom`Elf32_Ehdr *){elfdom} 0;
