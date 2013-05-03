@@ -1,0 +1,17 @@
+@include <xsas.cqct>
+
+@define f(len)
+{
+	@local s, x, p;
+	s = mkstr(len);
+	x = mkxs();
+	p = (unsigned char *)x;
+	putbytes(p, s);
+}
+
+f(10);
+f(127);
+f(128);
+f(1000);
+
+
