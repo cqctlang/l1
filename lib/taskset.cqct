@@ -16,11 +16,11 @@ move_to_cpu=nil;
 
 oldstart=$l1start;
 
-boot=@lambda() {
+@define boot() {
 
 	if(uname()[0]=="Linux") {
 
-		move_to_cpu = @lambda(cpu) {
+		@define move_to_cpu(cpu) {
 			@local m,r;
 
 			m=mkstr(128);
@@ -35,18 +35,18 @@ boot=@lambda() {
 
 	} else {
 
-		move_to_cpu = @lambda(cpu) {
+		@define move_to_cpu(cpu) {
 			fprintf(stderr,"CPU affinity not supported on %s\n",uname()[0]);
 			return -1;
 		};
 
 	}
-};
+}
 
-$l1start = @lambda(args ...) {
+@define $l1start(args ...) {
 	boot();
 	return apply(oldstart,args);
-};
+}
 
 boot();
 

@@ -12,7 +12,7 @@
 		else if(istable(v))
 			return tab2json(v);
 		else if(isnil(v))
-                        return "null";
+			return "null";
 		else
 			error("invalid value: %a", v);
 	}

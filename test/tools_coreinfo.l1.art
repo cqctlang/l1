@@ -1,0 +1,2 @@
+args=["coreinfo.cqct","../artifacts/slayer_x86_64_ubuntu_1004.core.gz"];
+@include "../tools/coreinfo.cqct"

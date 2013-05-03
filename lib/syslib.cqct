@@ -1,13 +1,13 @@
 /* native syscall replacements for system functions in l1 */
 @include <sys.cqct>
 
-_munmap = @lambda(addr, len) {
+@define _munmap(addr, len) {
 	sys_munmap(addr ,len);
 
 	return nil;
-};
+}
 
-_mapfile = @lambda(filename, rest ...) {
+@define _mapfile(filename, rest ...) {
 	@local fd,st,p,s,m,f,fm;
 
 	m = 0;
@@ -103,13 +103,13 @@ _mapfile = @lambda(filename, rest ...) {
 	}
 
 	return [p, s];
-};
+}
 
 @global iohash;
 
 iohash=[:];
 
-open = @lambda(filename, mode) {
+@define open(filename, mode) {
 	@local flags,oflags,fd,newmode,nfd;
 
 	if(!isstring(filename)) 	error("open: filename is not a string");
@@ -165,31 +165,31 @@ open = @lambda(filename, mode) {
 		return nfd;
 	}
 
-};
+}
 
-seek = @lambda(fd,pos,whence) {
-  @local sfd,r;
+@define seek(fd,pos,whence) {
+	@local sfd,r;
 
-  sfd=iohash[cons(fd,nil)];
-  if(!isnil(sfd)) {
-    r=sys_lseek(sfd,pos,whence); 
-  } else {
-    error("seek: seeking a cinquecento fd with no unix fd");
-  }
+	sfd=iohash[cons(fd,nil)];
+	if(!isnil(sfd)) {
+		r=sys_lseek(sfd,pos,whence); 
+	} else {
+		error("seek: seeking a cinquecento fd with no unix fd");
+	}
 
-  return r;
-};
+	return r;
+}
 
-close = @lambda(fd) {
-  @local sfd;
+@define close(fd) {
+	@local sfd;
 
-  sfd=iohash[cons(fd,nil)];
-  if(!isnil(sfd)) {
-    sys_close(sfd); 
-  } else {
-    error("close: closing a cinquecento fd with no unix fd");
-  }
-};
+	sfd=iohash[cons(fd,nil)];
+	if(!isnil(sfd)) {
+		sys_close(sfd); 
+	} else {
+		error("close: closing a cinquecento fd with no unix fd");
+	}
+}
 
 unlink = sys_unlink;
 
@@ -199,11 +199,11 @@ unlink = sys_unlink;
 /* LINUX_REBOOT_CMD_RESTART2 0xa1b2c3d4 */
 /* LINUX_REBOOT_CMD_CAD_ON RB_ENABLE_CAD 0x89abcdef */
 /* LINUX_REBOOT_CMD_CAD_OFF RB_DISABLE_CAD, 0 */
-reboot = @lambda(cmd) {
-  return sys_reboot(0xfee1dead,672274793,cmd,0);
-};
+@define reboot(cmd) {
+	return sys_reboot(0xfee1dead,672274793,cmd,0);
+}
 
-dirlist=@lambda(dirname) {
+@define dirlist(dirname) {
 	@local readdir_size;
 	@local buf;
 	@local fd;
@@ -239,4 +239,4 @@ dirlist=@lambda(dirname) {
 	}
 
 	return l;
-};
+}

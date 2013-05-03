@@ -18,6 +18,11 @@ if len(sys.argv) > 1:
 else:
     run = glob.glob('[A-Za-z0-9]*.l1')
 
+if len(glob.glob('../artifacts')) == 1:
+	run.extend(glob.glob('[A-Za-z0-9]*.l1.art'))
+else:
+	print 'no artifacts available. skipping artifact tests'
+
 for m in run:
     print m,
     sys.stdout.flush()

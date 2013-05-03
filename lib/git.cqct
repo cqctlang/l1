@@ -3,7 +3,7 @@
 packns = @names c32be {
 	struct pack_header {
 		@0x0	uint32 hdr_signature;
-	       	@0x4	uint32 hdr_version;
+		@0x4	uint32 hdr_version;
 		@0x8	uint32 hdr_entries;
 		@0xc;
 	};

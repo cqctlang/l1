@@ -27,7 +27,7 @@ rng_tap = rng_vec;
 rng_feed = (unsigned long *)0;
 
 
-isrand = @lambda (seed)
+@define isrand(seed)
 {
 	@local lo, hi, x; /* long */
 	@local i; /* int */
@@ -54,9 +54,9 @@ isrand = @lambda (seed)
 		if(i >= 0)
 			rng_vec[i] = x;
 	}
-};
+}
 
-lrand = @lambda()
+@define lrand()
 {
 	@local x; /* ulong */
 
@@ -77,10 +77,10 @@ lrand = @lambda()
 	*rng_feed = x;
 
 	return x;
-};
+}
 
 
-nrand = @lambda (n)
+@define nrand(n)
 {
 	@local slop, v; /* long */
 
@@ -93,7 +93,7 @@ nrand = @lambda (n)
 	} while(v <= slop) ;
 
 	return (int)(v % n);
-};
+}
 
 @define randseed(x) {
 
