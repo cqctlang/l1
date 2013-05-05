@@ -75,39 +75,37 @@ if (__library_exports == nil) //might not have been set in a macro
     @global __library_exports;
     if (__library_exports[lib] == nil)
       __library_exports[lib] = [:];
-    if (__library_exports[lib][args_v] != nil)
+
+    //when args is nil, we can reuse the old load
+    if (args_v == nil && __library_exports[lib][args_v] != nil)
       return; 
+
     __library_exports[lib][args_v] = [:];
+
     //determine if that library has been loaded, if not, load it
     fp = pathto(sprintfa("%s.cql",lib));
-    //if we are not importing globals (in which case we always reload the file)
-    //and we have already parsed the file, simply use the old parse.
-    if (!glob && __library_exports[lib]['parsed] != nil)
-    {
-      if (args_v == nil && __library_exports[lib]['loaded] == 1)
-      {
-        return;
-      }
-      parsed = __library_exports[lib]['parsed];
-    } else {
-      //XXX for manually defined @library statements, this may lead
-      //to issues if they are imported globally
-      if (fp == nil) {
-        lib_error("could not find library: %s",lib);
-      }
-      l = mapfile(fp);
-      l = sprintfa("@library(%s) { %s }",lib,l);
-      l = sprintfa(
-          "{@local args;args=__library_exports[mkcid(\"%s\")]['args]();args=args; %s}",
-          lib,l);
-      parsed = parse(l,fp);
-      if (parsed == nil)
-        lib_error("loading library %a",lib);
-      __library_exports[lib]['parsed] = parsed;
+
+    //XXX for manually defined @library statements, this may lead
+    //to issues if they are imported globally
+    if (fp == nil) {
+      lib_error("could not find library: %s",lib);
     }
+
+    //load and parse the library
+    l = mapfile(fp);
+    l = sprintfa("@library(%s) { %s }",lib,l);
+    l = sprintfa(
+        "{@local args;args=__library_exports[mkcid(\"%s\")]['args]();args=args; %s}",
+        lib,l);
+    parsed = parse(l,fp);
+    if (parsed == nil)
+      lib_error("loading library %a",lib);
+
+    //this element should only referenced in the above parsed statement 
     __library_exports[lib]['args] = @lambda() { return args_v; };
     ftn = compile(parsed);
     ftn();
+
     if (args_v == nil) 
       __library_exports[lib]['loaded] = 1;
     if (__library_exports[lib][args_v] == nil) 
@@ -161,6 +159,10 @@ if (__library_exports == nil) //might not have been set in a macro
                          []);
           if (args == nil)
             lib_error("Bad library argument list. Cannot contain variables or runtime state.\nSee doc/library_system.html#compile_time_problems");
+          if (args != []) {
+            fprintf(stderr,"Warning: library arguments will be deprecated soon.\n"); 
+            fprintf(stderr,"         (if you need arguments in your library, add an 'init' funtion\n");
+          }
         } else {
           has_args = #id('nil);
           args = nil;
@@ -188,13 +190,10 @@ if (__library_exports == nil) //might not have been set in a macro
         } else {
           //in this case we want to create an object to dispatch
           //calls to the given library.
+
           s = #`{
-            {
-              @local lib_exports;
-              lib_exports = __library_exports[ #,(#val(lnamecid)) ]
-                                             [ #,(has_args) ];
-              #,(#id(fn)) = copy(lib_exports);
-            }
+            #,(#id(fn)) = copy(__library_exports[ #,(#val(lnamecid)) ]
+                                                [ #,(has_args) ]);
           }; //end generated code
           append(new_body,s);
         }
@@ -259,7 +258,7 @@ if (__library_exports == nil) //might not have been set in a macro
 @defstx @import_globals(imports...) {
   @local new_args;
   new_args = Zcons(imports,imports);
-  new_args = Zcons(#val(1),new_args);
+  new_args = Zcons(#val(0),new_args);
   return #mcall(#id('with_imports_imp),new_args,#[]);
 }
 
@@ -272,14 +271,15 @@ if (__library_exports == nil) //might not have been set in a macro
 @defstx @dynamic_imports(args...) body {
   args = #list(args);
   return #`{
-    { @local new_args; 
-    new_args = map(@lambda(x) { 
-      if (iscid(x)) return #id(x);
-      if (isstring(x)) return parse(x+";")[0];
-      error("bad library name: %a\n",x);
-    },#,(args));
-    compile(#mcall(#id('with_imports),apply(Zlist,new_args),#,(#val(body))))();
-    }
+    apply( @lambda(new_args...) {; 
+             compile(#mcall(#id('with_imports),apply(Zlist,new_args),#,(#val(body))))();
+           }, 
+           map(@lambda(x) { 
+                if (iscid(x)) return #id(x);
+                if (isstring(x)) return parse(x+";")[0];
+                error("bad library name: %a\n",x);
+              },#,(args))
+        );
   };
 }
 
@@ -313,7 +313,7 @@ if (__library_exports == nil) //might not have been set in a macro
 
   if (__library_exports == nil) __library_exports = [:];
 
-  //new_body collects the body of the syntax for this macro returns.
+  //new_body collects the body of the syntax for this macro to return
   //the first thing we need to have done is to register that this library
   //exists by setting it's hash table in the __library_exports. 
   new_body = [ #`{
