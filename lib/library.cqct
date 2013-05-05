@@ -1,449 +1,460 @@
 @global library_defined;
 
 /*
-Prototype implementation of a library system for l1.
+   Prototype implementation of a library system for l1.
 
-see doc/library_system.html
-*/
+   see doc/library_system.html
+ */
 
 if (library_defined == nil)
 {
-@global __library_exports;
-
-library_defined = 1;
-
-//__library_exports is a map from library identifies (cids) to a map from
-//exported symbols (also cids) to the value of those exported symbols 
-//defined by that library. 
-//This is not meant for general use.
-if (__library_exports == nil) //might not have been set in a macro
-  __library_exports = [:];
-
-//bare import statements are the sign of a problem -- let the user know
-@defstx @import(args...) { 
-  @local s;
-  s = stxsrc(args);
-  error("error %s:%d: @import statements not allowed outside of libraries",
-      s[0],s[1]);
-  return #[]; 
-}
-
-//by default, ignore export statments (XXX should this cause a warning?)
-@defstx @export(args...) { return #[]; }
-
-//this macro adds the provided path to the loadpath at macro expansion time.
-@defstx @add_loadpath(path) {
-  @local p,lp;
-  p = compile(path)();
-  lp = loadpath();
-  append(lp,p);
-  setloadpath(lp);
-  return #`{ nil; };
-}
-
-//this macro allows some code to be run with bindings to some imported symbols 
-@defstx @with_imports_imp(glob, src, imports...) body {
-  @local new_body, new_locals, has_dot, has_args;
-  @global __library_exports;
-
-  if (__library_exports == nil) __library_exports = [:];
-
-  glob = compile(glob)();
-
-  @defloc pathto(f) {
-    @local i,paths,len;
-    paths = loadpath();
-    len = length(paths);
-    for(i=0;i<len;++i) {
-      @local fp;
-      fp = sprintfa("%s/%s",paths[i],f);
-      if (access(fp,"r"))
-        return fp;
-    }
-    return nil;
-  }
-
-  @defloc lib_error(msg, args...) {
-    @local s;
-    s = stxsrc(src);
-    msg = "error: %s:%d: " + msg;
-    apply(error,msg,s[0],s[1],args);
-  }
-
-  @defloc check_and_load(lib,args_v) {
-    @local l,fp,parsed,ftn;
     @global __library_exports;
-    if (__library_exports[lib] == nil)
-      __library_exports[lib] = [:];
 
-    //when args is nil, we can reuse the old load
-    if (args_v == nil && __library_exports[lib][args_v] != nil)
-      return; 
+    library_defined = 1;
 
-    __library_exports[lib][args_v] = [:];
+    //__library_exports is a map from library identifies (cids) to a map from
+    //exported symbols (also cids) to the value of those exported symbols 
+    //defined by that library. 
+    //This is not meant for general use.
+    if (__library_exports == nil) //might not have been set in a macro
+        __library_exports = [:];
 
-    //determine if that library has been loaded, if not, load it
-    fp = pathto(sprintfa("%s.cql",lib));
-
-    //XXX for manually defined @library statements, this may lead
-    //to issues if they are imported globally
-    if (fp == nil) {
-      lib_error("could not find library: %s",lib);
+    //bare import statements are the sign of a problem -- let the user know
+    @defstx @import(args...) { 
+        @local s;
+        s = stxsrc(args);
+        error("error %s:%d: @import statements not allowed outside of libraries",
+                s[0],s[1]);
+        return #[]; 
     }
 
-    //load and parse the library
-    l = mapfile(fp);
-    l = sprintfa("@library(%s) { %s }",lib,l);
-    l = sprintfa(
-        "{@local args;args=__library_exports[mkcid(\"%s\")]['args]();args=args; %s}",
-        lib,l);
-    parsed = parse(l,fp);
-    if (parsed == nil)
-      lib_error("loading library %a",lib);
+    //by default, ignore export statments (XXX should this cause a warning?)
+    @defstx @export(args...) { return #[]; }
 
-    //this element should only referenced in the above parsed statement 
-    __library_exports[lib]['args] = @lambda() { return args_v; };
-    ftn = compile(parsed);
-    ftn();
-
-    if (args_v == nil) 
-      __library_exports[lib]['loaded] = 1;
-    if (__library_exports[lib][args_v] == nil) 
-      lib_error("loading library %a", lib);
-  }
-
-  has_dot = nil;
-  has_args = nil;
-  @defloc mklibstr(lib) {
-    switch(lib) {
-      @match #div(x,y):
-        x = mklibstr(x);
-        y = mklibstr(y);
-        return sprintfa("%s/%s",x,y);
-      @match #dot(x,#id(y)): 
-        has_dot = y;
-        return mklibstr(x);
-      @match #call(x,args): 
-        has_args = args;
-        return mklibstr(x);
-      @match #id(x): return sprintfa("%a",x);
+    //this macro adds the provided path to the loadpath at macro expansion time.
+    @defstx @add_loadpath(path) {
+        @local p,lp;
+        p = compile(path)();
+        lp = loadpath();
+        append(lp,p);
+        setloadpath(lp);
+        return #`{ nil; };
     }
-    lib_error("Could not parse libname: %a\n",lib);
-  }
 
-  new_body = [];
-  //new_locals is the set of local variables specific to this library.
-  new_locals = [];
+    //this macro allows some code to be run with bindings to some imported symbols 
+    @defstx @with_imports_imp(glob, src, imports...) body {
+        @local new_body, new_locals, has_dot, has_args;
+        @global __library_exports;
 
-  foreach(@lambda(en) {
-    @local s,fn,lname,args,lnamecid;
-    //parse (fn, lib.fn) or (lib)
-    switch(en) {
-      @match #comma(x,y):
-        fn = x;
-        switch(fn) {
-        @match #id(d): fn = d; break;
-        default: lib_error("Bad import entry: %a\n",en);
-        };
+        if (__library_exports == nil) __library_exports = [:];
+
+        glob = compile(glob)();
+
+        @defloc pathto(f) {
+            @local i,paths,len;
+            paths = loadpath();
+            len = length(paths);
+            for(i=0;i<len;++i) {
+                @local fp;
+                fp = sprintfa("%s/%s",paths[i],f);
+                if (access(fp,"r"))
+                    return fp;
+            }
+            return nil;
+        }
+
+        @defloc lib_error(msg, args...) {
+            @local s;
+            s = stxsrc(src);
+            msg = "error: %s:%d: " + msg;
+            apply(error,msg,s[0],s[1],args);
+        }
+
+        @defloc check_and_load(lib,args_v) {
+            @local l,fp,parsed,ftn;
+            @global __library_exports;
+
+            if (__library_exports[lib] == nil)
+                __library_exports[lib] = [:];
+
+            //when args is nil, we can reuse the old load
+            if (args_v == nil && __library_exports[lib][args_v] != nil)
+                return; 
+
+            __library_exports[lib][args_v] = [:];
+
+            //determine if that library has been loaded, if not, load it
+            fp = pathto(sprintfa("%s.cql",lib));
+
+            //XXX for manually defined @library statements, this may lead
+            //to issues if they are imported globally
+            if (fp == nil) {
+                lib_error("could not find library: %s",lib);
+            }
+
+            //load and parse the library
+            l = mapfile(fp);
+            l = sprintfa("@library(%s) { %s }",lib,l);
+            l = sprintfa(
+                 "{@local args;args=__library_exports[mkcid(\"%s\")]['args]();args=args; %s}",
+                 lib,l);
+            parsed = parse(l,fp);
+            if (parsed == nil)
+                lib_error("loading library %a",lib);
+
+            //cache off the parse for latter use
+            __library_exports[lib]['parsed] = parsed;
+
+            //this element should only referenced in the above parsed statement 
+            __library_exports[lib]['args] = @lambda() { return args_v; };
+            ftn = compile(parsed);
+            ftn();
+
+            if (args_v == nil) 
+                __library_exports[lib]['loaded] = 1;
+            if (__library_exports[lib][args_v] == nil) 
+                lib_error("loading library %a", lib);
+        }
 
         has_dot = nil;
         has_args = nil;
-        lname = mklibstr(y); //sets the has_dot variable
-        lnamecid = mkcid(lname);
-
-        if (has_args != nil) {
-          has_args = #list(has_args);
-          args = applyk( @lambda() { compile(has_args)(); },
-                         @lambda(ret) { return ret; },
-                         @lambda() { nil; },
-                         []);
-          if (args == nil)
-            lib_error("Bad library argument list. Cannot contain variables or runtime state.\nSee doc/library_system.html#compile_time_problems");
-          if (args != []) {
-            fprintf(stderr,"Warning: library arguments will be deprecated soon.\n"); 
-            fprintf(stderr,"         (if you need arguments in your library, add an 'init' funtion\n");
-          }
-        } else {
-          has_args = #id('nil);
-          args = nil;
+        @defloc mklibstr(lib) {
+            switch(lib) {
+                @match #div(x,y):
+                    x = mklibstr(x);
+                    y = mklibstr(y);
+                    return sprintfa("%s/%s",x,y);
+                @match #dot(x,#id(y)): 
+                    has_dot = y;
+                    return mklibstr(x);
+                @match #call(x,args): 
+                    has_args = args;
+                    return mklibstr(x);
+                @match #id(x): return sprintfa("%a",x);
+            }
+            lib_error("Could not parse libname: %a\n",lib);
         }
 
-        check_and_load(lnamecid,args);
+        new_body = [];
+        //new_locals is the set of local variables specific to this library.
+        new_locals = [];
 
-        //store the id in the list of locals
-        append(new_locals,#id(fn));
+        foreach(@lambda(en) {
+            @local s,fn,lname,args,lnamecid;
+            //parse (fn, lib.fn) or (lib)
+            switch(en) {
+            @match #comma(x,y): //(fn, lib)
+                fn = x;
+                switch(fn) {
+                @match #id(d): fn = d; break;
+                default: lib_error("Bad import entry: %a\n",en);
+                };
 
-        if (has_dot != nil) {
-          @local lfn;
-          lfn = has_dot;
-          if (__library_exports[lnamecid][args][lfn] == nil)
-              lib_error("Attempt to import non-exported symbol %a in %a",
-                  lfn,lname );
-          s = #`{
-            #,(#id(fn)) = __library_exports
-                            [#,(#val(lnamecid))]
-                            [#,(has_args)] 
-                            [#,(#val(lfn))];
-          };
-          //add these lazy function definitions to the body
-          append(new_body,s);
-        } else {
-          //in this case we want to create an object to dispatch
-          //calls to the given library.
+                has_dot = nil;
+                has_args = nil;
+                lname = mklibstr(y); //sets the has_dot variable
+                lnamecid = mkcid(lname);
 
-          s = #`{
-            #,(#id(fn)) = copy(__library_exports[ #,(#val(lnamecid)) ]
-                                                [ #,(has_args) ]);
-          }; //end generated code
-          append(new_body,s);
-        }
-        break;
-        default:
-          has_dot = nil;
-          has_args = nil;
-          lname = mklibstr(en);
-          lnamecid = mkcid(lname);
+                if (has_args != nil) {
+                    has_args = #list(has_args);
+                    args = applyk( @lambda() { compile(has_args)(); },
+                        @lambda(ret) { return ret; },
+                        @lambda() { nil; },
+                        []);
+                    if (args == nil)
+                        lib_error("Bad library argument list. Cannot contain variables "
+                                  "or runtime state.\nSee "
+                                  "doc/library_system.html#compile_time_problems");
+                    if (args != []) {
+                        fprintf(stderr,"Warning: library arguments will be deprecated "
+                                       "soon.\n"); 
+                        fprintf(stderr,"         (if you need arguments in your "
+                                       "library, add an 'init' funtion\n");
+                    }
+                } else {
+                    has_args = #id('nil);
+                    args = nil;
+                }
 
-          if (lname == nil)
-            lib_error("Could not parse imports at %a\n",en);
+                check_and_load(lnamecid,args);
 
-          if (has_args != nil) {
-            has_args = #list(has_args);
-            args = compile(has_args)();
-          } else {
-            has_args = #id('nil);
-            args = nil;
-          }
+                //store the id in the list of locals
+                append(new_locals,#id(fn));
 
-          check_and_load(lnamecid,args);
+                if (has_dot != nil) {
+                    @local lfn;
+                    lfn = has_dot;
+                    if (__library_exports[lnamecid][args][lfn] == nil)
+                        lib_error("Attempt to import non-exported symbol %a in %a",
+                                lfn,lname );
+                    s = #`{
+                        #,(#id(fn)) = __library_exports[#,(#val(lnamecid))]
+                                                       [#,(has_args)] 
+                                                       [#,(#val(lfn))];
+                    };
+                    //add these function definitions to the body
+                    append(new_body,s);
+                } else {
+                    //in this case we want to create an object to dispatch
+                    //calls to the given library.
+                    s = #`{
+                        #,(#id(fn)) = copy(__library_exports[ #,(#val(lnamecid)) ]
+                                                            [ #,(has_args) ]);
+                    }; //end generated code
+                    append(new_body,s);
+                }
+                break;
+            default: //lib
+                has_dot = nil;
+                has_args = nil;
+                lname = mklibstr(en);
+                lnamecid = mkcid(lname);
 
-          foreach(@lambda(lfn,_) {
-            //store the id in the list of locals
-            append(new_locals,#id(lfn));
-            s = #`{
-              #,(#id(lfn)) = __library_exports[#,(#val(lnamecid))]
-                                              [#,(has_args)]
-                                              [#,(#val(lfn))];
-              //hack to avoid variable defined but not referenced warnings
-              #,(#id(lfn)) = #,(#id(lfn)); 
-            };
-            append(new_body,s);
-          },__library_exports[lnamecid][args]);
-          break;
-      }
-    },Ztolist(imports));
+                if (lname == nil)
+                    lib_error("Could not parse imports at %a\n",en);
 
-  //we'd been building new_locals as a cqct list, but it needs to be a Zlist
-  new_locals = apply(Zlist,new_locals);
+                if (has_args != nil) {
+                    has_args = #list(has_args);
+                    args = compile(has_args)();
+                } else {
+                    has_args = #id('nil);
+                    args = nil;
+                }
 
-  //we now append the actual definition of the library
-  append(new_body,body);
+                check_and_load(lnamecid,args);
 
-  //we'd been building new_body as a cqct list, but it needs to be a Zlist
-  new_body = apply(Zlist,new_body);
-  
-  if (glob)
-    return #[#global(new_locals),#scope(#block(#[],new_body))];
-  else
-    return #[#scope(#block(new_locals,new_body))];
-}
+                foreach(@lambda(lfn,_) {
+                    //store the id in the list of locals
+                    append(new_locals,#id(lfn));
+                    s = #`{
+                        #,(#id(lfn)) = __library_exports[#,(#val(lnamecid))]
+                                                        [#,(has_args)]
+                                                        [#,(#val(lfn))];
+                        //hack to avoid variable defined but not referenced warnings
+                        #,(#id(lfn)) = #,(#id(lfn)); 
+                    };
+                    append(new_body,s);
+                },__library_exports[lnamecid][args]);
+                break;
+            }
+        },Ztolist(imports));
 
-@defstx @with_imports(imports...) body {
-  @local new_args;
-  new_args = Zcons(imports,imports);
-  new_args = Zcons(#val(0),new_args);
-  return #mcall(#id('with_imports_imp),new_args,body);
-}
+        //we'd been building new_locals as a cqct list, but it needs to be a Zlist
+        new_locals = apply(Zlist,new_locals);
 
-@defstx @import_globals(imports...) {
-  @local new_args;
-  new_args = Zcons(imports,imports);
-  new_args = Zcons(#val(0),new_args);
-  return #mcall(#id('with_imports_imp),new_args,#[]);
-}
+        //we now append the actual definition of the library
+        append(new_body,body);
 
-@defstx @import_object(obj) {
-  return #`{
-    @with_imports_imp(0,#,(obj),(the_obj, #,(obj))) { the_obj; }
-  };
-}
+        //we'd been building new_body as a cqct list, but it needs to be a Zlist
+        new_body = apply(Zlist,new_body);
 
-@defstx @dynamic_imports(args...) body {
-  args = #list(args);
-  return #`{
-    apply( @lambda(new_args...) {; 
-             compile(#mcall(#id('with_imports),apply(Zlist,new_args),#,(#val(body))))();
-           }, 
-           map(@lambda(x) { 
-                if (iscid(x)) return #id(x);
-                if (isstring(x)) return parse(x+";")[0];
-                error("bad library name: %a\n",x);
+        if (glob)
+            return #[#global(new_locals),#scope(#block(#[],new_body))];
+        else
+            return #[#scope(#block(new_locals,new_body))];
+    }
+
+    @defstx @with_imports(imports...) body {
+        @local new_args;
+        new_args = Zcons(imports,imports);
+        new_args = Zcons(#val(0),new_args);
+        return #mcall(#id('with_imports_imp),new_args,body);
+    }
+
+    @defstx @import_globals(imports...) {
+        @local new_args;
+        new_args = Zcons(imports,imports);
+        new_args = Zcons(#val(0),new_args);
+        return #mcall(#id('with_imports_imp),new_args,#[]);
+    }
+
+    @defstx @import_object(obj) {
+        return #`{
+            @with_imports_imp(0,#,(obj),(the_obj, #,(obj))) { the_obj; }
+        };
+    }
+
+    @defstx @dynamic_imports(args...) body {
+        args = #list(args);
+        return #`{
+            apply(
+              @lambda(new_args...) {; 
+                  compile(#mcall(#id('with_imports),apply(Zlist,new_args),#,(#val(body))))();
+              }, 
+              map(@lambda(x) { 
+                  if (iscid(x)) return #id(x);
+                  if (isstring(x)) return parse(x+";")[0];
+                  error("bad library name: %a\n",x);
               },#,(args))
-        );
-  };
-}
-
-//this macro allows one to export some symbols as though they were part of
-//a library with the provided name
-@defstx @with_exports(name,exports...) body {
-  @local libname, libnamecid, new_body, new_locals, new_postbody, s;
-
-  @defloc lib_error(msg, args...) {
-    @local s;
-    s = stxsrc(name);
-    msg = "error: %s:%d: " + msg;
-    apply(error,msg,s[0],s[1],args);
-  }
-
-  @defloc mklibstr(lib) {
-    switch(lib) {
-      @match #div(x,y):
-        x = mklibstr(x);
-        y = mklibstr(y);
-        return sprintfa("%s/%s",x,y);
-      //should never export x.y
-      //@match #dot(x,y): return mklibstr(x);
-      @match #id(x): return sprintfa("%a",x);
+            ); //end apply
+        };
     }
-    lib_error("Could not parse libname: %a\n",lib);
-  }
 
-  libname = mklibstr(name);
-  libnamecid = mkcid(libname);
+    //this macro allows one to export some symbols as though they were part of
+    //a library with the provided name
+    @defstx @with_exports(name,exports...) body {
+        @local libname, libnamecid, new_body, new_locals, new_postbody, s;
 
-  if (__library_exports == nil) __library_exports = [:];
+        @defloc lib_error(msg, args...) {
+            @local s;
+            s = stxsrc(name);
+            msg = "error: %s:%d: " + msg;
+            apply(error,msg,s[0],s[1],args);
+        }
 
-  //new_body collects the body of the syntax for this macro to return
-  //the first thing we need to have done is to register that this library
-  //exists by setting it's hash table in the __library_exports. 
-  new_body = [ #`{
-    if (__library_exports[#,(#val(libnamecid))] == nil)
-      __library_exports[#,(#val(libnamecid))] = mktab(); 
-    if (__library_exports[#,(#val(libnamecid))][args] == nil)
-      __library_exports[#,(#val(libnamecid))][args] = mktab(); 
-  } ];
-  //new_postbody collects statements to be run after the main body of
-  //this library. 
-  new_postbody = [];
-  //new_locals is the set of local variables specific to this library.
-  new_locals = [];
+        @defloc mklibstr(lib) {
+            switch(lib) {
+                @match #div(x,y):
+                    x = mklibstr(x);
+                    y = mklibstr(y);
+                    return sprintfa("%s/%s",x,y);
+                //should never export x.y
+                //@match #dot(x,y): return mklibstr(x);
+                @match #id(x): return sprintfa("%a",x);
+            }
+            lib_error("Could not parse libname: %a\n",lib);
+        }
 
-  s = #`{
-    if (__library_exports[#,(#val(libnamecid))][args] == nil)
-      __library_exports[#,(#val(libnamecid))][args] = [:];
-  };
-  append(new_postbody,s);
+        libname = mklibstr(name);
+        libnamecid = mkcid(libname);
 
-  foreach(@lambda(en) {
-    append(new_locals,en);
-    switch(en) {
-    @match #id(x): en = x; break;
-    default: lib_error("Error parsing export %a in %a\n",en,libname);
+        if (__library_exports == nil) __library_exports = [:];
+
+        //new_body collects the body of the syntax for this macro to return
+        //the first thing we need to have done is to register that this library
+        //exists by setting it's hash table in the __library_exports. 
+        new_body = [ #`{
+            if (__library_exports[#,(#val(libnamecid))] == nil)
+                __library_exports[#,(#val(libnamecid))] = mktab(); 
+            if (__library_exports[#,(#val(libnamecid))][args] == nil)
+                __library_exports[#,(#val(libnamecid))][args] = mktab(); 
+        } ];
+        //new_postbody collects statements to be run after the main body of
+        //this library. 
+        new_postbody = [];
+        //new_locals is the set of local variables specific to this library.
+        new_locals = [];
+
+        s = #`{
+            if (__library_exports[#,(#val(libnamecid))][args] == nil)
+                __library_exports[#,(#val(libnamecid))][args] = [:];
+        };
+        append(new_postbody,s);
+
+        foreach(@lambda(en) {
+
+            append(new_locals,en);
+
+            switch(en) {
+            @match #id(x): en = x; break;
+            default: lib_error("Error parsing export %a in %a\n",en,libname);
+            }
+
+            s = #`{
+                __library_exports[#,(#val(libnamecid))][args][#,(#val(en))] = #,(#id(en)); 
+            };
+
+            append(new_postbody,s);
+        },Ztolist(exports));
+
+        //we'd been building new_locals as a cqct list, but it needs to be a Zlist
+        new_locals = apply(Zlist,new_locals);
+
+        //we now append the actual definition of the library
+        append(new_body,body);
+
+        //and add the post body statments.
+        new_body = concat(new_body,new_postbody);
+
+        //we'd been building new_body as a cqct list, but it needs to be a Zlist
+        new_body = apply(Zlist,new_body);
+
+        return #[#scope(#block(new_locals,new_body))] ;
+
     }
-    s = #`{
-      __library_exports[#,(#val(libnamecid))][args][#,(#val(en))] = #,(#id(en)); 
-    };
-    append(new_postbody,s);
-  },Ztolist(exports));
 
-  //we'd been building new_locals as a cqct list, but it needs to be a Zlist
-  new_locals = apply(Zlist,new_locals);
+    //This macro is used to define a library -- it is not expected to be used
+    //by the user, but instead to be wrapped around the bodies of libraries before
+    //the libraries are compiled. 
+    @defstx @library(name) body {
+        @local libname, export_params, import_params, locals, new_stmts, ret;
 
-  //we now append the actual definition of the library
-  append(new_body,body);
+        @defloc lib_error(msg, args...) {
+            @local s;
+            s = stxsrc(name);
+            msg = "error: %s:%d: " + msg;
+            apply(error,msg,s[0],s[1],args);
+        }
 
-  //and add the post body statments.
-  new_body = concat(new_body,new_postbody);
+        @defloc mklibstr(lib) {
+            switch(lib) {
+                @match #div(x,y):
+                    x = mklibstr(x);
+                    y = mklibstr(y);
+                    return sprintfa("%s/%s",x,y);
+                //should not have a library named x.y
+                //@match #dot(x,y): return mklibstr(x);
+                @match #id(x): return sprintfa("%a",x);
+            }
+            lib_error("Could not parse library name: %a\n",lib);
+        }
 
-  //we'd been building new_body as a cqct list, but it needs to be a Zlist
-  new_body = apply(Zlist,new_body);
-  
-  return #[#scope(#block(new_locals,new_body))] ;
+        libname = mkcid(mklibstr(name));
 
-}
+        import_params = [];
+        export_params = [];
 
-//This macro is used to define a library -- it is not expected to be used
-//by the user, but instead to be wrapped around the bodies of libraries before
-//the libraries are compiled. 
-@defstx @library(name) body {
-  @local libname, export_params, import_params, locals, new_stmts, ret;
+        if (__library_exports == nil) {
+            __library_exports = [:];
+        }
 
-  @defloc lib_error(msg, args...) {
-    @local s;
-    s = stxsrc(name);
-    msg = "error: %s:%d: " + msg;
-    apply(error,msg,s[0],s[1],args);
-  }
+        new_stmts = [ ];
+        switch(body) {
+        @match #scope(#block(l, stmts)):
+            locals = l;
+            foreach(@lambda(s) {
+                switch(s) {
+                @match #mcall(#id('import), args):
+                    append(import_params,args);
+                    break;
+                @match #mcall(#id('export), args):
+                    append(export_params,args);
+                    break;
+                default: append(new_stmts,s);
+                }
+            },Ztolist(stmts));
+            break;
+        default: lib_error("could not parse body: ",body);
+        }
 
-  @defloc mklibstr(lib) {
-    switch(lib) {
-      @match #div(x,y):
-        x = mklibstr(x);
-        y = mklibstr(y);
-        return sprintfa("%s/%s",x,y);
-      //should not have a library named x.y
-      //@match #dot(x,y): return mklibstr(x);
-      @match #id(x): return sprintfa("%a",x);
+        locals = Zcons(#id('args),locals);
+        push(new_stmts,
+            #`{ 
+                args = __library_exports[ #,(#val(libname)) ]['args](); 
+                args = args; //hack to avoid unused errors
+            });
+
+        new_stmts = apply(Zlist,new_stmts);
+
+        ret = #scope(#block(#[], new_stmts));
+
+        foreach(@lambda(args) {
+            ret = #mcall(#id('with_imports),args,ret);
+        },import_params);
+
+        foreach(@lambda(args) {
+            args = Zcons(name,args);
+            ret = #mcall(#id('with_exports),args,ret);
+        },export_params);
+
+        if (__library_exports[libname] == nil)
+            __library_exports[libname] = [:];
+
+        ret = #scope(#block(locals, ret));
+
+        __library_exports[libname]['parsed] = ret;
+
+        return ret;
     }
-    lib_error("Could not parse library name: %a\n",lib);
-  }
-
-  libname = mkcid(mklibstr(name));
-
-  import_params = [];
-  export_params = [];
-
-  if (__library_exports == nil) {
-    __library_exports = [:];
-  }
-
-  new_stmts = [ ];
-  switch(body) {
-  @match #scope(#block(l, stmts)):
-    locals = l;
-    foreach(@lambda(s) {
-      switch(s) {
-      @match #mcall(#id('import), args):
-        append(import_params,args);
-        break;
-      @match #mcall(#id('export), args):
-        append(export_params,args);
-        break;
-      default: append(new_stmts,s);
-      }
-    },Ztolist(stmts));
-    break;
-  default: lib_error("could not parse body: ",body);
-  }
-
-  locals = Zcons(#id('args),locals);
-  push(new_stmts,
-    #`{ 
-      args = __library_exports[ #,(#val(libname)) ]['args](); 
-      args = args; //hack to avoid unused errors
-    });
-
-  new_stmts = apply(Zlist,new_stmts);
-
-  ret = #scope(#block(#[], new_stmts));
-
-  foreach(@lambda(args) {
-    ret = #mcall(#id('with_imports),args,ret);
-  },import_params);
-
-  foreach(@lambda(args) {
-    args = Zcons(name,args);
-    ret = #mcall(#id('with_exports),args,ret);
-  },export_params);
-
-  if (__library_exports[libname] == nil)
-    __library_exports[libname] = [:];
-
-  ret = #scope(#block(locals, ret));
-
-  __library_exports[libname]['parsed] = ret;
-
-  return ret;
-}
 
 }
