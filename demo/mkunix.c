@@ -13,6 +13,7 @@
 #include <netinet/tcp.h>
 #ifdef __linux__
 #include <linux/fs.h>
+#include <sched.h>
 #endif
 #ifdef __APPLE__
 #include <sys/disk.h>
@@ -48,6 +49,78 @@ main(int argc,char **argv) {
 		{ "O_NONBLOCK", O_NONBLOCK },	
 		{ NULL },
 	};
+
+#ifdef SYS_clone
+	struct enum_entry cloneflags[]={
+#ifdef	CLONE_CHILD_CLEARTID // 2.5.49
+		{ "CLONE_CHILD_CLEARTID",	CLONE_CHILD_CLEARTID },
+#endif
+#ifdef	CLONE_CHILD_SETTID // 2.5.49
+		{ "CLONE_CHILD_SETTID",		CLONE_CHILD_SETTID },
+#endif
+#ifdef	CLONE_FILES
+		{ "CLONE_FILES",		CLONE_FILES },
+#endif
+#ifdef	CLONE_FS
+		{ "CLONE_FILES",		CLONE_FILES },
+#endif
+#ifdef	CLONE_IO // 2.6.25
+		{ "CLONE_IO",			CLONE_IO },
+#endif
+#ifdef	CLONE_NEWIPC // 2.6.19
+		{ "CLONE_NEWIPC",		CLONE_NEWIPC },
+#endif
+#ifdef	CLONE_NEWNET // 2.6.24
+		{ "CLONE_NEWNET",		CLONE_NEWNET },
+#endif
+#ifdef	CLONE_NEWNS // 2.6.19
+		{ "CLONE_NEWNS",		CLONE_NEWNS },
+#endif
+#ifdef	CLONE_NEWPID // 2.6.24
+		{ "CLONE_NEWPID",		CLONE_NEWPID },
+#endif
+#ifdef	CLONE_NEWUTS // 2.6.19
+		{ "CLONE_NEWUTS",		CLONE_NEWUTS },
+#endif
+#ifdef	CLONE_PARENT // 2.3.12
+		{ "CLONE_PARENT",		CLONE_PARENT },
+#endif
+#ifdef	CLONE_PARENT_SETTID // 2.5.49
+		{ "CLONE_PARENT_SETTID",	CLONE_PARENT_SETTID },
+#endif
+#ifdef	CLONE_PID // long obsolete
+		{ "CLONE_PID",			CLONE_PID },
+#endif
+#ifdef	CLONE_PTRACE
+		{ "CLONE_PTRACE",		CLONE_PTRACE },
+#endif
+#ifdef	CLONE_SETTLS // 2.5.32
+		{ "CLONE_SETTLS",		CLONE_SETTLS },
+#endif
+#ifdef	CLONE_SIGHAND
+		{ "CLONE_SIGHAND",		CLONE_SIGHAND },
+#endif
+#ifdef	CLONE_STOPPED // 2.6.0--test2
+		{ "CLONE_STOPPED",		CLONE_STOPPED },
+#endif
+#ifdef	CLONE_SYSVSEM // 2.5.10
+		{ "CLONE_SYSVSEM",		CLONE_SYSVSEM },
+#endif
+#ifdef	CLONE_THREAD // 2.4.0-test8
+		{ "CLONE_THREAD",		CLONE_THREAD },
+#endif
+#ifdef	CLONE_UNTRACED // 2.5.46
+		{ "CLONE_UNTRACED",		CLONE_UNTRACED },
+#endif
+#ifdef	CLONE_VFORK
+		{ "CLONE_VFORK",		CLONE_VFORK },
+#endif
+#ifdef	CLONE_VM
+		{ "CLONE_VM",			CLONE_VM },
+#endif
+		{ NULL },
+	};
+#endif // Darwin misses this
 
 	struct enum_entry waitflags[]={
 		{ "WNOHANG",	WNOHANG },
@@ -837,6 +910,9 @@ main(int argc,char **argv) {
 	print_enum("oflags", oflags);
 	print_enum("mmap_consts",mmap_consts);
 	print_enum("waitflags",waitflags);
+#ifdef SYS_clone // Darwin misses this
+	print_enum("cloneflags",cloneflags);
+#endif
 	print_enum("address_families",address_families);
 	print_enum("socket_type",socket_type);
 	print_enum("sockopts",sockopts);
