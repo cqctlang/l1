@@ -272,7 +272,7 @@ if (library_defined == nil)
     @defstx @import_globals(imports...) {
         @local new_args;
         new_args = Zcons(imports,imports);
-        new_args = Zcons(#val(0),new_args);
+        new_args = Zcons(#val(1),new_args);
         return #mcall(#id('with_imports_imp),new_args,#[]);
     }
 
