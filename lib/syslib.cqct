@@ -1,4 +1,5 @@
 /* native syscall replacements for system functions in l1 */
+@include <inet.cqct>
 @include <sys.cqct>
 
 @define _munmap(addr, len) {
@@ -258,5 +259,168 @@ if(looksym(unix,'getdents)) {
 	}
 	
 	return asof(d);
+}
+}
+
+@global mk_connected_tcp_socket;
+@global mk_connected_udp_socket;
+@global bind_inet_socket;
+@global __tcpopen;
+if(looksym(unix,'AF_INET)) {
+@define mk_connected_tcp_socket(ip,port) {
+	@local s,sa,r,d;
+
+	s=sys_socket(unix`AF_INET,unix`SOCK_STREAM,0);
+	if(s==-1) return nil;
+
+	sa=(struct unix`sockaddr_in *)malloc(sizeof(struct unix`sockaddr_in));
+
+	if(lookfield(@typeof(*sa),'length)) {
+		sa->length=sizeof(*sa);
+	}
+	sa->sin_family=unix`AF_INET;
+
+	d=domof(sa);
+
+	if(baserep(@typeof(d`unsigned int))==cqct`Ru32le) {
+		sa->sin_port=wswap(port); 
+		sa->sin_addr.s_addr=dswap(ip);
+	} else {
+		sa->sin_port=port; 
+		sa->sin_addr.s_addr=ip;
+	}
+
+	r=sys_connect(s,sa,sizeof(*sa));
+	if(r) {
+		sys_close(s);
+		return nil;
+	}
+
+	return s;
+}
+
+@define __tcpopen(addr) { // don't promote to _tcpopen until DNS works
+	@local host,port,arr;
+	
+	if(!isstring(addr))
+		error("addr must be a string");
+
+	arr=split(addr,":");
+	if(length(arr) != 2)
+		error("addr must be a string of the form ip:port");
+
+	host=inet_aton(arr[0]);
+	if(isnil(host))
+		error("%a is not an ip address",arr[0]);
+
+	port=strton(arr[1]);
+	if(isnil(port))
+		error("%a is not a port",arr[1]);
+
+	return mk_connected_tcp_socket(host,port);
+}
+
+@define mk_connected_udp_socket(ip,port) {
+	@local s,sa,r,d;
+
+	s=sys_socket(unix`AF_INET,unix`SOCK_DGRAM,0);
+	if(s==-1) return nil;
+
+	sa=(struct unix`sockaddr_in *)malloc(sizeof(struct unix`sockaddr_in));
+
+	if(lookfield(@typeof(*sa),'length)) {
+		sa->length=sizeof(*sa);
+	}
+
+	sa->sin_family=unix`AF_INET;
+
+	d=domof(sa);
+
+	if(baserep(@typeof(d`unsigned int))==cqct`Ru32le) {
+		sa->sin_port=wswap(port); 
+		sa->sin_addr.s_addr=dswap(ip);
+	} else {
+		sa->sin_port=port; 
+		sa->sin_addr.s_addr=ip;
+	}
+
+	r=sys_connect(s,sa,sizeof(*sa));
+	if(r) { sys_close(s); return nil; }
+
+	return s;
+}
+
+@define bind_inet_socket(s,ip,port) {
+	@local sa,r,d;
+
+	sa=(struct unix`sockaddr_in *)malloc(sizeof(struct unix`sockaddr_in));
+
+	if(lookfield(@typeof(*sa),'length)) {
+		sa->length=sizeof(*sa);
+	}
+	sa->sin_family=unix`AF_INET;
+
+	d=domof(sa);
+	if(baserep(@typeof(d`unsigned int))==cqct`Ru32le) {
+		sa->sin_port=wswap(port); 
+		sa->sin_addr.s_addr=dswap(ip);
+	} else {
+		sa->sin_port=port; 
+		sa->sin_addr.s_addr=ip;
+	}
+
+	r=sys_bind(s,sa,sizeof(*sa));
+
+	return r;
+}
+
+}
+
+@global mk_connected_unix_socket;
+@global bind_unix_socket;
+@global _unixopen;
+if(looksym(unix,'AF_UNIX)) {
+@define mk_connected_unix_socket(pathname) {
+	@local s,sa,r;
+
+	s=sys_socket(unix`AF_UNIX,unix`SOCK_STREAM,0);
+	if(s==-1) return nil;
+
+	sa=(struct unix`sockaddr_un *)malloc(sizeof(struct unix`sockaddr_un));
+
+	if(lookfield(@typeof(*sa),'length)) {
+		sa->length=sizeof(*sa);
+	}
+	sa->sun_family=unix`AF_UNIX;
+	putbytes(&sa->sun_path,pathname);
+
+	r=sys_connect(s,sa,sizeof(*sa));
+	if(r) { sys_close(s); return nil; }
+
+	return s;
+}
+
+@define _unixopen(pathname) {
+	
+	if(!isstring(pathname))
+		error("pathname must be a string");
+
+	return mk_connected_unix_socket(pathname);
+}
+
+@define bind_unix_socket(s,pathname) {
+	@local sa,r;
+
+	sa=(struct unix`sockaddr_un *)malloc(sizeof(struct unix`sockaddr_un));
+
+	if(lookfield(@typeof(*sa),'length)) {
+		sa->length=sizeof(*sa);
+	}
+	sa->sun_family=unix`AF_UNIX;
+	putbytes(&sa->sun_path,pathname);
+
+	r=sys_bind(s,sa,sizeof(*sa));
+
+	return r;
 }
 }

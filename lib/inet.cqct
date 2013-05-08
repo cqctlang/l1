@@ -1,0 +1,51 @@
+
+@define wswap(v) {
+	return ((v&0xff)<<8) | ((v&0xff00)>>8);
+}
+
+@define dswap(v) {
+	return
+	((v&0xff)<<24)      |
+	((v&0xff00)<<8)     |
+	((v&0xff0000)>>8)   |
+	((v&0xff000000)>>24);
+}
+
+@define inet_ntoa(n) {
+	@local s;
+
+	s=n;
+	sprintfa("%d.%d.%d.%d",
+		(s&0xff000000)>>24,
+		(s&0x00ff0000)>>16,
+		(s&0x0000ff00)>>8,
+		(s&0x000000ff)>>0);
+}
+
+@define inet_aton(a) {
+	@local s,n,r;
+
+	s=split(a,".");
+	if(length(s) != 4)
+		return nil;
+
+	r=0;
+
+	n=strton(s[0]);
+	if(isnil(n) || n<0 || n>255) return nil;
+	r|=n<<24; 
+
+	n=strton(s[1]);
+	if(isnil(n) || n<0 || n>255) return nil;
+	r|=n<<16; 
+
+	n=strton(s[2]);
+	if(isnil(n) || n<0 || n>255) return nil;
+	r|=n<<8; 
+
+	n=strton(s[3]);
+	if(isnil(n) || n<0 || n>255) return nil;
+	r|=n<<0; 
+
+	return r;
+}
