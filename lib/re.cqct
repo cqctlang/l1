@@ -43,6 +43,9 @@ debug = 0;
                 @local sub,idx,type,last;
                 sub = [:];
                 last = nil;
+                if (length(re) <= i+1) {
+                    error("Invalid regular expression: %s",re);
+                }
                 if (re[i+1] == '^') {
                   idx = i+2;
                   type = 'notclass;
@@ -69,7 +72,7 @@ debug = 0;
                       last = re[idx];
                     }
                 }
-                append(tokens,[type,sub,nil]);
+                if (length(sub) != 0) append(tokens,[type,sub,nil]);
                 i = idx;
                 break;
             }
@@ -166,11 +169,13 @@ debug = 0;
                 case 'notclass:
                 case 'chr:
                     lst[i][2] = nxt;
+                    break;
             }
         }
         //if (debug) printf("DONE FIXUP %a\n",lst);
     };
     fixup(tokens,['match]);
+    if (length(tokens) == 0) tokens = [['match]];
     return regular_expression(head(tokens));
 }
 
