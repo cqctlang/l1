@@ -82,3 +82,10 @@ arglib.printargs();
 arglib2 = @import_object(lib5(1000));
 arglib2.printargs();
 arglib.printargs();
+
+@with_imports(test()) {}
+@with_imports(test()) {}
+@with_imports(test()) {}
+
+//@with_imports( test(a) ) {
+//}

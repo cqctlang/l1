@@ -1,9 +1,8 @@
 
-@export(printargs);
+@export (printargs);
 
-printf("Arguments are: %a\n",args);
+printf("args: %a\n",args);
 
-@define printargs()
-{
-  printf("Arguments are: %a\n",args);
+@define printargs() {
+    printf("args: %a\n",args);
 }

@@ -51,57 +51,43 @@ An example library file might look this file, named <b>lib1.cql</b>:
 //the library's contents look like normal cqct code
 @define func1() { ... }
 @define helper_func2() { ... }
-//libraries are loaded with a special variable, "args"
-//that is bound to parameters set by the person 
-//loading the library
-@define func2() { printf("%a\n",args); }
+@define func2() { ... }
 
 </pre>
 </div>
 That code defines and exports two symbols: func1 and func2. 
 It also defines a local variable helper_func2 that is visible only
 within the library. 
-Assuming lib1.cql is in the load path, Another bit of code can 
-then run using those symbols as follows:
+Assuming lib1.cql is in the load path, one can 
+load and run lib1's exports. For instance:
 </p>
 <div class="code">
 <pre>
 lib1 = @import_object( lib1 ); //loads lib1 with no parameters
+//lib1 is a normal cqct variable, it can be local or global
 lib1.func1(); //runs the function func1 exported by lib1
-lib1.func2(); //prints "nil"
+lib1.func2(); //runs the function func2 exported by lib1
 
-lib1_v2 = @import_object( lib1(10,"abc") ); //loads lib1 with a parameter
-lib1_v2.func2(); //prints "[ 10, "abc" ]"
+//lib1 will not be re-parsed and re-compiled by the below line
+//because it was already loaded above.
+lib1_v2 = @import_object( lib1 ); //loads lib1 
+lib1_v2.func2(); //runs the same code as lib1.func2 above.
 </pre>
 </div>
 The <em>@import_object</em> macro checks that lib1.cql has been loaded,
 loading it only if necessary, and
 creates an object through which any of the library's exported functions
-can be called. The second load of lib1 loads it with the parameters [10,"abc"].
-Since lib1.cql exports both <em>func1</em> and <em>func2</em>
+can be called. The second load of lib1 will not re-load lib1, but will use
+the same code as was alredy loaded. Any private state in lib1 will be
+shared between the two instances.
+Since lib1.cql exports <em>func1</em> and <em>func2</em>,
 both symbols will be available in both objects. 
-</p>
-
-<p id=compile_time_problems>
-The library arguments are calculated
-<b>at compile time</b>, so one may not use any runtime state in a library
-argument list. For instance:
-<div class="code">
-<pre>
-a = 10; //a is set to 10 at run time
-//this next line is compiled before any line is run
-//so the variable a is not bound on library load
-lib1 = @import_object( lib1(a,"abc") ); //error! 
-</pre>
-</div>
-One can use separate dynamic import macros to set things at runtime. 
-See <a href=#dynamic>here.</a>
 </p>
 
 <p>
 When writing a library one can also use <em>@import</em> syntax,
 which will make all of the exported symbols from the associated
-library visible without an associated object (as above). 
+library visible within the given library definition. 
 Consider for example <b>lib2.cql</b>
 <div class="code">
 <pre>
@@ -141,21 +127,28 @@ libraries with parameters specific to the given run. Formally, a library
 name is:
 <div class="code">
 <pre>
-[&lt;path1&gt;/[&lt;path2&gt;/ [...]]]&lt;name&gt;[( [arg1 [, arg2 [, ...]]] )]
+[&lt;path1&gt;/[&lt;path2&gt;/ [...]]]&lt;name&gt;[( )]
 </pre>
 </div>
 For instance, consider the library name:
 <div class="code">
 <pre>
-path1/path2/name(1,2)
+path1/path2/name
 </pre>
 </div>
 This will attempt to find the file path1/path2/name.cql in the current load
-path, and then initialize that library with <em>args</em> set to [1,2].
+path.
 </p>
 
 <p>
-The three import specification forms are:
+Library names may be specified with an optional '()'. The '()' signals to
+the loader that the user desires the library be reloaded, even if it had
+been previously loaded. This feature should be used only in developement code:
+it may go away or be replaced by another mechanism in the future.
+</p>
+
+<p>
+The three <b>import specification</b> forms are:
 </p>
 <p>
 <em>library_name</em>: This will import all functions exported by
@@ -175,7 +168,7 @@ The three import specification forms are:
 <p>
 <em>(object_name, library_name)</em>: This will create an object
 named <em>object_name</em> that exports access to the functions in
-the given library via its "dispatch" function. So if the library contains
+the given library via dot syntax. So if the library contains
 a function <em>fn1</em>, one can call that function with the statment
 <em>object_name.fn1()</em>. For instance
 <div class="code">
@@ -217,7 +210,7 @@ to import and what function renaming to do.
 If one wants to decide on the library that will be imported at runtime,
 one can use the <em>dynamic_imports</em> macro. This macro is just like
 the <em>with_imports</em> macro, except that it evaluates its arguments at
-runtime and imports libraries specified by the resulting strings. 
+runtime and treats the resulting strings as an <em>import specification</em>. 
 For instance:
 <div class="code">
 <pre>
@@ -231,9 +224,12 @@ foreach(@lambda(dir) {
 }, [lib,lib2]);
 </pre>
 </div>
+It is an error to provide a non-string argument to <em>dynamic_imports</em>.
 </p>
 
 <h3>Cinquecento Library Macros</h3>
+
+This section describes all of the macros associated with the library system.
 
 <div class="docitem" id="fn:@add_loadpath">
   <div class="proto">
@@ -281,9 +277,9 @@ path = compute_path(); //this statement does not execute until run time
     Macro that allows one to decide at runtime which libraries are to be 
     imported. The expressions will be evaluated at runtime and should 
     produce string representations of 
-    the import_spec statements described in <a href=#fn:@import>@import</a>.
-    The macro body will be run with symbols from libraries bound just like an
-    <a href=#fn:@with_imports>@with_imports</a> macro.
+    the import_spec statements described <a href=#import_spec>here</a>.
+    The macro body will be run with symbols from libraries bound just like the
+    <a href=#import_spec>@with_imports</a> macro.
   </div>
 </div>
 
@@ -343,9 +339,7 @@ path = compute_path(); //this statement does not execute until run time
   </div>
   <div class="desc">
     Imports the named libraries and symbols to the global scope. 
-    For use in top-level execution. Unlike the other library import
-    techniques, this will re-load the library from disk every time
-    (though it will not re-load the library's dependencies).
+    For use in top-level execution. 
     See <a href=#import_spec>import specification</a> for a list of
     valid import specifications.
   </div>
@@ -376,29 +370,6 @@ lib.fn(); //calls function fn exported by sublib
   </div>
 </div>
 
-<div class="docitem" id="fn:@library">
-  <div class="proto">
-    <div class="function">
-      <span class="id">@library(name) { body }</span>
-    </div>
-    <div class="param">
-      <span class="arg">name</span>: 
-      <span class="type">library name</span> 
-    </div>
-    <div class="param">
-      <span class="arg">body</span>: 
-      <span class="type">cqct code</span> 
-    </div>
-  </div>
-  <div class="desc">
-    This macro parses its containing body as library code with the
-    given library name. In the body, the @import and @export macros
-    work as though they were in the file associated with the named library.
-    This macro can be used to create new libraries or to add to existing
-    libraries. 
-  </div>
-</div>
-
 <div class="docitem" id="fn:@with_exports">
   <div class="proto">
     <div class="function">
@@ -419,7 +390,8 @@ lib.fn(); //calls function fn exported by sublib
   </div>
   <div class="desc">
     Mainly for internal use. 
-    This macro exports the given symbols that are defined in its body
+    This macro exports the given symbols that are 
+    <a href=#fn:@export>exported</a> in its body
     as though they were associated with the given library name.
   </div>
 </div>

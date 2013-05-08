@@ -2739,7 +2739,7 @@ checkoverflow(VM *vm, unsigned m)
 	if((void*)vm->fp < vm->stk)
 		/* stack is insane */
 		bug();
-	if((void*)vm->fp >= vm->stk+vm->stksz-Redline)
+	if((void*)vm->fp >= vm->stk+vm->stksz)
 		/* stack is insane */
 		bug();
 	if((void*)(vm->fp+m) > vm->stk+vm->stksz-Redline){

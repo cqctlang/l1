@@ -11,13 +11,13 @@
 }
 
 g = mkguardian();
+consume1(g);
 s = "abc";
 g(s);
 g(s);
 g([1,2,3]);
-consume1(g);
 s = nil;
-gc(0,0);
+fullgc();
 
 while(consume1(g) != nil)
 	;

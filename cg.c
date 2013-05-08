@@ -11,7 +11,6 @@ struct CGEnv {
 typedef
 struct Frame
 {
-	s32 depth;
 	u64 *b, *l, *e;	/* live mask buffer */
 	u32 ml;		/* size of live mask buffer */
 	u32 narg;	/* args in frame (after varg normalization) */
@@ -990,13 +989,24 @@ finit(Frame *f, u32 narg, u32 nloc, u32 ntmp)
 	f->tmp = Onfrhd+narg+nloc;
 	f->fsz = Onfrhd+narg+nloc+ntmp;
 	f->maxfsz = f->fsz;
-	f->depth = 0;
 }
 
 static void
 ffini(Frame *f)
 {
-	efree(f->l);
+	efree(f->b);
+}
+
+static void
+fcopy(Frame *nf, Frame *f)
+{
+	u64 *p;
+	*nf = *f;
+	p = emalloc(f->ml*sizeof(u64));
+	memcpy(p, f->b, f->ml*sizeof(u64));
+	nf->e = p+f->ml;
+	nf->l = p+(f->l-f->b);
+	nf->b = p;
 }
 
 #define roundup(l,n)   (((u32)(l)+((n)-1))&~((n)-1))
@@ -1013,41 +1023,20 @@ fgrow(Frame *f)
 }
 
 static void
-fpushlm(Frame *f)
-{
-	u32 nw;
-	nw = roundup(f->fsz, mwbits)/mwbits;
-	while(f->l+nw+1+nw >= f->e)
-		fgrow(f);
-	*(f->l+nw) = (u64)f->fsz;
-	memcpy(f->l+nw+1, f->l, nw*sizeof(u64));
-	f->l += nw+1;
-	f->depth++;
-}
-
-static void
-fpoplm(Frame *f)
-{
-	u32 ow, nw;
-	if(f->depth-- <= 0)
-		bug();
-	if(f->l <= f->b)
-		bug();
-	ow = roundup(f->fsz, mwbits)/mwbits;
-	f->l--;
-	f->fsz = (u32)*f->l;
-	memset(f->l, 0, (1+ow)*sizeof(u64));
-	nw = roundup(f->fsz, mwbits)/mwbits;
-	f->l -= nw;
-}
-
-static void
 fset(Frame *f, u32 i)
 {
 	u64 *p;
 	while((p = f->l+i/mwbits) >= f->e)
 		fgrow(f);
 	*p |= (1ULL<<(i%mwbits));
+}
+
+static void
+fclr(Frame *f, u32 i)
+{
+	u64 *p;
+	p = f->l+i/mwbits;
+	*p &= ~(1ULL<<(i%mwbits));
 }
 
 static void
@@ -1063,6 +1052,19 @@ fsetrand(Frame *f, Operand *r)
 	case Oframe:
 		if(!OBOX(r->mode))
 			fset(f, OIDX(r->mode));
+		break;
+	default:
+		break;
+	}
+}
+
+static void
+fclrrand(Frame *f, Operand *r)
+{
+	switch(OKIND(r->mode)){
+	case Oframe:
+		if(!OBOX(r->mode))
+			fclr(f, OIDX(r->mode));
 		break;
 	default:
 		break;
@@ -1254,6 +1256,8 @@ cg(Expr *e, Precode *code, CGEnv *p, Location *loc, Ctlidx ctl, Ctlidx nxt,
 	Val fn;
 	Imm nfp, nap;
 	u32 rlex;
+	int usetmp;
+	Frame nf;
 
 	switch(e->kind){
 	case Enop:
@@ -1337,6 +1341,7 @@ cg(Expr *e, Precode *code, CGEnv *p, Location *loc, Ctlidx ctl, Ctlidx nxt,
 		cgctl(code, p, ctl, nxt, e->src);
 		break;
 	case EBINOP:
+		usetmp = 0;
 		if(issimple(e->e1) && issimple(e->e2)){
 			cgrand(f, &r1, e->e1);
 			cgrand(f, &r2, e->e2);
@@ -1355,8 +1360,8 @@ cg(Expr *e, Precode *code, CGEnv *p, Location *loc, Ctlidx ctl, Ctlidx nxt,
 			randloc(&r1, AC);
 			cgrand(f, &r2, e->e2);
 		}else{
+			usetmp = 1;
 			L0 = genlabel(code);
-			fpushlm(f);
 			newloc(&dst, Lframe, f->tmp++, 0);
 			randloc(&r1, &dst);
 			cg(e->e1, code, p, &dst, L0, L0, f, lex);
@@ -1365,7 +1370,6 @@ cg(Expr *e, Precode *code, CGEnv *p, Location *loc, Ctlidx ctl, Ctlidx nxt,
 			L = genlabel(code);
 			cg(e->e2, code, p, AC, L, L, f, lex);
 			f->tmp--;
-			fpoplm(f);
 			emitlabel(code, L);
 			femit(f, code);
 			randloc(&r2, AC);
@@ -1375,6 +1379,8 @@ cg(Expr *e, Precode *code, CGEnv *p, Location *loc, Ctlidx ctl, Ctlidx nxt,
 		i->op1 = r1;
 		i->op2 = r2;
 		randloc(&i->dst, loc);
+		if(usetmp)
+			fclrrand(f, &r1);
 		fsetrand(f, &i->dst);
 		femit(f, code);
 		cgctl(code, p, ctl, nxt, e->src);
@@ -1384,15 +1390,14 @@ cg(Expr *e, Precode *code, CGEnv *p, Location *loc, Ctlidx ctl, Ctlidx nxt,
 		lex = mkxenv(lex);
 		bindvars(lex, b->loc, b->nloc);
 		rlex = pushlex(code, lex, f);
-		fpushlm(f);
 		cg(e->e2, code, p, loc, ctl, nxt, f, lex);
-		fpoplm(f);
+		for(m = 0; m < b->nloc; m++)
+			fclr(f, Oarg0+f->narg+b->loc[m].idx);
 		poplex(code, rlex);
 		freexenv(lex);
 		break;
 	case Ecall:
 		istail = (returnlabel(p, ctl) && (loc == AC || loc == Effect));
-		fpushlm(f);
 		nfp = f->fsz;
 		if(!istail){
 			i = nextinsn(code, e->src);
@@ -1462,7 +1467,10 @@ cg(Expr *e, Precode *code, CGEnv *p, Location *loc, Ctlidx ctl, Ctlidx nxt,
 			i = nextinsn(code, e->src);
 			i->kind = Icall;
 			randloc(&i->op1, AC);
-			fpoplm(f);
+			fclr(f, nfp+Ocl);
+			for(m = 0; m < narg; m++)
+				fclr(f, nap+m);
+			fbumpfsz(f, -(Onfrhd+narg));
 			femit(f, code);
 			i = nextinsn(code, e->src);
 			i->kind = Iaddfp;
@@ -1499,7 +1507,9 @@ cg(Expr *e, Precode *code, CGEnv *p, Location *loc, Ctlidx ctl, Ctlidx nxt,
 					i->kind = Imov;
 					randframeloc(&i->op1, nap+m);
 					randframeloc(&i->dst, Oarg0+m);
-					fsetarg(f, m);
+					/* no need to set arg in frame -- no one will notice
+					   and later we'd have to clear it, but only if it
+					   wasn't already set */
 					femit(f, code);
 				}
 			i = nextinsn(code, e->src);
@@ -1508,7 +1518,9 @@ cg(Expr *e, Precode *code, CGEnv *p, Location *loc, Ctlidx ctl, Ctlidx nxt,
 			i = nextinsn(code, e->src);
 			i->kind = Icallt;
 			randloc(&i->op1, AC);
-			fpoplm(f);
+			for(m = 0; m < narg; m++)
+				fclr(f, nap+m);
+			fbumpfsz(f, -narg);
 			femit(f, code);
 		}
 		break;
@@ -1607,14 +1619,16 @@ cg(Expr *e, Precode *code, CGEnv *p, Location *loc, Ctlidx ctl, Ctlidx nxt,
 				Lelse = genlabel(code);
 				lpair = genlabelpair(code, Lthen, Lelse);
 				cg(e->e1, code, p, AC, lpair, Lthen, f, lex);
+				fcopy(&nf, f);
 				emitlabel(code, Lthen);
 				femit(f, code);
 				cg(e->e2, code, p, loc, ctl,
 				   Lelse, f, lex);
 				emitlabel(code, Lelse);
-				femit(f, code);
+				femit(&nf, code);
 				cg(e->e3, code, p, loc, ctl,
-				   nxt, f, lex);
+				   nxt, &nf, lex);
+				ffini(&nf);
 			}
 		}else{
 			if(escaping(e->e2)){
@@ -1714,13 +1728,13 @@ cglambda(Expr *e, char *id)
 		randimm(&i->op1, l->narg);
 	}
 
-	i = nextinsn(ode, src);
-	i->kind = Igcpoll;
-
 	/* begin chksp; patch below, after cg for body,
 	   when we know stack size */
 	i = nextinsn(ode, src);
 	i->kind = Ichksp;
+
+	i = nextinsn(ode, src);
+	i->kind = Igcpoll;
 
 	femit(&f, ode);
 
@@ -1943,7 +1957,6 @@ mkraiseinterrupt(void)
 
 	ode = mkprecode("$raiseinterrupt");
 	femit(&f, ode);
-	fpushlm(&f);
 
 	i = nextinsn(ode, 0);
 	i->kind = Imov;
@@ -1978,7 +1991,8 @@ mkraiseinterrupt(void)
 	i = nextinsn(ode, 0);
 	i->kind = Icall;
 	randloc(&i->op1, AC);
-	fpoplm(&f);
+	fclr(&f, nfp+Ocl);
+	fbumpfsz(&f, -Onfrhd);
 	femit(&f, ode);
 	
 	i = nextinsn(ode, 0);
@@ -2034,8 +2048,6 @@ kresumecode(void)
 	i->kind = Iargc;
 	randimm(&i->op1, 1);
 
-	fpushlm(&f);
-
 	nfp = Onfrhd+1;
 	i = nextinsn(ode, 0);
 	i->kind = Imov;
@@ -2061,7 +2073,9 @@ kresumecode(void)
 	i->kind = Icall;
 	randdisploc(&i->op1, 1, 0);
 
-	fpoplm(&f);
+	fclr(&f, nfp+Ocl);
+	fclr(&f, nfp+Oarg0);
+	fbumpfsz(&f, -(Onfrhd+1));
 	femit(&f, ode);
 
 	i = nextinsn(ode, 0);

@@ -1,4 +1,6 @@
-Arguments are: [ 1000 ]
+Warning: library arguments will be deprecated soon.
+         (if you need arguments in your library, add an 'init' funtion)
+args: [ 1000 ]
 in lib3
 Running f1 from lib3
 Running f2 from lib3
@@ -9,8 +11,16 @@ Running f2 from lib3
 finished loading lib4
 test(<nil>) loaded
 test([ 10 ]) loaded
-Arguments are: [ 1, 2, 3, "abcde", [ 1, 2, 3 ] ]
-Arguments are: [ 1000 ]
+Warning: library arguments will be deprecated soon.
+         (if you need arguments in your library, add an 'init' funtion)
+args: [ 1, 2, 3, "abcde", [ 1, 2, 3 ] ]
+Warning: library arguments will be deprecated soon.
+         (if you need arguments in your library, add an 'init' funtion)
+args: [ 1000 ]
+test([ ]) loaded
+test([ ]) loaded
+test([ ]) loaded
+args: [ 1000 ]
 In main
 Running f1 from lib3
 Running f2 from lib3
@@ -18,7 +28,7 @@ Running f3 from lib4
 Running f4 from main!
 constant c1's value: 1
 loading test
-test([ 10 ]) loaded
+test([ ]) loaded
 Running f1 from lib3
 Running f2 from lib3
 Running f1 from lib3
@@ -42,6 +52,6 @@ Running sublib fn1000
 Running sublib fn1
 Testing lone object import
 Running sublib fn1
-Arguments are: [ 1, 2, 3, "abcde", [ 1, 2, 3 ] ]
-Arguments are: [ 1000 ]
-Arguments are: [ 1, 2, 3, "abcde", [ 1, 2, 3 ] ]
+args: [ 1, 2, 3, "abcde", [ 1, 2, 3 ] ]
+args: [ 1000 ]
+args: [ 1, 2, 3, "abcde", [ 1, 2, 3 ] ]
