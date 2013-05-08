@@ -245,7 +245,7 @@ if(looksym(unix,'getdents)) {
 }
 
 @define _readdir(dirname) {
-	@local s,l,a,p,d,x;
+	@local s,l,p,d,x;
 
 	l=dirlist(dirname);
 	s=mkstr(length(l) * sizeof(struct unix`dirent));
