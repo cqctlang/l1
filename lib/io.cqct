@@ -136,8 +136,11 @@ ions = @names c32le {
 {
 	@local addr, len, rv;
 	[addr, len] = apply(_mapfile, arg);
-	rv = mkstrm(addr, len);
-	finalize(rv, @lambda(x){ _munmap(addr, len); });
+	if(len){
+		rv = mkstrm(addr, len);
+		finalize(rv, @lambda(x){ _munmap(addr, len); });
+	}else
+		rv = "";
 	return rv;
 }
 
