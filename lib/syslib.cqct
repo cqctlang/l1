@@ -203,6 +203,9 @@ unlink = sys_unlink;
 	return sys_reboot(0xfee1dead,672274793,cmd,0);
 }
 
+@global dirlist;
+@global _readdir;
+if(looksym(unix,'getdents)) {
 @define dirlist(dirname) {
 	@local readdir_size;
 	@local buf;
@@ -239,4 +242,21 @@ unlink = sys_unlink;
 	}
 
 	return l;
+}
+
+@define _readdir(dirname) {
+	@local s,l,a,p,d,x;
+
+	l=dirlist(dirname);
+	s=mkstr(length(l) * sizeof(struct unix`dirent));
+
+	d=mkdom(unix,mksas(x));
+	p=(struct dirent *){d}0;
+	for(x=0;x<length(l);x++) {
+		putbytes(p->d_name,l[x]);
+		p++;	
+	}
+	
+	return mksas(s);
+}
 }
