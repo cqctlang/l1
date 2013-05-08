@@ -3,9 +3,9 @@
 	;
 	
 {
-/* this should be rationalized with dwunwind ctx cracker */
+/* these should be rationalized with dwunwind ctx cracker */
 
-@defloc mkctxloc32(ctx)
+@defloc mkctxi386(ctx)
 {
 	@defloc cl(r)
 	{
@@ -29,7 +29,7 @@
 	return cl;
 }
 
-@defloc mkctxloc64(ctx)
+@defloc mkctxamd64(ctx)
 {
 	@defloc cl(r)
 	{
@@ -67,6 +67,37 @@
 		}
 	}
 	
+	return cl;
+}
+
+@defloc mkctxarm(ctx)
+{
+	@defloc cl(r)
+	{
+		switch(r){
+		case 0:  return &ctx->r0;
+		case 1:  return &ctx->r1;
+		case 2:  return &ctx->r2;
+		case 3:  return &ctx->r3;
+		case 4:  return &ctx->r4;
+		case 5:  return &ctx->r5;
+		case 6:  return &ctx->r6;
+		case 7:  return &ctx->r7;
+		case 8:  return &ctx->r8;
+		case 9:  return &ctx->r9;
+		case 10: return &ctx->r10;
+		case 11: return &ctx->r11;
+		case 12: return &ctx->r12;
+		case 13: return &ctx->r13;
+		case 14: return &ctx->r14;
+		case 15: return &ctx->r15;
+		default:
+			printf("ctxloc on unmapped register %d", r);
+			/* return something that will fault */
+			return (uint64*)(ctx+1);
+		}
+	}
+
 	return cl;
 }
 
@@ -127,6 +158,23 @@
 		    ]);
 }
 
+@defloc pickmkctx(ns, ctx)
+{
+	@local nsi;
+	nsi = ns.nsinfo();
+	switch((sctl`Nsarch)nsi.arch){
+	case sctl`i386:
+		return mkctxi386(ctx);
+	case sctl`amd64:
+		return mkctxamd64(ctx);
+	case sctl`arm:
+		return mkctxarm(ctx);
+	default:
+		error("unwind: unsupported architecture: %e",
+		      (sctl`Nsarch)nsi.arch);
+	}
+}
+
 @defloc localdom(octx, ns, as, locs)
 {
 	@local lt, ls, et, es, la, nns, dom;
@@ -165,7 +213,7 @@
 		}
 	}
 
-	ctxloc = sizeof(ns`void*) == 8 ? mkctxloc64(ctx) : mkctxloc32(ctx);
+	ctxloc = pickmkctx(ns, ctx);
 	foreach(@lambda(l){
 			@local a, td;
 			if(l.loc.kind == sctl`Lreg)
