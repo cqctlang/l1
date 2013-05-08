@@ -205,6 +205,9 @@ main(int argc,char **argv) {
 #ifdef SO_LINGER_SEC
 		{ "SO_LINGER_SEC",	SO_LINGER_SEC }, // available on Darwin
 #endif
+#ifdef SO_BROADCAST
+		{ "SO_BROADCAST",	SO_BROADCAST },
+#endif
 		{ NULL },
 	};
 
@@ -247,8 +250,12 @@ main(int argc,char **argv) {
 #ifdef __APPLE__
 		{ "DKIOCGETBLOCKCOUNT", DKIOCGETBLOCKCOUNT },
 #endif
+#ifdef TCGETS
 		{ "TCGETS",		TCGETS },
+#endif
+#ifdef TCSETSW
 		{ "TCSETSW",		TCSETSW },
+#endif
 		{ NULL },
 	};
 
@@ -261,7 +268,9 @@ main(int argc,char **argv) {
 		{ "VEOF",	VEOF},
 		{ "VTIME",	VTIME},
 		{ "VMIN",	VMIN},
+#ifdef VSWTC
 		{ "VSWTC",	VSWTC},
+#endif
 		{ "VSTART",	VSTART},
 		{ "VSTOP",	VSTOP},
 		{ "VSUSP",	VSUSP},
@@ -281,7 +290,9 @@ main(int argc,char **argv) {
 		{ "INLCR",	INLCR},
 		{ "IGNCR",	IGNCR},
 		{ "ICRNL",	ICRNL},
+#ifdef IUCLC
 		{ "IUCLC",	IUCLC},
+#endif
 		{ "IXON",	IXON},
 		{ "IXANY",	IXANY},
 		{ "IXOFF",	IXOFF},
@@ -289,7 +300,9 @@ main(int argc,char **argv) {
 		{ "IUTF8",	IUTF8},
 		/* c_oflag bits */
 		{ "OPOST",	OPOST},
+#ifdef OLCUC
 		{ "OLCUC",	OLCUC},
+#endif
 		{ "ONLCR",	ONLCR},
 		{ "OCRNL",	OCRNL},
 		{ "ONOCR",	ONOCR},
@@ -297,7 +310,9 @@ main(int argc,char **argv) {
 		{ "OFILL",	OFILL},
 		{ "OFDEL",	OFDEL},
 		/* c_cflag bit meaning */
+#ifdef CBAUD
 		{ "CBAUD",	CBAUD},
+#endif
 		{ "B0",		B0},
 		{ "B50",	B50},
 		{ "B75",	B75},
@@ -328,6 +343,7 @@ main(int argc,char **argv) {
 		{ "B57600",	B57600},
 		{ "B115200",	B115200},
 		{ "B230400",	B230400},
+#ifdef B460800
 		{ "B460800",	B460800},
 		{ "B500000",	B500000},
 		{ "B576000",	B576000},
@@ -340,7 +356,10 @@ main(int argc,char **argv) {
 		{ "B3000000",	B3000000},
 		{ "B3500000",	B3500000},
 		{ "B4000000",	B4000000},
+#endif
+#ifdef __MAX_BAUD
 		{ "__MAX_BAUD",	__MAX_BAUD},
+#endif
 		/* c_lflag bits */
 		{ "ISIG",	ISIG},
 		{ "ICANON",	ICANON},
