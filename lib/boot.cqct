@@ -5,8 +5,8 @@
 
 @define errorhandler(msg)
 {
-     printf("boot error: %s\n", msg);
-     exit(1);
+	printf("boot error: %s\n", msg);
+	exit(1);
 }
 
 @include <callcc.cqct>
@@ -26,20 +26,20 @@ callcc(@lambda(done){
 
 @define errorhandler(msg)
 {
-     callcc(@lambda(errk){
-	       printf("boot error: %s\n", msg);
-	       kbacktrace(continuationstack(errk));
-	       exit(1);
-	  });
+	callcc(@lambda(errk){
+		printf("boot error: %s\n", msg);
+		kbacktrace(continuationstack(errk));
+		exit(1);
+	});
 }
 
 @define interrupthandler()
 {
-     callcc(@lambda(k){
-     	     printf("boot interrupted\n");
-     	     kbacktrace(continuationstack(k));
-	     exit(1);
-            });
+	callcc(@lambda(k){
+		printf("boot interrupted\n");
+		kbacktrace(continuationstack(k));
+		exit(1);
+	});
 }
 	  
 @include "bootmain.cqct"

@@ -378,12 +378,18 @@ l1__mapfile(VM *vm, Imm argc, Val *argv, Val *rv)
 		      (int)names->len, strdata(names),
 		      strerror(errno));
 	}
+	if(st.st_size == 0){
+		close(fd);
+		p = 0;
+		goto out;
+	}
 	p = mmap(0, st.st_size, prot, flags, fd, 0);
 	close(fd);
 	if(p == MAP_FAILED)
 		vmerr(vm, "cannot open %.*s: %s",
 		      (int)names->len, strdata(names),
 		      strerror(errno));
+out:
 	l = mklist();
 	_listappend(l, mkvallitcval(Vptr, (uptr)p));
 	_listappend(l, mkvallitcval(Vuvlong, st.st_size));

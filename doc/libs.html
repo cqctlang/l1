@@ -255,7 +255,7 @@ Prints all types in the given domain or name space to standard out.
 <div class="docitem" id="fn:objectStr">
 <div class="proto">
 <div class="function">
-<span class="id">objectStr(<span class="arg">x</span>)</span>
+<span class="id">objectstr(<span class="arg">x</span>)</span>
 </div>
 <div class="param">
 <span class="arg">x</span>: 
@@ -275,8 +275,8 @@ a string, and returns that string.
 
 <p>
 This file provides the ability to create dynamic types, or types
-that change based on their content. For example, consider the following
-vector type:
+that change depending on the memory they represent. 
+For example, consider the following vector type:
 </p>
 
 <div class="code">
@@ -1293,17 +1293,19 @@ with the following exceptions:
 <ul>
     <li> () does not enable back references as
     in PERL. 
-    <li> [] does not allow for ranges or for negated classes 
-    (i.e. ^ does <bf>not</bf> create a negated class, and - does
-    not create a spanned class).
+    <li> [] does not allow for ranges 
+    (i.e. - does not create a spanned class).
 </ul>
 Also as in PERL, \ is an escape character.
+</p>
 
+<p>
 This regular expression library uses a DFA to allow for matching
 in time O(n*m), where n is the length of the RE and m is the 
 length of the input. See Russ Cox's
 <a href=http://swtch.com/~rsc/regexp/regexp1.html>Regular Expression Matching</a> 
 for details. 
+</p>
 
 Example usage:
 <div class="code">
@@ -1335,7 +1337,8 @@ re_find(comp,"xxxabccccd"); //returns 3
 </div>
 <div class="desc">
     Allows one to create the DFA associated with a given regular expression.
-    These DFA can currently be passed to the re_match or re_find functions.
+    These DFA can be passed to the <a href=#fn:re_match>re_match</a> or 
+    <a href=#fn:re_find">re_find</a> functions.
     If one is doing multiple matches with the same RE, then it is recommended
     that one creates the DFA for that RE via this function, rather than forcing
     re_match or re_find to re-create the DFA on each call.
@@ -1444,7 +1447,7 @@ querying.
 <div class="docitem" id="fn:rbtree_create">
 <div class="proto">
 <div class="function">
-    <span class="id">rbtree_create(<span class="arg">compare</span>)</span>
+    <span class="id">rbtree_create( <span class="arg">compare</span> )</span>
 </div>
 <div class="param">
     <span class="arg">compare</span>: 
@@ -1468,7 +1471,7 @@ querying.
 <div class="function">
     <span class="id">rbtree_delete(
         <span class="arg">tree</span>,
-        <span class="arg">key</span>)
+        <span class="arg">key</span> )
     </span>
 </div>
 <div class="param">
@@ -1494,7 +1497,7 @@ querying.
 <div class="docitem" id="fn:rbtree_enumerate">
 <div class="proto">
 <div class="function">
-    <span class="id">rbtree_enumerate(<span class="arg">tree</span>)</span>
+    <span class="id">rbtree_enumerate( <span class="arg">tree</span> )</span>
 </div>
 <div class="param">
     <span class="arg">tree</span>: 
@@ -1515,7 +1518,7 @@ querying.
 <div class="function">
     <span class="id">rbtree_foreach(
         <span class="arg">tree</span>,
-        <span class="arg">fn</span>)
+        <span class="arg">fn</span> )
     </span>
 </div>
 <div class="param">
@@ -1571,7 +1574,7 @@ querying.
 <div class="docitem" id="fn:rbtree_nearestlargerquery">
 <div class="proto">
 <div class="function">
-    <span class="id">rbtree_query(
+    <span class="id">rbtree_nearestlargerquery(
         <span class="arg">tree</span>,
         <span class="arg">key</span>)
     </span>
@@ -1589,7 +1592,7 @@ querying.
 </div>
 </div>
 <div class="desc">
-    This function returns the [k,data] associated with the smalest
+    This function returns the [k,data] associated with the smallest
     k in the tree that is greater than and not equal to k. 
     If multiple such k exist, 
     then an arbitrary one is returned. If no such k not found
@@ -1600,7 +1603,7 @@ querying.
 <div class="docitem" id="fn:rbtree_nearestsmallerquery">
 <div class="proto">
 <div class="function">
-    <span class="id">rbtree_query(
+    <span class="id">rbtree_nearestsmallerquery(
         <span class="arg">tree</span>,
         <span class="arg">key</span>)
     </span>
@@ -1708,8 +1711,8 @@ querying.
 </div>
 <div class="desc">
     This function returns a list of [key,data] pairs stored in the
-    given tree where the key greater than or equal to lower and strictly
-    less than upper. 
+    given tree where the key is greater than or equal to <em>lower</em> and 
+    strictly less than <em>upper</em>. 
 </div>
 </div>
 

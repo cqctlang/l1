@@ -73,7 +73,9 @@ sctl = @names clp64le {
 		Rlooksrc,
 		Tlookpc,
 		Rlookpc,
-		Tsrv,
+		Tnsinfo,
+		Rnsinfo,
+		Tsrv=254,
 		Rsrv,
 	} Mkind;
 
@@ -230,6 +232,33 @@ sctl = @names clp64le {
 		SHN_ABS		= 0xfff1,
 		SHN_COMMON	= 0xfff2,
 	};
+
+	typedef
+	enum Nssize {
+		M32		= 1,
+		M64		= 2,
+	} Nssize;
+
+	typedef
+	enum Nsenc {
+		Mle		= 1,
+		Mbe		= 2,
+	} Nsenc;
+
+	typedef
+	enum Nsabi {
+		sysv		= 0,
+		linux		= 3,
+		freebsd		= 9,
+		win		= 254,
+	} Nsabi;
+
+	typedef
+	enum Nsarch {
+		i386		= 3,
+		arm		= 40,
+		amd64		= 62,
+	} Nsarch;
 
 	typedef
 	struct Msg {

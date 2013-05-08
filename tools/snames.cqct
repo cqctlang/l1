@@ -106,7 +106,7 @@ sns = @names clp64be {
 		botch(fd, tag);
 		return 'badop;
 	}
-	if(s[0] != "sctl-2012"){
+	if(s[0] != "sctl-2013"){
 		sctlrerror(fd, tag, "unsupported version");
 		return 'badop;
 	}
@@ -253,8 +253,32 @@ sns = @names clp64be {
 		sctlrerror(fd, tag, Enone);
 		return 'ok;
 	}
-	[m, p] = mkreply(sctl`Rlookunwind1, tag);
+	[m, p] = mkreply(sctl`Runwind1, tag);
 	p = encodeuwrules(p, rs);
+	sendsctlmsg(fd, m, (char*)p-(char*)m);
+	return 'ok;
+}
+
+@define tnsinfo(fd, tag, dat)
+{
+	@local m, p, nsid, ns, rs;
+
+	p = (uint64*)dat;
+	nsid = *p++;
+
+	ns = looknsid(nsid);
+	if(ns == nil){
+		sctlrerror(fd, tag, "unknown name space");
+		return 'ok;
+	}
+
+	rs = ns.nsinfo();
+	if(rs == nil){
+		sctlrerror(fd, tag, Enone);
+		return 'ok;
+	}
+	[m, p] = mkreply(sctl`Rnsinfo, tag);
+	p = encodensinfo(p, rs);
 	sendsctlmsg(fd, m, (char*)p-(char*)m);
 	return 'ok;
 }
@@ -379,6 +403,7 @@ handle = [
 	(sctl`Mkind)sctl`Tlookpc   : tlookpc,
 	(sctl`Mkind)sctl`Tenumseg  : notimpl,
 	(sctl`Mkind)sctl`Tnames    : tnames,
+	(sctl`Mkind)sctl`Tnsinfo   : tnsinfo,
 ];
 
 @define tdispatch(fd)

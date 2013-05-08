@@ -1258,13 +1258,33 @@ this essential configuration task.)
 Name spaces served by sctl are like ordinary
 <a href="man.html#sec:namespaces">Cinquecento name
 spaces</a>, except that their interface is extended to
-support four additional methods.  These methods provide
-access to call stack unwinding, source code location,
+support five additional methods.  These methods provide
+a description of the name space, access to call stack unwinding, source code location,
 and local variable information.  Some of the name space
 filters in the Cinquecento library, including
 <span class="fnindex"><a href="libs.html#fn:mknsoff">mknsoff</a></span>,
 support this extended interface.
 </p>
+
+<div class="docitem">
+<div class="proto">
+<div class="function" id="fn:nsinfo">
+<span class="id">nsinfo(<span class="arg">this</span>,<span class="arg">pc</span>)</span>
+</div>
+<div class="param">
+<span class="arg">this</span>: <span class="type">invoking object</span>
+</div>
+<div class="returns">
+<span class="type">nsinfo record</span>
+</div>
+</div>
+<div class="desc">
+Returns a description of the name space.  See 
+<span class="fnindex"><a href="#fn:sctlnsinfo">sctlnsinfo</a></span> for the
+definition of a nsinfo record.
+</div>
+</div>
+
 
 <div class="docitem">
 <div class="proto">
@@ -2440,7 +2460,7 @@ Performs a <span class="id">version</span> transaction with the server.
 The offered version is
 <div class="code">
 <pre>
-"sctl-2012:x86-linux-2012,x86-win-2012"
+"sctl-2013:x86-linux-2012,x86-win-2012"
 </pre>
 </div>
 The negotiated version string is returned.
@@ -2625,6 +2645,167 @@ Returns <span class="val">nil</span> if there is no matching symbol.
 </div>
 </div>
 
+<div class="docitem" id="fn:sctlnsinfo">
+<div class="proto">
+<div class="function">
+<span class="id">sctlnsinfo(<span class="arg">fd</span>,<span class="arg">nsid</span>)</span>
+</div>
+<div class="param">
+<span class="arg">fd</span>: <span class="type">file descriptor</span>
+</div>
+<div class="param">
+<span class="arg">nsid</span>: <span class="type">cvalue</span>
+</div>
+</div>
+<div class="desc">
+Performs an <span class="id">nsinfo</span>
+transaction on the name space corresponding
+to <span class="arg">nsid</span>, returning
+a nsinfo record.
+The nsinfo record is defined as follows:
+
+<div class="code">
+<pre>
+@record nsinfo {
+	path,		/* path name of binary (string) */
+	size,		/* word size  (cvalue) */
+	enc,		/* byte order (cvalue) */
+	abi,		/* abi (cvalue) */
+	arch,		/* architecture (cvalue) */
+	vaddr,		/* load address of binary */
+};
+</pre>
+</div>
+
+The <span class="arg">size</span> field gives the word
+size of the binary.  Valid values are:
+
+<div class="table-short">
+<table>
+<tr>
+<td>
+32-bit
+</td>
+<td>
+1
+</td>
+</tr>
+<tr>
+<td>
+64-bit
+</td>
+<td>
+2
+</td>
+</tr>
+</table>
+</div>
+
+The <span class="arg">enc</span> field gives the byte
+ordering of the binary.  Valid values are:
+
+<div class="table-short">
+<table>
+<tr>
+<td>
+little-endian
+</td>
+<td>
+1
+</td>
+</tr>
+<tr>
+<td>
+big-endian
+</td>
+<td>
+2
+</td>
+</tr>
+</table>
+</div>
+
+
+The <span class="arg">abi</span> field gives the ABI
+of the binary.  Valid values include:
+
+<div class="table-short">
+<table>
+<tr>
+<td>
+SYSV
+</td>
+<td>
+0
+</td>
+</tr>
+<tr>
+<td>
+Linux
+</td>
+<td>
+3
+</td>
+</tr>
+<tr>
+<td>
+FreeBSD
+</td>
+<td>
+9
+</td>
+</tr>
+<tr>
+<td>
+ARM
+</td>
+<td>
+97
+</td>
+</tr>
+</table>
+</div>
+
+The <span class="arg">arch</span> field gives the machine
+architecture of the binary.  Valid values include:
+
+<div class="table-short">
+<table>
+<tr>
+<td>
+386
+</td>
+<td>
+3
+</td>
+</tr>
+<tr>
+<td>
+ARM
+</td>
+<td>
+40
+</td>
+</tr>
+<tr>
+<td>
+amd64/x86_64
+</td>
+<td>
+62
+</td>
+</tr>
+</table>
+</div>
+
+<p>
+Note the the above constants are based on the ELF constants
+for corresponding data.
+</p>
+
+</div>
+</div>
+
 <div class="docitem" id="fn:sctlunwind1">
 <div class="proto">
 <div class="function">
@@ -2657,6 +2838,7 @@ that is based on the encoding of the unwind rules specified by DWARF:
 <pre>
 @record uwrulerec {
 	kind,		/* rule kind */
+	c,		/* register defined */
 	r,		/* register operand */
 	n		/* number operand */
 };
@@ -3146,6 +3328,7 @@ of the defining object type in parentheses.
 <a href="#fn:sctllooksym">sctllooksym</a><br />
 <a href="#fn:sctllooktype">sctllooktype</a><br />
 <a href="#fn:sctlnames">sctlnames</a><br />
+<a href="#fn:sctlnsinfo">sctlnsinfo</a><br />
 <a href="#fn:sctlping">sctlping</a><br />
 <a href="#fn:sctlunwind1">sctlunwind1</a><br />
 <a href="#fn:sctlversion">sctlversion</a><br />

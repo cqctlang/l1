@@ -19,13 +19,16 @@
 	sctllooksrc,
 	sctllookpc,
 	sctlenumloc,
+	sctlnsinfo,
 	sctlsrv,
 
 	/* name space codecs */
+	decodensinfo,
 	decodetname,
 	decodeuwrules,
 	encodelexpr,
 	encodectx,
+	encodensinfo,
 	encodesrc,
 	encodesym,
 	encodetdef,
@@ -64,6 +67,7 @@ nexttag = 0;
 
 @record uwrulerec {
 	kind,
+	c,
 	r,
 	n,
 };
@@ -72,6 +76,15 @@ nexttag = 0;
 	file,
 	line,
 	col,
+};
+
+@record nsinfo {
+	path,
+	size,
+	enc,
+	abi,
+	arch,
+	vaddr,
 };
 
 @defloc encodeattrs(p, attrs)
@@ -603,36 +616,99 @@ nexttag = 0;
 	}
 }
 
+@define encodensinfo(q, nsi)
+{
+	q = encodes(q, nsi.path);
+	q = (uint8*)q;
+	*q++ = nsi.size;
+	*q++ = nsi.enc;
+	*q++ = nsi.abi;
+	q = (uint32*)q;
+	*q++ = nsi.arch;
+	q = (uint64*)q;
+	*q++ = nsi.vaddr;
+	return q;
+}
+
+@define decodensinfo(q)
+{
+	@local path, size, enc, abi, arch, vaddr;
+	[path, q] = decodes(q);
+	q = (uint8*)q;
+	size = *q++;
+	enc = *q++;
+	abi = *q++;
+	q = (uint32*)q;
+	arch = *q++;
+	q = (uint64*)q;
+	vaddr = *q++;
+	return [nsinfo(path, size, enc, abi, arch, vaddr), q];
+}
+
 @define encodeuwrules(q, rs)
 {
+	@local r;
+
+	if(length(rs) == 0)
+		error("ill-defined rules");
+	rs = copy(rs);
+
+	/* CFA rule */
+	r = pop(rs);
+	q = (uint8*)q;
+	*q++ = r.kind;
+	q = (uint64*)q;
+	*q++ = r.r;
+	q = (int64*)q;
+	*q++ = r.n;
+
+	/* register rules */
 	q = (uint32*)q;
 	*q++ = length(rs);
 	foreach(@lambda(r){
 			q = (uint8*)q;
 			*q++ = r.kind;
 			q = (uint64*)q;
+			*q++ = r.c;
+			q = (uint64*)q;
 			*q++ = r.r;
 			q = (int64*)q;
 			*q++ = r.n;
 		}, rs);
+
 	return q;
 }
 
 @define decodeuwrules(q)
 {
-	@local rs, m, i, k, r, n;
+	@local rs, m, i, c, k, r, n;
+
 	rs = [];
+
+	/* CFA rule */
+	q = (uint8*)q;
+	k = *q++;
+	q = (uint64*)q;
+	r = *q++;
+	q = (int64*)q;
+	n = *q++;
+	append(rs, uwrulerec(k, nil, r, n));
+
+	/* register rules */
 	q = (uint32*)q;
 	m = *q++;
 	for(i = 0; i < m; i++){
 		q = (uint8*)q;
 		k = *q++;
 		q = (uint64*)q;
+		c = *q++;
+		q = (uint64*)q;
 		r = *q++;
 		q = (int64*)q;
 		n = *q++;
-		append(rs, uwrulerec(k, r, n));
+		append(rs, uwrulerec(k, c, r, n));
 	}
+
 	return [rs, q];
 }
 
@@ -709,7 +785,7 @@ nexttag = 0;
 {
 	@local m, p, rep, dat, version, os, s;
 
-	version = "sctl-2012:x86-linux-2012,x86-win-2012";
+	version = "sctl-2013:x86-linux-2012,x86-win-2012";
 
 	m = p = mkxs();
 	p = (sctl`Msg*)p;
@@ -981,6 +1057,28 @@ nexttag = 0;
 	return ls;
 }
 
+@define sctlnsinfo(fd, nsid)
+{
+	@local p, m, q, rep, dat, nsi;
+
+	p = m = mkxs();
+	p = (sctl`Msg*)p;
+	p->op = sctl`Tnsinfo;
+	p->tag = freshtag();
+	p++;
+	p = (uint64*)p;
+	*p++ = nsid;
+	p = (char*)p;
+	sendsctlmsg(fd, m, p-m);
+
+	[rep, _, dat] = recvsctlmsg(fd);
+	checkreply(rep, dat, sctl`Rnsinfo);
+
+	q = (uint64*)dat;
+	[nsi, q] = decodensinfo(q);
+	return nsi;
+}
+
 @define sctlsrv(fd, n)
 {
 	@local p, m, rep, dat;
@@ -1149,6 +1247,11 @@ nexttag = 0;
 		return sctllookpc(fd, nsid, file, line);
 	}
 
+	@defloc nsinfo(this)
+	{
+		return sctlnsinfo(fd, nsid);
+	}
+
 	@defloc rebind(this, nfd)
 	{
 		fd = nfd;
@@ -1168,6 +1271,7 @@ nexttag = 0;
 		    "enumloc"  : el,
 		    "looksrc"  : lsrc,
 		    "lookpc"   : lpc,
+		    "nsinfo"   : nsinfo,
 		    "rebind"   : rebind,
 		  ]);
 	return ns;

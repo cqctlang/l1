@@ -1,4 +1,4 @@
-length = @lambda(l){
+len = @lambda(l){
      @local len;
      for(len = 0; !isnil(l); l = cdr(l))
 	  len++;
@@ -22,5 +22,5 @@ printlist = @lambda(l){
 
 x = iota(10);
 printlist(x);
-print(length(x));
+print(len(x));
 

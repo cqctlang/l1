@@ -8,13 +8,6 @@
 @local uwns;	
 
 uwns = @names c32le {
-	enum
-	{
-		Nreg = 67,		/* # dwarf regs in amd64 abi */
-		CFA = Nreg,		/* index of CFA in Rule row */
-		Nrow = Nreg+1,		/* # entries in Rule row */
-	};
-
 	typedef
 	enum Rulekind
 	{
@@ -39,36 +32,11 @@ uwns = @names c32le {
 	return {@typeof(p)}getbytes(p);
 }
 
-// @defloc showrule(r)
-// {
-// 	printf("rule: kind=%e r=%d n=%d\n",
-// 	       (uwns`Rulekind)r.kind,
-// 	       r.r,
-// 	       r.n);
-// }
-
 @defloc getcfa(rules, getreg)
 {
 	@local r;
-	r = rules[uwns`CFA];
-	switch((uwns`Rulekind)r.kind){
-	case uwns`Rcfaro:
-		return getreg(r.r)+r.n;
-	case uwns`Rcfae:
-		error("unwind: rule Rcfae is unimplemented");
-	default:
-		error("unwind: bug");
-	}
-}
 
-@defloc applyunwind(rules, getreg, setreg, get, spno)
-{
-	@local cfa, i, r, needsp;
-
-	@defloc evalcfa()
-	{
-		@local r;
-		r = rules[uwns`CFA];
+	while(r = pop(rules)){
 		switch((uwns`Rulekind)r.kind){
 		case uwns`Rcfaro:
 			return getreg(r.r)+r.n;
@@ -78,28 +46,45 @@ uwns = @names c32le {
 			error("unwind: bug");
 		}
 	}
+	error("unwind: bug");
+}
 
-	cfa = evalcfa();
-	needsp = 0;
-	for(i = 0; i < uwns`Nreg; i++){
-		r = rules[i];
+@defloc applyunwind(rules, getreg, setreg, get, spno)
+{
+	@local cfa, r;
+
+	while(r = pop(rules)){
+		@local c;
+		c = r.c;
 		switch((uwns`Rulekind)r.kind){
+		case uwns`Rcfaro:
+			cfa = getreg(r.r)+r.n;
+//			printf("applyunwind: reg %d rule %e r %d n %d -> %p\n", i, (uwns`Rulekind)r.kind, r.r, r.n, cfa);
+			break;
 		case uwns`Rnone:
-			if(i == spno)
-				needsp = 1;
+//			printf("applyunwind: reg %d rule %e\n", i, (uwns`Rulekind)r.kind);
 			break;
 		case uwns`Rsame:
-			setreg(i, getreg(i));
+			setreg(c, getreg(c));
+//			printf("applyunwind: reg %d rule %e\n", i, (uwns`Rulekind)r.kind);
 			break;
 		case uwns`Roff:
-			setreg(i, get(cfa+r.n));
+			if(cfa == nil)
+				error("unwind: rules reference CFA before defining it");
+			setreg(c, get(cfa+r.n));
+//			printf("applyunwind: reg %d rule %e n %d -> %x\n", i, (uwns`Rulekind)r.kind, r.n, get(cfa+r.n));
 			break;
 		case uwns`Rvoff:
-			setreg(i, cfa+r.n);
+			if(cfa == nil)
+				error("unwind: rules reference CFA before defining it");
+			setreg(c, cfa+r.n);
+//			printf("applyunwind: reg %d rule %e\n", i, (uwns`Rulekind)r.kind);
 			break;
 		case uwns`Rreg:
-			setreg(i, getreg(r.r));
+			setreg(c, getreg(r.r));
+//			printf("applyunwind: reg %d rule %e\n", i, (uwns`Rulekind)r.kind);
 			break;
+		case uwns`Rcfae:
 		case uwns`Rexp:
 		case uwns`Rvexp:
 			error("unwind: rule %e is unimplemented",
@@ -109,11 +94,13 @@ uwns = @names c32le {
 		}
 	}
 
-	if(needsp)
-		setreg(spno, cfa);
+	// we assume the ABI defines SP to be CFA.
+	// however, we cannot find such a definition
+	// published for i386/amd64.
+	setreg(spno, cfa);
 }
 
-@defloc mkuwctx32(dom, ctx)
+@defloc mkuwctxi386(dom, ctx)
 {
 	@local new;
 
@@ -162,7 +149,7 @@ uwns = @names c32le {
 	return [g, s, m, new, 4];
 }
 
-@defloc mkuwctx64(dom, ctx)
+@defloc mkuwctxamd64(dom, ctx)
 {
 	@local new;
 
@@ -245,6 +232,86 @@ uwns = @names c32le {
 	return [g, s, m, new, 7];
 }
 
+@defloc mkuwctxarm(dom, ctx)
+{
+	@local new;
+
+	/* copy ctx */
+	new = {@typeof(ctx)}getbytes(ctx);
+	
+	@defloc g(r)
+	{
+		switch(r){
+		case 0:  return ctx->r0;
+		case 1:  return ctx->r1;
+		case 2:  return ctx->r2;
+		case 3:  return ctx->r3;
+		case 4:  return ctx->r4;
+		case 5:  return ctx->r5;
+		case 6:  return ctx->r6;
+		case 7:  return ctx->r7;
+		case 8:  return ctx->r8;
+		case 9:  return ctx->r9;
+		case 10: return ctx->r10;
+		case 11: return ctx->r11;
+		case 12: return ctx->r12;
+		case 13: return ctx->r13;
+		case 14: return ctx->r14;
+		case 15: return ctx->r15;
+		default:
+			error("getreg on bad register %d", r);
+		}
+	}
+
+	@defloc s(r, v)
+	{
+		switch(r){
+		case 0:  return new->r0 = v;
+		case 1:  return new->r1 = v;
+		case 2:  return new->r2 = v;
+		case 3:  return new->r3 = v;
+		case 4:  return new->r4 = v;
+		case 5:  return new->r5 = v;
+		case 6:  return new->r6 = v;
+		case 7:  return new->r7 = v;
+		case 8:  return new->r8 = v;
+		case 9:  return new->r9 = v;
+		case 10: return new->r10 = v;
+		case 11: return new->r11 = v;
+		case 12: return new->r12 = v;
+		case 13: return new->r13 = v;
+		case 14: return new->r14 = v;
+		case 15: return new->r15 = v;
+		default:
+			error("putreg on bad register %d", r);
+		}
+	}
+
+	@defloc m(a)
+	{
+		return *(uintptr*){dom}a;
+	}
+	
+	return [g, s, m, new, 13];
+}
+
+@defloc pickmkuwctx(ns)
+{
+	@local nsi;
+	nsi = ns.nsinfo();
+	switch((sctl`Nsarch)nsi.arch){
+	case sctl`i386:
+		return mkuwctxi386;
+	case sctl`amd64:
+		return mkuwctxamd64;
+	case sctl`arm:
+		return mkuwctxarm;
+	default:
+		error("unwind: unsupported architecture: %e",
+		      (sctl`Nsarch)nsi.arch);
+	}
+}
+
 @define dwunwind1(ctx, as, nsmap)
 {
 	@local fp, dom, ns, rs, mkuwctx;
@@ -259,7 +326,7 @@ uwns = @names c32le {
 	rs = ns.unwind1(ctx->pc);
 	if(rs == nil)
 		goto guess;
-	mkuwctx = sizeof(ns`void*) == 8 ? mkuwctx64 : mkuwctx32;
+	mkuwctx = pickmkuwctx(ns);
 	[g, s, m, new, spno] = mkuwctx(dom, ctx);
 	applyunwind(rs, g, s, m, spno);
 	return new; 
@@ -280,7 +347,7 @@ guess:
 	rs = ns.unwind1(ctx->pc);
 	if(rs == nil)
 		error("cannot determine cfa for pc %p", ctx->pc);
-	mkuwctx = sizeof(ns`void*) == 8 ? mkuwctx64 : mkuwctx32;
+	mkuwctx = pickmkuwctx(ns);
 	[g, _, _, _, _] = mkuwctx(dom, ctx);
 	return getcfa(rs, g);
 }
