@@ -250,13 +250,13 @@ if(looksym(unix,'getdents)) {
 	l=dirlist(dirname);
 	s=mkstr(length(l) * sizeof(struct unix`dirent));
 
-	d=mkdom(unix,mksas(x));
+	d=mkdom(unix,mksas(s));
 	p=(struct dirent *){d}0;
 	for(x=0;x<length(l);x++) {
 		putbytes(p->d_name,l[x]);
 		p++;	
 	}
 	
-	return mksas(s);
+	return asof(d);
 }
 }
