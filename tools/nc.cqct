@@ -1,0 +1,280 @@
+#!/bin/sh
+	exec l1 -e nc_main "$0" "$@"
+	exit 1
+!#
+
+/* netcat-alike */
+
+@include <syslib.cqct>
+@include <io.cqct>
+@include <sys.cqct>
+
+@define hexdump(buf,len) {
+	@local x;
+
+	buf=(unsigned char *)buf;
+	for(x=0;x+16<=len;x+=16) {
+		printf("0x%02x 0x%02x 0x%02x 0x%02x ",buf[x],buf[x+1],buf[x+2],buf[x+3]);
+		printf("0x%02x 0x%02x 0x%02x 0x%02x ",buf[x+4],buf[x+5],buf[x+6],buf[x+7]);
+		printf("0x%02x 0x%02x 0x%02x 0x%02x ",buf[x+8],buf[x+9],buf[x+10],buf[x+11]);
+		printf("0x%02x 0x%02x 0x%02x 0x%02x\n",buf[x+12],buf[x+13],buf[x+14],buf[x+15]);
+	}
+
+	for(x;x<len;x++) {
+		printf("0x%02x ",buf[x]);
+	}
+}
+
+@define nc_main(progname, args ...) {
+	@local s,c,l;
+	@local dh,dp,dpn,dhn;
+	@local r;
+	@local ep;
+	@local do_udp;
+	@local do_l;
+
+	dh=nil;
+	dp=nil;
+	dpn=nil;
+	ep=nil;
+	
+	do_udp=0;
+	do_l=0;
+
+	l=length(args);
+	for(c=0;c<l;c++) {
+		switch(args[c]) {
+		case "-u":
+			do_udp=1;
+			break;
+		case "-f": {
+			@local f,p,cp;
+
+			if((c+1)>=l) {
+				fprintf(stderr,"%s: %s takes an argument\n",
+					progname,args[c]);
+				return 1;
+			}
+		
+			f=mapfile(args[c+1]);
+			if(isnil(f)) {
+				fprintf(stderr,"%s: unable to open %s\n",
+					progname,args[c+1]);
+				return 1;
+			}
+
+			p=parse(f);
+			if(isnil(p)) {
+				fprintf(stderr,"%s: unable to parse %s\n",
+					progname,args[c+1]);
+				return 1;
+			}
+
+			cp=compile(p);
+			if(isnil(cp)) {
+				fprintf(stderr,"%s: unable to compile %s\n",
+					progname,args[c+1]);
+				return 1;
+			} 
+
+			cp();
+
+			c++;
+
+			break;
+		}
+		case "-e": {
+			@local p,cp;
+
+			if((c+1)>=l) {
+				fprintf(stderr,"%s: %s takes an argument\n",
+					progname,args[c]);
+				return 1;
+			}
+		
+			p=parse(args[c+1]+";");
+			if(isnil(p)) {
+				fprintf(stderr,"%s: unable to parse %s\n",
+					progname,args[c+1]);
+				return 1;
+			}
+
+			cp=compile(p);
+			if(isnil(cp)) {
+				fprintf(stderr,"%s: unable to compile %s\n",
+					progname,args[c+1]);
+				return 1;
+			} 
+
+			ep=cp();
+
+			c++;
+
+			break;
+		}
+		case "-l":
+			do_l=1;
+			break;
+		default: {
+			@local h;
+
+			h=args[c];
+			if( !length(h) || (h[0] == "-")) {
+				fprintf(stderr,"%s: bad argument\n",progname);
+				return 1;
+			}
+			dh=args[c];
+			if( ((c+1)<l) && length(args[c+1]))
+				dp=args[c+1];
+			c=l;
+		}
+		}
+	}
+
+	if(!isnil(dp)) {
+		dpn=strton(dp);	
+		if(isnil(dpn)) {
+			fprintf(stderr,"%s: server port %s is not a number\n",
+				progname,dp);
+			return 1;
+		}
+	}
+
+	if(!isnil(dh)) {
+		dhn=inet_aton(dh);
+		if(isnil(dhn)) {
+			fprintf(stderr,"%s: server host %s is not an IP "
+					"address\n", progname,dp);
+			return 1;
+		}
+	}
+
+	if(isnil(dh) || isnil(dp)) {
+		fprintf(stderr,"Usage:\n");
+		fprintf(stderr,"  %s hostaddr port -- dump stdin to TCP port port on hostaddr\n",progname);
+		fprintf(stderr,"  %s -u hostaddr port -- dump stdin to UDP port port on hostaddr\n",progname);
+		fprintf(stderr,"  %s -l hostaddr port -- dump connections on TCP port port on hostaddr to stdout\n",progname);
+		fprintf(stderr,"  %s -l -u hostaddr port -- dump datagrams on UDP port port on hostaddr to stdout\n",progname);
+		fprintf(stderr,"  %s -l -e entrypoint hostaddr port -- dump connections on TCP port port on hostaddr to the Cinquecento function entrypoint (use with -f progfile)\n",progname);
+		fprintf(stderr,"  %s -l -u -e entrypoint hostaddr port -- dump datagrams on UDP port port on hostaddr to the Cinquecento function entrypoint (use with -f progfile)\n",progname);
+		return 1;
+	}
+
+	if(do_l) {
+
+	if(isnil(ep)) {
+		if(do_udp) {
+			ep=@lambda(sock,bytes,sockaddr,sockadd_len) {
+				write(stdout,bytes);
+			};
+		} else {
+			ep=@lambda(sock) {
+				@local f;
+
+				f=fdopen(sock,"rw");
+				while(1) {
+					@local r;
+					r=read(f,4096);
+					if(!r)
+						break;
+					write(stdout,r);
+				}
+			};
+		}
+	} 
+
+	if(do_udp) {
+		@local dgram_buffer;
+		
+
+		s=(int)sys_socket(unix`AF_INET,unix`SOCK_DGRAM,0);
+		if(s<0) {
+			fprintf(stderr,"couldn't create socket");
+			return 1;
+		}
+
+		r=bind_inet_socket(s,dhn,dpn);
+		if(r) {
+			fprintf(stderr,"%s: failed to bind server\n",progname);
+			if( (sys_getuid() > 0) && (dpn <= 1024))
+				fprintf(stderr,"  perhaps you need to be root"
+						" to bind a reserved port.\n");
+			return 1;
+		}
+
+		while(1) {
+			@local safoo,safoos;
+
+			dgram_buffer=(unsigned char *)malloc(4096);
+			
+			safoo=(struct unix`sockaddr_in *)malloc(
+					sizeof(struct unix`sockaddr_in));
+			safoos=(long *)malloc(sizeof(long));
+			*safoos=sizeof(struct unix`sockaddr_in);
+
+			r=(int)syscall(unix`recvfrom,s,dgram_buffer,4096,0,safoo,safoos);
+			if(r < 0)
+				continue;
+
+			ep(s,getbytes(dgram_buffer,r),safoo,*safoos);
+		}
+	} else {
+		s=(int)sys_socket(unix`AF_INET,unix`SOCK_STREAM,0);
+		if(s<0) {
+			fprintf(stderr,"couldn't create socket");
+			return 1;
+		}
+
+		r=bind_inet_socket(s,dhn,dpn);
+		if(r) {
+			fprintf(stderr,"%s: failed to bind server\n",progname);
+			if( (sys_getuid() > 0) && (dpn <= 1024))
+				fprintf(stderr,"  perhaps you need to be root"
+						" to bind a reserved port.\n");
+			return 1;
+		}
+
+		r=sys_listen(s,5);
+		if(r) {
+			fprintf(stderr,"%s: failed to listen\n",progname);
+			return 1;
+		}
+
+		while(1) {
+			@local safoo,safoos;
+			
+			safoo=(struct unix`sockaddr_in *)malloc(
+					sizeof(struct unix`sockaddr_in));
+			safoos=(long *)malloc(sizeof(long));
+			*safoos=sizeof(struct unix`sockaddr_in);
+
+			r=(int)sys_accept(s,safoo,safoos);
+			if(r < 0)
+				continue;
+
+			ep(r);
+		}
+	}
+	} else {
+		if(do_udp) {
+			fprintf(stderr,"udp only supported in listener mode (-l) supported at the moment");
+			return 1;
+		} else {
+			@local s,r;
+
+			s=tcpopen(sprintfa("%s:%d",dh,dpn));
+			if(isnil(s)) {
+				fprintf(stderr,"couldn't open %s:%d\n",dh,dpn);
+				return 1;
+			}
+
+			while(1) {
+				r=read(stdin,4096);
+				if(!r)
+					break;
+				
+				write(s,r);
+			}
+		}
+	}
+}
