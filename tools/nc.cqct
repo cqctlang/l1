@@ -32,6 +32,7 @@
 	@local ep;
 	@local do_udp;
 	@local do_l;
+	@local usage;
 
 	dh=nil;
 	dp=nil;
@@ -131,6 +132,16 @@
 		}
 	}
 
+	usage=@lambda(fd) {
+		fprintf(fd,"Usage:\n");
+		fprintf(fd,"  %s hostaddr port -- dump stdin to TCP port port on hostaddr\n",progname);
+		fprintf(fd,"  %s -u hostaddr port -- dump stdin to UDP port port on hostaddr\n",progname);
+		fprintf(fd,"  %s -l hostaddr port -- dump connections on TCP port port on hostaddr to stdout\n",progname);
+		fprintf(fd,"  %s -l -u hostaddr port -- dump datagrams on UDP port port on hostaddr to stdout\n",progname);
+		fprintf(fd,"  %s -l -e entrypoint hostaddr port -- dump connections on TCP port port on hostaddr to the Cinquecento function entrypoint (use with -f progfile)\n",progname);
+		fprintf(fd,"  %s -l -u -e entrypoint hostaddr port -- dump datagrams on UDP port port on hostaddr to the Cinquecento function entrypoint (use with -f progfile)\n",progname);
+	};
+
 	if(!isnil(dp)) {
 		dpn=strton(dp);	
 		if(isnil(dpn)) {
@@ -150,13 +161,7 @@
 	}
 
 	if(isnil(dh) || isnil(dp)) {
-		fprintf(stderr,"Usage:\n");
-		fprintf(stderr,"  %s hostaddr port -- dump stdin to TCP port port on hostaddr\n",progname);
-		fprintf(stderr,"  %s -u hostaddr port -- dump stdin to UDP port port on hostaddr\n",progname);
-		fprintf(stderr,"  %s -l hostaddr port -- dump connections on TCP port port on hostaddr to stdout\n",progname);
-		fprintf(stderr,"  %s -l -u hostaddr port -- dump datagrams on UDP port port on hostaddr to stdout\n",progname);
-		fprintf(stderr,"  %s -l -e entrypoint hostaddr port -- dump connections on TCP port port on hostaddr to the Cinquecento function entrypoint (use with -f progfile)\n",progname);
-		fprintf(stderr,"  %s -l -u -e entrypoint hostaddr port -- dump datagrams on UDP port port on hostaddr to the Cinquecento function entrypoint (use with -f progfile)\n",progname);
+		usage(stderr);
 		return 1;
 	}
 
