@@ -243,6 +243,38 @@ l1_getsockname(VM *vm, Imm argc, Val *argv, Val *rv)
 }
 
 static void
+l1_gethostbyname(VM *vm, Imm argc, Val *argv, Val *rv)
+{
+	Str *str;
+	char *s;
+	struct hostent* h;
+	struct in_addr addr;
+	static char saddr[32];
+
+	setlasterrno(0);
+	if(argc != 1)
+		vmerr(vm, "wrong number of arguments to gethostbyname");
+	checkarg(vm, argv, 0, Qstr);
+	str = valstr(argv[0]);
+	s = str2cstr(str);
+
+	if(*s == '\0') {
+		efree(s);
+		return;
+	}
+	h = gethostbyname(s);
+	efree(s);
+	if(!h)
+		return;
+
+	addr = *((struct in_addr *) h->h_addr); /* network order */
+
+	strcpy(saddr, inet_ntoa(addr));
+
+	*rv = mkvalstr(mkstr0(saddr));
+}
+
+static void
 l1__unixopen(VM *vm, Imm argc, Val *argv, Val *rv)
 {
 	int fd;
@@ -316,6 +348,7 @@ l1__recvfd(VM *vm, Imm argc, Val *argv, Val *rv)
 void
 fnnet(Env env)
 {
+	FN(gethostbyname);
 	FN(getpeername);
 	FN(getsockname);
 	FN(_recvfd);

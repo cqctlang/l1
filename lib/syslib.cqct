@@ -424,3 +424,10 @@ if(looksym(unix,'AF_UNIX)) {
 	return r;
 }
 }
+
+@global _socket;
+if(looksym(unix,'socket)) {
+@define _socket(d,t,p) {
+	return sys_socket(d,t,p);
+}
+}
