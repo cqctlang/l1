@@ -1,0 +1,2 @@
+printf("%s\n",gethostbyname("localhost"));
+printf("%s\n",gethostbyname("127.0.0.1"));
