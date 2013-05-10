@@ -322,10 +322,11 @@
 	}
 
 	if(!isnil(dh)) {
-		dhn=inet_aton(dh);
+		//dhn=inet_aton(dh);
+		dhn=gethostbyname(dh);
 		if(isnil(dhn)) {
 			fprintf(stderr,"%s: server host %s is not an IP "
-					"address\n", progname,dp);
+					"address or known hostname\n", progname,dp);
 			return 1;
 		}
 	}
