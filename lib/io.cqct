@@ -62,6 +62,7 @@ ions = @names c32le {
 @define popen(arg ...)
 {
 	@local fds;
+
 	fds = apply(_popen, arg);
 	return map(@lambda(fd){
 			/* FIXME: don't be overly permissive */

@@ -431,3 +431,27 @@ if(looksym(unix,'socket)) {
 	return sys_socket(d,t,p);
 }
 }
+
+@define system(cmd) {
+	@local p,r;
+
+	p=sys_fork();
+	if(p == -1) {
+		error("system: fork failed");
+	} else if(!p) {
+		applyk(@lambda() {
+			sys_execve("/bin/sh",["sh","-c",cmd],[]);
+		},@lambda(args ...) {
+			sys_exit(1);
+		},@lambda(args ...) {
+			sys_exit(1);
+		},[]);
+	} else {
+		r=waitpid(p,0);
+		if(!isnil(r)) {
+			return r[1];
+		} else {
+			error("system: waitpid failure!\n");
+		}
+	}
+}
