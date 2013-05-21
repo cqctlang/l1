@@ -181,6 +181,9 @@ iohash=[:];
 	return r;
 }
 
+@global old_close;
+old_close=close; // we may have existing fds at the time we rebind close.
+
 @define close(fd) {
 	@local sfd;
 
@@ -188,7 +191,7 @@ iohash=[:];
 	if(!isnil(sfd)) {
 		sys_close(sfd); 
 	} else {
-		error("close: closing a cinquecento fd with no unix fd");
+		old_close(fd);
 	}
 }
 
