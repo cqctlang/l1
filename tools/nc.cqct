@@ -5,6 +5,7 @@
 
 /* netcat-alike */
 
+@include <pcap.cqct>
 @include <syslib.cqct>
 @include <io.cqct>
 @include <sys.cqct>
@@ -29,15 +30,15 @@
 	@local s,c,l;
 	@local dh,dp,dpn,dhn;
 	@local r;
-	@local ep;
 	@local do_udp;
 	@local do_l;
 	@local usage;
+	@local eps;
 
 	dh=nil;
 	dp=nil;
 	dpn=nil;
-	ep=nil;
+	eps=[];
 	
 	do_udp=0;
 	do_l=0;
@@ -107,7 +108,50 @@
 				return 1;
 			} 
 
-			ep=cp();
+			append(eps,cp());
+
+			c++;
+
+			break;
+		}
+		case "-w": {
+			@local f,ff;
+			@local pc,pcd;
+
+			if((c+1)>=l) {
+				fprintf(stderr,"%s: %s takes an argument\n",
+					progname,args[c]);
+				return 1;
+			}
+	
+			f=args[c+1];
+			ff=open(f,"w");
+			if(isnil(ff)) {
+				fprintf(stderr,"%s: unable to open %s for writing\n",
+					progname,args[c+1]);
+				return 1;
+			}
+
+			pc=mkstr(sizeof(struct pcap_names`pcap_hdr_s));
+			pc=mksas(pc);
+			pcd=mkdom(pcap_names,pc);
+			pc=&pcd`hdr;
+
+			pc->magic_number=pcd`TCPDUMP_MAGIC;
+			pc->version_major=0;
+			pc->version_minor=0;
+			pc->thiszone=0;
+			pc->sigfigs=0;
+			pc->snaplen=1500;
+			pc->network=250; // an imaginary type;
+		
+			append(eps,@lambda(args ...) {
+				if(do_udp) {
+					@local sock,bytes,sockaddr,sockadd_len;
+					[sock,bytes,sockaddr,sockaddr_len]=args;
+					printf("LOGGING %d BTYES\n",length(bytes));
+				}
+			});
 
 			c++;
 
@@ -167,13 +211,13 @@
 
 	if(do_l) {
 
-	if(isnil(ep)) {
+	if(length(eps)==0) {
 		if(do_udp) {
-			ep=@lambda(sock,bytes,sockaddr,sockadd_len) {
+			append(eps,@lambda(sock,bytes,sockaddr,sockadd_len) {
 				write(stdout,bytes);
-			};
+			});
 		} else {
-			ep=@lambda(sock) {
+			append(eps,@lambda(sock) {
 				@local f;
 
 				f=fdopen(sock,"rw");
@@ -184,7 +228,7 @@
 						break;
 					write(stdout,r);
 				}
-			};
+			});
 		}
 	} 
 
@@ -208,7 +252,7 @@
 		}
 
 		while(1) {
-			@local safoo,safoos;
+			@local safoo,safoos,b,l;
 
 			dgram_buffer=(unsigned char *)malloc(4096);
 			
@@ -221,7 +265,14 @@
 			if(r < 0)
 				continue;
 
-			ep(s,getbytes(dgram_buffer,r),safoo,*safoos);
+			l=*safoos;
+			foreach(@lambda(v) {
+				@local sac;
+				sac=mkdom(nsof(safoo),mksas(mkstr(l)));
+				sac=(struct unix`sockaddr_in *){sac}0;
+				memcpy(sac,safoo,l);
+				v(s,getbytes(dgram_buffer,r),sac,l);
+			},eps);
 		}
 	} else {
 		s=(int)sys_socket(unix`AF_INET,unix`SOCK_STREAM,0);
@@ -257,7 +308,9 @@
 			if(r < 0)
 				continue;
 
-			ep(r);
+			foreach(@lambda(v) {
+				v(r);
+			},eps);
 		}
 	}
 	} else {
