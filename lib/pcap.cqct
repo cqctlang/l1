@@ -43,6 +43,8 @@ pcap_names = @names c32le {
 		LINKTYPE_ETHERNET       =   1, /* also for 100Mb and up */
 		LINKTYPE_EXP_ETHERNET   =   2, /* 3Mb experimental Ethernet */
 	};
+
+	@0 struct pcap_hdr_s hdr;	
 };
 
 eth_names = @names c32be {
@@ -141,8 +143,6 @@ eth_names = @names c32be {
 		@0x6    uint16 check;
 		@0x8;
 	};
-
-	
 };
 
 
