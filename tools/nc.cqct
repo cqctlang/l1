@@ -83,7 +83,7 @@
 				return 1;
 			}
 
-			p=parse(f);
+			p=parse(f,args[c+1]);
 			if(isnil(p)) {
 				fprintf(stderr,"%s: unable to parse %s\n",
 					progname,args[c+1]);
