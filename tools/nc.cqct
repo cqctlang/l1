@@ -26,12 +26,30 @@
 	}
 }
 
+@define iphdr_chksum(ptr) {
+	@local c,l,x;
+
+	c=0;
+	l=ptr->ip_hlen << 1;
+	ptr=(unsigned short *)ptr;
+	for(x=0;x<l;x++) {
+		c+=*ptr;
+		ptr++;
+	}
+	c=( ((c&0xffff0000)>>16) + (c&0xffff) ) & 0xffff;
+	c=~c;
+
+	return c;
+};
+
 @define nc_main(progname, args ...) {
 	@local s,c,l;
 	@local dh,dp,dpn,dhn;
 	@local r;
 	@local do_udp;
 	@local do_l;
+	@local do_replay;
+	@local replay_ptr;
 	@local usage;
 	@local eps;
 
@@ -114,9 +132,53 @@
 
 			break;
 		}
+		case "-r": {
+			@local f,ff,fs;
+			@local pc,pcs,pcd;
+			@local sl;
+
+			if((c+1)>=l) {
+				fprintf(stderr,"%s: %s takes an argument\n",
+					progname,args[c]);
+				return 1;
+			}
+	
+			f=args[c+1];
+			fs=mapfile(f);
+			if(isnil(fs)) {
+				fprintf(stderr,"%s: unable to map %s\n",
+					progname,args[c+1]);
+				return 1;
+			}
+
+			pcs=mksas(fs);
+			pcd=mkdom(pcap_names,pcs);
+			pc=&pcd`hdr;
+
+			if(pc->magic_number != pcd`TCPDUMP_MAGIC) {
+				fprintf(stderr,"%s: bad magic number in pcap file %s\n",
+					progname,args[c+1]);
+				return 1;
+			}
+
+			if(pc->network != pcd`LINKTYPE_RAW) {
+				fprintf(stderr,"%s: bad link type in pcap file %s\n",
+					progname,args[c+1]);
+				return 1;
+			}
+
+			sl=pc->snaplen;
+
+			do_replay=1;
+			replay_ptr=pc;
+
+			c++;
+
+			break;
+		}
 		case "-w": {
 			@local f,ff;
-			@local pc,pcd;
+			@local pc,pcs,pcd;
 
 			if((c+1)>=l) {
 				fprintf(stderr,"%s: %s takes an argument\n",
@@ -132,24 +194,85 @@
 				return 1;
 			}
 
-			pc=mkstr(sizeof(struct pcap_names`pcap_hdr_s));
-			pc=mksas(pc);
+			pcs=mkstr(sizeof(struct pcap_names`pcap_hdr_s));
+			pc=mksas(pcs);
 			pcd=mkdom(pcap_names,pc);
 			pc=&pcd`hdr;
 
 			pc->magic_number=pcd`TCPDUMP_MAGIC;
-			pc->version_major=0;
-			pc->version_minor=0;
+			pc->version_major=2;
+			pc->version_minor=4;
 			pc->thiszone=0;
 			pc->sigfigs=0;
 			pc->snaplen=1500;
-			pc->network=250; // an imaginary type;
+			pc->network=pcd`LINKTYPE_RAW; // an imaginary type;
+
+			write(ff,pcs);
 		
 			append(eps,@lambda(args ...) {
 				if(do_udp) {
-					@local sock,bytes,sockaddr,sockadd_len;
+					@local s,framestr,frameptr,t;
+					@local sock,bytes,sockaddr,sockaddr_len;
 					[sock,bytes,sockaddr,sockaddr_len]=args;
-					printf("LOGGING %d BTYES\n",length(bytes));
+					s=sizeof(struct eth_names`iphdr) +
+					  sizeof(struct eth_names`udphdr) +
+					  length(bytes);
+
+					printf("LOGGING %d DATA BYTES\n",length(bytes));
+
+					framestr=mkstr(s+sizeof(struct pcap_names`pcap_pkthdr));
+
+					frameptr=mkdom(pcap_names,mksas(framestr));
+					frameptr=(struct pcap_pkthdr *){frameptr}0;
+
+					t=gettimeofday();
+					frameptr->ts.tv_sec=t>>4;
+					frameptr->ts.tv_usec=t&0xffff;
+					frameptr->caplen=s;
+					frameptr->len=s;
+
+					frameptr++;
+					frameptr=(void *)frameptr;
+					frameptr={mkdom(eth_names,asof(frameptr))}frameptr;
+					frameptr=(struct iphdr *)frameptr;
+
+					frameptr->ip_vers=4;
+					frameptr->ip_hlen=sizeof(struct eth_names`iphdr)>>2;
+					frameptr->ip_prec=0;
+					frameptr->ip_mdflag=0;
+					frameptr->ip_mtflag=0;
+					frameptr->ip_mrflag=0;
+					frameptr->ip_mmflag=0;
+					frameptr->ip_len=sizeof(struct eth_names`iphdr) +
+							 sizeof(struct eth_names`udphdr) +
+							 length(bytes);
+					frameptr->ip_id=0;
+					frameptr->ip_dfflag=0;
+					frameptr->ip_mfflag=0;
+					frameptr->ip_fragoffs=0;
+					frameptr->ip_ttl=1;
+					frameptr->ip_proto=eth_names`IPPROTO_UDP;
+					frameptr->ip_csum=0;
+					frameptr->ip_src=ctonl(sockaddr->sin_addr.s_addr);
+					frameptr->ip_dst=inet_aton("1.2.3.4");
+
+					frameptr->ip_csum=iphdr_chksum(frameptr);
+
+					frameptr++;
+					frameptr=(struct udphdr *)frameptr;
+
+					frameptr->source=ctons(sockaddr->sin_port);
+					frameptr->dest=dpn;
+					frameptr->len=sizeof(struct eth_names`udphdr) +
+						      length(bytes);
+					frameptr->check=0;
+
+					frameptr++;
+					frameptr=(unsigned char *)frameptr;
+
+					putbytes(frameptr,bytes);
+
+					write(ff,framestr);
 				}
 			});
 
@@ -184,6 +307,9 @@
 		fprintf(fd,"  %s -l -u hostaddr port -- dump datagrams on UDP port port on hostaddr to stdout\n",progname);
 		fprintf(fd,"  %s -l -e entrypoint hostaddr port -- dump connections on TCP port port on hostaddr to the Cinquecento function entrypoint (use with -f progfile)\n",progname);
 		fprintf(fd,"  %s -l -u -e entrypoint hostaddr port -- dump datagrams on UDP port port on hostaddr to the Cinquecento function entrypoint (use with -f progfile)\n",progname);
+		fprintf(fd,"Additional options:\n");
+		fprintf(fd,"-w filename -- write received packets to pcap file filename\n");
+		fprintf(fd,"-r filename -- replay packets from pcap file filename (requires raw encap)\n");
 	};
 
 	if(!isnil(dp)) {
@@ -213,7 +339,7 @@
 
 	if(length(eps)==0) {
 		if(do_udp) {
-			append(eps,@lambda(sock,bytes,sockaddr,sockadd_len) {
+			append(eps,@lambda(sock,bytes,sockaddr,sockaddr_len) {
 				write(stdout,bytes);
 			});
 		} else {
@@ -235,44 +361,100 @@
 	if(do_udp) {
 		@local dgram_buffer;
 		
+		if(do_replay) {
+			@local frameptr,ipptr,sal;
+			@local fake_sockaddr;
 
-		s=(int)sys_socket(unix`AF_INET,unix`SOCK_DGRAM,0);
-		if(s<0) {
-			fprintf(stderr,"couldn't create socket");
-			return 1;
-		}
+			frameptr=replay_ptr;
+			frameptr++; // advance to the first frame
+			frameptr=(struct pcap_pkthdr *)frameptr;
+			sal=sizeof(struct unix`sockaddr_in);
 
-		r=bind_inet_socket(s,dhn,dpn);
-		if(r) {
-			fprintf(stderr,"%s: failed to bind server\n",progname);
-			if( (sys_getuid() > 0) && (dpn <= 1024))
-				fprintf(stderr,"  perhaps you need to be root"
-						" to bind a reserved port.\n");
-			return 1;
-		}
+			while(ismapped(&frameptr->len,sizeof(frameptr->len)) && ismapped(frameptr,frameptr->len)) {
+				@local dl;
 
-		while(1) {
-			@local safoo,safoos,b,l;
+				ipptr=frameptr+1;
+				ipptr=(void *)ipptr;
+				ipptr={mkdom(eth_names,asof(ipptr))}ipptr;
+				ipptr=(struct iphdr *)ipptr;
+				printf("FRAMEPTR: %p, IPPTR: %p\n",frameptr,ipptr);
 
-			dgram_buffer=(unsigned char *)malloc(4096);
-			
-			safoo=(struct unix`sockaddr_in *)malloc(
-					sizeof(struct unix`sockaddr_in));
-			safoos=(long *)malloc(sizeof(long));
-			*safoos=sizeof(struct unix`sockaddr_in);
+				printf("FRAME LEN: %d\n",frameptr->len);
 
-			r=(int)syscall(unix`recvfrom,s,dgram_buffer,4096,0,safoo,safoos);
-			if(r < 0)
-				continue;
+				printf("CHECKING IP VERSION %d!\n",ipptr->ip_vers);
+				if(ipptr->ip_vers != 4)
+					goto doneframe;
 
-			l=*safoos;
-			foreach(@lambda(v) {
-				@local sac;
-				sac=mkdom(nsof(safoo),mksas(mkstr(l)));
-				sac=(struct unix`sockaddr_in *){sac}0;
-				memcpy(sac,safoo,l);
-				v(s,getbytes(dgram_buffer,r),sac,l);
-			},eps);
+				printf("CHECKING UDP PROTOCOL %d!\n",ipptr->ip_proto);
+				if(ipptr->ip_proto != eth_names`IPPROTO_UDP)
+					goto doneframe;
+
+				fake_sockaddr=mkdom(unix,mksas(mkstr(sal)));
+				fake_sockaddr=(struct sockaddr_in *){fake_sockaddr}0;	
+		
+				fake_sockaddr->sin_addr.s_addr=ipptr->ip_src;
+				
+				ipptr++;	
+				ipptr=(struct udphdr *)ipptr;
+
+				fake_sockaddr->sin_port=ipptr->source;
+
+				ipptr++;
+				ipptr=(unsigned char *)ipptr;
+
+				dl=((unsigned long)ipptr)-((unsigned long)frameptr);
+				dl=(frameptr->len + sizeof(struct pcap_names`pcap_pkthdr)) - dl;
+				foreach(@lambda(v) {
+					@local sac;
+					sac=mkdom(nsof(fake_sockaddr),mksas(mkstr(sal)));
+					sac=(struct unix`sockaddr_in *){sac}0;
+					memcpy(sac,fake_sockaddr,sal);
+					printf("RUNNING ENTRY POINT WITH %d BYTES\n",dl);
+					v(1,getbytes(ipptr,dl),sac,sal);
+				},eps);
+
+				doneframe:
+				frameptr=(struct pcap_pkthdr *)((void *)frameptr + frameptr->len + sizeof(struct pcap_names`pcap_pkthdr));
+			}
+		} else {
+			s=(int)sys_socket(unix`AF_INET,unix`SOCK_DGRAM,0);
+			if(s<0) {
+				fprintf(stderr,"couldn't create socket");
+				return 1;
+			}
+	
+			r=bind_inet_socket(s,dhn,dpn);
+			if(r) {
+				fprintf(stderr,"%s: failed to bind server\n",progname);
+				if( (sys_getuid() > 0) && (dpn <= 1024))
+					fprintf(stderr,"  perhaps you need to be root"
+							" to bind a reserved port.\n");
+				return 1;
+			}
+	
+			while(1) {
+				@local safoo,safoos,b,l;
+	
+				dgram_buffer=(unsigned char *)malloc(4096);
+				
+				safoo=(struct unix`sockaddr_in *)malloc(
+						sizeof(struct unix`sockaddr_in));
+				safoos=(long *)malloc(sizeof(long));
+				*safoos=sizeof(struct unix`sockaddr_in);
+	
+				r=(int)syscall(unix`recvfrom,s,dgram_buffer,4096,0,safoo,safoos);
+				if(r < 0)
+					continue;
+	
+				l=*safoos;
+				foreach(@lambda(v) {
+					@local sac;
+					sac=mkdom(nsof(safoo),mksas(mkstr(l)));
+					sac=(struct unix`sockaddr_in *){sac}0;
+					memcpy(sac,safoo,l);
+					v(s,getbytes(dgram_buffer,r),sac,l);
+				},eps);
+			}
 		}
 	} else {
 		s=(int)sys_socket(unix`AF_INET,unix`SOCK_STREAM,0);
