@@ -285,13 +285,8 @@ if(looksym(unix,'AF_INET)) {
 
 	d=domof(sa);
 
-	if(baserep(@typeof(d`unsigned int))==cqct`Ru32le) {
-		sa->sin_port=wswap(port); 
-		sa->sin_addr.s_addr=dswap(ip);
-	} else {
-		sa->sin_port=port; 
-		sa->sin_addr.s_addr=ip;
-	}
+	sa->sin_port=ctons(port);	
+	sa->sin_addr.s_addr=ctonl(ip);	
 
 	r=sys_connect(s,sa,sizeof(*sa));
 	if(r) {
@@ -339,13 +334,8 @@ if(looksym(unix,'AF_INET)) {
 
 	d=domof(sa);
 
-	if(baserep(@typeof(d`unsigned int))==cqct`Ru32le) {
-		sa->sin_port=wswap(port); 
-		sa->sin_addr.s_addr=dswap(ip);
-	} else {
-		sa->sin_port=port; 
-		sa->sin_addr.s_addr=ip;
-	}
+	sa->sin_port=ctons(port);	
+	sa->sin_addr.s_addr=ctonl(ip);	
 
 	r=sys_connect(s,sa,sizeof(*sa));
 	if(r) { sys_close(s); return nil; }
@@ -364,13 +354,9 @@ if(looksym(unix,'AF_INET)) {
 	sa->sin_family=unix`AF_INET;
 
 	d=domof(sa);
-	if(baserep(@typeof(d`unsigned int))==cqct`Ru32le) {
-		sa->sin_port=wswap(port); 
-		sa->sin_addr.s_addr=dswap(ip);
-	} else {
-		sa->sin_port=port; 
-		sa->sin_addr.s_addr=ip;
-	}
+
+	sa->sin_port=ctons(port);	
+	sa->sin_addr.s_addr=ctonl(ip);	
 
 	r=sys_bind(s,sa,sizeof(*sa));
 

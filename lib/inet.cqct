@@ -49,3 +49,18 @@
 
 	return r;
 }
+
+@define ctons(v) {
+	if(baserep(looktype(domof(v),@typeof(unsigned int))) == cqct`Ru32le)
+                return wswap(v);
+        else
+                return v;
+}
+
+@define ctonl(v) {
+	if(baserep(looktype(domof(v),@typeof(unsigned int))) == cqct`Ru32le)
+                return dswap(v);
+        else
+                return v;
+}
+
