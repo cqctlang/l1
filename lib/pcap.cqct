@@ -42,6 +42,8 @@ pcap_names = @names c32le {
 		LINKTYPE_NULL           =   0,
 		LINKTYPE_ETHERNET       =   1, /* also for 100Mb and up */
 		LINKTYPE_EXP_ETHERNET   =   2, /* 3Mb experimental Ethernet */
+		LINKTTYPE_PPP		=   9, /* PPP as RFC 1661, 1662 */
+		LINKTYPE_RAW		= 101, /* raw IP */
 	};
 
 	@0 struct pcap_hdr_s hdr;	
@@ -58,12 +60,12 @@ eth_names = @names c32be {
 
 	// not exhaustive...
 	enum proto_ids {
-		ETH_P_LOOP =	0x0060,		/* Ethernet Loopback packet	*/
-		ETH_P_PUP  =	0x0200,		/* Xerox PUP packet		*/
-		ETH_P_PUPAT=	0x0201,		/* Xerox PUP Addr Trans packet	*/
-		ETH_P_IP   =	0x0800,		/* Internet Protocol packet	*/
-		ETH_P_X25  =	0x0805,		/* CCITT X.25			*/
-		ETH_P_ARP  =	0x0806,		/* Address Resolution packet	*/
+		ETH_P_LOOP =	0x0060,		/* Ethernet loopback packet */
+		ETH_P_PUP  =	0x0200,		/* Xerox PUP packet */
+		ETH_P_PUPAT=	0x0201,		/* PUP Addr Trans packet */
+		ETH_P_IP   =	0x0800,		/* IP packet */
+		ETH_P_X25  =	0x0805,		/* CCITT X.25 */
+		ETH_P_ARP  =	0x0806,		/* ARP */
 	};
 
 	struct iphdr {
