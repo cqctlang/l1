@@ -2608,9 +2608,15 @@ koverflow(VM *vm)
 	Cont *k;
 	u32 sz;
 	Val *fp;
+	Imm fsz;
+	void *ra;
+	Closure *cl;
 
 	sz = (void*)vm->fp-vm->stk;
-	k = mkcont(vm->stk, sz, vm->fp[Ora], valcl(vm->fp[Ocl]), vm->klink,
+	ra = vm->fp[Ora];
+	cl = valcl(vm->fp[Ocl]);
+	fsz = ra2size(ra, cl->code);
+	k = mkcont(vm->stk, sz, ra, cl, vm->klink,
 		   vm->level, vm->levgen[vm->level]);
 	vm->klink = k;
 	vm->stk = malstack(Maxstk);
@@ -2618,7 +2624,7 @@ koverflow(VM *vm)
 	fp = vm->stk;
 	fp[Ora] = codeentry(stkunderflow->code);
 	fp[Ocl] = mkvalcl(stkunderflow);
-	memcpy(fp+Oarg0, vm->fp+Oarg0, vm->vc*sizeof(Val));
+	memcpy(fp+Oarg0, vm->fp+Oarg0, (fsz-Oarg0)*sizeof(Val));
 	vm->fp = vm->stk;
 }
 
