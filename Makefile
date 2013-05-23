@@ -175,4 +175,4 @@ clean: testclean
 	@$(MAKE) -s -C x/libsec clean
 	@$(MAKE) -s -C udis clean
 	@$(MAKE) -s -C demo clean
-	@$(RM) *~ .gdbhistory core core.* callgrind.out.* vgcore.* c.output l1.names main.o l1.o fns.*.c *.o $(TARG) *.so *.dylib mkelf heap.l1 depend
+	@$(RM) *~ .gdbhistory core core.* callgrind.out.* vgcore.* c.output l1.names main.o l1.o fns.*.c *.o $(TARG) *.so *.dylib mkelf mks heap.l1 heap.S depend
