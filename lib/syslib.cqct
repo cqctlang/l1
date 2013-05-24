@@ -271,7 +271,7 @@ if(looksym(unix,'getdents)) {
 @global __tcpopen;
 if(looksym(unix,'AF_INET)) {
 @define mk_connected_tcp_socket(ip,port) {
-	@local s,sa,r,d;
+	@local s,sa,r;
 
 	s=sys_socket(unix`AF_INET,unix`SOCK_STREAM,0);
 	if(s==-1) return nil;
@@ -282,8 +282,6 @@ if(looksym(unix,'AF_INET)) {
 		sa->length=sizeof(*sa);
 	}
 	sa->sin_family=unix`AF_INET;
-
-	d=domof(sa);
 
 	sa->sin_port=ctons(port);	
 	sa->sin_addr.s_addr=ctonl(ip);	
@@ -319,7 +317,7 @@ if(looksym(unix,'AF_INET)) {
 }
 
 @define mk_connected_udp_socket(ip,port) {
-	@local s,sa,r,d;
+	@local s,sa,r;
 
 	s=sys_socket(unix`AF_INET,unix`SOCK_DGRAM,0);
 	if(s==-1) return nil;
@@ -332,8 +330,6 @@ if(looksym(unix,'AF_INET)) {
 
 	sa->sin_family=unix`AF_INET;
 
-	d=domof(sa);
-
 	sa->sin_port=ctons(port);	
 	sa->sin_addr.s_addr=ctonl(ip);	
 
@@ -344,7 +340,7 @@ if(looksym(unix,'AF_INET)) {
 }
 
 @define bind_inet_socket(s,ip,port) {
-	@local sa,r,d;
+	@local sa,r;
 
 	sa=(struct unix`sockaddr_in *)malloc(sizeof(struct unix`sockaddr_in));
 
@@ -352,8 +348,6 @@ if(looksym(unix,'AF_INET)) {
 		sa->length=sizeof(*sa);
 	}
 	sa->sin_family=unix`AF_INET;
-
-	d=domof(sa);
 
 	sa->sin_port=ctons(port);	
 	sa->sin_addr.s_addr=ctonl(ip);	
