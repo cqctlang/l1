@@ -34,7 +34,6 @@ snamesaddr = "localhost:30000";
 		return nil;
 	}
 	fd = mkrock(fd);
-	finalize(fd, @lambda(fd) { close(fd); });
 	return mksctlns(fd, path);
 }
 

@@ -16,7 +16,7 @@ recons = [];
 
 @define mkrock(fd)
 {
-	@local maxtries;
+	@local maxtries, rockfd;
 	maxtries = 10;
 	@defloc reconnect()
 	{
@@ -73,6 +73,10 @@ recons = [];
 	}
 
 	append(recons, reconnect);
-	return mkfd(r, w, c, "rock");
+
+	rockfd = mkfd(r, w, c, "rock");
+	finalize(rockfd, @lambda(fd) { close(fd); });	
+
+	return rockfd;
 }
 }
