@@ -77,6 +77,7 @@ L1C += fnfmt.c fnjson.c fndis.c
 include conf/mk.$(CONF)
 
 export CC
+export LD
 export CFLAGS
 export LDFLAGS
 export CPPFLAGS
