@@ -70,6 +70,7 @@ static Sys systems[] =
 	{ "i686",   ELFCLASS32, EM_386 },
 	{ "amd64",  ELFCLASS64, EM_X86_64 },
 	{ "x86_64", ELFCLASS64, EM_X86_64 },
+	{ "armv6",  ELFCLASS32, EM_ARM },
 	{ "armv7l", ELFCLASS32, EM_ARM },
 	{ 0, 0, 0 }
 };
