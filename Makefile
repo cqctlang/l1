@@ -19,6 +19,8 @@ IDIR	   =
 # relink options
 RLTARG	   =
 RLX	   =
+HEAPIFY_HEAP =
+HEAPIFY_ARGS =
 
 .DEFAULT_GOAL := all
 
@@ -153,11 +155,14 @@ libl1.dylib: l1.o
 	if [ ! -f libgcc_s.dylib ] ; then ln -s /usr/lib/libgcc_s.1.dylib libgcc_s.dylib ; fi
 	libtool -dynamic -lc -L. -lgcc_s -o $@ $^
 
+heapify: dummy l1
+	echo "FOO: $(HEAPIFY_HEAP)"
+	$(V)$(RT) ./l1 -d $(HEAPIFY_HEAP) $(HEAPIFY_ARGS)
+
 testasm: testasm.o amd64.o
 	@echo + ld $@
 	$(V)$(CC) $(CFLAGS) -o $@ $^
 
-dummy:
 test: $(TARG) dummy
 	cd test && ./test.py
 	cd test && ./clitest

@@ -4,12 +4,33 @@ P=$0
 D=`dirname ${P}`
 
 PROG=""
+CONF=""
+
+TD=`mktemp -t dcc_relink_XXXXX -d`
+if [ -z "${TD}" ] ; then
+	echo -e "unable to create tempdir" 1>&2
+	exit 1
+fi
+
+
+cleanup() {
+	if [ -n "${TD}" ] ; then
+		rm -rf "${TD}"
+	fi
+}
+
+trap cleanup INT
 
 while [ -n "$1" ] ; do
 	case "$1" in
 	"-o")
 		if [ -z "$2" ] ; then echo -e "Usage:\ndcc -o <target> -- <l1 option> ..." 1>&2 ; exit 1 ; fi
 		PROG="$2"
+		shift
+	;;
+	"-m")
+		if [ -z "$2" ] ; then echo -e "Usage:\ndcc -m <l1conf> -- <l1 option> ..." 1>&2 ; exit 1 ; fi
+		CONF="$2"
 		shift
 	;;
 	"--")
@@ -30,12 +51,6 @@ fi
 
 rm -f ${PROG}
 
-TD=`mktemp -t dcc_relink_XXXXX -d`
-if [ -z "${TD}" ] ; then
-	echo -e "unable to create tempdir" 1>&2
-	exit 1
-fi
-
 T="${TD}/heapobj.o"
 H="${TD}/app.heap"
 
@@ -52,8 +67,12 @@ if [ -z "${PROG}" ] ; then
 	exit 1
 fi
 
-"${D}"/../l1 -d "${H}" "$@" || exit 1
+if [ -n "${CONF}" ] ; then
+	CONF="CONF=${CONF}"
+fi
 
-make -C "${D}"/.. relink RLTARG="${PROG}" HEAP="${H}" HEAPO="${T}" RLX="${T}" IDIR="${TD}/"
+make -C "${D}"/.. heapify ${CONF} HEAPIFY_HEAP="${H}" HEAPIFY_ARGS="$*"
 
-rm -rf "${TD}"
+make -C "${D}"/.. relink ${CONF} RLTARG="${PROG}" HEAP="${H}" HEAPO="${T}" RLX="${T}" IDIR="${TD}/"
+
+cleanup
