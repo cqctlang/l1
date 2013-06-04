@@ -156,7 +156,7 @@ libl1.dylib: l1.o
 	libtool -dynamic -lc -L. -lgcc_s -o $@ $^
 
 heapify: dummy l1
-	echo "FOO: $(HEAPIFY_HEAP)"
+	@echo + heapify $(HEAPIFY_HEAP)
 	$(V)$(RT) ./l1 -d $(HEAPIFY_HEAP) $(HEAPIFY_ARGS)
 
 testasm: testasm.o amd64.o
