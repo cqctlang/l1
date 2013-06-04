@@ -85,7 +85,7 @@
 
 	dynamicwind = $dynamicwind;
 
-	@define applyk(fn, succ, fail, arg ...)
+	@defloc $applyk(fn, succ, fail, arg ...)
 	{
 		@local olderr, done;
 
@@ -95,7 +95,7 @@
 					errorhandler = olderr;
 					printf("error: %s\n", msg);
 					printstack(continuationstack(k));
-					done(fail());
+					done(fail);
 				});
 		}
 
@@ -104,7 +104,7 @@
 			@local rv;
 			rv = apply(apply, fn, arg);
 			errorhandler = olderr;
-			succ(rv);
+			done(@lambda() { succ(rv); });
 		}
 
 		callcc(@lambda(k){
@@ -118,7 +118,12 @@
 					@lambda(){
 						errorhandler = olderr;
 					});
-			});
+			})();
+	}
+
+	@define applyk(arg ...)
+	{
+		apply($applyk, arg);
 	}
 
 	@define evalk(s, succ, fail)
