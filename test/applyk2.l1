@@ -1,0 +1,4 @@
+applyk(printf,
+       @lambda(r) { r; },
+       @lambda() { error("throw"); },
+       ["%s", 1000]);

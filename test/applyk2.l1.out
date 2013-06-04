@@ -1,0 +1,5 @@
+error: wrong type to %s conversion
+	#0                  printf	(builtin function)
+	#1                   entry	(applyk2.l1:4)
+error: throw
+	#0                   entry	(applyk2.l1:4)
