@@ -1386,12 +1386,12 @@ dompromote(VM *vm, ikind op, Cval *op1, Cval *op2, Cval **rv1, Cval **rv2)
 				      typecast(vm, op2->dom->ns->base[Vptr],
 					       op2));
 		}else if(b1->tkind == Tptr){
-			if(op == Iadd || op == Isub)
+			if(op == Iadd || op == Isub || isrelop[op])
 				op2 = domcast(vm, op1->dom, op2);
 			else
 				vmerr(vm, domerr);
 		}else /* b2->tkind == Tptr */ {
-			if(op == Iadd || op == Isub)
+			if(op == Iadd || op == Isub || isrelop[op])
 				op1 = domcast(vm, op2->dom, op1);
 			else
 				vmerr(vm, domerr);
