@@ -10,4 +10,4 @@ mkelf: mkelf.o
 
 $(HEAPO): $(HEAP) mkelf
 	@echo + mkelf $@
-	$(V)./mkelf -m $(ARCH) -a 0x1000 -s heapimage $(HEAP) $(HEAPO)
+	$(V)$(RT) ./mkelf -m $(ARCH) -a 0x1000 -s heapimage $(HEAP) $(HEAPO)
