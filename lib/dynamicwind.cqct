@@ -92,6 +92,7 @@
 		@defloc err(msg)
 		{
 			callcc(@lambda(k){
+					errorhandler = olderr;
 					printf("error: %s\n", msg);
 					printstack(continuationstack(k));
 					done(fail());
@@ -100,7 +101,10 @@
 
 		@defloc $doit()
 		{
-			succ(apply(apply, fn, arg));
+			@local rv;
+			rv = apply(apply, fn, arg);
+			errorhandler = olderr;
+			succ(rv);
 		}
 
 		callcc(@lambda(k){
