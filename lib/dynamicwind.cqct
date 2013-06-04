@@ -92,7 +92,6 @@
 		@defloc err(msg)
 		{
 			callcc(@lambda(k){
-					errorhandler = olderr;
 					printf("error: %s\n", msg);
 					printstack(continuationstack(k));
 					done(fail);
@@ -103,7 +102,6 @@
 		{
 			@local rv;
 			rv = apply(apply, fn, arg);
-			errorhandler = olderr;
 			done(@lambda() { succ(rv); });
 		}
 
