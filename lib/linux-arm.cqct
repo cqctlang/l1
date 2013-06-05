@@ -359,5 +359,11 @@ unix = @names c32le {
 
 	@include <linux-arm-enum.names>
 	@include <linux-unix.names>
+
+	struct stat {
+		@8 uint32 st_mode;
+		@20 int32 st_size;
+		@144;
+	};
 };
 
