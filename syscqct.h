@@ -621,7 +621,6 @@ enum {
 	Ichkcl,
 	Ichkint,
 	Ichksp,
-	Iclo,
 	Icmpeq,
 	Icmpgt,
 	Icmpge,

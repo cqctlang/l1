@@ -384,7 +384,6 @@ setreloc(Code *c)
 		case Ineg:
 		case Inot:
 		case Imov:
-		case Iclo:
 			setrelocrand(c, &i->op1);
 			setrelocrand(c, &i->dst);
 			break;
@@ -579,12 +578,6 @@ printinsn(Insn *i)
 		break;
 	case Iunderflow:
 		xprintf("underflow");
-		break;
-	case Iclo:
-		xprintf("clo ");
-		printrand(&i->op1);
-		xprintf(" ");
-		printrand(&i->dst);
 		break;
 	case Ikg:
 		xprintf("kg");
