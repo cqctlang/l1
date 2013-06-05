@@ -330,6 +330,7 @@
 			return 1;
 		}
 	}
+	dhn=inet_aton(dhn);
 
 	if(isnil(dh) || isnil(dp)) {
 		usage(stderr);
