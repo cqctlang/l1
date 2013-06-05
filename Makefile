@@ -1,4 +1,4 @@
-CC         = gcc-4.8
+CC         = gcc
 LD         = ld
 CFLAGS    += -Wall -g -O3
 CPPFLAGS  +=
