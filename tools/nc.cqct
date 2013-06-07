@@ -40,7 +40,23 @@
 	c=~c;
 
 	return c;
-};
+}
+
+@define bind_to_interface(sock,iface) {
+	@local ibuf,ilbuf;
+
+	if(!isstring(iface)) {
+		error("argument 1 must be a string\n");
+	}
+
+	ibuf=(unsigned char *)malloc(length(iface)+1);
+	ilbuf=(unsigned char *)malloc(sizeof(unsigned int));
+	putbytes(ibuf,iface);
+	*ilbuf=length(iface);
+	r=sys_setsockopt(sock,unix`SOL_SOCKET,unix`SO_BINDTODEVICE,ibuf,ilbuf);
+
+	return r;
+}
 
 @define nc_main(progname, args ...) {
 	@local s,c,l;
@@ -444,12 +460,7 @@
 			}
 
 			if(di) {
-				@local ibuf,ilbuf;
-				ibuf=(unsigned char *)malloc(length(di)+1);
-				ilbuf=(unsigned char *)malloc(sizeof(unsigned int));
-				putbytes(ibuf,di);
-				*ilbuf=length(di);
-				r=sys_setsockopt(s,unix`SOL_SOCKET,unix`SO_BINDTODEVICE,ibuf,ilbuf);
+				r=bind_to_interface(s,di);
 				if(r==-1) {
 					fprintf(stderr,"couldn't bind socket to interface %s\n",di);
 					return 1;
@@ -494,6 +505,14 @@
 				fprintf(stderr,"  perhaps you need to be root"
 						" to bind a reserved port.\n");
 			return 1;
+		}
+
+		if(di) {
+			r=bind_to_interface(s,di);
+			if(r==-1) {
+				fprintf(stderr,"couldn't bind socket to interface %s\n",di);
+				return 1;
+			}
 		}
 
 		r=sys_listen(s,5);
