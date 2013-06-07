@@ -54,6 +54,8 @@ enum sockopts {
 	SO_RCVTIMEO	= 0x14,
 	SO_TYPE	= 0x3,
 	SO_ERROR	= 0x4,
+	SO_BROADCAST	= 0x6,
+	SO_BINDTODEVICE	= 0x19,
 };
 enum tcp {
 	INADDR_ANY	= 0x0,

@@ -208,6 +208,9 @@ main(int argc,char **argv) {
 #ifdef SO_BROADCAST
 		{ "SO_BROADCAST",	SO_BROADCAST },
 #endif
+#ifdef SO_BINDTODEVICE
+		{ "SO_BINDTODEVICE",	SO_BINDTODEVICE },
+#endif
 		{ NULL },
 	};
 

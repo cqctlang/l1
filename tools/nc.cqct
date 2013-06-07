@@ -44,7 +44,7 @@
 
 @define nc_main(progname, args ...) {
 	@local s,c,l;
-	@local dh,dp,dpn,dhn;
+	@local dh,dp,dpn,dhn,di;
 	@local r;
 	@local do_udp;
 	@local do_l;
@@ -64,6 +64,15 @@
 	l=length(args);
 	for(c=0;c<l;c++) {
 		switch(args[c]) {
+		case "-i":
+			if((c+1)>=l) {
+				fprintf(stderr,"%s: %s takes an argument\n",
+					progname,args[c]);
+				return 1;
+			}
+			di=args[c+1];
+			c++;
+			break;
 		case "-u":
 			do_udp=1;
 			break;
@@ -133,9 +142,8 @@
 			break;
 		}
 		case "-r": {
-			@local f,ff,fs;
+			@local f,fs;
 			@local pc,pcs,pcd;
-			@local sl;
 
 			if((c+1)>=l) {
 				fprintf(stderr,"%s: %s takes an argument\n",
@@ -167,7 +175,7 @@
 				return 1;
 			}
 
-			sl=pc->snaplen;
+			//sl=pc->snaplen;
 
 			do_replay=1;
 			replay_ptr=pc;
@@ -212,8 +220,9 @@
 			append(eps,@lambda(args ...) {
 				if(do_udp) {
 					@local s,framestr,frameptr,t;
-					@local sock,bytes,sockaddr,sockaddr_len;
-					[sock,bytes,sockaddr,sockaddr_len]=args;
+					@local bytes,sockaddr;
+
+					[/*sock*/_,bytes,sockaddr,/*sockaddr_len*/_]=args;
 					s=sizeof(struct eth_names`iphdr) +
 					  sizeof(struct eth_names`udphdr) +
 					  length(bytes);
@@ -321,16 +330,16 @@
 		}
 	}
 
+	
 	if(!isnil(dh)) {
-		//dhn=inet_aton(dh);
 		dhn=gethostbyname(dh);
 		if(isnil(dhn)) {
 			fprintf(stderr,"%s: server host %s is not an IP "
 					"address or known hostname\n", progname,dp);
 			return 1;
 		}
+		dhn=inet_aton(dhn);
 	}
-	dhn=inet_aton(dhn);
 
 	if(isnil(dh) || isnil(dp)) {
 		usage(stderr);
@@ -433,9 +442,22 @@
 							" to bind a reserved port.\n");
 				return 1;
 			}
+
+			if(di) {
+				@local ibuf,ilbuf;
+				ibuf=(unsigned char *)malloc(length(di)+1);
+				ilbuf=(unsigned char *)malloc(sizeof(unsigned int));
+				putbytes(ibuf,di);
+				*ilbuf=length(di);
+				r=sys_setsockopt(s,unix`SOL_SOCKET,unix`SO_BINDTODEVICE,ibuf,ilbuf);
+				if(r==-1) {
+					fprintf(stderr,"couldn't bind socket to interface %s\n",di);
+					return 1;
+				}
+			}
 	
 			while(1) {
-				@local safoo,safoos,b,l;
+				@local safoo,safoos,l;
 	
 				dgram_buffer=(unsigned char *)malloc(4096);
 				
