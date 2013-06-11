@@ -39,3 +39,14 @@
 		p++;
 	}
 }
+
+@define dirlist(dir) {
+	@local files;
+
+	files=[];
+	foreachfile(dir,@lambda(f) {
+		append(files,getbytes(f,strlen(f)));
+	});
+
+	return files;
+}
