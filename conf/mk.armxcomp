@@ -2,9 +2,6 @@
 CC=arm-linux-gnueabi-gcc
 LD=arm-linux-gnueabi-ld
 ARCH=armv7l
-#CFLAGS+=-static -mfloat-abi=soft -mcpu=arm7tdmi -mfpu=vfp
-#CFLAGS+=-static -mfloat-abi=soft -mfpu=vfp -march=armv5
-#CFLAGS+=-static -march=armv6 -mtune=arm1136j-s -mfloat-abi=soft -Os
 CFLAGS+=-static
 
 include conf/mk.linux
