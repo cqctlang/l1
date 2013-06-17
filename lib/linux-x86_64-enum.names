@@ -229,6 +229,24 @@ enum signal_nr {
 	SIGUSR2	= 0xc,
 	SIG_IGN	= 0x1,
 };
+enum mount_nr {
+	MS_BIND	= 0x1000,
+	MS_DIRSYNC	= 0x80,
+	MS_MANDLOCK	= 0x40,
+	MS_MOVE	= 0x2000,
+	MS_NOATIME	= 0x400,
+	MS_NODEV	= 0x4,
+	MS_NODIRATIME	= 0x800,
+	MS_NOEXEC	= 0x8,
+	MS_NOEXEC	= 0x8,
+	MS_NOSUID	= 0x2,
+	MS_RDONLY	= 0x1,
+	MS_RELATIME	= 0x200000,
+	MS_REMOUNT	= 0x20,
+	MS_SILENT	= 0x8000,
+	MS_STRICTATIME	= 0x1000000,
+	MS_SYNCHRONOUS	= 0x10,
+};
 enum syscall_nr {
 	read	= 0x0,
 	write	= 0x1,

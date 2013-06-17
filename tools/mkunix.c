@@ -434,6 +434,29 @@ main(int argc,char **argv) {
 		{ NULL },
 	};
 
+	struct enum_entry mount_nr[]={
+#ifdef MS_NOATIME
+		{ "MS_BIND",		MS_BIND},
+		{ "MS_DIRSYNC",		MS_DIRSYNC},
+		{ "MS_MANDLOCK",	MS_MANDLOCK},
+		{ "MS_MOVE",		MS_MOVE},
+		{ "MS_NOATIME",		MS_NOATIME},
+		{ "MS_NODEV",		MS_NODEV},
+		{ "MS_NODIRATIME",	MS_NODIRATIME},
+		{ "MS_NOEXEC",		MS_NOEXEC},
+		{ "MS_NOEXEC",		MS_NOEXEC},
+		{ "MS_NOSUID",		MS_NOSUID},
+		{ "MS_RDONLY",		MS_RDONLY},
+		{ "MS_RELATIME",	MS_RELATIME},
+		{ "MS_REMOUNT",		MS_REMOUNT},
+		{ "MS_SILENT",		MS_SILENT},
+		{ "MS_STRICTATIME",	MS_STRICTATIME},
+		{ "MS_SYNCHRONOUS",	MS_SYNCHRONOUS},
+#endif
+		{ NULL },
+	};
+
+
 	struct enum_entry syscall_nr[]={
 		{ "read",	SYS_read },
 		{ "write",	SYS_write },
@@ -943,6 +966,7 @@ main(int argc,char **argv) {
 	print_enum("ioctl_nr",ioctl_nr);
 	print_enum("termios_nr",termios_nr);
 	print_enum("signal_nr",signal_nr);
+	print_enum("mount_nr",mount_nr);
 	print_enum("syscall_nr",syscall_nr);
 
 	return 0;
