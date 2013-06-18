@@ -418,8 +418,12 @@ convert(VM *vm, char *s, jsmntok_t *t, u32 *ndx)
 	switch(tp->type){
 	case JSMN_OBJECT:
 		tab = mktab();
-		if(tp->size%2)
-			bug();
+		if(tp->size%2) {
+			efree(t);
+			efree(s);
+			vmerr(vm, "invalid json object");
+			return 0;
+		}
 		for(i = 0; i < tp->size/2; i++){
 			k = convert(vm, s, t, &ti);
 			v = convert(vm, s, t, &ti);
