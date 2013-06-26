@@ -10282,7 +10282,7 @@ reported, and the status descriptor that encodes the change.
 <span class="arg">flags</span>: <span class="type">cvalue</span>
 </div>
 <div class="returns">
-<span class="type">list of file descriptor</span>
+<span class="type">list of file descriptors</span>
 </div>
 </div>
 <div class="desc">
@@ -10291,8 +10291,10 @@ Executes a command in a new process with I/O connected
 to the calling process.  The
 arguments <span class="arg">arg ...</span>  form the
 elements of the argument vector used to create (via
-<span class="id">execve</span>) the new process image.
+double <span class="id">fork</span> then <span class="id">execve</span>)
+the new process image.
 There is no way to affect its enviornment.
+There is no standard way to obtain the exit status of the process.
 An error is raised if the process cannot be created.
 </p>
 
@@ -10323,7 +10325,9 @@ the same file descriptor.
 
 <p>
 The definition of <span class="id">popen</span> is
-likely to change in the future.
+likely to change in the future. The current definition
+differs substantially from the well known standard C
+library call of the same name.
 </p>
 
 </div>
