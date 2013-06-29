@@ -69,6 +69,7 @@
 <em>Built-in Libraries</em><br />
 <a href="#sec:io">I/O</a><br />
 <a href="#sec:fs">Filesystem Functions</a><br />
+<a href="#sec:net">Network Functions</a><br />
 <a href="#sec:fmt">Formatted Output</a><br />
 <a href="#sec:system">System Functions</a><br />
 <a href="#sec:mash">Compression and Hashing</a><br />
@@ -9543,6 +9544,32 @@ Removes the file named <span class="arg">name</span>.
 </div>
 
 
+<h4 id="sec:net">Network Functions</h4>
+
+<p>
+This section documents functions that manipulate network addresses
+and resolve addresses in network databases.
+</p>
+
+<div class="docitem" id="fn:gethostbyname">
+<div class="proto">
+<div class="function">
+<span class="id">gethostbyname(<span class="arg">host</span>)</span>
+</div>
+<div class="param">
+<span class="arg">host</span>: <span class="type">string</span>
+</div>
+<div class="returns">
+<span class="type">string</span> or <span class="type">nil</span>
+</div>
+</div>
+<div class="desc">
+Returns the network address of the network host <span class="arg">host</span>
+or nil if no translation is available.
+</div>
+</div>
+
+
 <h4 id="sec:fmt">Formatted Output</h4>
 
 <p>
@@ -11821,6 +11848,7 @@ Prentice Hall, 1988.
 <a href="#fn:asget">get</a> (as method)<br />
 <a href="#fn:getbytes">getbytes</a><br />
 <a href="#fn:getenv">getenv</a><br />
+<a href="#fn:gethostbyname">gethostbyname</a><br />
 <a href="#fn:getpid">getpid</a><br />
 <a href="#fn:getpeername">getpeername</a><br />
 <a href="#fn:getsockname">getsockname</a><br />
