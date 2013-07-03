@@ -27,9 +27,14 @@ syn keyword cqctOperator    sizeof
 syn match   cqctAtSymbol display "@[^\t \(\+\-%@]*" 
 syn match   cqctAtDecl "@\(global\|local\)"
 syn match   cqctAtDef "@\(define\|defloc\|defstx\|names\|record\|const\)"
-syn match   cqctAtInclude "@\(include\|import_object\|import_globals\|with_imports\|with_exports\|import\|export\)"
+syn match   cqctAtImport "@\(import_object\|import_globals\|with_imports\|with_exports\|import\|export\)"
+syn match   cqctAtInclude "@include.*" contains=cqctAtIncludeQuote,cqctAtIncludeGL,cqctAtIncludeError
+syn match   cqctAtIncludeQuote "\".*\"" contained
+syn match   cqctAtIncludeGL    "<.*>" contained
+syn match   cqctAtIncludeError "<.*\"\|\".*>"
+
 syn match   cqctAtMatch "@\(match\)"
-syn match   cqctAtFn "@\(typeof\|containerof\)"
+syn match   cqctAtFn "@\(typeof\|containerof\|typename\)"
 syn match   cqctAtLambda "@\(lambda\)"
 
 syn match   cqctCid         "'[a-zA-Z_]\w*"
@@ -160,7 +165,13 @@ hi def link cqctTodo                Todo
 
 hi def link cqctAtDecl              Type
 hi def link cqctAtDef               Macro
+
 hi def link cqctAtInclude           Macro
+hi def link cqctAtIncludeQuote      String
+hi def link cqctAtIncludeGL         String
+hi def link cqctAtIncludeError      Error
+
+hi def link cqctAtImport            Macro
 hi def link cqctAtMatch             Macro
 hi def link cqctAtFn                Operator
 hi def link cqctAtLambda            Special
