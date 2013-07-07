@@ -1,0 +1,7 @@
+about to cause witherr.cql's error
+error: wrong type to %d conversion
+error: ./../test/libs/incwe.cql:2: could not load library witherr
+error: ./../test/libs/incwe1.cql:2: could not load library incwe
+error: ./../test/libs/incwe2.cql:2: could not load library incwe1
+error: ./../test/libs/incwe3.cql:2: could not load library incwe2
+error: library_error1.l1:11: could not load library incwe3

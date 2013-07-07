@@ -1,0 +1,28 @@
+
+
+evalk("@with_imports(a()*b) { ; }",
+    @lambda(r) {r;},
+    @lambda() {});
+
+evalk("@with_imports(ab.b.c) { ; }",
+    @lambda(r) {r;},
+    @lambda() {});
+
+evalk("@with_imports( (f, ab.b.c) ) { ; }",
+    @lambda(r) {r;},
+    @lambda() {});
+
+evalk("@with_imports( (f.a, ab.b) ) { ; }",
+    @lambda(r) {r;},
+    @lambda() {});
+
+@library(test) {};
+
+evalk("@with_imports( (f, test.f) ) { ; }",
+    @lambda(r) {r;},
+    @lambda() {});
+
+evalk("@with_imports( (t, test) ) { t.t(); }",
+    @lambda(r) {r;},
+    @lambda() {});
+

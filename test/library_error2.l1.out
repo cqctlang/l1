@@ -1,0 +1,4 @@
+error: <eval-input>:1: @export statements not allowed outside of libraries
+error: <eval-input>:1: @import statements not allowed outside of libraries
+error: ./../test/libs/recursive.cql:1: recursive dependency encountered in library recursive
+error: <eval-input>:1: could not load library recursive

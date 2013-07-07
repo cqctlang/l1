@@ -1,57 +1,43 @@
-Warning: library arguments will be deprecated soon.
-         (if you need arguments in your library, add an 'init' funtion)
-args: [ 1000 ]
 in lib3
 Running f1 from lib3
 Running f2 from lib3
 finished with lib3
-in lib3: vector( lib3, lib5 )
 Running f1 from lib3
 Running f2 from lib3
-finished loading lib4
-test(<nil>) loaded
-test([ 10 ]) loaded
-Warning: library arguments will be deprecated soon.
-         (if you need arguments in your library, add an 'init' funtion)
-args: [ 1, 2, 3, "abcde", [ 1, 2, 3 ] ]
-Warning: library arguments will be deprecated soon.
-         (if you need arguments in your library, add an 'init' funtion)
-args: [ 1000 ]
-test([ ]) loaded
-test([ ]) loaded
-test([ ]) loaded
-args: [ 1000 ]
+finished loading lib2
+test loaded
+in lib1
+Running f1 from lib3
+Running f1 from lib3
+Running f2 from lib3
+Running f3 from lib2
+Running f4 from lib2
+Running f4 from lib2
 In main
 Running f1 from lib3
 Running f2 from lib3
-Running f3 from lib4
+Running f3 from lib2
 Running f4 from main!
 constant c1's value: 1
-loading test
-test([ ]) loaded
 Running f1 from lib3
 Running f2 from lib3
-Running f1 from lib3
-Running f2 from lib3
-loading test(10)
 Running f1 from lib3
 Running f2 from lib3
 Running sublib fn1
 Running sublib fn1
+Running f1 from lib3
+Running f2 from lib3
 Running subdir/subdir2/sublib fn2
 Running subdir/subdir2/sublib fn2
-Running f1 from lib3
-Running f2 from lib3
-Running f3 from lib4
-Running sublib fn1
-Running sublib fn1
 with an object now
 Running sublib fn1
 Running sublib fn1
 Running sublib fn1000
 Running sublib fn1
+error: attempt to call non-procedure
+	#0                    anon	(lib_library.l1:73)
+	#1                   entry	(lib_library.l1:76)
+expected error found
 Testing lone object import
 Running sublib fn1
-args: [ 1, 2, 3, "abcde", [ 1, 2, 3 ] ]
-args: [ 1000 ]
-args: [ 1, 2, 3, "abcde", [ 1, 2, 3 ] ]
+in lib1
