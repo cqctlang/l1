@@ -23,6 +23,16 @@ printf("(hopefully) wrote %d bytes\n",strlen(contents));
 
 close(fd);
 
+fd=open("/tmp/willexist","a");
+printf("(hopefully) existant file opened for append: %a (should succeed)\n",fd);
+morecontents="\nAnd one more for Vic";
+write(fd,morecontents);
+
+printf("(hopefully) wrote %d more bytes %d total\n",strlen(morecontents),strlen(morecontents)+strlen(contents));
+
+close(fd);
+
+
 s=mapfile("/tmp/willexist");
 printf("length of empty file: %d\n",length(s));
 s=nil;

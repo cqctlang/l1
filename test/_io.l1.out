@@ -4,6 +4,8 @@ unlink: -1 (should fail)
 (hopefully) nonexistant file opened for reading: <nil> (should be nil)
 (hopefully) nonexistant file opened for writing: <fd> (should succeed)
 (hopefully) wrote 65 bytes
-length of empty file: 65
+(hopefully) existant file opened for append: <fd> (should succeed)
+(hopefully) wrote 21 more bytes 86 total
+length of empty file: 86
 unlink: 0 (should succeed)
 (hopefully) nonexistent file re-opened for reading: <nil> (should be nil)

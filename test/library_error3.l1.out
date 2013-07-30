@@ -1,0 +1,8 @@
+error: <eval-input>:1: Bad import specification
+error: <eval-input>:1: Bad import specification
+error: <eval-input>:1: Bad import specification
+error: <eval-input>:1: Bad import specification
+error: <eval-input>:1: Attempt to import non-exported symbol f from test
+error: attempt to call non-procedure
+	#0                   entry	(<eval-input>:1)
+	#1                   entry	(library_error3.l1:27)

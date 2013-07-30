@@ -42,6 +42,8 @@ ions = @names c32le {
 		flags |= ions`Fread;
 	if(strstr(mode, "w") != nil)
 		flags |= ions`Fwrite;
+	if(strstr(mode, "a") != nil)
+		flags |= ions`Fwrite;
 	return flags;
 }
 

@@ -1,0 +1,54 @@
+in lib3
+Running f1 from lib3
+Running f2 from lib3
+finished with lib3
+test load #0
+
+started
+import 1
+running test.func 0
+Running f1 from lib3
+Running f2 from lib3
+done
+
+import 2
+running test.func 1
+Running f1 from lib3
+Running f2 from lib3
+done
+
+reload: 0
+reload: 1
+in lib3
+Running f1 from lib3
+Running f2 from lib3
+finished with lib3
+test load #1
+
+import 3
+running test.func 0
+Running f1 from lib3
+Running f2 from lib3
+done
+
+in lib3
+Running f1 from lib3
+Running f2 from lib3
+finished with lib3
+test load #2
+
+import 4
+running test.func 0
+Running f1 from lib3
+Running f2 from lib3
+done
+
+reload: 0
+import 5
+running test.func 1
+Running f1 from lib3
+Running f2 from lib3
+import 5
+running test.func 2
+Running f1 from lib3
+Running f2 from lib3
