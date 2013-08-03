@@ -7304,6 +7304,194 @@ in the <span class="arg">containers</span>.
 </div>
 </div>
 
+<div class="docitem">
+    <div class="proto">
+        <div class="function">
+            <span class="id" id="fn:filter">filter(
+                <span class="arg">fn</span>,
+                <span class="arg">container</span>,
+                [<span class="arg">container2</span>, ...])</span>
+        </div>
+        <div class="param">
+            <span class="arg">fn</span>: <span class="type">function</span>
+        </div>
+        <div class="param">
+            <span class="arg">container</span>: 
+            <span class="type">list</span>, 
+            <span class="type">vector</span>, or 
+            <span class="type">table</span>
+        </div>
+        <div class="param">
+            <span class="arg">container2, ... </span>: 
+            <span class="type">list</span> or 
+            <span class="type">vector</span>
+        </div>
+        <div class="returns">
+            <span class="type">see description</span>
+        </div>
+    </div>
+    <div class="desc">
+        Calls <span class=arg>fn</span> on each item in the given container,
+        returning a container containing only those elements for which 
+        <span class=arg>fn</span> returns true. If the provided container
+        is a table, <span class=arg>fn</span> is called with each key/value
+        pair, and no other containers may be provided. 
+        <span class=function>filter</span> returns
+        a table when provided with a table. 
+        If the provided container is a single 
+        list or vector, the returned container is a list containing
+        only those elements of the input list that cause 
+        <span class=arg>fn</span> to return true. 
+        If multiple lists or vectors are provided, 
+        <span class=arg>fn</span> is called with as many parameters
+        as there are provided containers, with each paramter having the
+        same index in its respective container. 
+        In the multiple list case, 
+        the elements of the returned list are again lists containing
+        the arguments to any successful call to <span class=arg>fn</span>.
+    </div>
+</div>
+
+<div class="docitem">
+    <div class="proto">
+        <div class="function">
+            <span class="id" id="fn:foldl">foldl(
+                <span class="arg">fn</span>,
+                <span class="arg">accumulator</span>,
+                <span class="arg">container</span>,
+                [<span class="arg">container2</span>, ...])</span>
+        </div>
+        <div class="param">
+            <span class="arg">fn</span>: <span class="type">function</span>
+        </div>
+        <div class="param">
+            <span class="arg">accumulator</span>: 
+            <span class="type">anything</span>
+        </div>
+        <div class="param">
+            <span class="arg">container</span>: 
+            <span class="type">list</span>, 
+            <span class="type">vector</span>, or 
+            <span class="type">table</span>
+        </div>
+        <div class="param">
+            <span class="arg">container2, ... </span>: 
+            <span class="type">list</span> or 
+            <span class="type">vector</span>
+        </div>
+        <div class="returns">
+            <span class="type">see description</span>
+        </div>
+    </div>
+    <div class="desc">
+        Returns the accumulator if the container is empty. Otherwise
+        it applies <span class="arg">fn</span> to the accumulator and the
+        first item of the collection then recursively calls 
+        <span class="function">foldl</span> with the same 
+        <span class="arg">fn</span>, the result of the application of
+        <span class="arg">fn</span> as the new accumulator, and
+        the rest of the collection. 
+        <p>
+        <span class="function">foldl(fn,a,[e1,e2,e3,...])</span> is equivalent 
+        to:
+        <div class="code">
+            fn(...fn(fn(fn(a,e1),e2),e3)...)
+        </div>
+        </p>
+        <p>
+        <span class="arg">fn</span> will be called as:
+        <span class="arg">fn(accumulator,elmt [,elmt2 ...])</span>,
+        where the number of <span class="arg">elmt</span> arguments depends
+        on the number and type of collections provided.
+        </p>
+        <p>
+        If a table is provided, both the key and the value will be
+        given as <span class="arg">elmt</span>s 
+        to <span class="arg">fn</span>. <span class="function">foldl</span>
+        accepts only one container when the first container is a table.
+        </p>
+        <p>
+        If multiple lists or vectors are provided, they must all have
+        the same length. There will be as many <span class="arg">elmt</span>
+        arguments to <span class="arg">fn</span> as there are provided 
+        containers. Each call to <span class="arg">fn</span> will be given
+        arguments that each have the same index in their respective container.
+        </p>
+    </div>
+</div>
+
+<div class="docitem">
+    <div class="proto">
+        <div class="function">
+            <span class="id" id="fn:foldr">foldr(
+                <span class="arg">fn</span>,
+                <span class="arg">accumulator</span>,
+                <span class="arg">container</span>,
+                [<span class="arg">container2</span>, ...])</span>
+        </div>
+        <div class="param">
+            <span class="arg">fn</span>: <span class="type">function</span>
+        </div>
+        <div class="param">
+            <span class="arg">accumulator</span>: 
+            <span class="type">anything</span>
+        </div>
+        <div class="param">
+            <span class="arg">container</span>: 
+            <span class="type">list</span>, 
+            <span class="type">vector</span>, or 
+            <span class="type">table</span>
+        </div>
+        <div class="param">
+            <span class="arg">container2, ... </span>: 
+            <span class="type">list</span> or 
+            <span class="type">vector</span>
+        </div>
+        <div class="returns">
+            <span class="type">see description</span>
+        </div>
+    </div>
+    <div class="desc">
+        Returns the accumulator if the container is empty. 
+        Otherwise it
+        recursively calls 
+        <span class="function">foldr</span> with the same 
+        <span class="arg">fn</span>, the same accumulator, and the collection
+        minus its first element one element, storing the result in 
+        a new accumulator. It then
+        applies <span class="arg">fn</span> to the 
+        the first item of the collection and the new accumulator. 
+        <p>
+        <span class="function">foldr(fn,a,[e1,e2,...,en])</span> is equivalent 
+        to:
+        <div class="code">
+            fn(e1,fn(e2,...,fn(en,a)...)
+        </div>
+        </p>
+        <p>
+        <span class="arg">fn</span> will be called as:
+        <span class="arg">fn(elmt [,elmt2 ...],accumulator)</span>,
+        where the number of <span class="arg">elmt</span> arguments depends
+        on the number and type of collections provided.
+        </p>
+        <p>
+        If a table is provided, both the key and the value will be
+        given as <span class="arg">elmt</span>s 
+        to <span class="arg">fn</span>. <span class="function">foldr</span>
+        accepts only one container when the first container is a table.
+        </p>
+        <p>
+        If multiple lists or vectors are provided, they must all have
+        the same length. There will be as many <span class="arg">elmt</span>
+        arguments to <span class="arg">fn</span> as there are provided 
+        containers. Each call to <span class="arg">fn</span> will be given
+        arguments that identical indexes in their respective containers.
+        </p>
+    </div>
+</div>
+
+
+
 <div class="docitem" id="fn:sort">
 <div class="proto">
 <div class="function">

@@ -1,0 +1,34 @@
+28
+56
+84
+28
+56
+84
+56
+56
+21
+6
+12
+18
+28
+56
+84
+28
+56
+84
+56
+56
+21
+6
+12
+18
+happily failed with foldr can only be applied to a single table
+happily failed with foldr cannot combine other collections with syntax lists
+happily failed with collections of unequal size passed to foldr
+happily failed with collections of unequal size passed to foldr
+happily failed with bad argument to foldr (argument 3)
+happily failed with foldr can only be applied to a single table
+happily failed with foldr cannot combine other collections with syntax lists
+happily failed with collections of unequal size passed to foldr
+happily failed with collections of unequal size passed to foldr
+happily failed with bad argument to foldr (argument 3)

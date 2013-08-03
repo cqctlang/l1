@@ -1,0 +1,48 @@
+
+
+// (portions of applyk reimplemented here to make the tests deterministic)
+@define happily_fail(thunk) {
+	@local olderr;
+
+	callcc(@lambda(k){
+		dynamicwind(
+			@lambda(){
+				olderr = errorhandler;
+				errorhandler = @lambda(msg) {
+					printf("happily failed with %s\n",msg);
+					k(nil);
+				};
+			},
+			thunk,
+			@lambda(){
+				errorhandler = olderr;          
+			});
+	});
+} 
+
+happily_fail(@lambda() {
+    filter(@lambda(w,x,y,z) { 1; }, [1: 1], [2 : 2]);
+});
+
+happily_fail(@lambda() {
+    filter(@lambda(x,y) { 1; }, #[ #val('a) ], [1]);
+});
+
+happily_fail(@lambda() {
+    filter(@lambda(x,y) { 1; }, #[ #val('a) ], #[]);
+});
+
+happily_fail(@lambda() {
+    filter(@lambda(x,y) { 1; }, [1,2,3], [1]);
+});
+
+happily_fail(@lambda() {
+    filter(@lambda(x,y) { 1; }, [1,2,3], vector(1));
+});
+
+happily_fail(@lambda() {
+    filter(@lambda(x,y) { 1; }, [1,2,3], vector(1,2,3), [1:2]);
+});
+
+
+

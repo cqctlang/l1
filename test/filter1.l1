@@ -1,0 +1,39 @@
+
+
+ls = [1,2,3,4,1,1,1,1];
+
+printf("%a\n",filter(@lambda(x) { x == 1; },ls));
+printf("%a\n",filter(@lambda(x,y) { x != y; },ls,ls));
+
+ls2 = [1,2,3,5,1,1,1,1];
+printf("%a\n",filter(@lambda(x,y) { x != y; },ls,ls2));
+
+vec = vector(1,2,3,5,1,1,1,1);
+printf("%a\n",filter(@lambda(x,y) { x != y; },ls,vec));
+printf("%a\n",filter(@lambda(x,y,z) { (x+y+z)%2; },ls,ls2,vec));
+
+@define printtab(t) {
+    printf("[ ");
+    if (length(t)==0) printf(":");
+    else foreach(@lambda(k,v) {
+        printf("%a:%a ",k,v);
+    },t);
+    printf("]\n");
+}
+
+printtab(filter(@lambda(x,y) { x == y; },[:]));
+printtab(filter(@lambda(x,y) { x == y; }, [1:1, 2:3, 3:3, 4:5]));
+
+s = #[ #null, #val('a), #id('b), #[ #id('c) ] ];
+printf("%a\n",filter(@lambda(x) { stxkind(x)!='null; }, s));
+printf("%a\n",filter(@lambda(x,y) { stxkind(x)==stxkind(y); }, s, s));
+
+s2 = #[ #id('d), #null, #val('a), #id('b) ];
+printf("%a\n",filter(@lambda(x,y,z) { 
+                        stxkind(x)==stxkind(y) && stxkind(z)!=stxkind(x); 
+                     }, s, s, s2));
+
+lng = [];
+for(i=0; i<10000; ++i) append(lng,i);
+
+printf("%a\n",length(filter(@lambda(x) { x%2; }, lng)));

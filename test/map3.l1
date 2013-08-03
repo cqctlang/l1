@@ -1,0 +1,9 @@
+
+
+
+s = #[ #id('a), #id('b), #id('c), #id('d), #id('e) ];
+printf("%a\n", map(@lambda(x) { #val(stxid(x)); },s));
+printf("%a\n", map(@lambda(x,y) { #[x,y]; },s,s));
+printf("%a\n", map(@lambda(x,y,z) { #[x,y,z]; },s,s,s));
+
+

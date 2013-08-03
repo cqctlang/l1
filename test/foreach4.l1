@@ -1,0 +1,20 @@
+
+
+s = #[ #id('a), #id('b), #id('c), #id('d), #id('e) ];
+
+foreach(@lambda(x) { 
+    printf("%s ",stxid(x));
+},s);
+printf("\n");
+
+foreach(@lambda(x,y) { 
+    printf("%s %s ",stxid(x),stxid(y)); 
+},s,s);
+printf("\n");
+
+foreach(@lambda(x,y,z) { 
+    printf("%s %s %s ",stxid(x),stxid(y),stxid(z)); 
+},s,s,s);
+printf("\n");
+
+
