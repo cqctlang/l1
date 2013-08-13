@@ -463,8 +463,17 @@ main(int argc,char **argv) {
 		{ "open",	SYS_open },
 		{ "close",	SYS_close },
 		{ "stat",	SYS_stat },
+#ifdef SYS_stat64
+		{ "stat64",	SYS_stat64 },
+#endif
 		{ "fstat",	SYS_fstat },
+#ifdef SYS_fstat64
+		{ "fstat64",SYS_fstat64 },
+#endif
 		{ "lstat",	SYS_lstat },
+#ifdef SYS_lstat64
+		{ "lstat64",SYS_lstat64 },
+#endif
 		{ "poll",	SYS_poll },
 		{ "lseek",	SYS_lseek },
 #ifdef SYS_mmap // replaced by mmap2 in some places

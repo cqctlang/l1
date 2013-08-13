@@ -1,7 +1,6 @@
 
 @include <syslib.cqct>
 
-
-printf("%a\n",mapfile("empty"));
+printf("%a\n",mapfile("emptyfile"));
 
 printf("%a\n",mapfile("mapfile_test.l1"));

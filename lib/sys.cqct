@@ -184,6 +184,18 @@ posix = @names myrootns() {
 //S_ISSOC = @lambda(m) {
 //};
 
+{
+@local _fstat;
+
+if (unix.looksym('fstat64) != nil)
+{
+	_fstat = @lambda(fd,m) { syscall(unix`fstat64,fd,m); };
+} else if (unix.looksym('fstat) != nil) {
+	_fstat = @lambda(fd,m) { syscall(unix`fstat,fd,m); };
+} else {
+	_fstat = @lambda(a...) { error("No fstat system call found!"); };
+}
+
 @global sys_fstat;
 @define sys_fstat(fd,statbuf) {
 	@local m,r,l;
@@ -200,20 +212,23 @@ posix = @names myrootns() {
 		} else {
 			putbytes(m,statbuf);
 		}
+		//if sl < l it will be caught by the below putbytes
 	} else {
 		memcpy(m,statbuf,l);
 	}
 
-	r=syscall(unix`fstat,fd,m);
+	r=_fstat(fd,m);
 
 	m=(struct unix`stat *)m;
 
 	if(!r) {
-		putbytes(statbuf,getbytes(m,sizeof(*m)));
+		putbytes(statbuf,getbytes(m,l));
 	}
 
 	return r;
 }
+
+}//end scope for _fstat
 
 @global FD_ALLOC;
 @define FD_ALLOC() {
@@ -343,7 +358,7 @@ if(unix.looksym('mmap2)) {
 } else {
 	@define sys_mmap(addr,length,prot,flags,fd,offset) {
 		return (unix`void *)syscall(unix`mmap,addr,length,prot,flags,
-						fd,offset);                
+						fd,offset);
 	}
 }
 
@@ -546,7 +561,7 @@ if(looksym(unix,'wait4)) {
 @define sys_sched_getaffinity(pid, cpusetsize, mask) {
 	@local m,r;
 
-	m=(unsigned char *)__malloc(cpusetsize);    
+	m=(unsigned char *)__malloc(cpusetsize);
 	memset(m,0,cpusetsize);
 
 	r=syscall(unix`sched_getaffinity,pid,cpusetsize,m);
@@ -559,7 +574,7 @@ if(looksym(unix,'wait4)) {
 	@local m,r;
 
 	if(isstring(mask) && length(mask) <= cpusetsize) {
-		m=(unsigned char *)__malloc(cpusetsize);    
+		m=(unsigned char *)__malloc(cpusetsize);
 		putbytes(m,mask);
 	} else {
 		error("BAD MASK!\n");

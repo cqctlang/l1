@@ -16,8 +16,8 @@ unix = @names c32le {
 
 	struct stat {
 		@0x10 int32 st_mode;
-		@0x2c int32 st_size;
-		@0x58;
+		@0x2c uint64 st_size;
+		@0x60;
 	};
 };
 
