@@ -1,0 +1,15 @@
+
+@include <strings.cqct>
+
+
+s = "123456789abcdefghijklmnopqrstuvwxyz";
+sh = bintohex(s);
+shs = hextobin(sh);
+printf("%s\n%s\n%s\n",s,sh,shs);
+
+b = "\001\002\003\000\004\005\006\007\777\776\775\774\222";
+bh = bintohex(b);
+bhb = hextobin(bh);
+printf("%a\n",bhb == b);
+
+

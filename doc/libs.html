@@ -25,6 +25,7 @@
 <a href="#lib:re.cqct">Regular Expression Library</a><br />
 <a href="#lib:rbtree.cqct">Red Black Tree</a><br />
 <a href="#lib:snames.cqct">snames</a><br />
+<a href="#lib:strings.cqct">strings</a><br />
 <a href="#lib:gdb.cqct">gdb</a><br />
 </div>
 
@@ -1788,6 +1789,156 @@ Some diagnostics are printed to standard output.
 This command-line synopsis should be revised to not require
 meaningless arguments in <span class="id">sctl</span> mode.
 </p>
+
+<h5 id="lib:strings.cqct">strings.cqct</h5>
+
+<p>
+<span class="id">strings.cqct</span> provides various string manipulation
+and conversion utilities. It allows conversion between various 
+unicode string types and ascii, as well as conversion between ascii
+and hex.
+</p>
+
+<div class="docitem" id="fn:strtolower">
+    <div class="proto">
+        <div class="function">
+            <span class="id">strtolower(s)</span>
+        </div>
+        <div class="param">
+            <span class="arg">s</span>: 
+                <span class="type">cqct string</span> 
+        </div>
+        <div class="returns">
+            <span class="type">cqct string</span>
+        </div>
+    </div>
+    <div class="desc">
+        Returns an lowercase copy of the provided string.
+    </div>
+</div>
+
+<div class="docitem" id="fn:strtoupper">
+    <div class="proto">
+        <div class="function">
+            <span class="id">strtoupper(s)</span>
+        </div>
+        <div class="param">
+            <span class="arg">s</span>: 
+                <span class="type">cqct string</span> 
+        </div>
+        <div class="returns">
+            <span class="type">cqct string</span>
+        </div>
+    </div>
+    <div class="desc">
+        Returns an uppercase copy of the provided string.
+    </div>
+</div>
+
+<div class="docitem" id="fn:ucs2_to_ascii">
+    <div class="proto">
+        <div class="function">
+            <span class="id">ucs2_to_ascii(s)</span>
+        </div>
+        <div class="param">
+            <span class="arg">s</span>: 
+                <span class="type">cvalue pointer</span> 
+        </div>
+        <div class="returns">
+            <span class="type">cqct string</span>
+        </div>
+    </div>
+    <div class="desc">
+        Converts two-null-byte terminated unicode string starting at s
+        to a cqct string containing ascii characters.
+        An error will be thrown when the unicode string 
+        contains non-ascii characters.
+    </div>
+</div>
+
+<div class="docitem" id="fn:ucs2n_to_ascii">
+    <div class="proto">
+        <div class="function">
+            <span class="id">ucs2n_to_ascii(s,n)</span>
+        </div>
+        <div class="param">
+            <span class="arg">s</span>: 
+                <span class="type">cvalue pointer</span> 
+        </div>
+        <div class="param">
+            <span class="arg">n</span>: 
+                <span class="type">int</span> 
+        </div>
+        <div class="returns">
+            <span class="type">cqct string</span>
+        </div>
+    </div>
+    <div class="desc">
+        Converts unicode string containing 2n bytes to
+        a length n a cqct ascii string.
+        An error will be thrown when the unicode string 
+        contains non-ascii characters.
+    </div>
+</div>
+
+<div class="docitem" id="fn:hextobin">
+    <div class="proto">
+        <div class="function">
+            <span class="id">hextobin(s)</span>
+        </div>
+        <div class="param">
+            <span class="arg">s</span>: 
+                <span class="type">cqct string</span> 
+        </div>
+        <div class="returns">
+            <span class="type">cqct string</span>
+        </div>
+    </div>
+    <div class="desc">
+        Converts the ascii-hex characters in the passed string
+        to their binary values, returning the result. 
+        An error will be thrown when given a string containing
+        non-hex values;
+    </div>
+</div>
+
+<div class="docitem" id="fn:bintohex">
+    <div class="proto">
+        <div class="function">
+            <span class="id">bintohex(s)</span>
+        </div>
+        <div class="param">
+            <span class="arg">s</span>: 
+                <span class="type">cqct string</span> 
+        </div>
+        <div class="returns">
+            <span class="type">cqct string</span>
+        </div>
+    </div>
+    <div class="desc">
+        Converts the given binary string to an ascii-hex representation.
+    </div>
+</div>
+
+<div class="docitem" id="fn:hexdump">
+    <div class="proto">
+        <div class="function">
+            <span class="id">hexdump(s)</span>
+        </div>
+        <div class="param">
+            <span class="arg">s</span>: 
+                <span class="type">cqct string</span> 
+        </div>
+        <div class="returns">
+            <span class="type">cqct string</span>
+        </div>
+    </div>
+    <div class="desc">
+        Returns a string containing an xxd-style hexdump of the provided
+        cqct string. 
+    </div>
+</div>
+
 
 
 <h5 id="lib:gdb.cqct">gdb.cqct</h5>

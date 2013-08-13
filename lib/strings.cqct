@@ -1,5 +1,7 @@
+@include <xsas.cqct>
 
 @global strtoupper, strtolower, ucs2_to_ascii, ucs2n_to_ascii;
+@global hextobin, bintohex, hexdump;
 {
 
 @define strtoupper(s) {
@@ -45,7 +47,7 @@
 	for(i=0;i<units;i++) {
 		v=*(ptr+i);
 		if( (  (v>=0x0000) && (v<=0xd7ff ) )
-		    || (v>=0xe000) && (v<=0xffff ) )
+			|| (v>=0xe000) && (v<=0xffff ) )
 			retstr[i]=v&0xff;
 		else
 			error("invalid UCS2 code point U+%04X",v);
@@ -71,25 +73,123 @@
 // Convert a string of 8 bit chars to one of 16 bit chars
 //  where each new char has second 8 bits all 0
 @define utf8toutf16(ptr,len...) {
-    @local retstr, i;
+	@local retstr, i;
 
-    if (length(len) > 0) {
-        len = len[0];
-    } else if (isstring(ptr)) {
-        len = length(ptr);
-    } else {
-        len = nil;
-    }
+	if (length(len) > 0) {
+		len = len[0];
+	} else if (isstring(ptr)) {
+		len = length(ptr);
+	} else {
+		len = nil;
+	}
 
-    ptr = (char *)ptr;
-    retstr = mkstr(2*len);
-    for (i=0; i<len; i+=1) {
-        retstr[i*2] = ptr[i];
-        retstr[i*2+1] = 0;
-    }
+	ptr = (char *)ptr;
+	retstr = mkstr(2*len);
+	for (i=0; i<len; i+=1) {
+		retstr[i*2] = ptr[i];
+		retstr[i*2+1] = 0;
+	}
 
-    return retstr;
+	return retstr;
 }
 */
+
+@defloc tohex(b)
+{
+	return "0123456789abcdef"[b];
+}
+
+{
+	@local binmapping;
+
+	binmapping = [-1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1,
+				  -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1,
+				  -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1,
+				  -1, -1, -1, 0, 1, 2, 3, 4, 5, 6, 7, 8, 9, -1, -1, -1, -1, -1,
+				  -1, -1, 10, 11, 12, 13, 14, 15, -1, -1, -1, -1, -1, -1, -1,
+				  -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1,
+				  -1, -1, -1, -1, 10, 11, 12, 13, 14, 15, -1, -1, -1, -1, -1,
+				  -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1,
+				  -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1,
+				  -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1,
+				  -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1,
+				  -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1,
+				  -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1,
+				  -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1,
+				  -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1,
+				  -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1,
+				  -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1];
+
+	@defloc tobin(x) { 
+		@local y; 
+		y = binmapping[x]; 
+		if (y<0) 
+			error("bad hex digit"); 
+		return y; 
+	} 
+
+	@define hextobin(s)
+	{
+		@local i, n, m, t;
+		t = m = mkxs();
+		n = length(s);
+		if (n%2 == 1)
+			error("odd hex string length");
+		for(i = 0; i < n; i += 2)
+			*t++ = (tobin(s[i])<<4)|tobin(s[i+1]);
+		return getbytes(m, n/2);
+	}
+
+		
+	@define bintohex(b)
+	{
+		@local i, n, m, t;
+		t = m = mkxs();
+		n = length(b);
+		for(i = 0; i < n; i++){
+			*t++ = tohex(b[i]>>4);
+			*t++ = tohex(b[i]&0xf);
+		}
+		return getbytes(m, t-m);
+	}
+
+	/*
+	8 chars offset, 16 bytes from b per row
+	*/
+	@define hexdump(b)
+	{
+		@local i,j,l,ret,bin;
+		l = length(b);
+		ret = "";
+		for(i=0; i < l; i+=16) {
+			ret += sprintfa("%08x:",i);
+			bin = "";
+			for(j=0; j<16 && i+j<l; ++j) {
+				if (j == 8) {
+					ret += " ";
+				}
+				ret += sprintfa(" %02x",b[i+j]);
+				if ( isprint(b[i+j]) && !iscntrl(b[i+j]) ) {
+					bin += sprintfa("%c",b[i+j]);
+				} else {
+					bin += ".";
+				}
+			}
+			if (j < 16) {
+				for(; j<16; ++j) {
+					if (j == 8) {
+						ret += " ";
+					}
+					ret += "   ";
+				}
+			}
+			ret += "  " + bin + "\n";
+		}
+		return ret;
+	}
+
+}
+
+
 
 }
