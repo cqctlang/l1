@@ -6,11 +6,9 @@ dump.cqct provides code for printing out namespaces and the values associated
 with typed pointers. 
 */
 
-@include <xsas.cqct>
-
 if (dump_defined == nil)
 {
-@global printtype, dumpns, objectstr, bintohex, hextobin, hexdump;
+@global printtype, dumpns, objectstr;
 
 dump_defined = 1;
 
@@ -188,80 +186,6 @@ print a namespace in .names file format.
 	} else {
 		return sprintfa("%d",p);
 	}
-}
-
-@defloc tohex(b)
-{
-	return "0123456789abcdef"[b];
-}
-
-@defloc tobin(x)
-{
-	if(x >= '0' && x <= '9')
-		return x-'0';
-	if(x >= 'A' && x <= 'F')
-		return x-'A'+10;
-	if(x >= 'a' && x <= 'f')
-		return x-'a'+10;
-	error("bad hex digit");
-}
-
-@define hextobin(s)
-{
-	@local i, n, m, t;
-	t = m = mkxs();
-	n = length(s);
-	for(i = 0; i < n; i += 2)
-		*t++ = (tobin(s[i])<<4)|tobin(s[i+1]);
-	return getbytes(m, n/2);
-}
-
-@define bintohex(b)
-{
-	@local i, n, m, t;
-	t = m = mkxs();
-	n = length(b);
-	for(i = 0; i < n; i++){
-		*t++ = tohex(b[i]>>4);
-		*t++ = tohex(b[i]&0xf);
-	}
-	return getbytes(m, t-m);
-}
-
-
-/*
-8 chars offset, 16 bytes from b per row
-*/
-@define hexdump(b)
-{
-	@local i,j,l,ret,bin;
-	l = length(b);
-	ret = "";
-	for(i=0; i < l; i+=16) {
-		ret += sprintfa("%08x:",i);
-		bin = "";
-		for(j=0; j<16 && i+j<l; ++j) {
-			if (j == 8) {
-				ret += " ";
-			}
-			ret += sprintfa(" %02x",b[i+j]);
-			if ( isprint(b[i+j]) && !iscntrl(b[i+j]) ) {
-				bin += sprintfa("%c",b[i+j]);
-			} else {
-				bin += ".";
-			}
-		}
-		if (j < 16) {
-			for(; j<16; ++j) {
-				if (j == 8) {
-					ret += " ";
-				}
-				ret += "   ";
-			}
-		}
-		ret += "  " + bin + "\n";
-	}
-	return ret;
 }
 
 }
