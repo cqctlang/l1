@@ -2338,6 +2338,7 @@ xcvalshift(VM *vm, ikind op, Cval *op1, Cval *op2)
 		switch(op){
 		case Ishl:
 			rv = i1<<i2;
+			rv = truncimm(rv, typerep(t1));
 			break;
 		case Ishr:
 			rv = i1>>i2;
