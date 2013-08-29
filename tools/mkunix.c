@@ -9,6 +9,7 @@
 #include <sys/wait.h>
 #include <sys/syscall.h>
 #include <sys/un.h>
+#include <sys/ptrace.h>
 #include <netinet/in.h>
 #include <netinet/tcp.h>
 #ifdef __linux__
@@ -456,6 +457,44 @@ main(int argc,char **argv) {
 		{ NULL },
 	};
 
+	struct enum_entry ptrace[]={
+		// generic names
+		{ "PT_TRACE_ME", PT_TRACE_ME },
+
+		// linux names
+		{ "PTRACE_TRACEME", PTRACE_TRACEME },
+		{ "PTRACE_PEEKTEXT", PTRACE_PEEKTEXT },
+		{ "PTRACE_PEEKDATA", PTRACE_PEEKDATA },
+		{ "PTRACE_PEEKUSER", PTRACE_PEEKUSER },
+		{ "PTRACE_POKETEXT", PTRACE_POKETEXT },
+		{ "PTRACE_POKEDATA", PTRACE_POKEDATA },
+		{ "PTRACE_POKEUSER", PTRACE_POKEUSER },
+		{ "PTRACE_GETREGS", PTRACE_GETREGS },
+		{ "PTRACE_GETFPREGS", PTRACE_GETFPREGS },
+		{ "PTRACE_GETSIGINFO", PTRACE_GETSIGINFO },
+		{ "PTRACE_SETREGS", PTRACE_SETREGS },
+		{ "PTRACE_SETSIGINFO", PTRACE_SETSIGINFO },
+		{ "PTRACE_SETOPTIONS", PTRACE_SETOPTIONS },
+			{ "PTRACE_O_TRACESYSGOOD", PTRACE_O_TRACESYSGOOD },
+			{ "PTRACE_O_TRACEFORK", PTRACE_O_TRACEFORK },
+			{ "PTRACE_O_TRACEVFORK", PTRACE_O_TRACEVFORK },
+			{ "PTRACE_O_TRACECLONE", PTRACE_O_TRACECLONE },
+			{ "PTRACE_O_TRACEEXEC", PTRACE_O_TRACEEXEC },
+			{ "PTRACE_O_TRACEVFORKDONE", PTRACE_O_TRACEVFORKDONE },
+			{ "PTRACE_O_TRACEEXIT", PTRACE_O_TRACEEXIT },
+		{ "PTRACE_GETEVENTMSG", PTRACE_GETEVENTMSG },
+		{ "PTRACE_CONT", PTRACE_CONT },
+		{ "PTRACE_SYSCALL", PTRACE_SYSCALL },
+		{ "PTRACE_SINGLESTEP", PTRACE_SINGLESTEP },
+#ifdef PTRACE_SYSEMU
+		{ "PTRACE_SYSEMU", PTRACE_SYSEMU },
+		{ "PTRACE_SYSEMU_SINGLESTEP", PTRACE_SYSEMU_SINGLESTEP },
+#endif
+		{ "PTRACE_KILL", PTRACE_KILL },
+		{ "PTRACE_ATTACH", PTRACE_ATTACH },
+		{ "PTRACE_DETACH", PTRACE_DETACH },
+		{ NULL },
+	};
 
 	struct enum_entry syscall_nr[]={
 		{ "read",	SYS_read },
@@ -468,11 +507,11 @@ main(int argc,char **argv) {
 #endif
 		{ "fstat",	SYS_fstat },
 #ifdef SYS_fstat64
-		{ "fstat64",SYS_fstat64 },
+		{ "fstat64",	SYS_fstat64 },
 #endif
 		{ "lstat",	SYS_lstat },
 #ifdef SYS_lstat64
-		{ "lstat64",SYS_lstat64 },
+		{ "lstat64",	SYS_lstat64 },
 #endif
 		{ "poll",	SYS_poll },
 		{ "lseek",	SYS_lseek },
@@ -976,6 +1015,7 @@ main(int argc,char **argv) {
 	print_enum("termios_nr",termios_nr);
 	print_enum("signal_nr",signal_nr);
 	print_enum("mount_nr",mount_nr);
+	print_enum("ptrace",ptrace);
 	print_enum("syscall_nr",syscall_nr);
 
 	return 0;
