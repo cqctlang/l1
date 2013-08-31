@@ -1,0 +1,202 @@
+#!/bin/sh
+	exec l1 -e strace_main "$0" "$@"
+	exit 1
+!#
+
+/* 1% of strace */
+/* this is not personality aware at all */
+
+@include <sys.cqct>
+@include <syslib.cqct>
+
+mrn=myrootns();
+ptrace_names_x86_64 = @names mrn {
+	struct siginfo {
+		@0 int si_signo;
+		@4 int si_errno;
+		@8 int si_code;
+		@12;
+	};
+
+	// from sys/user.h on x86_64 linux
+	typedef unsigned short __uint16_t;
+	typedef unsigned long __uint64_t;
+	typedef unsigned int __uint32_t;
+
+	// x86_64
+	struct user_fp_regs_struct
+	{
+		__uint16_t            cwd;
+		__uint16_t            swd;
+		__uint16_t            ftw;
+		__uint16_t            fop;
+		__uint64_t            rip;
+		__uint64_t            rdp;
+		__uint32_t            mxcsr;
+		__uint32_t            mxcr_mask;
+		__uint32_t            st_space[32];   /* 8*16 bytes for each FP-reg = 128 bytes */
+		__uint32_t            xmm_space[64];  /* 16*16 bytes for each XMM-reg = 256 bytes */
+		__uint32_t            padding[24];
+	};
+
+	struct user_regs_struct
+	{
+		@0 unsigned long r15;
+		@8 unsigned long r14;
+		@16 unsigned long r13;
+		@24 unsigned long r12;
+		@32 unsigned long rbp;
+		@40 unsigned long rbx;
+		@48 unsigned long r11;
+		@56 unsigned long r10;
+		@64 unsigned long r9;
+		@72 unsigned long r8;
+		@80 unsigned long rax;
+		@88 unsigned long rcx;
+		@96 unsigned long rdx;
+		@104 unsigned long rsi;
+		@112 unsigned long rdi;
+		@120 unsigned long orig_rax;
+		@128 unsigned long rip;
+		@136 unsigned long cs;
+		@144 unsigned long eflags;
+		@152 unsigned long rsp;
+		@160 unsigned long ss;
+		@168 unsigned long fs_base;
+		@176 unsigned long gs_base;
+		@184 unsigned long ds;
+		@192 unsigned long es;
+		@200 unsigned long fs;
+		@208 unsigned long gs;
+		@216;
+	};
+};
+
+a=uname()[3];
+
+@global ptrace_names;
+if(a == "x86_64")
+	ptrace_names = ptrace_names_x86_64;
+else
+	error("no ptrace_names for %s\n",a);
+
+@define which(cmd) {
+	if(!length(cmd))
+		return nil;
+	if(strstr(cmd,"/")) {
+		if(access(cmd,"x"))
+			return cmd;
+		else
+			return nil;
+	} else {
+		@local p,x,l,c;
+		
+		p=getenv("PATH");
+		p=split(p,":");
+		l=length(p);
+		for(x=0;x<l;x++) {
+			c=p[x]+"/"+cmd;
+			if(access(c,"x")) {
+				return c;
+			}
+		}
+		return nil;
+	} 
+	
+}
+
+@define strace_main(progname, args ...) {
+	@local p,r,b;
+	@local states;
+
+	states=[:];
+
+	if(length(args) == 0) {
+		fprintf(stderr,"%s <target_prog> [<target arg> ...]\n",progname);
+		sys_exit(1);
+	}
+
+	b=which(args[0]);
+	if(!b) {
+		fprintf(stderr,"%s: could not find %s in search path\n",progname,args[0]);
+		sys_exit(1);
+	}
+
+	p=sys_fork();
+	if(p == -1) {
+		fprintf(stderr,"%s: fork failed\n",progname);
+		sys_exit(1);	
+	}
+
+	if(!p) {
+		r=syscall(unix`ptrace,unix`PTRACE_TRACEME,0,0,0);
+		if(r) {
+			fprintf(stderr,"traceme fails\n");
+			sys_exit(1);
+		}
+
+		syscall(unix`kill,getpid(),unix`SIGSTOP);
+
+		applyk(@lambda() {
+			sys_execve(b,args,[]);
+		},@lambda(args ...) {
+			sys_exit(1);
+		},@lambda(args ...) {
+			sys_exit(1);
+		},[]);
+	} else {
+		@local cp,ocp,m,m2;
+
+		m=malloc(1024);
+
+		while(1) {
+			r=syscall(unix`wait4,p,m,0,0);
+
+			if(r==-1)
+				break;
+
+			ocp=cp;
+			cp=r;
+
+			if(!states[cp]) {
+				states[cp]='entry;
+			}
+
+			if( (cp != ocp) ) {
+				if(states[ocp] == 'entry)
+					printf(" <interrupted>\n"); 
+				if(states[cp] == 'exit)
+					printf("<resumed> "); 
+			}
+
+			if(states[cp] == 'entry) {
+				states[cp]='exit;
+
+				r=syscall(unix`ptrace,unix`PTRACE_GETREGS,p,0,m);
+				if(r) {
+					fprintf(stderr,"getregs failed for child %d with %d\n",p,r);
+					continue;
+				}
+				m2=(struct user_regs_struct *){mkdom(ptrace_names,asof(m))}m;
+				printf("%d %e(...) ",cp,
+						(enum unix`syscall_nr)(m2->orig_rax));
+			} else if(states[cp] == 'exit) {
+				states[cp]='entry;
+
+				r=syscall(unix`ptrace,unix`PTRACE_GETREGS,p,0,m);
+				if(r) {
+					fprintf(stderr,"getregs failed for child %d with %d\n",p,r);
+					continue;
+				}
+				m2=(struct user_regs_struct *){mkdom(ptrace_names,asof(m))}m;
+				printf("= %d\n",m2->rax);
+			}
+
+			r=syscall(unix`ptrace,unix`PTRACE_SYSCALL,p,0,0);
+			if(r) {
+				fprintf(stderr,"ptrace PTRACE_SYSCALL failed for pid %d\n",p);
+			}
+		}
+	}
+}
+
