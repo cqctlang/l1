@@ -177,10 +177,11 @@ install: $(TARG)
 	@cp -ap lib $(PREFIX)/share/l1
 	@mkdir -p $(PREFIX)/bin
 	@rm -f $(PREFIX)/bin/$(TARG)
-# it breaks my heart that this is not a relative link.
+	@ln -s ../share/l1/$(TARG) $(PREFIX)/bin/$(TARG)
+# it breaks my heart to include this hack.
 # this is absolute to accomodate some local automounter
 # relative-link weirdness with per-arch bin directories
-	@ln -s $(PREFIX)/share/l1/$(TARG) $(PREFIX)/bin/$(TARG)
+	if readlink -f $(PREFIX)/bin/$(TARG) > /dev/null ; then /bin/true ; else rm -f $(PREFIX)/bin/$(TARG) ; ln -s $(PREFIX)/share/l1/$(TARG) $(PREFIX)/bin/$(TARG) ; fi
 
 clean: testclean
 	@$(MAKE) -s -C x/lib9 clean
