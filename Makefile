@@ -12,6 +12,7 @@ L1FUNS     =
 TARG       = l1
 V	   = @
 L1X        =
+PREFIX	:= /usr/public
 
 .DEFAULT_GOAL := all
 
@@ -169,6 +170,17 @@ doc/debug.html: doc/debug.src.html $(DEMO)
 
 testclean:
 	@$(RM) test/core test/core.* test/callgrind.out.* test/vgcore.* test/*.failed test/*.vgfailed
+
+install: $(TARG)
+	@mkdir -p $(PREFIX)/share/l1
+	@cp $(TARG) $(PREFIX)/share/l1
+	@cp -ap lib $(PREFIX)/share/l1
+	@mkdir -p $(PREFIX)/bin
+	@rm -f $(PREFIX)/bin/$(TARG)
+# it breaks my heart that this is not a relative link.
+# this is absolute to accomodate some local automounter
+# relative-link weirdness with per-arch bin directories
+	@ln -s $(PREFIX)/share/l1/$(TARG) $(PREFIX)/bin/$(TARG)
 
 clean: testclean
 	@$(MAKE) -s -C x/lib9 clean
