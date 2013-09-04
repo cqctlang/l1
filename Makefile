@@ -156,6 +156,10 @@ archive:
 git.tar:
 	tar -C .. -cz l1 > ../l1.git.tar.gz
 
+rpm:
+	git archive --format=tar --prefix=l1/ HEAD | gzip -c > `rpmbuild -E '%{_topdir}' 2> /dev/null`/SOURCES/l1-3.11.tar.gz
+	rpmbuild -ba l1.spec
+
 # it is irritating that we reproduce demo dependencies here.
 DEMO=\
 	demo/forkexec.c\
