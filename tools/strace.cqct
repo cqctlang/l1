@@ -102,14 +102,91 @@ else
 		}
 		return nil;
 	} 
-	
 }
+
+@global callnames;
+callnames=[:];
+{
+	@local foo;
+	foo=@typeof(enum unix`syscall_nr);
+	foreach(@lambda(v) {
+		callnames[v[1]]=v[0];
+	},enumconsts(foo));
+}
+
+@global prototypes;
+prototypes=[:];
+prototypes['access]=['str,'int];
+prototypes['close]=['fd];
+prototypes['connect]=['fd,'addr,'int];
+prototypes['execve]=['str,'addr,'addr];
+prototypes['fstat]=['fd,nil];
+prototypes['getdents]=['fd,'addr,'int];
+prototypes['kill]=['int,'int];
+prototypes['lgetxattr]=['str,'str,'int,'int];
+prototypes['lseek]=['fd,'int,'int];
+prototypes['lstat]=['str,nil];
+prototypes['mmap]=['addr,'int,'int,'int,'fd,'int];
+prototypes['mprotect]=['addr,'int,'int];
+prototypes['munmap]=['addr,'int];
+prototypes['open]=['str,'int,'int];
+prototypes['read]=['fd,nil,'int];
+prototypes['recvfrom]=['fd,'addr,'int,'int,'addr,'addr];
+prototypes['sendto]=['fd,'addr,'int,'int,'addr,'int];
+prototypes['stat]=['str];
+prototypes['write]=['fd,nil,'int];
 
 @define strace_main(progname, args ...) {
 	@local p,r,b;
 	@local states;
+	@local getstr;
+	@local demarshal;
 
 	states=[:];
+
+	@define demarshal(regs) {
+		@local name,p,x,l,v;
+
+		name=callnames[regs->orig_rax];
+
+		//%rdi, %rsi, %rdx, %r10, %r8 and %r9
+		if(!name) {
+			printf("syscall_%d(...) ",regs->orig_rax);
+			return;
+		}
+		p=prototypes[name];
+		if(p) {
+			l=length(p);
+			printf("%a( ",name);
+			for(x=0;x<l;x++) {
+				switch(x) {
+				case 0: v=regs->rdi; break;
+				case 1: v=regs->rsi; break;
+				case 2: v=regs->rdx; break;
+				case 3: v=regs->r10; break;
+				case 4: v=regs->r8; break;
+				case 5: v=regs->r9; break;
+				default:
+					error("too many arguments");
+				}
+				if(p[x]=='fd) {
+					printf("%d,",v);
+				} else if(p[x]=='int) {
+					printf("%d,",(long)v);
+				} else if(p[x]=='addr) {
+					printf("0x%x,",v);
+				} else if(p[x]=='str) {
+					printf("%s,",getstr(v));
+				} else if(!p[x]) {
+					printf("???,");
+				} else {
+					printf("UNKNOWN ARGUMENT TYPE %a\n",p[x]);
+				}
+			}
+			printf(") ");
+		} else
+			printf("%a(...) ",name);
+	}
 
 	if(length(args) == 0) {
 		fprintf(stderr,"%s <target_prog> [<target arg> ...]\n",progname);
@@ -121,6 +198,33 @@ else
 		fprintf(stderr,"%s: could not find %s in search path\n",progname,args[0]);
 		sys_exit(1);
 	}
+
+	getstr=@lambda(addr) {
+		@local buf,r,x,rstr,s,c;
+
+		addr=(void *)addr;
+		rstr="";
+		buf=(mrn`long *)malloc(1024);
+		s=sizeof(mrn`long);
+		while(1) {
+			r=syscall(unix`ptrace,unix`PTRACE_PEEKDATA,p,addr,buf);
+			addr+=s;
+			if(r) {
+				fprintf(stderr,"getstr failed\n");
+				goto done;
+			} else {
+				for(x=0;x<sizeof(*buf);x++) {
+					c=*((unsigned char *)buf+x);
+					if(c) 
+						rstr+=sprintfa("%c",c);
+					else
+						goto done;
+				}
+			}
+		}
+		done:
+		return rstr;
+	};
 
 	p=sys_fork();
 	if(p == -1) {
@@ -178,8 +282,8 @@ else
 					continue;
 				}
 				m2=(struct user_regs_struct *){mkdom(ptrace_names,asof(m))}m;
-				printf("%d %e(...) ",cp,
-						(enum unix`syscall_nr)(m2->orig_rax));
+				printf("%a ",cp);
+				demarshal(m2);
 			} else if(states[cp] == 'exit) {
 				states[cp]='entry;
 
