@@ -284,6 +284,22 @@ l1_mksysfd(VM *vm, Imm argc, Val *argv, Val *rv)
 }
 
 static void
+l1_issysfd(VM *vm, Imm argc, Val *argv, Val *rv)
+{
+	Fd *fd;
+
+	if(argc != 1)
+		vmerr(vm, "wrong number of arguments to issysfd");
+	checkarg(vm, argv, 0, Qfd);
+	fd = valfd(argv[0]);
+
+	if(issysfd(fd))
+		*rv = mkvalcval2(cval1);
+	else
+		*rv = mkvalcval2(cval0);
+}
+
+static void
 l1_stat(VM *vm, Imm argc, Val *argv, Val *rv)
 {
 	struct stat st;
@@ -487,6 +503,36 @@ l1_ioctl(VM *vm, Imm argc, Val *argv, Val *rv)
 	if(!issysfd(fd))
 		vmerr(vm, "file descriptor does not support ioctl");
 	r = xioctl(sysfdno(fd), (unsigned long)cvalu(req), p);
+	if(r == -1)
+		r = -errno;
+	*rv = mkvallitcval(Vint, r);
+}
+
+static void
+l1__ioctl(VM *vm, Imm argc, Val *argv, Val *rv)
+{
+	Cval *fd, *req, *bufp;
+	int r;
+	Str *bufs;
+	char *p;
+
+	if(argc != 3)
+		vmerr(vm, "wrong number of arguments to ioctl");
+	checkarg(vm, argv, 0, Qcval);
+	checkarg(vm, argv, 1, Qcval);
+	if(Vkind(argv[2]) != Qstr && Vkind(argv[2]) != Qcval)
+		vmerr(vm, "argument 3 to ioctl must be a cvalue or string");
+	fd = valcval(argv[0]);
+	req = valcval(argv[1]);
+	if(Vkind(argv[2]) == Qstr){
+		bufs = valstr(argv[2]);
+		p = strdata(bufs);
+	}else{
+		bufp = valcval(argv[2]);
+		p = (char*)(uptr)cvalu(bufp);
+	}
+
+	r = xioctl(cvalu(fd), (unsigned long)cvalu(req), p);
 	if(r == -1)
 		r = -errno;
 	*rv = mkvallitcval(Vint, r);
@@ -794,6 +840,8 @@ fnio(Env env)
 {
 	FN(access);
 	FN(ioctl);
+	FN(_ioctl);
+	FN(issysfd);
 	FN(_mapfile);
 	FN(mksysfd);
 	FN(_munmap);

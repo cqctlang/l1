@@ -1,0 +1,14 @@
+@global ions;
+ions = @names c32le {
+        enum Fflag {
+                /* FFlag in syscqct.h */
+                Fread = 4,
+                Fwrite = 8,
+        };
+};
+
+printf("is a sysfd a sysfd? %d\n",issysfd(mksysfd(0,ions`Fread)));
+printf("is a fake sysfd a sysfd? %d\n",
+	issysfd(mkfd(	@lambda(a ...) { return nil; },
+			@lambda(a ...) { return nil; },
+			@lambda(a ...) { return nil; })));
