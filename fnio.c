@@ -647,6 +647,46 @@ l1_write(VM *vm, Imm argc, Val *argv, Val *rv)
 }
 
 static void
+l1__recvfd(VM *vm, Imm argc, Val *argv, Val *rv)
+{
+	int rfd;
+	int fd;
+	Fd *fd0;
+	struct cmsghdr *cmsg;
+	struct msghdr msg;
+	struct iovec iv;
+	unsigned char byte;
+	char buf[CMSG_SPACE(sizeof(rfd))];
+
+	if(argc != 1)
+		vmerr(vm, "wrong number of arguments to recvfd");
+	checkarg(vm, argv, 0, Qfd);
+	fd0 = valfd(argv[0]);
+	if(!issysfd(fd0))
+		vmerr(vm, "file descriptor cannot convey file descriptors");
+	fd = fd0->u.fn.fd;
+	memset(&msg, 0, sizeof(msg));
+	iv.iov_base = &byte;
+	iv.iov_len = sizeof(byte);
+	msg.msg_iov = &iv;
+	msg.msg_iovlen = 1;
+	msg.msg_control = buf;
+	msg.msg_controllen = sizeof(buf);
+	if(0 > recvmsg(fd, &msg, 0)){
+		setlasterrno(errno);
+		return;
+	}
+	cmsg = CMSG_FIRSTHDR(&msg);
+	if(cmsg == 0
+	   || cmsg->cmsg_level != SOL_SOCKET
+	   || cmsg->cmsg_type != SCM_RIGHTS
+	   || cmsg->cmsg_len != CMSG_LEN(sizeof(rfd)))
+		vmerr(vm, "no file descriptor to be received");
+	memcpy(&rfd, CMSG_DATA(cmsg), sizeof(rfd));
+	*rv = mkvallitcval(Vint, rfd);	
+}
+
+static void
 l1_seek(VM *vm, Imm argc, Val *argv, Val *rv)
 {
 	Fd *fd;
@@ -760,6 +800,26 @@ setfdsout(VM *vm, List *il, fd_set *f, List *ol)
 }
 
 static void
+l1__socket(VM *vm, Imm argc, Val *argv, Val *rv)
+{
+	int fd;
+	Cval *dom, *type, *prot;
+
+	if(argc != 3)
+		vmerr(vm, "wrong number of arguments to socket");
+	checkarg(vm, argv, 0, Qcval);
+	checkarg(vm, argv, 1, Qcval);
+	checkarg(vm, argv, 2, Qcval);
+	dom = valcval(argv[0]);
+	type = valcval(argv[1]);
+	prot = valcval(argv[2]);
+	fd = socket((int)cvalu(dom), (int)cvalu(type), (int)cvalu(prot));
+	if(0 > fd)
+		vmerr(vm, "socket: %s", strerror(errno));
+	*rv = mkvallitcval(Vint, fd);
+}
+
+static void
 l1__sockpair(VM *vm, Imm argc, Val *argv, Val *rv)
 {
 	int fd[2];
@@ -848,8 +908,10 @@ fnio(Env env)
 	FN(_open);
 	FN(_popen);
 	FN(read);
+	FN(_recvfd);
 	FN(seek);
 	FN(select);
+	FN(_socket);
 	FN(_sockpair);
 	FN(stat);
 	FN(write);
