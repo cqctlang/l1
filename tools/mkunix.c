@@ -51,6 +51,13 @@ main(int argc,char **argv) {
 		{ NULL },
 	};
 
+	struct enum_entry seekflags[]={
+		{ "SEEK_SET",	SEEK_SET },
+		{ "SEEK_CUR",	SEEK_CUR },	
+		{ "SEEK_END",	SEEK_END },
+		{ NULL },
+	};
+
 #ifdef SYS_clone
 	struct enum_entry cloneflags[]={
 #ifdef	CLONE_CHILD_CLEARTID // 2.5.49
@@ -1001,6 +1008,7 @@ main(int argc,char **argv) {
 
 	printf("/* generated automatically by mkunix */\n\n");
 	print_enum("oflags", oflags);
+	print_enum("seekflags", seekflags);
 	print_enum("mmap_consts",mmap_consts);
 	print_enum("waitflags",waitflags);
 #ifdef SYS_clone // Darwin misses this
