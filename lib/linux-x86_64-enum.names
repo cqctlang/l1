@@ -9,6 +9,11 @@ enum oflags {
 	O_APPEND	= 0x400,
 	O_NONBLOCK	= 0x800,
 };
+enum seekflags {
+	SEEK_SET	= 0x0,
+	SEEK_CUR	= 0x1,
+	SEEK_END	= 0x2,
+};
 enum mmap_consts {
 	PROT_READ	= 0x1,
 	PROT_WRITE	= 0x2,
@@ -248,6 +253,7 @@ enum mount_nr {
 	MS_SYNCHRONOUS	= 0x10,
 };
 enum ptrace {
+	PT_TRACE_ME	= 0x0,
 	PTRACE_TRACEME	= 0x0,
 	PTRACE_PEEKTEXT	= 0x1,
 	PTRACE_PEEKDATA	= 0x2,
