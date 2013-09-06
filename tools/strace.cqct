@@ -6,6 +6,7 @@
 /* 1% of strace */
 /* this is not personality aware at all */
 
+@include <fs.cqct>
 @include <sys.cqct>
 @include <syslib.cqct>
 
@@ -79,30 +80,6 @@ if(a == "x86_64")
 	ptrace_names = ptrace_names_x86_64;
 else
 	error("no ptrace_names for %s\n",a);
-
-@define which(cmd) {
-	if(!length(cmd))
-		return nil;
-	if(strstr(cmd,"/")) {
-		if(access(cmd,"x"))
-			return cmd;
-		else
-			return nil;
-	} else {
-		@local p,x,l,c;
-		
-		p=getenv("PATH");
-		p=split(p,":");
-		l=length(p);
-		for(x=0;x<l;x++) {
-			c=p[x]+"/"+cmd;
-			if(access(c,"x")) {
-				return c;
-			}
-		}
-		return nil;
-	} 
-}
 
 @global callnames;
 callnames=[:];
@@ -242,7 +219,7 @@ prototypes['write]=['fd,nil,'int];
 		syscall(unix`kill,getpid(),unix`SIGSTOP);
 
 		applyk(@lambda() {
-			sys_execve(b,args,[]);
+			sys_execve(b,args,environ());
 		},@lambda(args ...) {
 			sys_exit(1);
 		},@lambda(args ...) {
