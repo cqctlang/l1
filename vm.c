@@ -5235,6 +5235,19 @@ l1_isclosed(VM *vm, Imm argc, Val *argv, Val *rv)
 		*rv = mkvalcval2(cval0);
 }
 
+static void
+l1_setclosed(VM *vm, Imm argc, Val *argv, Val *rv)
+{
+	Fd *fd;
+
+	if(argc != 1)
+		vmerr(vm, "wrong number of arguments to isclosed");
+	checkarg(vm, argv, 0, Qfd);
+	fd = valfd(argv[0]);
+	fd->flags |= Fclosed;
+
+	USED(rv);
+}
 
 static void
 l1_fdname(VM *vm, Imm argc, Val *argv, Val *rv)
@@ -7477,6 +7490,7 @@ mktopenv(void)
 	FN(rangelen);
 	FN(resettop);
 	FN(saveheap);
+	FN(setclosed);
 	FN(setname);
 	FN(setloadpath);
 	FN(settoplevel);

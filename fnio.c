@@ -300,6 +300,23 @@ l1_issysfd(VM *vm, Imm argc, Val *argv, Val *rv)
 }
 
 static void
+l1_sysfdno(VM *vm, Imm argc, Val *argv, Val *rv)
+{
+	Fd *fd;
+
+	if(argc != 1)
+		vmerr(vm, "wrong number of arguments to sysfdno");
+	checkarg(vm, argv, 0, Qfd);
+	fd = valfd(argv[0]);
+
+	if(!issysfd(fd))
+		vmerr(vm, "file descriptor is not a sysfd");
+
+	
+	*rv = mkvallitcval(Vint, sysfdno(fd));
+}
+
+static void
 l1_stat(VM *vm, Imm argc, Val *argv, Val *rv)
 {
 	struct stat st;
@@ -914,5 +931,6 @@ fnio(Env env)
 	FN(_socket);
 	FN(_sockpair);
 	FN(stat);
+	FN(sysfdno);
 	FN(write);
 }
