@@ -5221,6 +5221,22 @@ l1_close(VM *vm, Imm argc, Val *argv, Val *rv)
 }
 
 static void
+l1_isclosed(VM *vm, Imm argc, Val *argv, Val *rv)
+{
+	Fd *fd;
+
+	if(argc != 1)
+		vmerr(vm, "wrong number of arguments to isclosed");
+	checkarg(vm, argv, 0, Qfd);
+	fd = valfd(argv[0]);
+	if(fd->flags&Fclosed)
+		*rv = mkvalcval2(cval1);
+	else
+		*rv = mkvalcval2(cval0);
+}
+
+
+static void
 l1_fdname(VM *vm, Imm argc, Val *argv, Val *rv)
 {
 	Fd *fd;
@@ -5262,6 +5278,7 @@ l1_mkfd(VM *vm, Imm argc, Val *argv, Val *rv)
 		checkarg(vm, argv, 3, Qstr);
 		n = valstr(argv[3]);
 	}
+	// the mode is not write if we passed no write handler
 	fd = mkfdcl(n, Fread|Fwrite, r, w, c);
 	*rv = mkvalfd(fd);
 }
@@ -7403,6 +7420,7 @@ mktopenv(void)
 	FN(isas);
 	FN(iscallable);
 	FN(iscid);
+	FN(isclosed);
 	FN(iscode);
 	FN(isctype);
 	FN(iscvalue);
