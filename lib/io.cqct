@@ -3,6 +3,7 @@
 	ioctl,
 	mapfile,      
 	open,
+	close,
 	popen,
 	recvfd,
 	socket,
@@ -167,6 +168,12 @@ ions = @names c32le {
 		return rv;
 	}
 }
+
+@define close(fd,req,buf)
+{
+	_close(fd,req,buf);
+}
+
 
 stdin = mksysfdfinal(0, ions`Fread, "(stdin)");
 stdout = mksysfdfinal(1, ions`Fwrite, "(stdout)");

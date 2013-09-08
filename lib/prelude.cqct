@@ -6,6 +6,7 @@
 @include <cqct.cqct>
 @include <ctype.cqct>
 @include <malloc.cqct>
+@include <sysio.cqct>
 @include <util.cqct>
 @include <validate.cqct>
 @include <rand.cqct>

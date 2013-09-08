@@ -2,6 +2,11 @@
 #include "util.h"
 #include "syscqct.h"
 
+/* Long experience tells us that these primitives are enough
+   to bring up l1 on portable systems. Please don't add 
+   anything new here that could be added through lib/syslib.cqct
+*/
+
 /* FIXME: It would be nice to have open, append, etc,
    take cval O_ flags and pass them directly to kernel,
    but the definition of some flags varies by os.

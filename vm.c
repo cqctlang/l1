@@ -5200,7 +5200,7 @@ l1_put(VM *vm, Imm argc, Val *iargv, Val *rv)
 }
 
 static void
-l1_close(VM *vm, Imm argc, Val *argv, Val *rv)
+l1__close(VM *vm, Imm argc, Val *argv, Val *rv)
 {
 	Fd *fd;
 
@@ -7398,7 +7398,7 @@ mktopenv(void)
 
 	FN(asof);
 	FN(bsearch);
-	FN(close);
+	FN(_close);
 	FN(clcode);
 	FN(clref);
 	FN(compact);
