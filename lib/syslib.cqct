@@ -2,6 +2,10 @@
 @include <inet.cqct>
 @include <sys.cqct>
 
+@define _ioctl(fd,req,bufp) {
+	sys_ioctl(fd,req,bufp);
+}
+
 @define _munmap(addr, len) {
 	sys_munmap(addr ,len);
 

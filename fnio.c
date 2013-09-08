@@ -492,40 +492,6 @@ l1_access(VM *vm, Imm argc, Val *argv, Val *rv)
 }
 
 static void
-l1_ioctl(VM *vm, Imm argc, Val *argv, Val *rv)
-{
-	Fd *fd;
-	Cval *req, *bufp;
-	int r;
-	Str *bufs;
-	char *p;
-
-	if(argc != 3)
-		vmerr(vm, "wrong number of arguments to ioctl");
-	checkarg(vm, argv, 0, Qfd);
-	checkarg(vm, argv, 1, Qcval);
-	if(Vkind(argv[2]) != Qstr && Vkind(argv[2]) != Qcval)
-		vmerr(vm, "argument 3 to ioctl must be a cvalue or string");
-	fd = valfd(argv[0]);
-	req = valcval(argv[1]);
-	if(Vkind(argv[2]) == Qstr){
-		bufs = valstr(argv[2]);
-		p = strdata(bufs);
-	}else{
-		bufp = valcval(argv[2]);
-		p = (char*)(uptr)cvalu(bufp);
-	}
-	if(fd->flags&Fclosed)
-		vmerr(vm, "attempt to ioctl on closed file descriptor");
-	if(!issysfd(fd))
-		vmerr(vm, "file descriptor does not support ioctl");
-	r = xioctl(sysfdno(fd), (unsigned long)cvalu(req), p);
-	if(r == -1)
-		r = -errno;
-	*rv = mkvallitcval(Vint, r);
-}
-
-static void
 l1__ioctl(VM *vm, Imm argc, Val *argv, Val *rv)
 {
 	Cval *fd, *req, *bufp;
@@ -549,9 +515,10 @@ l1__ioctl(VM *vm, Imm argc, Val *argv, Val *rv)
 		p = (char*)(uptr)cvalu(bufp);
 	}
 
+	setlasterrno(0);
 	r = xioctl(cvalu(fd), (unsigned long)cvalu(req), p);
 	if(r == -1)
-		r = -errno;
+		setlasterrno(errno);	
 	*rv = mkvallitcval(Vint, r);
 }
 
@@ -681,7 +648,7 @@ l1__recvfd(VM *vm, Imm argc, Val *argv, Val *rv)
 	fd0 = valfd(argv[0]);
 	if(!issysfd(fd0))
 		vmerr(vm, "file descriptor cannot convey file descriptors");
-	fd = fd0->u.fn.fd;
+	fd = sysfdno(fd0);
 	memset(&msg, 0, sizeof(msg));
 	iv.iov_base = &byte;
 	iv.iov_len = sizeof(byte);
@@ -916,7 +883,6 @@ void
 fnio(Env env)
 {
 	FN(access);
-	FN(ioctl);
 	FN(_ioctl);
 	FN(issysfd);
 	FN(_mapfile);

@@ -272,6 +272,7 @@ l1_syscall(VM *vm, Imm argc, Val *argv, Val *rv)
 		cv = valcval(argv[i]);
 		xarg[i-1] = (unsigned long)cvalu(cv);
 	}
+	setlasterrno(0);
 	switch(argc){
 	case 1:
 		xrv = syscall(sysn);
@@ -300,6 +301,7 @@ l1_syscall(VM *vm, Imm argc, Val *argv, Val *rv)
 #if defined(__APPLE__) && defined(__MACH__)
         }
 #endif
+	setlasterrno(errno);
 	*rv = mkvallitcval(Vlong, (Imm)xrv);
 }
 

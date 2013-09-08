@@ -1,5 +1,6 @@
 @global
 	fdopen,
+	ioctl,
 	mapfile,      
 	open,
 	popen,
@@ -145,6 +146,26 @@ ions = @names c32le {
 	}else
 		rv = "";
 	return rv;
+}
+
+@define ioctl(fd,req,buf)
+{
+	@local rv;
+
+	if(!isfd(fd))
+		error("ioctl: argument 0 must be a fd");
+	if(!issysfd(fd))
+		error("ioctl: file descriptor does not support ioctl");
+	if(isclosed(fd))
+		error("ioctl: attempt to ioctl on closed file descriptor");
+
+	rv=_ioctl(sysfdno(fd),req,buf);
+	// this is how fnio.c ioctl() behaved
+	if(rv == -1) {
+		return -errno()[0];
+	} else {
+		return rv;
+	}
 }
 
 stdin = mksysfdfinal(0, ions`Fread, "(stdin)");
