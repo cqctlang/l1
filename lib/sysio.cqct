@@ -1,0 +1,208 @@
+/* native syscall replacements for system functions in l1 */
+@include <sys.cqct>
+
+// We now replace only one function in io.cqct -- close
+
+// bindings needed for io.cqct
+// _open,_popen,_sockpair,_socket,_tcpopen,_unixopen,_recvfd,_tcpaccept,_mapfile,_ioctl,_close
+
+@define _ioctl(fd,req,bufp) {
+	sys_ioctl(fd,req,bufp);
+}
+
+@define _munmap(addr, len) {
+	sys_munmap(addr ,len);
+
+	return nil;
+}
+
+@define _mapfile(filename, rest ...) {
+	@local fd,st,p,s,m,f,fm;
+
+	m = 0;
+	f = unix`MAP_PRIVATE;
+	if(length(rest) > 0) {
+		@local mode;
+
+		mode = rest[0];
+		if(!isstring(mode))
+			error("mode is not a string");
+
+		if(!isnil(strstr(mode,"p"))) f = unix`MAP_PRIVATE;
+		if(!isnil(strstr(mode,"s"))) f = unix`MAP_SHARED;
+
+		if(!isnil(strstr(mode,"r"))) m |= unix`PROT_READ;
+		if(!isnil(strstr(mode,"w"))) m |= unix`PROT_WRITE;
+		if(!isnil(strstr(mode,"x"))) m |= unix`PROT_EXEC;
+	} else {
+		m = unix`PROT_READ | unix`PROT_WRITE;
+	}
+
+	if( (f == unix`MAP_SHARED) && (m & unix`PROT_WRITE) )
+		if ( (m & unix`PROT_READ) || (m & unix`PROT_EXEC) )
+			fm = unix`O_RDWR;
+		else
+			fm = unix`O_WRONLY;
+	else if ( (m & unix`PROT_READ) || (m & unix`PROT_EXEC) )
+		fm = unix`O_RDONLY;
+	else
+		// a non-readable, non-executable, private mapping? why?
+		fm = unix`O_RDONLY;
+	
+	fd=sys_open(filename,fm);
+	if(0 > fd) {
+		error("cannot open %s",filename);
+	}
+
+	st = (struct unix`stat *)malloc(sizeof(struct unix`stat));
+	if(!st) {
+		sys_close(fd);
+		error("couldn't allocate stat buf");
+	}
+
+	if(0 > sys_fstat(fd,st)) {
+		sys_close(fd);
+		error("couldn't stat %s",filename);
+	} 
+
+	if(S_ISBLK(st)) {
+		@local sb,r;
+
+		sb=(uint64 *)malloc(8);
+		if(!sb) {
+			sys_close(fd);
+			error("malloc failure");
+		}
+		*sb=0;
+		if(looksym(unix,'BLKGETSIZE)) {
+			r=sys_ioctl(fd, unix`BLKGETSIZE, sb);
+			if(r) {
+				sys_close(fd);
+				error("couldn't determine size of block device %s", filename);
+			}
+		} else if(looksym(unix,'DKIOCGETBLOCKCOUNT)) {
+			r=sys_ioctl(fd, unix`DKIOCGETBLOCKCOUNT, sb);
+			if(r) {
+				sys_close(fd);
+				error("couldn't determine size of block device %s", filename);
+			}
+		}
+		s=*sb * 512;
+	} else {
+		s = st->st_size;
+	}
+
+	if (s == 0)
+	{
+		//empty file, length zero mapping
+		sys_close(fd);
+		return [ 0, 0];
+	}
+
+	p = sys_mmap(0, s, m, f, fd, 0);
+	if(p == -1) {
+		// we can try with noreserve on a platform that supports it
+		if(looksym(unix,'MAP_NORESERVE)) {
+			p = sys_mmap(0, s, m, unix`MAP_NORESERVE|f, fd, 0); 
+		}
+	}
+
+	sys_close(fd);
+	if(p == -1) {
+		error("could not map %s",filename);
+	}
+
+	return [p, s];
+}
+
+@define _open(file, mode) {
+	@local flags,oflags,fd,newmode,nfd;
+
+	if(!isstring(file)) 	error("open: filename is not a string");
+	if(!isstring(mode)) 		error("open: mode is not a string");
+	if(1 > strlen(mode)) 		error("open: mode cannot be empty");
+
+	flags = 0;
+	oflags = 0;
+
+	if(!isnil(strstr(mode,"r")))
+		flags |= 1;
+	if((!isnil(strstr(mode,"w"))) || (!isnil(strstr(mode,"a"))))
+		flags |= 2;
+	if(!isnil(strstr(mode,"w")))
+		oflags |= unix`O_CREAT|unix`O_TRUNC;
+	if((flags&1) && (flags&2))
+		oflags |= unix`O_RDWR;
+	else if(flags&1)
+		oflags |= unix`O_RDONLY;
+	else if(flags&2)                                                   
+		oflags |= unix`O_WRONLY;                 
+
+	fd=sys_open(file,oflags,0777);
+	if(0 > fd) {
+		return nil;
+	} 
+
+	if((flags&1) && (flags&2)) {
+		newmode="rw";
+	} else if(flags&1) {
+		newmode="r";
+	} else if(flags&2) {
+		newmode="w";
+	} else {
+		error("invalid mode");
+	}
+
+	nfd=fdopen(fd,newmode);
+
+	if(isnil(nfd))
+		return nil;
+
+	return nfd;
+}
+
+unlink = sys_unlink;
+
+/*
+@define seek(fd,pos,whence) {
+	@local sfd,r;
+
+	sfd=iohash[cons(fd,nil)];
+	if(!isnil(sfd)) {
+		r=sys_lseek(sfd,pos,whence); 
+	} else {
+		error("seek: seeking a cinquecento fd with no unix fd");
+	}
+
+	return r;
+}
+*/
+
+@define close(fd) {
+
+        if(!isfd(fd))
+                error("close: argument 0 must be a fd");
+        if(isclosed(fd))
+		return;
+
+        if(issysfd(fd)) {
+		sys_close(sysfdno(fd));
+		setclosed(fd);
+	} else {
+		_close(fd);
+	}
+}
+
+@global _socket;
+if(looksym(unix,'socket)) {
+	@define _socket(d,t,p) {
+		@local rv;
+
+        	rv=sys_socket(d,t,p);
+		if(rv == -1) {
+			error("FOOsocket: %s", errno()[1]);
+		}
+		
+		return rv;
+	}
+}
