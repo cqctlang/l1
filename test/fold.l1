@@ -1,0 +1,115 @@
+
+
+lst = [1,2,3,4,5,6,7];
+printf("%a\n",foldl(@lambda(x,y) { x+y; },0,lst));
+printf("%a\n",foldl(@lambda(x,y,z) { x+y+z; },0,lst,lst));
+printf("%a\n",foldl(@lambda(w,x,y,z) { w+x+y+z; },0,lst,lst,lst));
+
+v = apply(vector,lst);
+printf("%a\n",foldl(@lambda(x,y) { x+y; },0,v));
+printf("%a\n",foldl(@lambda(x,y,z) { x+y+z; },0,v,v));
+printf("%a\n",foldl(@lambda(w,x,y,z) { w+x+y+z; },0,v,v,v));
+
+printf("%a\n",foldl(@lambda(x,y,z) { x+y+z; },0,v,lst));
+printf("%a\n",foldl(@lambda(x,y,z) { x+y+z; },0,lst,v));
+
+t = [1:2, 3:4, 5:6];
+printf("%a\n",foldl(@lambda(x,y,z) { x+y+z; },0,t));
+
+stx = #[ #val(1), #val(2), #val(3) ];
+printf("%a\n",foldl(@lambda(x,y) { x+stxval(y); },0,stx));
+printf("%a\n",foldl(@lambda(x,y,z) { x+stxval(y)+stxval(z); },0,stx,stx));
+printf("%a\n",foldl(@lambda(w,x,y,z) { w+stxval(x)+stxval(y)+stxval(z); },
+                    0,stx,stx,stx));
+
+
+printf("%a\n",foldr(@lambda(x,y) { x+y; },0,lst));
+printf("%a\n",foldr(@lambda(x,y,z) { x+y+z; },0,lst,lst));
+printf("%a\n",foldr(@lambda(w,x,y,z) { w+x+y+z; },0,lst,lst,lst));
+
+printf("%a\n",foldr(@lambda(x,y) { x+y; },0,v));
+printf("%a\n",foldr(@lambda(x,y,z) { x+y+z; },0,v,v));
+printf("%a\n",foldr(@lambda(w,x,y,z) { w+x+y+z; },0,v,v,v));
+
+printf("%a\n",foldr(@lambda(x,y,z) { x+y+z; },0,v,lst));
+printf("%a\n",foldr(@lambda(x,y,z) { x+y+z; },0,lst,v));
+
+printf("%a\n",foldr(@lambda(x,y,z) { x+y+z; },0,t));
+
+printf("%a\n",foldr(@lambda(y,x) { x+stxval(y); },0,stx));
+printf("%a\n",foldr(@lambda(y,z,x) { x+stxval(y)+stxval(z); },0,stx,stx));
+printf("%a\n",foldr(@lambda(x,y,z,w) { w+stxval(x)+stxval(y)+stxval(z); },
+                    0,stx,stx,stx));
+
+
+// (portions of applyk reimplemented here to make the tests deterministic)
+@define happily_fail(thunk) {
+	@local olderr;
+
+	callcc(@lambda(k){
+		dynamicwind(
+			@lambda(){
+				olderr = errorhandler;
+				errorhandler = @lambda(msg) {
+					printf("happily failed with %s\n",msg);
+					k(nil);
+				};
+			},
+			thunk,
+			@lambda(){
+				errorhandler = olderr;          
+			});
+	});
+} 
+
+happily_fail(@lambda() {
+    foldr(@lambda(o,w,x,y,z) { 1; }, 0, [1: 1], [2 : 2]);
+});
+
+happily_fail(@lambda() {
+    foldr(@lambda(x,y) { 1; }, 0, #[ #val('a) ], [1]);
+});
+
+happily_fail(@lambda() {
+    foldr(@lambda(x,y) { 1; }, 0, #[ #val('a) ], #[]);
+});
+
+happily_fail(@lambda() {
+    foldr(@lambda(x,y) { 1; }, 0, [1,2,3], [1]);
+});
+
+happily_fail(@lambda() {
+    foldr(@lambda(x,y) { 1; }, 0, [1,2,3], vector(1));
+});
+
+happily_fail(@lambda() {
+    foldr(@lambda(x,y) { 1; }, 0, [1,2,3], vector(1,2,3), [1:2]);
+});
+
+
+happily_fail(@lambda() {
+    foldr(@lambda(o,w,x,y,z) { 1; }, 0, [1: 1], [2 : 2]);
+});
+
+happily_fail(@lambda() {
+    foldr(@lambda(x,y) { 1; }, 0, #[ #val('a) ], [1]);
+});
+
+happily_fail(@lambda() {
+    foldr(@lambda(x,y) { 1; }, 0, #[ #val('a) ], #[]);
+});
+
+happily_fail(@lambda() {
+    foldr(@lambda(x,y) { 1; }, 0, [1,2,3], [1]);
+});
+
+happily_fail(@lambda() {
+    foldr(@lambda(x,y) { 1; }, 0, [1,2,3], vector(1));
+});
+
+happily_fail(@lambda() {
+    foldr(@lambda(x,y) { 1; }, 0, [1,2,3], vector(1,2,3), [1:2]);
+});
+
+
+

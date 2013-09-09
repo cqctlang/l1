@@ -1,0 +1,6 @@
+happily failed with foreach can only be applied to a single table
+happily failed with foreach cannot combine other collections with syntax lists
+happily failed with syntax lists of unequal length provided to map
+happily failed with collections of unequal size passed to foreach
+happily failed with collections of unequal size passed to foreach
+happily failed with bad argument to foreach (argument 3)

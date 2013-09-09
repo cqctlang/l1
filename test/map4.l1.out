@@ -1,0 +1,6 @@
+happily failed with map can only be applied to a single table
+happily failed with map cannot combine other collections with syntax lists
+happily failed with syntax lists of unequal length provided to map
+happily failed with collections of unequal size passed to map
+happily failed with collections of unequal size passed to map
+happily failed with bad argument to map (argument 3)

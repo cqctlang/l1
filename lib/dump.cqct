@@ -6,7 +6,6 @@ dump.cqct provides code for printing out namespaces and the values associated
 with typed pointers. 
 */
 
-
 if (dump_defined == nil)
 {
 @global printtype, dumpns, objectstr;

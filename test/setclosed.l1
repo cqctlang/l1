@@ -1,0 +1,4 @@
+printf("before: %d\n",isclosed(stdin));
+setclosed(stdin);
+printf("after: %d\n",isclosed(stdin));
+

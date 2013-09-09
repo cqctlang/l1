@@ -1,0 +1,12 @@
+a=2;
+printf("%a\n", a);
+a <<= 31;
+printf("%a\n", a);
+printf("%a\n", sizeof(a));
+printf("%a\n", @typeof(a));
+printf("%a\n", a==0);
+a+=0;
+printf("%a\n", a);
+printf("%a\n", a==0);
+printf("%a\n", (unsigned int) 2 << 31);
+

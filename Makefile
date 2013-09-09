@@ -12,6 +12,7 @@ L1FUNS     =
 TARG       = l1
 V	   = @
 L1X        =
+PREFIX	:= /usr/public
 
 .DEFAULT_GOAL := all
 
@@ -155,6 +156,10 @@ archive:
 git.tar:
 	tar -C .. -cz l1 > ../l1.git.tar.gz
 
+rpm:
+	git archive --format=tar --prefix=l1/ HEAD | gzip -c > `rpmbuild -E '%{_topdir}' 2> /dev/null`/SOURCES/l1-3.11.tar.gz
+	rpmbuild -ba l1.spec
+
 # it is irritating that we reproduce demo dependencies here.
 DEMO=\
 	demo/forkexec.c\
@@ -169,6 +174,18 @@ doc/debug.html: doc/debug.src.html $(DEMO)
 
 testclean:
 	@$(RM) test/core test/core.* test/callgrind.out.* test/vgcore.* test/*.failed test/*.vgfailed
+
+install: $(TARG)
+	@mkdir -p $(PREFIX)/share/l1
+	@cp $(TARG) $(PREFIX)/share/l1
+	@cp -ap lib $(PREFIX)/share/l1
+	@mkdir -p $(PREFIX)/bin
+	@rm -f $(PREFIX)/bin/$(TARG)
+	@ln -s ../share/l1/$(TARG) $(PREFIX)/bin/$(TARG)
+# it breaks my heart to include this hack.
+# this is absolute to accomodate some local automounter
+# relative-link weirdness with per-arch bin directories
+	if readlink -f $(PREFIX)/bin/$(TARG) > /dev/null ; then /bin/true ; else rm -f $(PREFIX)/bin/$(TARG) ; ln -s $(PREFIX)/share/l1/$(TARG) $(PREFIX)/bin/$(TARG) ; fi
 
 clean: testclean
 	@$(MAKE) -s -C x/lib9 clean

@@ -1,0 +1,3 @@
+printf("stdin fd: %d\n",sysfdno(stdin));
+printf("stdout fd: %d\n",sysfdno(stdout));
+printf("stderr fd: %d\n",sysfdno(stderr));

@@ -1,4 +1,43 @@
 /* common control functions */
+@global map, foreach, filter, foldl, foldr;
+
+{
+
+
+@defloc $checkargs(fnnm,arg)
+{
+	@local i;
+	if (istable(arg[0])) {
+		if (length(arg)>1)
+			error("%s can only be applied to a single table",fnnm);
+
+	} else if (isstx(arg[0])) { 
+		if (stxkind(arg[0]) != 'elist && stxkind(arg[0]) != 'null) 
+			error("non-list stx passed with stx list to %s",fnnm);
+
+		for(i=1; i<length(arg); ++i) {
+			if(!isstx(arg[i]))
+				error("%s cannot combine other collections with syntax lists",
+					  fnnm);
+			if (stxkind(arg[i]) != 'elist && stxkind(arg[i]) != 'null) 
+				error("non-list stx passed with stx list to map",fnnm);
+		}
+
+	} else { //can only be lists or vectors.
+		@local m;
+		for(i=0; i<length(arg); ++i) {
+			if (islist(arg[i])) continue;
+			if (isvector(arg[i])) continue;
+			error("bad argument to %s (argument %d)", fnnm,i+1);
+		}
+		m = length(arg[0]);
+		for(i=0; i<length(arg); ++i) {
+			if (length(arg[i]) != m)
+				error("collections of unequal size passed to %s",fnnm);
+		}
+
+	}
+}
 
 @define map(fn, arg ...)
 {
@@ -9,15 +48,41 @@
 	if(length(arg) == 0)
 		error("wrong number of arguments to map");
 
-	// FIXME: check all args 
-	if(arg[0] == nil)
-		return [];
+	//treat nil arguments as empty lists
+	//FIXME this is undocumented and has been left in because certain
+	//regressions depend upon it. We should probably deprecate this feature.
+	for(i=0; i<length(arg); ++i)
+		if (arg[i] == nil) arg[i] = [];
+
+	$checkargs("map",arg);
+
+	if (islist(arg[0]) || isvector(arg[0])) {
+		// list or vector: exactly one
+		if(length(arg) == 1){
+			a = arg[0];
+			rv = [];
+			m = length(a);
+			for(i = 0; i < m; i++)
+				append(rv, fn(a[i]));
+			return rv;
+		}
+
+		// list or vector: more than one
+		n = length(arg[0]);
+		m = length(arg);
+		rv = [];
+		a = mklist(m);
+		for(j = 0; j < n; j++){
+			for(i = 0; i < m; i++)
+				a[i] = arg[i][j];
+			append(rv, apply(fn, a));
+		}
+		return rv;
+	}
 
 	// tables: exactly one, only
 	if(istable(arg[0])){
 		@local k, v;
-		if(length(arg) != 1)
-			error("bad combination of arguments to map");
 		rv = [];
 		k = tabkeys(arg[0]);
 		v = tabvals(arg[0]);
@@ -27,47 +92,18 @@
 		return rv;
 	}
 
-	// syntax: exactly one, only (FIXME)
-	if(isstx(arg[0])){
-		@local e;
-		e = arg[0];
-		if(stxkind(e) != 'elist && stxkind(e) != 'null)
-			error("map on non-elist syntax argument");
-		rv = #null;
-		while(e != #null){
-			rv = Zcons(fn(e[0]), rv);
-			e = e[1];
- 		}
-		return Zreverse(rv);
+	//stx list
+	rv = #null;
+	while(!ismember(arg,#null)) {
+		rv = Zcons( apply(fn,map(Zcar,arg)), rv);
+		arg = map(Zcdr,arg);
 	}
+	foreach(@lambda(v) { 
+		if (v != #null)
+			error("syntax lists of unequal length provided to map");
+	},arg);
+	return Zreverse(rv);
 
-	// list or vector: exactly one
-	if(length(arg) == 1){
-		a = arg[0];
-		if(!islist(a) && !isvector(a))
-			error("wrong type of container argument to map");
-		rv = [];
-		m = length(a);
-		for(i = 0; i < m; i++)
-			append(rv, fn(a[i]));
-		return rv;
-	}
-
-	// list or vector: more than one
-	m = length(arg);
-	for(i = 0; i < m; i++)
-		if(!islist(arg[i]) && !isvector(arg[i]))
-			error("argument %d to map must be a list or vector",
-			      i+2);
-	rv = [];
-	n = length(arg[0]);
-	a = mklist(m);
-	for(j = 0; j < n; j++){
-		for(i = 0; i < m; i++)
-			a[i] = arg[i][j];
-		append(rv, apply(fn, a));
-	}
-	return rv;
 }
 
 @define foreach(fn, arg ...)
@@ -79,15 +115,41 @@
 	if(length(arg) == 0)
 		error("wrong number of arguments to foreach");
 
-	// FIXME: check all args 
-	if(arg[0] == nil)
-		return;
+	//treat nil arguments as empty lists
+	//FIXME this is undocumented and has been left in because certain
+	//regressions depend upon it. We should probably deprecate this feature.
+	for(i=0; i<length(arg); ++i)
+		if (arg[i] == nil) arg[i] = [];
+
+	$checkargs("foreach",arg);
+
+	//list is most likely, so it comes first.
+
+	if (islist(arg[0]) || isvector(arg[0])) {
+		// list or vector: exactly one
+		if(length(arg) == 1){
+			a = arg[0];
+			m = length(a);
+			for(i = 0; i < m; i++)
+				fn(a[i]);
+			return nil;
+		}
+
+		// list or vector: more than one
+		m = length(arg);
+		n = length(arg[0]);
+		a = mklist(m);
+		for(j = 0; j < n; j++){
+			for(i = 0; i < m; i++)
+				a[i] = arg[i][j];
+			apply(fn, a);
+		}
+		return nil;
+	}
 
 	// tables: exactly one, only
 	if(istable(arg[0])){
 		@local k, v;
-		if(length(arg) != 1)
-			error("bad combination of arguments to foreach");
 		k = tabkeys(arg[0]);
 		v = tabvals(arg[0]);
 		m = length(k);
@@ -96,53 +158,153 @@
 		return nil;
 	}
 
-	// syntax: exactly one, only (FIXME)
-	if(isstx(arg[0])){
-		@local e;
-		e = arg[0];
-		if(stxkind(e) != 'elist && stxkind(e) != 'null)
-			error("map on non-elist syntax argument");
-		while(stxkind(e) != 'null){
-			fn(e[0]);
-			e = e[1];
-		}
-		return nil;
+	while(!ismember(arg,#null)) {
+		apply(fn,map(Zcar,arg));
+		arg = map(Zcdr,arg);
 	}
+	foreach(@lambda(v) { 
+		if (v != #null)
+			error("syntax lists of unequal length provided to map");
+	},arg);
 
-	// list or vector: exactly one
-	if(length(arg) == 1){
-		a = arg[0];
-		if(!islist(a) && !isvector(a))
-			error("wrong type of container argument to foreach");
-		m = length(a);
-		for(i = 0; i < m; i++)
-			fn(a[i]);
-		return nil;
-	}
-
-	// list or vector: more than one
-	m = length(arg);
-	for(i = 0; i < m; i++)
-		if(!islist(arg[i]) && !isvector(arg[i]))
-			error("argument %d to foreach must be a list or vector",
-			      i+2);
-	n = length(arg[0]);
-	a = mklist(m);
-	for(j = 0; j < n; j++){
-		for(i = 0; i < m; i++)
-			a[i] = arg[i][j];
-		apply(fn, a);
-	}
 	return nil;
 }
 
-/* FIXME: extend to tables and to sets of lists/vectors */
-@define filter(fn, l)
+@define filter(fn, arg ...)
 {
 	@local rv;
-	rv = [];
-	if(l == nil)
+
+	if(!isprocedure(fn))
+		error("argument 1 to foreach must be a procedure");
+	if(length(arg) == 0)
+		error("wrong number of arguments to foreach");
+
+	//list is most likely, so it comes first.
+
+	if(islist(arg[0]) || isvector(arg[0])) {
+		rv = [];
+		if(length(arg) == 1) 
+			foreach(@lambda(val){ if(fn(val)) append(rv, val); },arg[0]);
+		else
+			apply(foreach,
+				  @lambda(vals...){ if(apply(fn,vals)) append(rv, vals); },
+				  arg);
 		return rv;
-	foreach(@lambda(e){ if(fn(e)) append(rv, e); }, l);
+	}
+
+	if(istable(arg[0])) {
+		rv = [:];
+		if(length(arg) > 1) 
+			error("filter only accepts one table");
+		foreach(@lambda(k,v) { if(fn(k,v)) rv[k] = v; }, arg[0]);
+		return rv;
+	}
+
+	//stx
+	rv = Znull();
+	apply(foreach,
+			length(arg) == 1 ? 
+			  //use this lambda when there is only one arg
+			  @lambda(val){ 
+				  if(fn(val)) rv = Zcons(val,rv); 
+			  }
+			  :
+			  //use this lambda when there is more than one arg
+			  @lambda(vals...){ 
+				  if(apply(fn,vals)) rv = Zcons(apply(Zlist,vals),rv); 
+			  },
+		  arg);
 	return rv;
+
+}
+
+//api taken from: http://www.scheme.com/csug7/control.html
+@define foldl(fn,obj,arg ...) {
+
+	if(!isprocedure(fn))
+		error("argument 1 to foldl must be a procedure");
+	if(length(arg) == 0)
+		error("wrong number of arguments to foldl");
+
+	$checkargs("foldl",arg);
+
+	if(islist(arg[0]) || isvector(arg[0])) {
+		@local i, len;
+		len = length(arg[0]);
+		if (length(arg) == 1) {
+			@local lst;
+			lst = arg[0];
+			for(i=0; i<len; ++i) {
+				obj = fn(obj,lst[i]);
+			}
+		} else
+			for(i=0; i<len; ++i) {
+				obj = apply(fn,obj,map(@lambda(x) { cntrget(x,i); },arg));
+			}
+		return obj;
+	}
+
+	if (istable(arg[0])) {
+		foreach(@lambda(k,v) {
+			obj = fn(obj,k,v);
+		},arg[0]);
+		return obj;
+	}
+
+	//syntax list
+	while (!ismember(arg,#null)) {
+		obj = apply(fn,obj,map(Zcar,arg));
+		arg = map(Zcdr,arg);
+	}
+	return obj;
+
+}
+
+@define foldr(fn,obj,arg ...) {
+	@local lst;
+
+	if(!isprocedure(fn))
+		error("argument 1 to foldr must be a procedure");
+	if(length(arg) == 0)
+		error("wrong number of arguments to foldr");
+
+	$checkargs("foldr",arg);
+
+	if(islist(arg[0]) || isvector(arg[0])) {
+		@local i, len;
+		len = (long long)length(arg[0]);
+		if (length(arg) == 1) {
+			lst = arg[0];
+			for(i=len-1; i>=0; i--) {
+				obj = fn(lst[i],obj);
+			}
+		} else
+			for(i=len-1; i>=0; --i) {
+				lst = map(@lambda(x) { cntrget(x,i); },arg);
+				append(lst,obj);
+				obj = apply(fn,lst);
+			}
+		return obj;
+	}
+
+	if (istable(arg[0])) {
+		foreach(@lambda(k,v) {
+			obj = fn(k,v,obj);
+		},arg[0]);
+		return obj;
+	}
+
+	//syntax list
+	arg = map(Zreverse,arg);
+	while (!ismember(arg,#null)) {
+		lst = map(Zcar,arg);
+		append(lst,obj);
+		obj = apply(fn,lst);
+		arg = map(Zcdr,arg);
+	}
+	return obj;
+
+}
+
+
 }

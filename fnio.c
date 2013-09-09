@@ -284,6 +284,39 @@ l1_mksysfd(VM *vm, Imm argc, Val *argv, Val *rv)
 }
 
 static void
+l1_issysfd(VM *vm, Imm argc, Val *argv, Val *rv)
+{
+	Fd *fd;
+
+	if(argc != 1)
+		vmerr(vm, "wrong number of arguments to issysfd");
+	checkarg(vm, argv, 0, Qfd);
+	fd = valfd(argv[0]);
+
+	if(issysfd(fd))
+		*rv = mkvalcval2(cval1);
+	else
+		*rv = mkvalcval2(cval0);
+}
+
+static void
+l1_sysfdno(VM *vm, Imm argc, Val *argv, Val *rv)
+{
+	Fd *fd;
+
+	if(argc != 1)
+		vmerr(vm, "wrong number of arguments to sysfdno");
+	checkarg(vm, argv, 0, Qfd);
+	fd = valfd(argv[0]);
+
+	if(!issysfd(fd))
+		vmerr(vm, "file descriptor is not a sysfd");
+
+	
+	*rv = mkvallitcval(Vint, sysfdno(fd));
+}
+
+static void
 l1_stat(VM *vm, Imm argc, Val *argv, Val *rv)
 {
 	struct stat st;
@@ -459,21 +492,20 @@ l1_access(VM *vm, Imm argc, Val *argv, Val *rv)
 }
 
 static void
-l1_ioctl(VM *vm, Imm argc, Val *argv, Val *rv)
+l1__ioctl(VM *vm, Imm argc, Val *argv, Val *rv)
 {
-	Fd *fd;
-	Cval *req, *bufp;
+	Cval *fd, *req, *bufp;
 	int r;
 	Str *bufs;
 	char *p;
 
 	if(argc != 3)
 		vmerr(vm, "wrong number of arguments to ioctl");
-	checkarg(vm, argv, 0, Qfd);
+	checkarg(vm, argv, 0, Qcval);
 	checkarg(vm, argv, 1, Qcval);
 	if(Vkind(argv[2]) != Qstr && Vkind(argv[2]) != Qcval)
 		vmerr(vm, "argument 3 to ioctl must be a cvalue or string");
-	fd = valfd(argv[0]);
+	fd = valcval(argv[0]);
 	req = valcval(argv[1]);
 	if(Vkind(argv[2]) == Qstr){
 		bufs = valstr(argv[2]);
@@ -482,13 +514,11 @@ l1_ioctl(VM *vm, Imm argc, Val *argv, Val *rv)
 		bufp = valcval(argv[2]);
 		p = (char*)(uptr)cvalu(bufp);
 	}
-	if(fd->flags&Fclosed)
-		vmerr(vm, "attempt to ioctl on closed file descriptor");
-	if(!issysfd(fd))
-		vmerr(vm, "file descriptor does not support ioctl");
-	r = xioctl(sysfdno(fd), (unsigned long)cvalu(req), p);
+
+	setlasterrno(0);
+	r = xioctl(cvalu(fd), (unsigned long)cvalu(req), p);
 	if(r == -1)
-		r = -errno;
+		setlasterrno(errno);	
 	*rv = mkvallitcval(Vint, r);
 }
 
@@ -598,6 +628,46 @@ l1_write(VM *vm, Imm argc, Val *argv, Val *rv)
 	}else
 		ccall(vm, fd->u.cl.write, argc-1, argv+1);
 	/* return nil */
+}
+
+static void
+l1__recvfd(VM *vm, Imm argc, Val *argv, Val *rv)
+{
+	int rfd;
+	int fd;
+	Fd *fd0;
+	struct cmsghdr *cmsg;
+	struct msghdr msg;
+	struct iovec iv;
+	unsigned char byte;
+	char buf[CMSG_SPACE(sizeof(rfd))];
+
+	if(argc != 1)
+		vmerr(vm, "wrong number of arguments to recvfd");
+	checkarg(vm, argv, 0, Qfd);
+	fd0 = valfd(argv[0]);
+	if(!issysfd(fd0))
+		vmerr(vm, "file descriptor cannot convey file descriptors");
+	fd = sysfdno(fd0);
+	memset(&msg, 0, sizeof(msg));
+	iv.iov_base = &byte;
+	iv.iov_len = sizeof(byte);
+	msg.msg_iov = &iv;
+	msg.msg_iovlen = 1;
+	msg.msg_control = buf;
+	msg.msg_controllen = sizeof(buf);
+	if(0 > recvmsg(fd, &msg, 0)){
+		setlasterrno(errno);
+		return;
+	}
+	cmsg = CMSG_FIRSTHDR(&msg);
+	if(cmsg == 0
+	   || cmsg->cmsg_level != SOL_SOCKET
+	   || cmsg->cmsg_type != SCM_RIGHTS
+	   || cmsg->cmsg_len != CMSG_LEN(sizeof(rfd)))
+		vmerr(vm, "no file descriptor to be received");
+	memcpy(&rfd, CMSG_DATA(cmsg), sizeof(rfd));
+	*rv = mkvallitcval(Vint, rfd);	
 }
 
 static void
@@ -714,6 +784,26 @@ setfdsout(VM *vm, List *il, fd_set *f, List *ol)
 }
 
 static void
+l1__socket(VM *vm, Imm argc, Val *argv, Val *rv)
+{
+	int fd;
+	Cval *dom, *type, *prot;
+
+	if(argc != 3)
+		vmerr(vm, "wrong number of arguments to socket");
+	checkarg(vm, argv, 0, Qcval);
+	checkarg(vm, argv, 1, Qcval);
+	checkarg(vm, argv, 2, Qcval);
+	dom = valcval(argv[0]);
+	type = valcval(argv[1]);
+	prot = valcval(argv[2]);
+	fd = socket((int)cvalu(dom), (int)cvalu(type), (int)cvalu(prot));
+	if(0 > fd)
+		vmerr(vm, "socket: %s", strerror(errno));
+	*rv = mkvallitcval(Vint, fd);
+}
+
+static void
 l1__sockpair(VM *vm, Imm argc, Val *argv, Val *rv)
 {
 	int fd[2];
@@ -793,16 +883,20 @@ void
 fnio(Env env)
 {
 	FN(access);
-	FN(ioctl);
+	FN(_ioctl);
+	FN(issysfd);
 	FN(_mapfile);
 	FN(mksysfd);
 	FN(_munmap);
 	FN(_open);
 	FN(_popen);
 	FN(read);
+	FN(_recvfd);
 	FN(seek);
 	FN(select);
+	FN(_socket);
 	FN(_sockpair);
 	FN(stat);
+	FN(sysfdno);
 	FN(write);
 }

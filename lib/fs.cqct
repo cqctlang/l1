@@ -50,3 +50,30 @@
 
 	return files;
 }
+
+@define which(cmd) {
+	@local p,x,l,c;
+
+	if(!length(cmd))
+		return nil;
+
+	if((cmd[0]=='/') || (strstr(cmd,"/")!=nil)) {
+		if(access(cmd,"x"))
+			return cmd;
+		else
+			return nil;
+	}
+
+	p=getenv("PATH");
+	p=split(p,":");
+	l=length(p);
+	for(x=0;x<l;x++) {
+		if(!length(p[x]))
+			continue;
+
+		c=p[x]+"/"+cmd;
+		if(access(c,"x"))
+			return c;
+	}
+	return nil;
+}
