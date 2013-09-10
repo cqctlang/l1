@@ -15,7 +15,10 @@
 	tcplisten,
 	tcpopen,
 	unixopen
-;	
+;
+
+// import
+@global finalize;
 
 {
 @local ions;
@@ -31,6 +34,7 @@ ions = @names c32le {
 @defloc mksysfdfinal(arg ...)
 {
 	@local rv;
+
 	rv = apply(mksysfd, arg);
 	finalize(rv, close);
 	return rv;
@@ -137,13 +141,49 @@ ions = @names c32le {
 	return mksysfdfinal(fd, ions`Fread|ions`Fwrite);
 }
 
-@define mapfile(arg ...)
+@define mapfile(file, arg ...)
 {
-	@local addr, len, rv;
-	[addr, len] = apply(_mapfile, arg);
+	@local addr, len, rv, fd, mode, fmode;
+
+	if(length(arg) > 0) 
+		mode = arg[1];
+	else
+		mode = "rwp";
+
+	if(strstr(mode,"p") != nil) {
+		if(strstr(mode,"s") != nil)
+			error("mapfile private and shared are exclusive");
+	} else {
+		if(strstr(mode,"s") == nil)
+			mode += "p";	
+	} 
+
+	fmode = "";
+	if(strstr(mode,"r") != nil) {
+		fmode = "r";
+	}
+	if(strstr(mode,"w") != nil) {
+		if(strstr(mode,"s") != nil)
+			fmode += "w";
+	}
+
+	fd = _open(file, fmode);
+	if(isnil(fd))
+		return nil;
+
+	fd = mksysfd(fd, mode2flags(fmode), file);
+
+	rv = apply(_mapfd, fd, arg);
+	close(fd);
+
+	if(!rv)
+		return nil;
+
+	[addr, len] = rv;
 	if(len){
 		rv = mkstrm(addr, len);
-		finalize(rv, @lambda(x){ _munmap(addr, len); });
+		finalize(rv, @lambda(x){ 
+			_munmap(addr, len); });
 	}else
 		rv = "";
 	return rv;
@@ -169,9 +209,12 @@ ions = @names c32le {
 	}
 }
 
-@define close(fd,req,buf)
+@define close(fd)
 {
-	_close(fd,req,buf);
+	if(!isfd(fd))
+		error("close: argument 0 must be a fd");
+
+	_close(fd);
 }
 
 

@@ -435,6 +435,76 @@ out:
 }
 
 static void
+l1__mapfd(VM *vm, Imm argc, Val *argv, Val *rv)
+{
+	Fd *fd0;
+	int fd;
+	List *l;
+	char *p, *f;
+	struct stat st;
+	int prot, flags;
+
+	if(argc != 1 && argc != 2)
+		vmerr(vm, "wrong number of arguments to _mapfd");
+	checkarg(vm, argv, 0, Qfd);
+	f = 0;
+	if(argc == 2){
+		checkarg(vm, argv, 1, Qstr);
+		f = str2cstr(valstr(argv[1]));
+	}
+	fd0 = valfd(argv[0]);
+	if(fd0->flags&Fclosed)
+		vmerr(vm, "attempt to map a closed file descriptor");
+	if(!issysfd(fd0))
+		vmerr(vm, "file descriptor cannot be mapped");
+	fd = sysfdno(fd0);
+	flags = MAP_PRIVATE;
+	prot = 0;
+	if(f){
+		if(strchr(f, 'p'))
+			flags = MAP_PRIVATE; /* default */
+		if(strchr(f, 's'))
+			flags = MAP_SHARED;
+
+		if(strchr(f, 'r')){
+			prot |= PROT_READ;
+			if((fd0->flags&Fread) == 0)
+				vmerr(vm, "attempt to read map non-readable file descriptor");
+		}
+		if(strchr(f, 'w')){
+			prot |= PROT_WRITE;
+			if(flags == MAP_SHARED)
+				if((fd0->flags&Fwrite) == 0)
+					vmerr(vm, "attempt to write map non-writeable file descriptor");
+		}
+		if(strchr(f, 'x'))
+			prot |= PROT_EXEC;
+
+		efree(f);
+	}else{
+		if((fd0->flags&Fread) != 0)
+			prot |= PROT_READ;
+		if((fd0->flags&Fwrite) != 0)
+			prot |= PROT_WRITE;
+	}
+	flags |= MAP_NORESERVE;
+	if(0 > fstat(fd, &st)){
+		vmerr(vm, "cannot stat fd: %s",
+		      strerror(errno));
+	}
+	if(st.st_size == 0){
+		p = 0;
+		goto out;
+	}
+	p = mmap(0, st.st_size, prot, flags, fd, 0);
+out:
+	l = mklist();
+	_listappend(l, mkvallitcval(Vptr, (uptr)p));
+	_listappend(l, mkvallitcval(Vuvlong, st.st_size));
+	*rv = mkvallist(l);
+}
+
+static void
 l1__munmap(VM *vm, Imm argc, Val *argv, Val *rv)
 {
 	void *p;
@@ -890,6 +960,7 @@ fnio(Env env)
 	FN(access);
 	FN(_ioctl);
 	FN(issysfd);
+	FN(_mapfd);
 	FN(_mapfile);
 	FN(mksysfd);
 	FN(_munmap);
