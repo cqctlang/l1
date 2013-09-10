@@ -350,91 +350,6 @@ l1_stat(VM *vm, Imm argc, Val *argv, Val *rv)
 }
 
 static void
-l1__mapfile(VM *vm, Imm argc, Val *argv, Val *rv)
-{
-	int fd;
-	Str *names;
-	List *l;
-	char *p, *name, *f;
-	struct stat st;
-	int prot, omode, flags;
-
-	if(argc != 1 && argc != 2)
-		vmerr(vm, "wrong number of arguments to _mapfile");
-	checkarg(vm, argv, 0, Qstr);
-	f = 0;
-	if(argc == 2){
-		checkarg(vm, argv, 1, Qstr);
-		f = str2cstr(valstr(argv[1]));
-	}
-	names = valstr(argv[0]);
-	name = str2cstr(names);
-	flags = MAP_PRIVATE;
-	prot = 0;
-	omode = 0;
-	if(f){
-		if(strchr(f, 'p'))
-			flags = MAP_PRIVATE; /* default */
-		if(strchr(f, 's'))
-			flags = MAP_SHARED;
-
-		if(strchr(f, 'r')){
-			prot |= PROT_READ;
-			omode |= Fread;
-		}
-		if(strchr(f, 'w')){
-			prot |= PROT_WRITE;
-			if(flags == MAP_SHARED)
-				omode |= Fwrite;
-		}
-		if(strchr(f, 'x'))
-			prot |= PROT_EXEC;
-
-		/* convert to open mode */
-		if((omode&Fread) && (omode&Fwrite))
-			omode = O_RDWR;
-		else if(omode&Fread)
-			omode = O_RDONLY;
-		else if(omode&Fwrite)
-			omode = O_WRONLY;
-
-		efree(f);
-	}else{
-		omode = O_RDONLY;
-		prot |= PROT_READ|PROT_WRITE;
-	}
-	flags |= MAP_NORESERVE;
-	fd = open(name, omode);
-	efree(name);
-	if(0 > fd)
-		vmerr(vm, "cannot open %.*s: %s",
-		      (int)names->len, strdata(names),
-		      strerror(errno));
-	if(0 > fstat(fd, &st)){
-		close(fd);
-		vmerr(vm, "cannot open %.*s: %s",
-		      (int)names->len, strdata(names),
-		      strerror(errno));
-	}
-	if(st.st_size == 0){
-		close(fd);
-		p = 0;
-		goto out;
-	}
-	p = mmap(0, st.st_size, prot, flags, fd, 0);
-	close(fd);
-	if(p == MAP_FAILED)
-		vmerr(vm, "cannot open %.*s: %s",
-		      (int)names->len, strdata(names),
-		      strerror(errno));
-out:
-	l = mklist();
-	_listappend(l, mkvallitcval(Vptr, (uptr)p));
-	_listappend(l, mkvallitcval(Vuvlong, st.st_size));
-	*rv = mkvallist(l);
-}
-
-static void
 l1__mapfd(VM *vm, Imm argc, Val *argv, Val *rv)
 {
 	Fd *fd0;
@@ -961,7 +876,6 @@ fnio(Env env)
 	FN(_ioctl);
 	FN(issysfd);
 	FN(_mapfd);
-	FN(_mapfile);
 	FN(mksysfd);
 	FN(_munmap);
 	FN(_open);
