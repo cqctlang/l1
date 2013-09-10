@@ -1,10 +1,13 @@
 @global
 	fdopen,
+	fprintf,
 	ioctl,
 	mapfile,      
 	open,
 	close,
 	popen,
+	print,
+	printf,
 	recvfd,
 	socket,
 	sockpair,
@@ -53,6 +56,22 @@ ions = @names c32le {
 	return flags;
 }
 
+@define printf(fmt, rest ...) {
+	@local r;
+
+	r=apply(sprintfa, fmt, rest);
+
+	write(stdout,r);
+}
+
+@define fprintf(fd, fmt, rest ...) {
+	@local r;
+
+	r=apply(sprintfa, fmt, rest);
+
+	write(fd,r);
+}
+
 @define open(file, mode)
 {
 	@local fd;
@@ -76,6 +95,11 @@ ions = @names c32le {
 			/* FIXME: don't be overly permissive */
 			mksysfdfinal(fd, ions`Fread|ions`Fwrite);
 		}, fds);
+}
+
+@define print(val,rest ...) // remove from language. provided for test suite
+{
+	printf("%a\n",val);
 }
 
 @define sockpair()
