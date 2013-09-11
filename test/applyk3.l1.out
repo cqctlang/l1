@@ -1,7 +1,3 @@
-error: wrong type to %s conversion
-	#0                sprintfa	(builtin function)
-	#1                  printf	(/.ccs/u02/dsridge/projects/l1/lib/io.cqct:62)
-	#2                   entry	(applyk3.l1:14)
-in fail 1
+in fail 1:wrong type to %s conversion
 1
 in success! 1

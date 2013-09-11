@@ -109,8 +109,9 @@ if (library_defined == nil)
 
             compiled = applyk(compile,
                 @lambda(r) { r; },
-                @lambda() {
-                    err("could not load library %a",lib);
+                @lambda(msg) {
+		    callcc(@lambda(k) { printstack(continuationstack(k)); });
+                    err("could not load library %a: %s",lib,msg);
                 }, [parsed]);
 
             if (compiled == nil)
@@ -118,8 +119,9 @@ if (library_defined == nil)
 
             applyk(compiled,
                 @lambda(r) { r; },
-                @lambda() {
-                    err("could not load library %a",lib);
+                @lambda(msg) {
+		    callcc(@lambda(k) { printstack(continuationstack(k)); });
+                    err("could not load library %a: %s",lib,msg);
                 }, []);
 
             __library_exports[lib].loading = 0;

@@ -1,28 +1,30 @@
 
 
 evalk("@with_imports(a()*b) { ; }",
-    @lambda(r) {r;},
-    @lambda() {});
+	@lambda(r) {r;},
+	@lambda(msg) {});
 
 evalk("@with_imports(ab.b.c) { ; }",
-    @lambda(r) {r;},
-    @lambda() {});
+	@lambda(r) {r;},
+	@lambda(msg) {});
 
 evalk("@with_imports( (f, ab.b.c) ) { ; }",
-    @lambda(r) {r;},
-    @lambda() {});
+	@lambda(r) {r;},
+	@lambda(msg) {});
 
 evalk("@with_imports( (f.a, ab.b) ) { ; }",
-    @lambda(r) {r;},
-    @lambda() {});
+	@lambda(r) {r;},
+	@lambda(msg) {});
 
 @library(test) {};
 
 evalk("@with_imports( (f, test.f) ) { ; }",
-    @lambda(r) {r;},
-    @lambda() {});
+	@lambda(r) {r;},
+	@lambda(msg) {});
 
 evalk("@with_imports( (t, test) ) { t.t(); }",
-    @lambda(r) {r;},
-    @lambda() {});
+	@lambda(r) {r;},
+	@lambda(msg) {
+		printf("caught error: %s\n",msg);
+	});
 

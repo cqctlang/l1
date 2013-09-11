@@ -1,6 +1,1 @@
-error: wrong type to %s conversion
-	#0                sprintfa	(builtin function)
-	#1                  printf	(/.ccs/u02/dsridge/projects/l1/lib/io.cqct:62)
-	#2                   entry	(applyk2.l1:4)
-error: throw
-	#0                   entry	(applyk2.l1:4)
+error inside the failure branch works: wrong number of arguments to anon (expects 0, passed 1)

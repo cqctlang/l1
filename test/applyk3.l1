@@ -4,7 +4,7 @@ a = 1;
 
 applyk(dynamicwind,
  @lambda(r) { printf("in success! %a\n",a); },
- @lambda() { printf("in fail %a\n",a); },
+ @lambda(msg) { printf("in fail %a:%s\n",a,msg); },
  [@lambda() {
    ++a;
  },
@@ -17,7 +17,7 @@ printf("%a\n", a);
 
 applyk(dynamicwind,
  @lambda(r) { printf("in success! %a\n",a); },
- @lambda() { printf("in fail %a\n",a); },
+ @lambda(msg) { printf("in fail %a:%s\n",a,msg); },
  [@lambda() {
    ++a;
  },

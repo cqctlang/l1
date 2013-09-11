@@ -72,7 +72,7 @@ arglib2.printargs();
   meme.fn1();
   applyk(@lambda() { meme.fn5(); }, 
          @lambda(ret) { printf("success\n"); },
-         @lambda() { printf("expected error found\n"); },
+         @lambda(msg) { printf("expected error found: %s\n",msg); },
          []);
 }
 
