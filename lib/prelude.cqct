@@ -8,5 +8,6 @@
 @include <malloc.cqct>
 @include <util.cqct>
 @include <validate.cqct>
+@include <profile.cqct>
 @include <rand.cqct>
 @include <library.cqct>
