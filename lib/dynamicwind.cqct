@@ -92,9 +92,7 @@
 		@defloc err(msg)
 		{
 			callcc(@lambda(k){
-					printf("error: %s\n", msg);
-					printstack(continuationstack(k));
-					done(fail);
+					done(@lambda() { fail(msg); });
 				});
 		}
 

@@ -1,6 +1,3 @@
-error: wrong type to %s conversion
-	#0                  printf	(builtin function)
-	#1                   entry	(applyk3.l1:14)
-in fail 1
+in fail 1:wrong type to %s conversion
 1
 in success! 1

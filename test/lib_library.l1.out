@@ -34,10 +34,7 @@ Running sublib fn1
 Running sublib fn1
 Running sublib fn1000
 Running sublib fn1
-error: attempt to call non-procedure
-	#0                    anon	(lib_library.l1:73)
-	#1                   entry	(lib_library.l1:76)
-expected error found
+expected error found: attempt to call non-procedure
 Testing lone object import
 Running sublib fn1
 in lib1

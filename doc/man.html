@@ -1421,10 +1421,9 @@ The function <span class="arg">fn</span>
 is applied to the arguments <span class="arg">arg ... list</span>
 in the same manner as <span class="id"><a href="#fn:apply">apply</a></span>.
 If the application causes an error to be raised,
-the same error message and stack trace that normally would be printed
-are printed, 
 then evaluation continues by calling the function
-<span class="arg">fail</span> with no arguments.
+<span class="arg">fail</span> with a single argument. This argument
+is a descriptive string -- typically produced by <a href="#fn:error">error</a>.
 Otherwise, the function <span class="arg">succ</span>
 is called with the result of the application as its
 single argument.
