@@ -1,0 +1,40 @@
+
+@global profiles;
+profiles = [:];
+
+@defstx @profile(name) body {
+
+	@global gsym,ssym;
+
+	gsym=gensym();
+	ssym=gensym();
+
+	compile(#`{
+		@global #,(ssym);
+
+		{
+			@local t,n;
+			n = #,(name);
+			t = profiles[n];
+			if(!t)
+				profiles[n] = [0, // count
+					       0, // time
+					       0, // expansion sites
+					      ];
+			else
+				profiles[n][2]++;
+		}
+	})();
+
+	return #`{
+		#,(ssym)=gettimeofday();
+		#,(body);
+		{
+			@local t;
+	
+			t = profiles[#,(name)];
+			t[0]++;
+			t[1] += gettimeofday()-#,(ssym);
+		}
+	};
+}

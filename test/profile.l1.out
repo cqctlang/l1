@@ -1,0 +1,6 @@
+profiles:
+"foo": 0
+profiles:
+"foo": 1
+profiles:
+"foo": 1001

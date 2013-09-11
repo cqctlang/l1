@@ -1,0 +1,32 @@
+
+@global c;
+c=0;
+
+foo = @lambda() {
+	@profile("foo") {
+		c++;
+	}
+};
+
+printf("profiles:\n");
+foreach(@lambda(k) {
+	printf("%a: %a\n",k,profiles[k][0]);	
+},tabkeys(profiles));
+
+foo();
+
+printf("profiles:\n");
+foreach(@lambda(k) {
+	printf("%a: %d\n",k,profiles[k][0]);	
+},tabkeys(profiles));
+
+@global x;
+for(x=0;x<1000;x++) {
+	foo();
+}
+
+printf("profiles:\n");
+foreach(@lambda(k) {
+	printf("%a: %d\n",k,profiles[k][0]);	
+},tabkeys(profiles));
+
