@@ -1,6 +1,11 @@
 
-@global profiles;
-profiles = [:];
+
+@defstx @init_profile() {
+	@global profiles;
+	profiles = [:];
+	return #[];
+}
+@init_profile();
 
 @defstx @profile(name) body {
 
