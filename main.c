@@ -20,16 +20,18 @@ enum
 static unsigned char opt[256];
 static char *argv0;
 
+// bootmain.cqct will furnish a more verbose usage statement
 static void
 usage()
 {
-	fprintf(stderr, "usage: %s [flags] [ <script> [ arg ... ] ]\n", argv0);
-	fprintf(stderr, "\t-h print this usage\n");
+	fprintf(stderr, "primitive usage: %s [flags]\n", argv0);
+	fprintf(stderr, "\t-h print a usage message with these options and others when available\n");
 	fprintf(stderr, "\t-l <dir> add <dir> to the load path\n");
 	fprintf(stderr, "\t-m <file> initialize heap from <file>\n");
 	fprintf(stderr, "\t-s suppress default load path\n");
-	fprintf(stderr, "\t-x <expr> evaluate <expr>\n");
-	fprintf(stderr, "\t-e <symbol> enter script at function named <symbol>\n");
+	fprintf(stderr, "\n\tYou are seeing this message from the boot loader because\n");
+	fprintf(stderr, "\tone of the above is incorrect.\n");
+	
 	exit(0);
 }
 
@@ -319,8 +321,8 @@ main(int argc, char *argv[])
 			opt['s'] = 1;
 			memmove(argv+i, argv+i+1, (argc-i-1)*sizeof(char*));
 			argc--;
-		}else if(strcmp("-h", argv[i]) == 0){
-			usage();
+		//}else if(strcmp("-h", argv[i]) == 0){
+		//	usage();
 		}else{
 			/* pass through legacy flags referenced by run time */
 			if(argv[i][0] == '-' && strlen(argv[i]) == 2)

@@ -81,9 +81,16 @@ mkcompiler(bootcompilerpasses());
 	fn();
 }
 
-@define eval(str)
+@define eval(str, rest ...)
 {
-	_eval(str, "<eval-input>", 1);
+	@local filespec;
+
+	if(length(rest) > 0)
+		filespec = rest[0];
+	else
+		filespec = "<eval-input>";
+
+	_eval(str, filespec, 1);
 }
 
 @defloc findfileinpath(file, path)
@@ -121,7 +128,7 @@ load("prelude.cqct");
 	callcc(@lambda(ret){
 			currentreset = ret;
 			return apply(fn, args);
-    	       }); 
+	       }); 
 }
 
 @defloc replerror(msg)
@@ -611,10 +618,15 @@ $repllevel = 0;
 	fprintf(stderr, "usage: %s [flags] [ <script> [ arg ... ] ]\n", argv0);
 	fprintf(stderr, "\t-h print this usage\n");
 	fprintf(stderr, "\t-l <dir> add <dir> to the load path\n");
+	fprintf(stderr, "\t-L <file> compile and run the cinquecento text in <file>\n");
 	fprintf(stderr, "\t-m <file> initialize heap from <file>\n");
 	fprintf(stderr, "\t-s suppress default load path\n");
 	fprintf(stderr, "\t-x <expr> evaluate <expr>\n");
 	fprintf(stderr, "\t-e <symbol> enter script at function named <symbol>\n");
+	fprintf(stderr," \t-r run a repl\n");
+	fprintf(stderr,"\nFlags -L, -x, and -r may be each specified multiple times and in any order.\n");
+	fprintf(stderr,"  They are processed together in the order supplied. Each -L or -x option\n");
+	fprintf(stderr,"  is processed as a new compilation unit.\n");
 	exit(0);
 
 }
@@ -622,10 +634,10 @@ $repllevel = 0;
 @defloc parseargs(args)
 {
 	@local arg;
-	@local forms, cmd, entry;
+	@local actions, cmd, entry;
 
 	l1path = pop(args);
-	forms = [];
+	actions = [];
 	cmd = [];
 	entry = nil;
 	while(length(args)){
@@ -639,7 +651,13 @@ $repllevel = 0;
 		if(arg == "-x"){
 			if(length(args) == 0)
 				error("missing form for -x");
-			append(forms, pop(args));
+			append(actions, [ 'eval, pop(args) ]);
+			continue;
+		}
+		if(arg == "-L"){
+			if(length(args) == 0)
+				error("missing file for -l");
+			append(actions, [ 'load, pop(args) ]);
 			continue;
 		}
 		if(arg == "-e"){
@@ -650,6 +668,10 @@ $repllevel = 0;
 			entry = mkcid(pop(args));
 			continue;
 		}
+		if(arg == "-r"){
+			append(actions, [ 'repl ]);
+			continue;
+		}
 		if(arg == "-p" || arg == "-q" || arg == "-w" || arg == "-K")
 			continue; /* legacy flags */
 		usage(l1path);
@@ -657,25 +679,30 @@ $repllevel = 0;
 	cmd = args;
 	if(entry && length(cmd) == 0)
 		error("entry specified without a script");
-	return [forms, entry, cmd];
+	return [actions, entry, cmd];
 }
 
 @define $l1start(arg ...)
 {
-	@local forms, entry, cmd, file, rv;
+	@local actions, entry, cmd, file, rv;
 	callcc(@lambda(root){
 			return @lambda(){
-				[forms, entry, cmd] = parseargs(arg);
-				if(length(cmd) == 0 && length(forms) == 0)
+				[actions, entry, cmd] = parseargs(arg);
+				if(length(cmd) == 0 && length(actions) == 0)
 					return repl();
 				callcc(@lambda(done){
 						currentreturn = done;
 						errorhandler = batcherror;
 						interrupthandler = batchinterrupt;
-						while(length(forms)){
-							@local form;
-							form = pop(forms);
-							rv = eval(form);
+						while(length(actions)){
+							@local action;
+							action = pop(actions);
+							switch(action[0]) {
+							case 'eval: rv = eval(action[1],"<command-line>"); break;
+							case 'load: rv = load(action[1]); break;
+							case 'repl: rv = repl(); break;
+							default: error("unknown command line entry"); break;
+							}
 						}
 						if(length(cmd) == 0)
 							return rv;
