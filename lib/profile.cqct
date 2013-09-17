@@ -1,45 +1,47 @@
 
 
 @defstx @init_profile() {
-	@global profiles;
-	profiles = [:];
+	@global profiles, profentries;
+	profiles = mktab(@lambda() {
+			 	return [0,  // count
+					0,  // time
+					0]; // expansion sites
+			 });
+	profentries = [:];
 	return #[];
 }
 @init_profile();
 
-@defstx @profile(name) body {
+@defstx @profile(rest ...) body {
 
-	@global gsym,ssym;
+	@local ssym, name, src;
 
-	gsym=gensym();
-	ssym=gensym();
+	if(rest[0]) {
+		name = rest[0];
+		if(stxkind(name) != 'val)
+			error("@profile: arg 0 must be a value");
+	} else {
+		src = stxsrc(body);
+		if(isnil(src[1]))
+			name = sprintfa("%s",src[0]);
+		else
+			name = sprintfa("%s:%d",src[0],src[1]);
+		name=mkstxval(name);
+	}
 
-	compile(#`{
-		@global #,(ssym);
+	ssym=mkstxval(stxid(gensym()));
 
-		{
-			@local t,n;
-			n = #,(name);
-			t = profiles[n];
-			if(!t)
-				profiles[n] = [0, // count
-					       0, // time
-					       0, // expansion sites
-					      ];
-			else
-				profiles[n][2]++;
-		}
-	})();
+	profiles[stxval(name)][2]++;
 
 	return #`{
-		#,(ssym)=gettimeofday();
-		#,(body);
+		profentries[#,(ssym)]=gettimeofday();
+		#,(body[0]);
 		{
 			@local t;
 	
 			t = profiles[#,(name)];
 			t[0]++;
-			t[1] += gettimeofday()-#,(ssym);
+			t[1] += gettimeofday()-profentries[#,(ssym)];
 		}
 	};
 }

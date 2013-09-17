@@ -15,6 +15,32 @@ foreach(@lambda(k) {
 
 foo();
 
+bar = @lambda() {
+	@local x;
+
+	x=2;
+	@profile("bar") {
+		@local x;
+		x=12;
+	};
+
+	printf("X: %d\n",x);
+};
+bar();
+
+baz = @lambda() {
+	@local x;
+
+	x=2;
+	@profile() {
+		@local x;
+		x=12;
+	};
+
+	printf("X: %d\n",x);
+};
+baz();
+
 printf("profiles:\n");
 foreach(@lambda(k) {
 	printf("%a: %d\n",k,profiles[k][0]);	
@@ -29,4 +55,5 @@ printf("profiles:\n");
 foreach(@lambda(k) {
 	printf("%a: %d\n",k,profiles[k][0]);	
 },tabkeys(profiles));
+
 

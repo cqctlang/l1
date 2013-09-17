@@ -1,6 +1,14 @@
 profiles:
+"profile.l1:37": 0
 "foo": 0
+"bar": 0
+X: 2
+X: 2
 profiles:
+"profile.l1:37": 1
 "foo": 1
+"bar": 1
 profiles:
+"profile.l1:37": 1
 "foo": 1001
+"bar": 1
