@@ -18,7 +18,8 @@
 	$repllevel,
 	$l1start,
 	$lasterror,
-	printstack
+	printstack,
+	mkcompiler
 	;
 
 @defloc topwrap(e)
