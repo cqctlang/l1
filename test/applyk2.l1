@@ -5,7 +5,7 @@ errorhandler=@lambda(msg) {
 
 applyk(printf,
        @lambda(r) { r; },
-       @lambda() { error("throw"); },
+       @lambda(msg) { error("throw: %s", msg); },
        ["%s", 1000]);
 
 printf("but not well enough");

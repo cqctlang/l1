@@ -1,1 +1,1 @@
-error inside the failure branch works: wrong number of arguments to anon (expects 0, passed 1)
+error inside the failure branch works: throw: wrong type to %s conversion
