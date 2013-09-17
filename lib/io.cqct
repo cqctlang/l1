@@ -1,9 +1,13 @@
 @global
 	fdopen,
+	fprintf,
 	ioctl,
 	mapfile,      
 	open,
+	close,
 	popen,
+	print,
+	printf,
 	recvfd,
 	socket,
 	sockpair,
@@ -14,7 +18,10 @@
 	tcplisten,
 	tcpopen,
 	unixopen
-;	
+;
+
+// import
+@global finalize;
 
 {
 @local ions;
@@ -30,6 +37,7 @@ ions = @names c32le {
 @defloc mksysfdfinal(arg ...)
 {
 	@local rv;
+
 	rv = apply(mksysfd, arg);
 	finalize(rv, close);
 	return rv;
@@ -48,12 +56,44 @@ ions = @names c32le {
 	return flags;
 }
 
-@define open(file, mode)
+@define printf(fmt, rest ...) {
+	@local r;
+
+	r=apply(sprintfa, fmt, rest);
+
+	write(stdout,r);
+}
+
+@define fprintf(fd, fmt, rest ...) {
+	@local r;
+
+	r=apply(sprintfa, fmt, rest);
+
+	write(fd,r);
+}
+
+@define open(file, mode, rest ...)
 {
-	@local fd;
-	fd = _open(file, mode);
+	@local fd, perm;
+
+	perm = nil;
+	if(length(rest) > 0)
+		perm = rest[0];
+
+	if(!isstring(file))
+		error("open: argument 0 must be a string");
+	if(!isstring(mode))
+		error("open: argument 1 must be a string");
+
+	if(isnil(perm))
+		perm = 0777;	
+	else if(!iscvalue(perm))
+		error("open: argument 2 must be a cvalue");
+
+	fd = _open(file, mode, perm);
 	if(fd == nil)
 		return nil;
+
 	return mksysfdfinal(fd, mode2flags(mode), file);
 }
 
@@ -71,6 +111,11 @@ ions = @names c32le {
 			/* FIXME: don't be overly permissive */
 			mksysfdfinal(fd, ions`Fread|ions`Fwrite);
 		}, fds);
+}
+
+@define print(val,rest ...) // remove from language. provided for test suite
+{
+	printf("%a\n",val);
 }
 
 @define sockpair()
@@ -136,13 +181,49 @@ ions = @names c32le {
 	return mksysfdfinal(fd, ions`Fread|ions`Fwrite);
 }
 
-@define mapfile(arg ...)
+@define mapfile(file, arg ...)
 {
-	@local addr, len, rv;
-	[addr, len] = apply(_mapfile, arg);
+	@local addr, len, rv, fd, mode, fmode;
+
+	if(length(arg) > 0) 
+		mode = arg[1];
+	else
+		mode = "rwp";
+
+	if(strstr(mode,"p") != nil) {
+		if(strstr(mode,"s") != nil)
+			error("mapfile private and shared are exclusive");
+	} else {
+		if(strstr(mode,"s") == nil)
+			mode += "p";	
+	} 
+
+	fmode = "";
+	if(strstr(mode,"r") != nil) {
+		fmode = "r";
+	}
+	if(strstr(mode,"w") != nil) {
+		if(strstr(mode,"s") != nil)
+			fmode += "w";
+	}
+
+	fd = _open(file, fmode, 0);
+	if(isnil(fd))
+		return nil;
+
+	fd = mksysfd(fd, mode2flags(fmode), file);
+
+	rv = apply(_mapfd, fd, arg);
+	close(fd);
+
+	if(!rv)
+		return nil;
+
+	[addr, len] = rv;
 	if(len){
 		rv = mkstrm(addr, len);
-		finalize(rv, @lambda(x){ _munmap(addr, len); });
+		finalize(rv, @lambda(x){ 
+			_munmap(addr, len); });
 	}else
 		rv = "";
 	return rv;
@@ -167,6 +248,15 @@ ions = @names c32le {
 		return rv;
 	}
 }
+
+@define close(fd)
+{
+	if(!isfd(fd))
+		error("close: argument 0 must be a fd");
+
+	_close(fd);
+}
+
 
 stdin = mksysfdfinal(0, ions`Fread, "(stdin)");
 stdout = mksysfdfinal(1, ions`Fwrite, "(stdout)");

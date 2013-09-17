@@ -2,6 +2,11 @@
 #include "util.h"
 #include "syscqct.h"
 
+/* Long experience tells us that these primitives are enough
+   to bring up l1 on portable systems. Please don't add 
+   anything new here that could be added through lib/syslib.cqct
+*/
+
 /* FIXME: It would be nice to have open, append, etc,
    take cval O_ flags and pass them directly to kernel,
    but the definition of some flags varies by os.
@@ -345,28 +350,31 @@ l1_stat(VM *vm, Imm argc, Val *argv, Val *rv)
 }
 
 static void
-l1__mapfile(VM *vm, Imm argc, Val *argv, Val *rv)
+l1__mapfd(VM *vm, Imm argc, Val *argv, Val *rv)
 {
+	Fd *fd0;
 	int fd;
-	Str *names;
 	List *l;
-	char *p, *name, *f;
+	char *p, *f;
 	struct stat st;
-	int prot, omode, flags;
+	int prot, flags;
 
 	if(argc != 1 && argc != 2)
-		vmerr(vm, "wrong number of arguments to _mapfile");
-	checkarg(vm, argv, 0, Qstr);
+		vmerr(vm, "wrong number of arguments to _mapfd");
+	checkarg(vm, argv, 0, Qfd);
 	f = 0;
 	if(argc == 2){
 		checkarg(vm, argv, 1, Qstr);
 		f = str2cstr(valstr(argv[1]));
 	}
-	names = valstr(argv[0]);
-	name = str2cstr(names);
+	fd0 = valfd(argv[0]);
+	if(fd0->flags&Fclosed)
+		vmerr(vm, "attempt to map a closed file descriptor");
+	if(!issysfd(fd0))
+		vmerr(vm, "file descriptor cannot be mapped");
+	fd = sysfdno(fd0);
 	flags = MAP_PRIVATE;
 	prot = 0;
-	omode = 0;
 	if(f){
 		if(strchr(f, 'p'))
 			flags = MAP_PRIVATE; /* default */
@@ -375,53 +383,35 @@ l1__mapfile(VM *vm, Imm argc, Val *argv, Val *rv)
 
 		if(strchr(f, 'r')){
 			prot |= PROT_READ;
-			omode |= Fread;
+			if((fd0->flags&Fread) == 0)
+				vmerr(vm, "attempt to read map non-readable file descriptor");
 		}
 		if(strchr(f, 'w')){
 			prot |= PROT_WRITE;
 			if(flags == MAP_SHARED)
-				omode |= Fwrite;
+				if((fd0->flags&Fwrite) == 0)
+					vmerr(vm, "attempt to write map non-writeable file descriptor");
 		}
 		if(strchr(f, 'x'))
 			prot |= PROT_EXEC;
 
-		/* convert to open mode */
-		if((omode&Fread) && (omode&Fwrite))
-			omode = O_RDWR;
-		else if(omode&Fread)
-			omode = O_RDONLY;
-		else if(omode&Fwrite)
-			omode = O_WRONLY;
-
 		efree(f);
 	}else{
-		omode = O_RDONLY;
-		prot |= PROT_READ|PROT_WRITE;
+		if((fd0->flags&Fread) != 0)
+			prot |= PROT_READ;
+		if((fd0->flags&Fwrite) != 0)
+			prot |= PROT_WRITE;
 	}
 	flags |= MAP_NORESERVE;
-	fd = open(name, omode);
-	efree(name);
-	if(0 > fd)
-		vmerr(vm, "cannot open %.*s: %s",
-		      (int)names->len, strdata(names),
-		      strerror(errno));
 	if(0 > fstat(fd, &st)){
-		close(fd);
-		vmerr(vm, "cannot open %.*s: %s",
-		      (int)names->len, strdata(names),
+		vmerr(vm, "cannot stat fd: %s",
 		      strerror(errno));
 	}
 	if(st.st_size == 0){
-		close(fd);
 		p = 0;
 		goto out;
 	}
 	p = mmap(0, st.st_size, prot, flags, fd, 0);
-	close(fd);
-	if(p == MAP_FAILED)
-		vmerr(vm, "cannot open %.*s: %s",
-		      (int)names->len, strdata(names),
-		      strerror(errno));
 out:
 	l = mklist();
 	_listappend(l, mkvallitcval(Vptr, (uptr)p));
@@ -527,15 +517,17 @@ l1__open(VM *vm, Imm argc, Val *argv, Val *rv)
 {
 	int fd;
 	char *name, *mode;
-	int oflags, flags;
+	int oflags, flags, perm;
 
 	setlasterrno(0);
-	if(argc != 2)
+	if(argc != 3)
 		vmerr(vm, "wrong number of arguments to open");
 	checkarg(vm, argv, 0, Qstr);
 	checkarg(vm, argv, 1, Qstr);
+	checkarg(vm, argv, 2, Qcval);
 	name = str2cstr(valstr(argv[0]));
 	mode = str2cstr(valstr(argv[1]));
+	perm = cvalu(valcval(argv[2]));
 
 	flags = 0;
 	oflags = 0;
@@ -552,7 +544,7 @@ l1__open(VM *vm, Imm argc, Val *argv, Val *rv)
 	else if(flags&Fwrite)
 		oflags |= O_WRONLY;
 
-	fd = open(name, oflags, 0777); /* ~umask */
+	fd = open(name, oflags, perm); /* ~umask */
 	efree(name);
 	if(0 > fd){
 		efree(mode);
@@ -737,7 +729,7 @@ l1__popen(VM *vm, Imm argc, Val *argv, Val *rv)
 		listappend(vm, ls, mkvallitcval(Vint, dup(fds[0])));
 	else
 		listappend(vm, ls, mkvallitcval(Vint, fds[1]));
-	if(flags&(PopenNoErr|PopenStderr))
+	if(flags&(PopenNoErr|PopenStderr|PopenStderrOnStdout))
 		return;
 	listappend(vm, ls, mkvallitcval(Vint, fds[2]));	
 }
@@ -885,7 +877,7 @@ fnio(Env env)
 	FN(access);
 	FN(_ioctl);
 	FN(issysfd);
-	FN(_mapfile);
+	FN(_mapfd);
 	FN(mksysfd);
 	FN(_munmap);
 	FN(_open);

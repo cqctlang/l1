@@ -4298,6 +4298,7 @@ vmresetctl(VM *vm)
 	vm->fp[Ora] = (Val)(uptr)codeentry(vabort->code);
 }
 
+#ifdef NEVER
 Fd*
 vmstdout(VM *vm)
 {
@@ -4309,6 +4310,7 @@ vmstdout(VM *vm)
 		vmerr(vm, "stdout not bound to a file descriptor");
 	return valfd(v);
 }
+#endif
 
 void
 dogc(VM *vm, u32 g, u32 tg)
@@ -5200,7 +5202,7 @@ l1_put(VM *vm, Imm argc, Val *iargv, Val *rv)
 }
 
 static void
-l1_close(VM *vm, Imm argc, Val *argv, Val *rv)
+l1__close(VM *vm, Imm argc, Val *argv, Val *rv)
 {
 	Fd *fd;
 
@@ -7398,7 +7400,7 @@ mktopenv(void)
 
 	FN(asof);
 	FN(bsearch);
-	FN(close);
+	FN(_close);
 	FN(clcode);
 	FN(clref);
 	FN(compact);

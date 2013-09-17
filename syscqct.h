@@ -1176,7 +1176,9 @@ Imm		valimm(Val v);
 Str*		valstrorcval(VM *vm, char *fn, Val *argv, unsigned arg);
 void		vmerr(VM *vm, char *fmt, ...) NORETURN;
 char*		vmfnid(VM *vm);
+#ifdef NEVER
 Fd*		vmstdout(VM *vm);
+#endif
 void		vmwarn(VM *vm, char *fmt, ...);
 Cval*		xcvalalu(VM *vm, ikind op, Cval *op1, Cval *op2);
 Val		xunop(VM *vm, ikind op, Val v);

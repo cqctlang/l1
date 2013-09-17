@@ -1,4 +1,5 @@
-UNIX = fnfs fnio fnnet fnsys fnsec fnflate fnsnap fndlfcn
+#UNIX = fnfs fnio fnnet fnsys fnsec fnflate fnsnap fndlfcn
+UNIX = fnfs fnio fnnet fnsys fnsec fnflate fndlfcn
 L1DEPS +=\
 	x/libflate/libflate.a\
 	x/libsec/libsec.a

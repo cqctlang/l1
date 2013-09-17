@@ -146,6 +146,9 @@ testasm: testasm.o amd64.o
 	@echo + ld $@
 	$(V)$(CC) $(CFLAGS) -o $@ $^
 
+test: $(TARG)
+	cd test && ./test.py
+
 -include depend
 depend: $(L1C) Makefile
 	$(V)gcc $(INC) -MM $(L1C) > depend
