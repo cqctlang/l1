@@ -9165,13 +9165,16 @@ user-defined functions.)
 <div class="docitem" id="fn:open">
 <div class="proto">
 <div class="function">
-<span class="id">open(<span class="arg">filename</span>,<span class="arg">mode</span>)</span>
+<span class="id">open(<span class="arg">filename</span>,<span class="arg">mode</span>[,<span class="arg">perm</span>])</span>
 </div>
 <div class="param">
 <span class="arg">filename</span>: <span class="type">string</span>
 </div>
 <div class="param">
 <span class="arg">mode</span>: <span class="type">string</span>
+</div>
+<div class="param">
+<span class="arg">perm</span>: <span class="type">cvalue</span>
 </div>
 <div class="returns">
 <span class="type">file descriptor</span> or <span class="type">nil</span>
@@ -9186,6 +9189,10 @@ class="arg">Mode</span> specifies the mode of access:
 <span class="val">"rw"</span> (create or truncate for reading and writing),
 <span class="val">"a"</span> (append), or
 <span class="val">"ra"</span> (append and read).
+If a call to open creates a new file, the file access permissions
+of the new file are given by <span class="arg">perm</span>. If 
+<span class="arg">perm</span> is not specified, the default file
+permissions are 0777. 
 Returns <span class="val">nil</span> if the file cannot
 be opened; the error condition is available
 via <span class="fnindex"><a href="#fn:errno">errno</a></span>.
@@ -10531,10 +10538,15 @@ connected to the standard error of the calling
 process,.  Likewise, if bit two is set
 (<span class="id">PopenStdout</span>), standard output
 is left connected to the standard output of the calling
-process.  Finally, if bit three is set
+process.  If bit three is set
 (<span class="id">PopenFullDuplex</span>), standard
 input and output of the new process are connected to
-the same file descriptor.
+the same file descriptor. If bit four is set (
+<span class="id">PopenSession</span>), the new process
+is the leader of a new unix session.  Finally, if bit
+five is set (<span class="id">PopenStderrOnStdout</span>,
+stderr in the new process is connected to the same file
+descriptor as stdout.
 </p>
 
 <p>

@@ -72,12 +72,28 @@ ions = @names c32le {
 	write(fd,r);
 }
 
-@define open(file, mode)
+@define open(file, mode, rest ...)
 {
-	@local fd;
-	fd = _open(file, mode);
+	@local fd, perm;
+
+	perm = nil;
+	if(length(rest) > 0)
+		perm = rest[0];
+
+	if(!isstring(file))
+		error("open: argument 0 must be a string");
+	if(!isstring(mode))
+		error("open: argument 1 must be a string");
+
+	if(isnil(perm))
+		perm = 0777;	
+	else if(!iscvalue(perm))
+		error("open: argument 2 must be a cvalue");
+
+	fd = _open(file, mode, perm);
 	if(fd == nil)
 		return nil;
+
 	return mksysfdfinal(fd, mode2flags(mode), file);
 }
 
@@ -191,7 +207,7 @@ ions = @names c32le {
 			fmode += "w";
 	}
 
-	fd = _open(file, fmode);
+	fd = _open(file, fmode, 0);
 	if(isnil(fd))
 		return nil;
 

@@ -191,12 +191,13 @@
 	return [p, s];
 }
 
-@define _open(file, mode) {
+@define _open(file, mode, perm) {
 	@local flags,oflags,fd;
 
 	if(!isstring(file)) 	error("open: filename is not a string");
-	if(!isstring(mode)) 		error("open: mode is not a string");
-	if(1 > strlen(mode)) 		error("open: mode cannot be empty");
+	if(!isstring(mode)) 	error("open: mode is not a string");
+	if(1 > strlen(mode)) 	error("open: mode cannot be empty");
+	if(!iscvalue(perm))	error("open: perm must be a cvalue");
 
 	flags = 0;
 	oflags = 0;
@@ -214,7 +215,7 @@
 	else if(flags&2)                                                   
 		oflags |= unix`O_WRONLY;                 
 
-	fd=sys_open(file,oflags,0777);
+	fd=sys_open(file,oflags,perm);
 	if(0 > fd) {
 		return nil;
 	} 

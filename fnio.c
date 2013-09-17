@@ -517,15 +517,17 @@ l1__open(VM *vm, Imm argc, Val *argv, Val *rv)
 {
 	int fd;
 	char *name, *mode;
-	int oflags, flags;
+	int oflags, flags, perm;
 
 	setlasterrno(0);
-	if(argc != 2)
+	if(argc != 3)
 		vmerr(vm, "wrong number of arguments to open");
 	checkarg(vm, argv, 0, Qstr);
 	checkarg(vm, argv, 1, Qstr);
+	checkarg(vm, argv, 2, Qcval);
 	name = str2cstr(valstr(argv[0]));
 	mode = str2cstr(valstr(argv[1]));
+	perm = cvalu(valcval(argv[2]));
 
 	flags = 0;
 	oflags = 0;
@@ -542,7 +544,7 @@ l1__open(VM *vm, Imm argc, Val *argv, Val *rv)
 	else if(flags&Fwrite)
 		oflags |= O_WRONLY;
 
-	fd = open(name, oflags, 0777); /* ~umask */
+	fd = open(name, oflags, perm); /* ~umask */
 	efree(name);
 	if(0 > fd){
 		efree(mode);
@@ -727,7 +729,7 @@ l1__popen(VM *vm, Imm argc, Val *argv, Val *rv)
 		listappend(vm, ls, mkvallitcval(Vint, dup(fds[0])));
 	else
 		listappend(vm, ls, mkvallitcval(Vint, fds[1]));
-	if(flags&(PopenNoErr|PopenStderr))
+	if(flags&(PopenNoErr|PopenStderr|PopenStderrOnStdout))
 		return;
 	listappend(vm, ls, mkvallitcval(Vint, fds[2]));	
 }
