@@ -3,8 +3,10 @@
 {
 	@define val2json(v)
 	{
-		if(isstring(v) || iscid(v))
+		if(isstring(v))
 			return sprintfa("%a", v);
+		if(iscid(v))
+			return sprintfa("\"%s\"", v);
 		else if(iscvalue(v))
 			return sprintfa("%u", v);
 		else if(islist(v))
