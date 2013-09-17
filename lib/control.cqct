@@ -164,7 +164,7 @@
 	}
 	foreach(@lambda(v) { 
 		if (v != #null)
-			error("syntax lists of unequal length provided to map");
+			error("syntax lists of unequal length provided to foreach");
 	},arg);
 
 	return nil;
