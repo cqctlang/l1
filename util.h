@@ -74,6 +74,7 @@ enum {
 	PopenStdout	= 4,	/* popen flag -- leave stdout on stdout */
 	PopenFullDuplex	= 8,	/* popen flag -- put i/o on same channel */
 	PopenSession	= 16,	/* popen flag -- child leads a session */
+	PopenStderrOnStdout = 32, /* popen flag -- stderr, stdout together */
 };
 
 int		newchan(int *l, int *r);
