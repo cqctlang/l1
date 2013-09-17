@@ -1,12 +1,32 @@
 @global val2json;
 /* json2val() is an l1 builtin */
 {
+
+	//Attempting to conform to escape sequences available in:
+	//https://developer.mozilla.org/en-US/docs/Web/JavaScript/Guide/Values,_variables,_and_literals#String_literals
+	//NOTE: current json2val does not support \XXX \xXX or \uXXXX, so neither
+	//      does val2json
+	@defloc str2json(v) {
+		if (v == "") return "\"\"";
+		v = sprintfa("%B",v);
+		foreach(@lambda(x,y) {
+			@local l,i;
+			l = split(v,x);
+			v = l[0];
+			if (v == "") v = sprintfa("\\%s",y);
+			for(i=1; i<length(l); ++i) {
+				v = sprintfa("%s\\%s%s",v,y,l[i]);
+			}
+		}, [ "\n" : "n", "\f" : "f", "\r" : "r", ]);
+		return "\""+v+"\"";
+	}
+
 	@define val2json(v)
 	{
 		if(isstring(v))
-			return sprintfa("%a", v);
+			return str2json(v);
 		if(iscid(v))
-			return sprintfa("\"%s\"", v);
+			return str2json(cid2str(v));
 		else if(iscvalue(v))
 			return sprintfa("%u", v);
 		else if(islist(v))

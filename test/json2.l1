@@ -1,0 +1,14 @@
+
+@include <json.cqct>
+
+x = (char*){mkzas(1)}0;
+
+for(i=0; i<256; ++i) {
+	@local json;
+	if (!isprint(i)) continue;
+	x[0] = (char)i;
+	json = val2json(getbytes(x,1));
+	printf("%d %s %s\n",i,getbytes(x,1),json);
+	printf("   %d %d\n",x == json2val(json),json2val(json)[0]);
+}
+
