@@ -1,4 +1,4 @@
-@include <pp.cqct>
+@include <ppstx.cqct>
 
 @global debugexpand, validateexpand;
 

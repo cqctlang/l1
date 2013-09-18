@@ -17,7 +17,7 @@
 @include <control.cqct>
 @include <gc.cqct>
 @include <io.cqct>
-@include <pp.cqct>
+@include <ppstx.cqct>
 
 /* once we have callcc, we can get a backtrace
    on boot-time errors. */

@@ -1,11 +1,13 @@
 
+@include <pp.cqct>
+@include <ppstx.cqct>
 
 ppstx( #`{ if (a == b) { b++; b+=a; } printf("hi!!"); });
 
 @define docify(e,queue,ppobj) {
     queue(ppobj.left);
     foreach(@lambda(v) {
-        queue(ppobj.mkogroup(0,"{",v,"}",ppobj.blank));
+        queue(ppobj.mkogroup(0,["{",v,"}",ppobj.blank]));
     },split(e," "));
     queue(ppobj.right);
 }
@@ -19,7 +21,7 @@ ppv = mkpp(myppprint,docify,10);
 
 ppv("a a a a a a a a a a a a a a");
 
-printf("%s",res);
+printf("%s\n",res);
 
 res = "";
 count = 0;

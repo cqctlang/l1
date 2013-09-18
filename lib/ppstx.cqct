@@ -1,0 +1,316 @@
+
+@global ppstx;
+
+@include <pp.cqct>
+
+//pretty printer for syntax objects
+
+{
+    @local _ppstx;
+
+    @defloc docifystx(e,queue,ppobj) {
+        @local left,right,blank,linebreak;
+        left = ppobj.left;
+        right = ppobj.right;
+        blank = ppobj.blank;
+        linebreak = ppobj.linebreak;
+
+        @defloc idlist(ids)
+        {
+            @local i, m;
+            m = Zlength(ids);
+            if(m == 0){
+                queue("#[ ]");
+                return;
+            }
+            queue(left);
+            queue("#[");
+            queue(blank);
+            for(i = 0; i < m-1; i++){
+                queue(sprintfa("%a,", stxid(Zcar(ids))));
+                queue(blank);
+                ids = Zcdr(ids);
+            }
+            queue(sprintfa("%a", stxid(Zcar(ids))));
+            queue(blank);
+            queue("]");
+            queue(right);
+        }
+
+        @defloc arglist(ids)
+        {
+            @local i, m;
+            m = Zlength(ids);
+            if(m == 0){
+                queue("#[ ]");
+                return;
+            }
+            queue(left);
+            queue("#[");
+            queue(blank);
+            for(i = 0; i < m-1; i++){
+                queue(sprintfa("%a,", stxid(Zcar(ids))));
+                queue(blank);
+                ids = Zcdr(ids);
+            }
+            switch(Zcar(ids)){
+            @match #id(id):
+                queue(sprintfa("%a", id));
+                break;
+            @match #ellipsis:
+                /* FIXME: there shouldn't be a preceding comma */
+                queue("...");
+                break;
+            default:
+                error("bug");
+            }
+            queue(blank);
+            queue("]");
+            queue(right);
+        }
+
+
+        @defloc rec(e)
+        {
+
+            @local m, i, es, s;
+            switch(e){
+            @match #id(id):
+                queue(sprintfa("%a", id));
+                break;
+            @match #val:
+                /* FIXME: need to recurse into val, esp for stx */
+                queue(sprintfa("%a", e));
+                break;
+            @match #begin(body):
+                queue(left);
+                queue(sprintfa("#%a(", stxkind(e)));
+                queue(left);
+                m = Zlength(body);
+                i = 0;
+                foreach(@lambda(e){
+                        if(i < m-1){
+                            queue(left);
+                            rec(e);
+                            queue(",");
+                            queue(right);
+                            queue(linebreak);
+                        }else{
+                            queue(left);
+                            rec(e);
+                            queue(right);
+                        }
+                        i++;
+                    }, body);
+                queue(right);
+                queue(")");
+                queue(right);
+                break;
+            @match #if(p, c, a):
+                queue(left);
+                queue("#if(");
+                queue(left);
+                queue(left);
+                rec(p);
+                queue(",");
+                queue(right);
+                queue(linebreak);
+                queue(left);
+                rec(c);
+                if(a != nil) queue(",");
+                queue(right);
+                if(a != nil){
+                    queue(linebreak);
+                    queue(left);
+                    rec(a);
+                    queue(right);
+                }
+                queue(right);
+                queue(")");
+                queue(right);
+                break;
+            @match #text(body):
+                queue(left);
+                queue("#text(");
+                queue(left);
+                m = Zlength(body);
+                i = 0;
+                foreach(@lambda(e){
+                        if(i < m-1){
+                            queue(left);
+                            rec(e);
+                            queue(right);
+                            queue(linebreak);
+                        }else{
+                            queue(left);
+                            rec(e);
+                            queue(right);
+                        }
+                        i++;
+                    }, body);
+                queue(right);
+                queue(")");
+                queue(right);
+                break;
+            @match #labels(ls, body):
+                queue(left);
+                queue("#labels(");
+                queue(left);
+                queue(left);
+                foreach(@lambda(e){
+                        queue(left);
+                        rec(Zcar(e)[0]);
+                        queue(": ");
+                        queue(left);
+                        rec(Zcar(Zcdr(e)));
+                        queue(right);
+                        queue(",");
+                        queue(right);
+                        queue(linebreak);
+                    }, ls);
+                queue(right);
+                rec(body);
+                queue(right);
+                queue(")");
+                queue(right);
+                break;
+            @match #letrec(ls, body):
+                queue(left);
+                queue("#letrec(");
+                queue(left);
+                queue(left);
+                foreach(@lambda(e){
+                        queue(left);
+                        rec(Zcar(e));
+                        queue(": ");
+                        queue(left);
+                        rec(Zcar(Zcdr(e)));
+                        queue(right);
+                        queue(",");
+                        queue(right);
+                        queue(linebreak);
+                    }, ls);
+                queue(right);
+                rec(body);
+                queue(right);
+                queue(")");
+                queue(right);
+                break;
+            @match #block(es, body):
+                queue(left);
+                queue(sprintfa("#%a(", stxkind(e)));
+                queue(left);
+                queue(left);
+                idlist(es);
+                queue(",");
+                queue(right);
+                queue(blank);
+                queue(left);
+                m = Zlength(body);
+                i = 0;
+                foreach(@lambda(e){
+                        if(i < m-1){
+                            queue(left);
+                            rec(e);
+                            queue(",");
+                            queue(right);
+                            queue(linebreak);
+                        }else{
+                            queue(left);
+                            rec(e);
+                            queue(right);
+                        }
+                        i++;
+                    }, body);
+                queue(right);
+                queue(right);
+                queue(")");
+                queue(right);
+                break;
+            @match #lambda(es, body):
+                queue(left);
+                queue(sprintfa("#%a(", stxkind(e)));
+                queue(left);
+                queue(left);
+                arglist(es);
+                queue(",");
+                queue(right);
+                queue(blank);
+                queue(left);
+                rec(body);
+                queue(right);
+                queue(right);
+                queue(")");
+                queue(right);
+                break;
+            @match #null:
+                queue("#[]");
+                break;
+            @match #elist:
+                es = e;
+                queue("#[");
+                queue(left);
+                m = Zlength(es);
+                for(i = 0; i < m; i++){
+                    if(i < m-1){
+                        queue(left);
+                        rec(Zcar(es));
+                        queue(",");
+                        queue(right);
+                        queue(blank);
+                    }else{
+                        queue(left);
+                        rec(Zcar(es));
+                        queue(right);
+                    }
+                    es = Zcdr(es);
+                }
+                queue(right);
+                queue("]");
+                break;
+            default:
+                for(m = 0; m < 4; m++)
+                    if(e[m] == nil)
+                        break;
+                if(m == 0){
+                    queue(sprintfa("#%a", stxkind(e)));
+                    break;
+                }
+                s = sprintfa("#%a(", stxkind(e));
+                queue(left);
+                queue(s);
+                queue(left);
+                for(i = 0; i < m; i++){
+                    if(i < m-1){
+                        queue(left);
+                        rec(e[i]);
+                        queue(",");
+                        queue(right);
+                        queue(blank);
+                    }else{
+                        queue(left);
+                        rec(e[i]);
+                        queue(right);
+                    }
+                }
+                queue(right);
+                queue(")");
+                queue(right);
+                break;
+            }
+        }
+
+        rec(e);
+    }
+
+
+    _ppstx = mkpp(@lambda(args...) { apply(ppprint,args); },docifystx,75);
+
+    //ensure the stack includes a frame labeled "ppstx"
+    @define ppstx(e,args...) {
+        apply(_ppstx,e,args);
+        ppprint("\n");
+    }
+
+}
+
