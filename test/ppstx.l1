@@ -1,0 +1,68 @@
+
+
+ppstx( #`{ if (a == b) { b++; b+=a; } printf("hi!!"); });
+
+@define docify(e,queue,ppobj) {
+    queue(ppobj.left);
+    foreach(@lambda(v) {
+        queue(ppobj.mkogroup(0,"{",v,"}",ppobj.blank));
+    },split(e," "));
+    queue(ppobj.right);
+}
+
+res = "";
+@define myppprint(x) {
+    res += x;
+}
+
+ppv = mkpp(myppprint,docify,10);
+
+ppv("a a a a a a a a a a a a a a");
+
+printf("%s",res);
+
+res = "";
+count = 0;
+
+
+@define docifycurly(e,queue,ppobj) {
+    @local i,j,k;
+    i = strstr(e,"{");
+    j = strstr(e,"}");
+    if (i == nil) i = length(e);
+    if (j == nil) j = length(e);
+    k = i<j ? i : j;
+    foreach(@lambda(v) {
+        if (v == "" || v == " " || v == nil) return;
+        queue(v);
+        queue(ppobj.mkblank(1));
+    },split(substr(e,0,k)," "));
+    if (k == length(e)) return;
+    if (i < j) { 
+        queue("[");
+        queue(ppobj.mkleft('nloff,4));
+        queue(ppobj.linebreak);
+        ++count;
+    } else { 
+        queue(ppobj.right);
+        queue(ppobj.blank);
+        queue(sprintfa("] %d",count));
+        queue(ppobj.linebreak);
+        --count;
+    }
+    e = substr(e,k+1,length(e));
+    docifycurly(e,queue,ppobj);
+}
+
+@define docifycurly_wrapper(e,queue,ppobj) {
+    queue(ppobj.mkleft('nloff,0));
+    docifycurly(e,queue,ppobj);
+    queue(ppobj.right);
+}
+
+ppcurly = mkpp(myppprint,docifycurly_wrapper,10);
+
+ppcurly("{ aa {b b b b {c c c { d d } c c c }b b b} { xa xb { yc yd } xe } }");
+
+printf("%s\n",res);
+printf("count: %d\n",count);

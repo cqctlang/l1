@@ -1,0 +1,52 @@
+#[#if(#eq(a, b),
+      #scope(#block(#[ ],
+                    #postinc(b),
+                    #gadd(b, a)))),
+  #call(printf, #[#val("hi!!")])]
+{a} {a} {a}
+{a} {a} {a}
+{a} {a} {a}
+{a} {a} {a}
+{a} {a} 
+[
+    aa
+    [
+        b
+        b
+        b
+        b
+        [
+            c
+            c
+            c
+            [
+                d
+                d
+                
+            ] 4
+            c
+            c
+            c
+            
+        ] 3
+        b
+        b
+        b
+        
+    ] 2
+    [
+        xa
+        xb
+        [
+            yc
+            yd
+            
+        ] 3
+        xe
+        
+    ] 2
+    
+] 1
+
+
+count: 0
