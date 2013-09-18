@@ -1,53 +1,147 @@
 /*
+
   ppstx - abstract syntax pretty printer
 
   ppstx(STX) pretty prints the syntax object STX.
 
-  two globals influence printing:
-
-    ppmargin - the line width (default 100 characters)
-
-    ppemit   - the function called to emit the output
-               ppemit is a function of one argument, a
-               string to be printed.  it defaults to a
-               function that prints to stdout.
-
+  mkpp - utility to make pretty printer
 
   the algorithm is based on the one described in:
 
-    Derek C. Oppen.  Prettyprinting.  TOPLAS 2(4), Oct
-    1980, pp. 465-483.
+  [1]  Derek C. Oppen.  Prettyprinting.  TOPLAS 2(4), Oct
+       1980, pp. 465-483.
 
-  the front-end (rec) should be made programmable.
+  (however, this implmentation uses O(n) space and time,
+  for input size n)
 
-  gross things happen when the line width is exceeded.
+  The API semantics for "groups" and "blanks" are
+  taken from:
+
+  [2] Swierstra ,S. Doaitse, and Olaf Chitil. Linear, 
+      bounded, functional pretty-printing. Journal of
+      Functional Programming 10.01 (2009); 1-16
 
 */   
 
-@global ppmargin;
+@global mkpp;
+@global ppprint;
+@global ppstx;
 
-ppmargin = 100;
-ppemit = @lambda(x) { printf("%s", x); };
+/*
+    default print to standard out for use with mkpp
+*/
+@define ppprint(x) { printf("%s",x); }
 
-@define ppstx(e)
+/*
+  Make a pretty printer for some type of object
+
+  A pretty printer prints objects in such a way as to avoid 
+  surpassing a given line with if possible (but not adding 
+  in extra newlines if necessary). 
+
+  The parameters are:
+  pr: output function, called as pr(s). Should "print" the string s.
+      The function ppprint is a provided default such function that 
+      prints to stdout. 
+  docify: creates the "document" to be printed (decribed below)
+          called as docify(e,queue,ppobj).
+  ppmargin: size of the margin
+
+  To accomplish pretty printing, the pretty printer requires a docify function
+  to convert from the input type (which may be anything) to an intermediate
+  format specifying how to group the output (for indentation purposes) and
+  where newlines would be allowed. This intermediate format is known as a
+  document. A document is a list of strings and other special symbols that
+  represent the begin and end of a syntax group, the existence of whitespace
+  that could be a newline, and a symbol that represents a forced newline. These
+  symbols are accessible to the docify function via the passed ppobj.
+
+  The docify function is called as docify(v,queue,ppobj), where v is the value
+  to be formatted, queue is a function that adds a given string or special
+  symbol to the list to be printed, and ppobj is a table giving access to
+  special formatting symbols.  If queue is passed a list, elements of the list
+  are recursively given back to queue until a string or a special document
+  symbol is reached. Finally docify is provided the ppobj object, which
+  provides various special symbols to help control the formatting.  It is
+  expected that docify will pass all that is necessary to queue to entirely
+  represent the passed value v.
+
+  The rules for printing are (derived from [2])
+  1) The symbols between a "left" symbol and a matching "right" symbol are a 
+     group. Groups can be recursive. There is an implicit topmost group.
+  2) All "blank" symbols directly within a given group (i.e. within
+     the group but not within any of the group's subgroups) are 
+     formatted the same: as newlines or as whitespace. If the blank 
+     symbols within a group are formatted as newlines, we say the group 
+     is vertical, if formatted as spaces, we say the group is horizontal.
+  3) Excepting the topmost group, if a group is formatted horizontally, then 
+     all subgroups of that group must also be formatted horizontally
+  4) All newlines within a given group are given the same level of indentation.
+     Where the indentation starts is determined by the group type. See group
+     types below.
+  5) If a group cannot fit on a line within the available width,
+     then it is converted to a vertical group.
+
+  Group types: 
+    All groups have a type and an indentation level. These define how 
+    indentation after a newline will be handled. The group type specifies
+    where the post-newline indentation will start from (i.e. with respect to
+    the leftmost column, with respect to the previous newline, etc). 
+    There are three group types:
+	'nlleft: New line left groups indent their new lines starting at the 
+             leftmost margin. 
+	'nlhere: New line here groups indent their new lines starting from the 
+             current column.
+	'nloff:  New line off groups indent their new lines starting from the
+             column on which the last group started.  
+
+  The ppobj is an object that gives access to constructors for these kinds of 
+  objects. The fields of the ppobj are:
+     mkgroup    : called as ppobj.mkgroup(type,indent,lst). The output
+                  is a properly specified group of the given type with the
+                  given indentation level that can be passed to queue. The
+                  lst arguement is a list containing the contents of the group.
+     mkhgroup   : called as ppobj.mkhgroup(indent,lst). See mkgroup above,
+                  except that the group created is a "here" ('nlhere) group.
+     mklgroup   : called as ppobj.mklgroup(indent,lst). See mkgroup above,
+                  except that the group created is a "left" ('nlleft) group.
+     mkogroup   : called as ppobj.mkogroup(indent,lst). See mkgroup above,
+                  except that the group created is a "off" ('nloff) group.
+     mkblank    : called as ppobj.mkblank(n). Creates a blank n spaces long.
+     blank      : a blank one space long. 
+     linebreak  : blank gauranteed to force a newline. 
+  
+*/
+@define mkpp(pr,docify,ppmargin)
 {
 	@local stream;
-	@local print, pr;
+	@local print;
 	@local left, blank, right, linebreak;
 	@local margin;
+    @local ppobj;
+    @local r;
 
-	@record B { n, offset };
-	@record L { offset, kind };
+	r = @record B { n };
+	rdsetfmt(r,@lambda(a) { sprintfa("B(%d)",a.n); });
+	//kinds:
+	//'nlleft: start the newline indentation from the leftmost column
+	//'nlhere: start the newline indentation from here
+	//'nloff: start at the offset of the last group
+	r = @record L { offset, kind, indent };
+	rdsetfmt(r,
+	    @lambda(a) { sprintfa("L(%d,%a,%d)",a.offset,a.kind,a.indent); });
 	@record R { };
 
 	margin = ppmargin;
-	pr = ppemit;
 
 	stream = [];
 
 	@defloc queue(x)
 	{
-		append(stream, x);
+	    if (islist(x))
+	        foreach(queue,x);
+        else
+            append(stream, x);
 	}
 
 	@defloc indent(w)
@@ -69,23 +163,41 @@ ppemit = @lambda(x) { printf("%s", x); };
 		@local stk;
 		@local space;
 
-		@record E { offset, kind };
+	    rdsetfmt( @record E { offset, kind } ,
+                  @lambda(e) { sprintfa("E(%a,%a)",e.offset,e.kind); });
 
 		space = margin;
-		stk = [];
+		stk = [ E(margin,'horizontal) ];
 
 		@defloc out(x, l)
 		{
+            @local off;
+            //printf("%a %a %a %a %a\n",x,l,space,stk[0],length(stk));
 			switch(x){
-			@match L(o, k):
-				push(stk, E(space-o, k));
+			@match L(o, k, i):
+			    switch (k) {
+			    case 'nlleft:
+			        off = margin-i;
+			        break;
+                case 'nlhere:
+			        off = space-i;
+			        break;
+			    case 'nloff:
+			        off = stk[0].offset-i;
+			        break;
+			    default: error("bad group begin kind");
+			    }
+			    if (l < space)
+			        push(stk, E(off,'horizontal));
+			    else
+                    push(stk, E(off,'vertical));
 				break;
 			@match R():
 				pop(stk);
 				break;
-			@match B(n, o):
-				if(l > space){
-					space = stk[0].offset-o;
+			@match B(n):
+				if(stk[0].kind == 'vertical) {
+					space = stk[0].offset;
 					nl(margin-space);
 				}else{
 					space -= n;
@@ -95,17 +207,7 @@ ppemit = @lambda(x) { printf("%s", x); };
 			default:
 				/* string */
 				pr(x);
-				if(l > space){
-					/* this case deviates from the paper to
-					   force a line wrap ... maybe this is
-					   not a good idea */
-					if(isempty(stk))
-						space = margin;
-					else
-						space = stk[0].offset;
-					nl(margin-space);
-				}else
-					space -= l;
+                space -= (int)l;
 				break;
 			}
 		}
@@ -130,10 +232,15 @@ ppemit = @lambda(x) { printf("%s", x); };
 		@defloc loop()
 		{
 			@local x, i;
-			if(isempty(stream))
+			if(isempty(stream)) {
+                while(l < r) {
+                    print(buf[l], len[l]);
+                    l++;
+                }
 				return;
+            }
 			switch(x = pop(stream)){
-			@match L(o, k):
+			@match L(o, k, i): //XXX use i
 				if(isempty(stk)){
 					l = r = 0;
 					rt = 1; /* ? */
@@ -159,13 +266,15 @@ ppemit = @lambda(x) { printf("%s", x); };
 						l++;
 					}
 				break;
-			@match B(n, o):
+			@match B(n):
 				r++;
-				i = stk[0];
-				if(isB(buf[i])){
-					i = pop(stk);
-					len[i] += rt;
-				}
+                if (!isempty(stk)) {
+                    i = stk[0];
+                    if(isB(buf[i])){
+                        i = pop(stk);
+                        len[i] += rt;
+                    }
+                }
 				buf[r] = x;
 				len[r] = -rt;
 				push(stk, r);
@@ -179,8 +288,8 @@ ppemit = @lambda(x) { printf("%s", x); };
 				}
 				r++;
 				buf[r] = x;
-				len[r] = length(x);
-				rt += length(x);
+				len[r] = (int)length(x);
+				rt += (int)length(x);
 				break;			
 			}
 			loop();
@@ -189,302 +298,364 @@ ppemit = @lambda(x) { printf("%s", x); };
 		loop();
 	}
 
-	left = L(0, 'inconsistent);
-	blank = B(1, 0);
+	left = L(0, 'nlhere, 0);
+	blank = B(1);
 	right = R();
+	linebreak = B(margin+1);
+    @defloc mkblank(n) { B(n); }
+    @defloc mkleft(k,i) { L(0,k,i); }
+    @defloc mkright() { R(); }
 
-//	@defloc leftn(n) { L(n, 'inconsistent); }
-	linebreak = B(margin+1, 0);
+    @defloc mkgroup(k,i,grp) {
+        return [L(0,k,i), grp, right];
+    }
 
-	@defloc idlist(ids)
-	{
-		@local i, m;
-		m = Zlength(ids);
-		if(m == 0){
-			queue("#[ ]");
-			return;
-		}
-		queue(left);
-		queue("#[");
-		queue(blank);
-		for(i = 0; i < m-1; i++){
-			queue(sprintfa("%a,", stxid(Zcar(ids))));
-			queue(blank);
-			ids = Zcdr(ids);
-		}
-		queue(sprintfa("%a", stxid(Zcar(ids))));
-		queue(blank);
-		queue("]");
-		queue(right);
-	}
+    @defloc mkhgroup(i,args...) {
+        return apply(mkgroup,'nlhere,i,args);
+    }
+    @defloc mklgroup(i,args...) {
+        return apply(mkgroup,'nlleft,i,args);
+    }
+    @defloc mkogroup(i,args...) {
+        return apply(mkgroup,'nloff,i,args);
+    }
 
-	@defloc arglist(ids)
-	{
-		@local i, m;
-		m = Zlength(ids);
-		if(m == 0){
-			queue("#[ ]");
-			return;
-		}
-		queue(left);
-		queue("#[");
-		queue(blank);
-		for(i = 0; i < m-1; i++){
-			queue(sprintfa("%a,", stxid(Zcar(ids))));
-			queue(blank);
-			ids = Zcdr(ids);
-		}
-		switch(Zcar(ids)){
-		@match #id(id):
-			queue(sprintfa("%a", id));
-			break;
-		@match #ellipsis:
-			/* FIXME: there shouldn't be a preceding comma */
-			queue("...");
-			break;
-		default:
-			error("bug");
-		}
-		queue(blank);
-		queue("]");
-		queue(right);
-	}
+    ppobj = mktab(@lambda() { error("undefined symbol\n"); });
+    foreach(@lambda(k,v) {
+        ppobj[k] = v;
+    },[
+        'left       : left,
+        'right      : right,
+        'blank      : blank,
+        'linebreak  : linebreak,
+        'mkblank    : mkblank,
+        'mkleft     : mkleft,
+        'mkright    : mkright,
+        'mkgroup    : mkgroup,
+        'mkhgroup    : mkhgroup,
+        'mklgroup    : mklgroup,
+        'mkogroup    : mkogroup,
+    ]);
 
+    
+    @defloc pp(e,args...) {
+        if(e == nil)
+            return;
+        if (length(args)>0) margin = args[0];
+        else margin = ppmargin;
+        print = mkprint();
+        docify(e,queue,ppobj);
+        scan();
+    };
 
-	@defloc rec(e)
-	{
-
-		@local m, i, es, s;
-		switch(e){
-		@match #id(id):
-			queue(sprintfa("%a", id));
-			break;
-		@match #val:
-			/* FIXME: need to recurse into val, esp for stx */
-			queue(sprintfa("%a", e));
-			break;
-		@match #begin(body):
-			queue(left);
-			queue(sprintfa("#%a(", stxkind(e)));
-			queue(left);
-			m = Zlength(body);
-			i = 0;
-			foreach(@lambda(e){
-					if(i < m-1){
-						queue(left);
-						rec(e);
-						queue(",");
-						queue(right);
-						queue(linebreak);
-					}else{
-						queue(left);
-						rec(e);
-						queue(right);
-					}
-					i++;
-				}, body);
-			queue(right);
-			queue(")");
-			queue(right);
-			break;
-		@match #if(p, c, a):
-			queue(left);
-			queue("#if(");
-			queue(left);
-			queue(left);
-			rec(p);
-			queue(",");
-			queue(right);
-			queue(linebreak);
-			queue(left);
-			rec(c);
-			if(a != nil) queue(",");
-			queue(right);
-			if(a != nil){
-				queue(linebreak);
-				queue(left);
-				rec(a);
-				queue(right);
-			}
-			queue(right);
-			queue(")");
-			queue(right);
-			break;
-		@match #text(body):
-			queue(left);
-			queue("#text(");
-			queue(left);
-			m = Zlength(body);
-			i = 0;
-			foreach(@lambda(e){
-					if(i < m-1){
-						queue(left);
-						rec(e);
-						queue(right);
-						queue(linebreak);
-					}else{
-						queue(left);
-						rec(e);
-						queue(right);
-					}
-					i++;
-				}, body);
-			queue(right);
-			queue(")");
-			queue(right);
-			break;
-		@match #labels(ls, body):
-			queue(left);
-			queue("#labels(");
-			queue(left);
-			queue(left);
-			foreach(@lambda(e){
-					queue(left);
-					rec(Zcar(e)[0]);
-					queue(": ");
-					queue(left);
-					rec(Zcar(Zcdr(e)));
-					queue(right);
-					queue(",");
-					queue(right);
-					queue(linebreak);
-				}, ls);
-			queue(right);
-			rec(body);
-			queue(right);
-			queue(")");
-			queue(right);
-			break;
-		@match #letrec(ls, body):
-			queue(left);
-			queue("#letrec(");
-			queue(left);
-			queue(left);
-			foreach(@lambda(e){
-					queue(left);
-					rec(Zcar(e));
-					queue(": ");
-					queue(left);
-					rec(Zcar(Zcdr(e)));
-					queue(right);
-					queue(",");
-					queue(right);
-					queue(linebreak);
-				}, ls);
-			queue(right);
-			rec(body);
-			queue(right);
-			queue(")");
-			queue(right);
-			break;
-		@match #block(es, body):
-			queue(left);
-			queue(sprintfa("#%a(", stxkind(e)));
-			queue(left);
-			queue(left);
-			idlist(es);
-			queue(",");
-			queue(right);
-			queue(blank);
-			queue(left);
-			m = Zlength(body);
-			i = 0;
-			foreach(@lambda(e){
-					if(i < m-1){
-						queue(left);
-						rec(e);
-						queue(",");
-						queue(right);
-						queue(linebreak);
-					}else{
-						queue(left);
-						rec(e);
-						queue(right);
-					}
-					i++;
-				}, body);
-			queue(right);
-			queue(right);
-			queue(")");
-			queue(right);
-			break;
-		@match #lambda(es, body):
-			queue(left);
-			queue(sprintfa("#%a(", stxkind(e)));
-			queue(left);
-			queue(left);
-			arglist(es);
-			queue(",");
-			queue(right);
-			queue(blank);
-			queue(left);
-			rec(body);
-			queue(right);
-			queue(right);
-			queue(")");
-			queue(right);
-			break;
-		@match #null:
-			queue("#[]");
-			break;
-		@match #elist:
-			es = e;
-			queue(left);
-			queue("#[");
-			m = Zlength(es);
-			for(i = 0; i < m; i++){
-				if(i < m-1){
-					queue(left);
-					rec(Zcar(es));
-					queue(",");
-					queue(right);
-					queue(blank);
-				}else{
-					queue(left);
-					rec(Zcar(es));
-					queue(right);
-				}
-				es = Zcdr(es);
-			}
-			queue("]");
-			queue(right);
-			break;
-		default:
-			for(m = 0; m < 4; m++)
-				if(e[m] == nil)
-					break;
-			if(m == 0){
-				queue(sprintfa("#%a", stxkind(e)));
-				break;
-			}
-			s = sprintfa("#%a(", stxkind(e));
-			queue(left);
-			queue(s);
-			queue(left);
-			for(i = 0; i < m; i++){
-				if(i < m-1){
-					queue(left);
-					rec(e[i]);
-					queue(",");
-					queue(right);
-					queue(blank);
-				}else{
-					queue(left);
-					rec(e[i]);
-					queue(right);
-				}
-			}
-			queue(right);
-			queue(")");
-			queue(right);
-			break;
-		}
-	}
-
-	if(e == nil)
-		return;
-	print = mkprint();
-	rec(e);
-	scan();
-	pr("\n");
+    return pp;
 }
+
+{
+    @local _ppstx;
+
+    @defloc docifystx(e,queue,ppobj) {
+        @local left,right,blank,linebreak;
+        left = ppobj.left;
+        right = ppobj.right;
+        blank = ppobj.blank;
+        linebreak = ppobj.linebreak;
+
+        @defloc idlist(ids)
+        {
+            @local i, m;
+            m = Zlength(ids);
+            if(m == 0){
+                queue("#[ ]");
+                return;
+            }
+            queue(left);
+            queue("#[");
+            queue(blank);
+            for(i = 0; i < m-1; i++){
+                queue(sprintfa("%a,", stxid(Zcar(ids))));
+                queue(blank);
+                ids = Zcdr(ids);
+            }
+            queue(sprintfa("%a", stxid(Zcar(ids))));
+            queue(blank);
+            queue("]");
+            queue(right);
+        }
+
+        @defloc arglist(ids)
+        {
+            @local i, m;
+            m = Zlength(ids);
+            if(m == 0){
+                queue("#[ ]");
+                return;
+            }
+            queue(left);
+            queue("#[");
+            queue(blank);
+            for(i = 0; i < m-1; i++){
+                queue(sprintfa("%a,", stxid(Zcar(ids))));
+                queue(blank);
+                ids = Zcdr(ids);
+            }
+            switch(Zcar(ids)){
+            @match #id(id):
+                queue(sprintfa("%a", id));
+                break;
+            @match #ellipsis:
+                /* FIXME: there shouldn't be a preceding comma */
+                queue("...");
+                break;
+            default:
+                error("bug");
+            }
+            queue(blank);
+            queue("]");
+            queue(right);
+        }
+
+
+        @defloc rec(e)
+        {
+
+            @local m, i, es, s;
+            switch(e){
+            @match #id(id):
+                queue(sprintfa("%a", id));
+                break;
+            @match #val:
+                /* FIXME: need to recurse into val, esp for stx */
+                queue(sprintfa("%a", e));
+                break;
+            @match #begin(body):
+                queue(left);
+                queue(sprintfa("#%a(", stxkind(e)));
+                queue(left);
+                m = Zlength(body);
+                i = 0;
+                foreach(@lambda(e){
+                        if(i < m-1){
+                            queue(left);
+                            rec(e);
+                            queue(",");
+                            queue(right);
+                            queue(linebreak);
+                        }else{
+                            queue(left);
+                            rec(e);
+                            queue(right);
+                        }
+                        i++;
+                    }, body);
+                queue(right);
+                queue(")");
+                queue(right);
+                break;
+            @match #if(p, c, a):
+                queue(left);
+                queue("#if(");
+                queue(left);
+                queue(left);
+                rec(p);
+                queue(",");
+                queue(right);
+                queue(linebreak);
+                queue(left);
+                rec(c);
+                if(a != nil) queue(",");
+                queue(right);
+                if(a != nil){
+                    queue(linebreak);
+                    queue(left);
+                    rec(a);
+                    queue(right);
+                }
+                queue(right);
+                queue(")");
+                queue(right);
+                break;
+            @match #text(body):
+                queue(left);
+                queue("#text(");
+                queue(left);
+                m = Zlength(body);
+                i = 0;
+                foreach(@lambda(e){
+                        if(i < m-1){
+                            queue(left);
+                            rec(e);
+                            queue(right);
+                            queue(linebreak);
+                        }else{
+                            queue(left);
+                            rec(e);
+                            queue(right);
+                        }
+                        i++;
+                    }, body);
+                queue(right);
+                queue(")");
+                queue(right);
+                break;
+            @match #labels(ls, body):
+                queue(left);
+                queue("#labels(");
+                queue(left);
+                queue(left);
+                foreach(@lambda(e){
+                        queue(left);
+                        rec(Zcar(e)[0]);
+                        queue(": ");
+                        queue(left);
+                        rec(Zcar(Zcdr(e)));
+                        queue(right);
+                        queue(",");
+                        queue(right);
+                        queue(linebreak);
+                    }, ls);
+                queue(right);
+                rec(body);
+                queue(right);
+                queue(")");
+                queue(right);
+                break;
+            @match #letrec(ls, body):
+                queue(left);
+                queue("#letrec(");
+                queue(left);
+                queue(left);
+                foreach(@lambda(e){
+                        queue(left);
+                        rec(Zcar(e));
+                        queue(": ");
+                        queue(left);
+                        rec(Zcar(Zcdr(e)));
+                        queue(right);
+                        queue(",");
+                        queue(right);
+                        queue(linebreak);
+                    }, ls);
+                queue(right);
+                rec(body);
+                queue(right);
+                queue(")");
+                queue(right);
+                break;
+            @match #block(es, body):
+                queue(left);
+                queue(sprintfa("#%a(", stxkind(e)));
+                queue(left);
+                queue(left);
+                idlist(es);
+                queue(",");
+                queue(right);
+                queue(blank);
+                queue(left);
+                m = Zlength(body);
+                i = 0;
+                foreach(@lambda(e){
+                        if(i < m-1){
+                            queue(left);
+                            rec(e);
+                            queue(",");
+                            queue(right);
+                            queue(linebreak);
+                        }else{
+                            queue(left);
+                            rec(e);
+                            queue(right);
+                        }
+                        i++;
+                    }, body);
+                queue(right);
+                queue(right);
+                queue(")");
+                queue(right);
+                break;
+            @match #lambda(es, body):
+                queue(left);
+                queue(sprintfa("#%a(", stxkind(e)));
+                queue(left);
+                queue(left);
+                arglist(es);
+                queue(",");
+                queue(right);
+                queue(blank);
+                queue(left);
+                rec(body);
+                queue(right);
+                queue(right);
+                queue(")");
+                queue(right);
+                break;
+            @match #null:
+                queue("#[]");
+                break;
+            @match #elist:
+                es = e;
+                queue("#[");
+                queue(left);
+                m = Zlength(es);
+                for(i = 0; i < m; i++){
+                    if(i < m-1){
+                        queue(left);
+                        rec(Zcar(es));
+                        queue(",");
+                        queue(right);
+                        queue(blank);
+                    }else{
+                        queue(left);
+                        rec(Zcar(es));
+                        queue(right);
+                    }
+                    es = Zcdr(es);
+                }
+                queue(right);
+                queue("]");
+                break;
+            default:
+                for(m = 0; m < 4; m++)
+                    if(e[m] == nil)
+                        break;
+                if(m == 0){
+                    queue(sprintfa("#%a", stxkind(e)));
+                    break;
+                }
+                s = sprintfa("#%a(", stxkind(e));
+                queue(left);
+                queue(s);
+                queue(left);
+                for(i = 0; i < m; i++){
+                    if(i < m-1){
+                        queue(left);
+                        rec(e[i]);
+                        queue(",");
+                        queue(right);
+                        queue(blank);
+                    }else{
+                        queue(left);
+                        rec(e[i]);
+                        queue(right);
+                    }
+                }
+                queue(right);
+                queue(")");
+                queue(right);
+                break;
+            }
+        }
+
+        rec(e);
+    }
+
+
+    _ppstx = mkpp(ppprint,docifystx,75);
+
+    //ensure the stack includes a frame labeled "ppstx"
+    @define ppstx(e,args...) {
+        apply(_ppstx,e,args);
+    }
+
+}
+
