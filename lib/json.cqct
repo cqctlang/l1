@@ -1,16 +1,17 @@
 @global val2json;
+@global val2jsonpp;
 /* json2val() is an l1 builtin */
 
 @include <pp.cqct>
 
 {
-    @local ppjson, accum;
+	@local ppjson, accum;
 
 	@defloc ppval2json(v,pp)
 	{
 		if(isstring(v))
 			return str2json(v);
-		if(iscid(v))
+		else if (iscid(v))
 			return str2json(cid2str(v));
 		else if(iscvalue(v))
 			return sprintfa("%u", v);
@@ -30,26 +31,26 @@
 		if (v == "") return "\"\"";
 		v = sprintfa("%B",v);
 		foreach(@lambda(x,y) {
-			@local l,i,nxt,rep;
+				@local l,i,nxt,rep;
 
-			l = split(v,x);
+				l = split(v,x);
 
-			nxt = [l[0]];
+				nxt = [l[0]];
 
-			rep = sprintfa("\\%s",y);
+				rep = sprintfa("\\%s",y);
 
-			if (l[0] == "" && length(l) == 1) {
-			    v = rep;
-			    return;
-			}
+				if (l[0] == "" && length(l) == 1) {
+				v = rep;
+				return;
+				}
 
-			for(i=1; i<length(l); ++i) {
-			    append(nxt,rep);
-			    append(nxt,l[i]);
-			}
+				for(i=1; i<length(l); ++i) {
+				append(nxt,rep);
+				append(nxt,l[i]);
+				}
 
-			v = join(nxt);
-		}, [ "\n" : "n", "\f" : "f", "\r" : "r", ]);
+				v = join(nxt);
+				}, [ "\n" : "n", "\f" : "f", "\r" : "r", ]);
 		return "\""+v+"\"";
 	}
 
@@ -59,17 +60,17 @@
 		ss = [];
 		m = length(tab);
 		foreach(@lambda(key, val){
-		        @local grp;
-                append(ss, pp.blank);
+				@local grp;
+				append(ss, pp.blank);
 				grp = pp.mkhgroup(2,[ppval2json(key,pp)," :",
-				                     pp.blank,ppval2json(val,pp)]);
+					pp.blank,ppval2json(val,pp)]);
 				if(--m > 0) {
-					append(grp, ",");
-                }
-                //fancier...
-                //append(ss, pp.mkogroup(0,grp));
-                append(ss, grp);
-			}, tab);
+				append(grp, ",");
+				}
+				//fancier...
+				//append(ss, pp.mkogroup(0,grp));
+				append(ss, grp);
+				}, tab);
 		return pp.mkogroup(0,["{",pp.mkogroup(4,ss),pp.blank,"}"]);
 	}
 
@@ -80,38 +81,88 @@
 		m = length(l);
 		append(ss,pp.blank);
 		foreach(@lambda(val){
-		        @local grp;
-		        grp = [];
-		        if(m < length(l)) {
-		            append(grp, pp.blank);
-		        }
+				@local grp;
+				grp = [];
+				if(m < length(l)) {
+				append(grp, pp.blank);
+				}
 				append(grp, ppval2json(val,pp));
 				if(--m > 0) {
-					append(grp, ",");
-                }
-                //fancier...
-                //append(ss, pp.mkogroup(0,grp));
-                append(ss, grp);
-			}, l);
+				append(grp, ",");
+				}
+				//fancier...
+				//append(ss, pp.mkogroup(0,grp));
+				append(ss, grp);
+				}, l);
 		return pp.mkogroup(0,[ "[", pp.mkogroup(4,ss), 
-		                        pp.blank, "]" ]);
+				pp.blank, "]" ]);
 	}
 
-    accum = [];
+	accum = [];
 	@defloc appendprint(s) {
-	    if (s == nil) return;
-	    append(accum,s);
+		if (s == nil) return;
+		append(accum,s);
 	}
 
 	@defloc jsondocify(v,queue,pp) {
-	    queue(pp.mklgroup(0,[ppval2json(v,pp)]));
+		queue(pp.mklgroup(0,[ppval2json(v,pp)]));
 	}
 
 	ppjson = mkpp(appendprint,jsondocify,78);
 
-    @define val2json(v) {
-        accum = [];
-        ppjson(v);
-        return join(accum);
-    }
+	@define val2jsonpp(v,linewidth...) {
+		if (length(linewidth) == 0) linewidth = 78;
+		accum = [];
+		ppjson(v,linewidth);
+		return join(accum);
+	}
+
+	@define val2json(v)
+	{
+		if(isstring(v) || iscid(v))
+			return sprintfa("\"%B\"",v);
+		else if(iscvalue(v))
+			return sprintfa("%u", v);
+		else if(islist(v))
+			return list2json(v);
+		else if(istable(v))
+			return tab2json(v);
+		else if(isnil(v))
+			return "null";
+		else
+			error("invalid value: %a", v);
+	}
+
+	@defloc tab2json(tab)
+	{
+		@local ss, m;
+		ss = [];
+		m = length(tab);
+		append(ss, "{");
+		foreach(@lambda(key, val){
+				append(ss, val2json(key));
+				append(ss, ":");
+				append(ss, val2json(val));
+				if(--m > 0)
+				append(ss, ",");
+				}, tab);
+		append(ss, "}");
+		return join(ss);
+	}
+
+	@defloc list2json(l)
+	{
+		@local ss, m;
+		ss = [];
+		m = length(l);
+		append(ss, "[");
+		foreach(@lambda(val){
+				append(ss, val2json(val));
+				if(--m > 0)
+				append(ss, ",");
+				}, l);
+		append(ss, "]");
+		return join(ss);
+	}
 }
+

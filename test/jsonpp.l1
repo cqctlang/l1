@@ -1,9 +1,9 @@
 
 @include <json.cqct>
 
-printf("::::::::::::\n%s\n::::::::::::\n",val2json(1));
+printf("::::::::::::\n%s\n::::::::::::\n",val2jsonpp(1));
 
-printf("::::::::::::\n%s\n::::::::::::\n",val2json(
+printf("::::::::::::\n%s\n::::::::::::\n",val2jsonpp(
         [1,2,3,4,5,6,7,8,9,10,11,12,13,14,15,16,
          1,2,3,4,5,6,7,8,9,10,11,12,13,14,15,16,
          1,2,3,4,5,6,7,8,9,10,11,12,13,14,15,16,
@@ -12,7 +12,7 @@ printf("::::::::::::\n%s\n::::::::::::\n",val2json(
 
 x = [ 1:2, 3:4, 5:6, 7:8 ];
 printf("::::::::::::\n%s\n::::::::::::\n",
-    val2json( [ x,x,x,x,x,x,x,x,x,x,x,x ]));
+    val2jsonpp( [ x,x,x,x,x,x,x,x,x,x,x,x ]));
 
 @define mkrep(a,n) {
     @local s;
@@ -23,7 +23,7 @@ printf("::::::::::::\n%s\n::::::::::::\n",
 
 str = mkrep('a',40);
 printf("::::::::::::\n%s\n::::::::::::\n",
-    val2json( [ 
+    val2jsonpp( [ 
         str+"1" : str,
         str+"2" : str,
         str+"3" : str,
@@ -32,7 +32,7 @@ printf("::::::::::::\n%s\n::::::::::::\n",
    ]));
 
 printf("::::::::::::\n%s\n::::::::::::\n",
-    val2json( [ 
+    val2jsonpp( [ 
         mkrep('a',8) : mkrep('b',8),
         mkrep('b',8) : mkrep('b',8),
         mkrep('c',8) : mkrep('b',8),
@@ -59,4 +59,4 @@ ex = [
    ];
 
 printf("::::::::::::\n%s\n::::::::::::\n",
-    val2json( [ ex, ex, [ "a" : ex, mkrep('w',50) : ex ], [1,2,3,4] ] ));
+    val2jsonpp( [ ex, ex, [ "a" : ex, mkrep('w',50) : ex ], [1,2,3,4] ] ));
