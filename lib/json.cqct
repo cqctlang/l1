@@ -1,27 +1,12 @@
 @global val2json;
 /* json2val() is an l1 builtin */
+
+@include <pp.cqct>
+
 {
+    @local ppjson, accum;
 
-	//Attempting to conform to escape sequences available in:
-	//https://developer.mozilla.org/en-US/docs/Web/JavaScript/Guide/Values,_variables,_and_literals#String_literals
-	//NOTE: current json2val does not support \XXX \xXX or \uXXXX, so neither
-	//      does val2json
-	@defloc str2json(v) {
-		if (v == "") return "\"\"";
-		v = sprintfa("%B",v);
-		foreach(@lambda(x,y) {
-			@local l,i;
-			l = split(v,x);
-			v = l[0];
-			if (v == "") v = sprintfa("\\%s",y);
-			for(i=1; i<length(l); ++i) {
-				v = sprintfa("%s\\%s%s",v,y,l[i]);
-			}
-		}, [ "\n" : "n", "\f" : "f", "\r" : "r", ]);
-		return "\""+v+"\"";
-	}
-
-	@define val2json(v)
+	@defloc ppval2json(v,pp)
 	{
 		if(isstring(v))
 			return str2json(v);
@@ -30,44 +15,103 @@
 		else if(iscvalue(v))
 			return sprintfa("%u", v);
 		else if(islist(v))
-			return list2json(v);
+			return pplist2json(v,pp);
 		else if(istable(v))
-			return tab2json(v);
+			return pptab2json(v,pp);
 		else if(isnil(v))
 			return "null";
 		else
 			error("invalid value: %a", v);
 	}
 
-	@defloc tab2json(tab)
+	//Attempting to conform to escape sequences available in:
+	//https://developer.mozilla.org/en-US/docs/Web/JavaScript/Guide/Values,_variables,_and_literals#String_literals
+	@defloc str2json(v) {
+		if (v == "") return "\"\"";
+		v = sprintfa("%B",v);
+		foreach(@lambda(x,y) {
+			@local l,i,nxt,rep;
+
+			l = split(v,x);
+
+			nxt = [l[0]];
+
+			rep = sprintfa("\\%s",y);
+
+			if (l[0] == "" && length(l) == 1) {
+			    v = rep;
+			    return;
+			}
+
+			for(i=1; i<length(l); ++i) {
+			    append(nxt,rep);
+			    append(nxt,l[i]);
+			}
+
+			v = join(nxt);
+		}, [ "\n" : "n", "\f" : "f", "\r" : "r", ]);
+		return "\""+v+"\"";
+	}
+
+	@defloc pptab2json(tab,pp)
 	{
 		@local ss, m;
 		ss = [];
 		m = length(tab);
-		append(ss, "{");
 		foreach(@lambda(key, val){
-				append(ss, val2json(key));
-				append(ss, ":");
-				append(ss, val2json(val));
-				if(--m > 0)
-					append(ss, ",");
+		        @local grp;
+                append(ss, pp.blank);
+				grp = pp.mkhgroup(2,[ppval2json(key,pp)," :",
+				                     pp.blank,ppval2json(val,pp)]);
+				if(--m > 0) {
+					append(grp, ",");
+                }
+                //fancier...
+                //append(ss, pp.mkogroup(0,grp));
+                append(ss, grp);
 			}, tab);
-		append(ss, "}");
-		return join(ss);
+		return pp.mkogroup(0,["{",pp.mkogroup(4,ss),pp.blank,"}"]);
 	}
 
-	@defloc list2json(l)
+	@defloc pplist2json(l,pp)
 	{
 		@local ss, m;
 		ss = [];
 		m = length(l);
-		append(ss, "[");
+		append(ss,pp.blank);
 		foreach(@lambda(val){
-				append(ss, val2json(val));
-				if(--m > 0)
-					append(ss, ",");
+		        @local grp;
+		        grp = [];
+		        if(m < length(l)) {
+		            append(grp, pp.blank);
+		        }
+				append(grp, ppval2json(val,pp));
+				if(--m > 0) {
+					append(grp, ",");
+                }
+                //fancier...
+                //append(ss, pp.mkogroup(0,grp));
+                append(ss, grp);
 			}, l);
-		append(ss, "]");
-		return join(ss);
+		return pp.mkogroup(0,[ "[", pp.mkogroup(4,ss), 
+		                        pp.blank, "]" ]);
 	}
+
+    accum = [];
+	@defloc appendprint(s) {
+	    if (s == nil) return;
+	    append(accum,s);
+	}
+
+	@defloc jsondocify(v,queue,pp) {
+	    queue(pp.mklgroup(0,[ppval2json(v,pp)]));
+	}
+
+	ppjson = mkpp(appendprint,jsondocify,78);
+
+    @define val2json(v) {
+        accum = [];
+        ppjson(v);
+        return join(accum);
+    }
 }

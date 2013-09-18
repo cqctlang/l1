@@ -12,3 +12,7 @@ for(i=0; i<256; ++i) {
 	printf("   %d %d\n",x == json2val(json),json2val(json)[0]);
 }
 
+x = "\nadsfasd";
+json = val2json(x);
+printf("%s %s\n",x,json);
+printf("   %d\n",x == json2val(json));
