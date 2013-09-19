@@ -45,9 +45,25 @@ main(int argc,char **argv) {
 		{ "O_WRONLY",	O_WRONLY },
 		{ "O_RDWR", 	O_RDWR },	
 		{ "O_CREAT", 	O_CREAT },	
+		{ "O_NOCTTY",	O_NOCTTY },
 		{ "O_TRUNC", 	O_TRUNC },	
 		{ "O_APPEND", 	O_APPEND },	
 		{ "O_NONBLOCK", O_NONBLOCK },	
+#ifdef O_ASYNC
+		{ "O_ASYNC", 	O_ASYNC },	
+#endif
+#ifdef O_SYNC
+		{ "O_SYNC", 	O_SYNC },	
+#endif
+#ifdef O_EXCL
+		{ "O_EXCL",	O_EXCL },
+#endif
+#ifdef O_CLOEXEC // linux since 2.6.23
+		{ "O_CLOEXEC", 	O_CLOEXEC },	
+#endif
+#ifdef O_DIRECT // linux since 2.4.10
+		{ "O_DIRECT", 	O_DIRECT },	
+#endif
 		{ NULL },
 	};
 
