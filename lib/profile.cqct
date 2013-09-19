@@ -5,7 +5,8 @@
 	profiles = mktab(@lambda() {
 			 	return [0,  // count
 					0,  // time
-					0]; // expansion sites
+					0,  // expansions
+					nil]; // location
 			 });
 	profentries = [:];
 	return #[];
@@ -15,7 +16,9 @@
 @defstx @profile(rest ...) body {
 
 	@local ssym, name, src;
-
+	
+	src = stxsrc(body);
+		
 	if(rest[0]) {
 		name = rest[0];
 		if(stxkind(name) != 'val)
@@ -29,19 +32,29 @@
 		name=mkstxval(name);
 	}
 
+	if(stxkind(body[0][0]) != 'null) {
+		error("profile body is not a scope. no top-level bindings allowed.");	
+	}
+
 	ssym=mkstxval(stxid(gensym()));
 
 	profiles[stxval(name)][2]++;
+	profiles[stxval(name)][3] = src;
 
 	return #`{
 		profentries[#,(ssym)]=gettimeofday();
-		#,(body[0]);
+		// just the elist, not the scope
+		#,(body[0][1]);
 		{
-			@local t;
+			@local t,l;
 	
 			t = profiles[#,(name)];
+			l = profentries[#,(ssym)];
 			t[0]++;
-			t[1] += gettimeofday()-profentries[#,(ssym)];
+			if(!isnil(l))
+				t[1] += gettimeofday()-l;
+			else
+				fprintf(stderr,"@profile: accounting disrupted by non-local entry\n");
 		}
 	};
 }
