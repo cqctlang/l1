@@ -672,7 +672,8 @@ $repllevel = 0;
 			append(actions, [ 'repl ]);
 			continue;
 		}
-		if(arg == "-p" || arg == "-q" || arg == "-w" || arg == "-K" || arg == "-o")
+		if(	arg == "-p" || arg == "-q" || arg == "-w" ||
+			arg == "-K" || arg == "-o" || arg == "-X")
 			continue; /* legacy flags */
 		usage(l1path);
 	}
