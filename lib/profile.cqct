@@ -1,7 +1,7 @@
 
 
 @defstx @init_profile() {
-	@global profiles, profentries;
+	@global profiles, profentries,elist_length,elist_slice,elist_map;
 	profiles = mktab(@lambda() {
 			 	return [0,  // count
 					0,  // time
@@ -9,13 +9,65 @@
 					nil]; // location
 			 });
 	profentries = [:];
+	elist_length = @lambda(el) {
+		@local x;
+
+		x=0;
+		while(el != #[]) {
+			x++;
+			el=el[1];
+		}
+		return x;
+	};
+	elist_slice = @lambda(el, start, finish) {
+		@local x,l,stx;
+
+		x=0;
+		while( (el != #[]) && (x<start)) {
+			x++;
+			el=el[1];	
+		}
+		if(x<start)
+			error("elist_slice: elist too short for start");
+		l=[];
+		while( (el != #[]) && (x<finish)) {
+			x++;
+			append(l,el[0]);
+		}
+		if(x<finish)
+			error("elist_slice: elist too short for finish");
+		l=reverse(l);
+		stx=#[];
+		foreach(@lambda(v) {
+			stx=mkstx('elist,v,stx);
+		},l);
+		return stx;
+	};
+	elist_map = @lambda(fn,el) {
+		@local l,stx;
+
+		l=[];
+		while( el != #[] ) {
+			append(l,el[0]);
+			el = el[1];
+		}
+		l=map(fn,l);
+		l=reverse(l);
+		stx=#[];
+		foreach(@lambda(v) {
+			stx=mkstx('elist,v,stx);
+		},l);
+		return stx;
+	};
 	return #[];
 }
 @init_profile();
 
 @defstx @profile(rest ...) body {
 
-	@local ssym, name, src;
+	@local ssym, rsym, lsym, nsym, name, src, elist;
+	//@local elist_pre,elist_post;
+	@local goto_ret_block, have_ret;
 	
 	src = stxsrc(body);
 		
@@ -37,14 +89,54 @@
 	}
 
 	ssym=mkstxval(stxid(gensym()));
+	lsym=gensym();
+	nsym=gensym();
+	rsym=gensym();
 
 	profiles[stxval(name)][2]++;
 	profiles[stxval(name)][3] = src;
 
+	elist=body[0][1];
+
+	elist_map(@lambda(v) {
+		if(stxkind(v) == 'ret) {
+			printf("RETURN: %a\n",v);
+			have_ret=1;
+			#[ #`{ #,(rsym) = #,(v[0]); }, #goto(lsym) ];
+		}
+		v;
+	},elist);
+
+	if(have_ret)
+	goto_ret_block=#`{
+		;
+		goto #,(nsym);
+		#,(lsym):
+			fprintf(stderr,"@profile: return from block\n");
+			{
+				@local t,l;
+	
+				t = profiles[#,(name)];
+				l = profentries[#,(ssym)];
+				t[0]++;
+				if(!isnil(l))
+					t[1] += gettimeofday()-l;
+				else
+					fprintf(stderr,"@profile: accounting disrupted by non-local entry\n");
+			}
+			return #,(rsym);
+		#,(nsym):	
+		;
+	};
+	else
+	goto_ret_block=#[];
+
 	return #`{
 		profentries[#,(ssym)]=gettimeofday();
+		{ @global #,(rsym); }
 		// just the elist, not the scope
-		#,(body[0][1]);
+		//#,(elist_pre);
+		#,(rsym) = #,(elist); // this is unsound for recursive functions without dynamic wind
 		{
 			@local t,l;
 	
@@ -56,5 +148,7 @@
 			else
 				fprintf(stderr,"@profile: accounting disrupted by non-local entry\n");
 		}
+		#,(goto_ret_block);
+		#,(rsym);
 	};
 }
