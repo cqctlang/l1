@@ -186,7 +186,7 @@ ions = @names c32le {
 	@local addr, len, rv, fd, mode, fmode;
 
 	if(length(arg) > 0) 
-		mode = arg[1];
+		mode = arg[0];
 	else
 		mode = "rwp";
 
@@ -213,7 +213,7 @@ ions = @names c32le {
 
 	fd = mksysfd(fd, mode2flags(fmode), file);
 
-	rv = apply(_mapfd, fd, arg);
+	rv = _mapfd(fd, mode);
 	close(fd);
 
 	if(!rv)

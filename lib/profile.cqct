@@ -65,8 +65,11 @@
 
 @defstx @profile(rest ...) body {
 
-	@local ssym, rsym, lsym, nsym, name, src, elist;
+	@local ssym, rsym, lsym, nsym, bsym, csym, name, src, elist;
 	@local goto_ret_block, have_ret;
+	@local goto_break_block, have_break;
+	@local goto_continue_block, have_continue;
+	@local warp_block,unwarp_block;
 	@local accounting_block;
 	@local multi_rewriter;
 	
@@ -94,6 +97,8 @@
 	lsym=gensym();
 	nsym=gensym();
 	rsym=gensym();
+	bsym=gensym();
+	csym=gensym();
 
 	profiles[stxval(name)][2]++;
 	profiles[stxval(name)][3] = src;
@@ -101,7 +106,7 @@
 	elist = body[0][1];
 
 	// todo:
-	// handle break in loops and switch
+	// handle break in switch
 	// handle continue in loops
 	// handle escapes with dynamic wind
 	// handle recursion
@@ -110,6 +115,12 @@
 		if(stxkind(v) == 'ret) {
 			have_ret = 1;
 			#`{ #,(rsym) = #,(v[0]); goto #,(lsym); };
+		} else if( (stxkind(v) == 'break) && !isinner) {
+			have_break = 1;
+			#`{ goto #,(bsym); };	
+		} else if( (stxkind(v) == 'continue) && !isinner) {
+			have_continue = 1;
+			#`{ goto #,(csym); };	
 		} else if(stxkind(v) == 'scope) {
 			#scope(multi_rewriter(v[0],isinner));
 		} else if(stxkind(v) == 'block) {
@@ -152,16 +163,43 @@
 	};
 
 	if(have_ret)
-	goto_ret_block=#`{
-		goto #,(nsym);
-		#,(lsym):
-			#,(accounting_block);
-			return #,(rsym);
-		#,(nsym):	
-		;
-	};
+		goto_ret_block=#`{
+			#,(lsym):
+				#,(accounting_block);
+				return #,(rsym);
+		};
 	else
-	goto_ret_block=#[];
+		goto_ret_block=#[];
+
+	if(have_break) {
+		goto_break_block=#`{
+			#,(bsym):	
+				#,(accounting_block);
+				break;
+		};
+	} else
+		goto_break_block=#[];
+
+	if(have_continue) {
+		goto_continue_block=#`{
+			#,(csym):	
+				#,(accounting_block);
+				continue;
+		};
+	} else
+		goto_continue_block=#[];
+
+	if(have_ret || have_break || have_continue) {
+		warp_block=#`{
+			goto #,(nsym);
+		};
+		unwarp_block=#`{
+			#,(nsym): ;
+		};
+	} else {
+		warp_block=#[];
+		unwarp_block=#[];
+	}
 
 	return #`{
 		profentries[#,(ssym)]=gettimeofday();
@@ -170,7 +208,11 @@
 		//#,(elist_pre);
 		#,(rsym) = #,(elist); // this is unsound for recursive functions without dynamic wind
 		#,(accounting_block);
+		#,(warp_block);
 		#,(goto_ret_block);
+		#,(goto_break_block);
+		#,(goto_continue_block);
+		#,(unwarp_block);
 		#,(rsym);
 	};
 }
