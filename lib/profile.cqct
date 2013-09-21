@@ -66,8 +66,9 @@
 @defstx @profile(rest ...) body {
 
 	@local ssym, rsym, lsym, nsym, name, src, elist;
-	//@local elist_pre,elist_post;
 	@local goto_ret_block, have_ret;
+	@local accounting_block;
+	@local multi_rewriter;
 	
 	src = stxsrc(body);
 		
@@ -76,7 +77,6 @@
 		if(stxkind(name) != 'val)
 			error("@profile: arg 0 must be a value");
 	} else {
-		src = stxsrc(body);
 		if(isnil(src[1]))
 			name = sprintfa("%s",src[0]);
 		else
@@ -85,7 +85,9 @@
 	}
 
 	if(stxkind(body[0][0]) != 'null) {
-		error("profile body is not a scope. no top-level bindings allowed.");	
+		error("error: %s%s syntax error: no bindings in profile body without a new block",
+			src[0],
+			isnil(src[1])?"":sprintfa(":%d", src[1]));
 	}
 
 	ssym=mkstxval(stxid(gensym()));
@@ -96,34 +98,64 @@
 	profiles[stxval(name)][2]++;
 	profiles[stxval(name)][3] = src;
 
-	elist=body[0][1];
+	elist = body[0][1];
 
-	elist_map(@lambda(v) {
+	// todo:
+	// handle break in loops and switch
+	// handle continue in loops
+	// handle escapes with dynamic wind
+	// handle recursion
+	
+	multi_rewriter = @lambda(v,isinner) {
 		if(stxkind(v) == 'ret) {
-			printf("RETURN: %a\n",v);
-			have_ret=1;
-			#[ #`{ #,(rsym) = #,(v[0]); }, #goto(lsym) ];
+			have_ret = 1;
+			#`{ #,(rsym) = #,(v[0]); goto #,(lsym); };
+		} else if(stxkind(v) == 'scope) {
+			#scope(multi_rewriter(v[0],isinner));
+		} else if(stxkind(v) == 'block) {
+			// return, continue, break are keywords
+			// we don't need to check for aliases
+			#block(v[0], multi_rewriter(v[1],isinner));
+		} else if(stxkind(v) == 'if) {
+			if(v[2])
+				#if(v[0], multi_rewriter(v[1],isinner),
+					  multi_rewriter(v[2],isinner));
+			else
+				#if(v[0], multi_rewriter(v[1],isinner));
+		} else if(stxkind(v) == 'while) {
+			#while(v[0], multi_rewriter(v[1],1));
+		} else if(stxkind(v) == 'for) {
+			#for(v[0], v[1], v[2], multi_rewriter(v[3],1));
+		} else if(stxkind(v) == 'do) {
+			#do(multi_rewriter(v[0],isinner,1), v[1]);
+		} else if(stxkind(v) == 'elist) {
+			elist_map(@lambda(v) { multi_rewriter(v,isinner); }, v);
+		} else
+			v;
+		// comma forms can't contain statements. no
+		// need to check there.
+	};
+	elist = elist_map(@lambda(v) { multi_rewriter(v, 0); }, elist);
+
+	accounting_block = #`{
+		{
+			@local t,l;
+	
+			t = profiles[#,(name)];
+			l = profentries[#,(ssym)];
+			t[0]++;
+			if(!isnil(l))
+				t[1] += gettimeofday()-l;
+			else
+				fprintf(stderr,"@profile: accounting disrupted by non-local entry\n");
 		}
-		v;
-	},elist);
+	};
 
 	if(have_ret)
 	goto_ret_block=#`{
-		;
 		goto #,(nsym);
 		#,(lsym):
-			fprintf(stderr,"@profile: return from block\n");
-			{
-				@local t,l;
-	
-				t = profiles[#,(name)];
-				l = profentries[#,(ssym)];
-				t[0]++;
-				if(!isnil(l))
-					t[1] += gettimeofday()-l;
-				else
-					fprintf(stderr,"@profile: accounting disrupted by non-local entry\n");
-			}
+			#,(accounting_block);
 			return #,(rsym);
 		#,(nsym):	
 		;
@@ -137,17 +169,7 @@
 		// just the elist, not the scope
 		//#,(elist_pre);
 		#,(rsym) = #,(elist); // this is unsound for recursive functions without dynamic wind
-		{
-			@local t,l;
-	
-			t = profiles[#,(name)];
-			l = profentries[#,(ssym)];
-			t[0]++;
-			if(!isnil(l))
-				t[1] += gettimeofday()-l;
-			else
-				fprintf(stderr,"@profile: accounting disrupted by non-local entry\n");
-		}
+		#,(accounting_block);
 		#,(goto_ret_block);
 		#,(rsym);
 	};

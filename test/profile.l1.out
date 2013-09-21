@@ -1,14 +1,9 @@
+each should have one call
 profiles:
-"profile.l1:37": 0
-"foo": 0
-"bar": 0
-X: 2
-X: 2
-profiles:
-"profile.l1:37": 1
-"foo": 1
-"bar": 1
-profiles:
-"profile.l1:37": 1
-"foo": 1001
-"bar": 1
+label: calls location expansions
+"return_inside_block": 1 vector( profile.l1, 18 )
+"profile.l1:5": 1 vector( profile.l1, 5 )
+"haslabel": 1 vector( profile.l1, 4 )
+"return_inside_if": 1 vector( profile.l1, 25 )
+"return_inside_if_block": 1 vector( profile.l1, 31 )
+"return": 1 vector( profile.l1, 10 )

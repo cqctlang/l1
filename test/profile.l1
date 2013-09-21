@@ -1,59 +1,47 @@
+// simple cases
 
-@global c;
-c=0;
+// degenerate cases
+@profile("haslabel") {}
+@profile() {} // should have file:lineno label
 
-foo = @lambda() {
-	@profile("foo") {
-		c++;
+// return inside profile body
+@lambda() {
+	@profile("return") {
+		return;
+		printf("Shouldn't be here");
 	}
-};
+}();
+@lambda() {
+	@profile("return_inside_block") {
+		{
+			return;
+		}
+		printf("Shouldn't be here");
+	}
+}();
+@lambda() {
+	@profile("return_inside_if") {
+		if(1) return;	
+		printf("Shouldn't be here");
+	}
+}();
+@lambda() {
+	@profile("return_inside_if_block") {
+		if(1) { return;	}
+		printf("Shouldn't be here");
+	}
+}();
 
-printf("profiles:\n");
-foreach(@lambda(k) {
-	printf("%a: %a\n",k,profiles[k][0]);	
-},tabkeys(profiles));
+printf("each should have one call\n");
 
-foo();
-
-bar = @lambda() {
-	@local x;
-
-	x=2;
-	@profile("bar") {
-		@local x;
-		x=12;
-	};
-
-	printf("X: %d\n",x);
-};
-bar();
-
-baz = @lambda() {
-	@local x;
-
-	x=2;
-	@profile() {
-		@local x;
-		x=12;
-	};
-
-	printf("X: %d\n",x);
-};
-baz();
-
-printf("profiles:\n");
-foreach(@lambda(k) {
-	printf("%a: %d\n",k,profiles[k][0]);	
-},tabkeys(profiles));
-
-@global x;
-for(x=0;x<1000;x++) {
-	foo();
+@define dumpprof() {
+	printf("profiles:\n");
+	printf("label: calls location expansions\n");
+	foreach(@lambda(k) {
+		printf("%a: %a %a\n",k,profiles[k][0],
+					profiles[k][3],
+					profiles[k][2]);	
+	},tabkeys(profiles));
 }
 
-printf("profiles:\n");
-foreach(@lambda(k) {
-	printf("%a: %d\n",k,profiles[k][0]);	
-},tabkeys(profiles));
-
-
+dumpprof();
