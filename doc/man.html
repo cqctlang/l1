@@ -8971,11 +8971,18 @@ of the following characters:
  <span class="val">r</span> (read),
  <span class="val">w</span> (write),
  <span class="val">x</span> (execute),
+ <span class="val">p</span> (private),
  <span class="val">s</span> (shared).
 When shared, the mapping shares backing storage with
 the file and with any other shared mappings of the file
-on the system.  Otherwise the mapping is a private copy.
-The default mode is <span class="val">"rw"</span>.
+on the system.  When private, the mapping may be written
+even if the file is not writable. Changes to private
+mappings are not posted back to the file, nor shared with
+other mappers. Child processes inherit mappings. Mappings
+are private by default. If mode is not supplied, the
+default mode <span class="val">"rwp"</span> is used.
+If the mode is read-only then a returned string will
+be read-only.
 </div>
 </div>
 

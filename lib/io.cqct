@@ -221,7 +221,10 @@ ions = @names c32le {
 
 	[addr, len] = rv;
 	if(len){
-		rv = mkstrm(addr, len);
+		if(strstr(mode,"w"))
+			rv = mkstrm(addr, len);
+		else
+			rv = mkstrmro(addr, len);
 		finalize(rv, @lambda(x){ 
 			_munmap(addr, len); });
 	}else

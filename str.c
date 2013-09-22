@@ -103,14 +103,14 @@ mkstrk(char *s, Imm len, Skind skind)
 {
 	Strperm *sp;
 
-	switch(skind){
+	switch(skind&(Sheap|Sperm)){
 	case Sheap:
 		return mkstr(s, len);
 	case Sperm:
 		sp = (Strperm*)malv(Qstr, sizeof(Strperm));
 		sp->s = s;
 		sp->str.len = len;
-		sp->str.skind = Sperm;
+		sp->str.skind = Sperm | (skind&Sro);
 		return (Str*)sp;
 	}
 	fatal("bug");
@@ -220,6 +220,21 @@ l1_mkstrm(VM *vm, Imm argc, Val *argv, Val *rv)
 	len = valcval(argv[1]);
 	*rv = mkvalstr(mkstrk((char*)(uptr)cvalu(s), cvalu(len), Sperm));
 }
+
+static void
+l1_mkstrmro(VM *vm, Imm argc, Val *argv, Val *rv)
+{
+	Cval *s, *len;
+
+	if(argc != 2)
+		vmerr(vm, "wrong number of arguments to mkstrmo");
+	checkarg(vm, argv, 0, Qcval);
+	checkarg(vm, argv, 1, Qcval);
+	s = valcval(argv[0]);
+	len = valcval(argv[1]);
+	*rv = mkvalstr(mkstrk((char*)(uptr)cvalu(s), cvalu(len), Sperm|Sro));
+}
+
 
 static void
 l1_strlen(VM *vm, Imm argc, Val *argv, Val *rv)
@@ -382,6 +397,7 @@ l1_strput(VM *vm, Imm argc, Val *argv, Val *rv)
 	Cval *off, *cv;
 	Imm o;
 
+
 	if(argc != 3)
 		vmerr(vm, "wrong number of arguments to strput");
 	if(Vkind(argv[0]) != Qstr)
@@ -401,12 +417,18 @@ l1_strput(VM *vm, Imm argc, Val *argv, Val *rv)
 			vmerr(vm, "strput out of bounds");
 		if(o+t->len > s->len)
 			vmerr(vm, "strput out of bounds");
-		memcpy(strdata(s)+o, strdata(t), t->len);
+		if(strro(s))
+			vmerr(vm, "string is read only");
+		else
+			memcpy(strdata(s)+o, strdata(t), t->len);
 	}else{
 		if(o >= s->len)
 			vmerr(vm, "strput out of bounds");
 		cv = valcval(argv[2]);
-		strdata(s)[o] = (char)cvalu(cv);
+		if(strro(s))
+			vmerr(vm, "string is read only");
+		else
+			strdata(s)[o] = (char)cvalu(cv);
 	}
 	USED(rv);
 }
@@ -419,6 +441,7 @@ fnstr(Env env)
 	FN(memset);
 	FN(mkstr);
 	FN(mkstrm);
+	FN(mkstrmro);
 	FN(strcmp);
 	FN(strput);
 	FN(strlen);

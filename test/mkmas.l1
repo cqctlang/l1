@@ -1,0 +1,20 @@
+
+printf("allocating buffer\n");
+foo=malloc(1024);
+
+printf("mutating malloc\n");
+*(unsigned char *)foo = 1;
+
+printf("mkmasing\n");
+bar=mkmas(foo,1024);
+printf("as: %a\n",bar);
+
+printf("mutating mkmas\n");
+*(unsigned char *){bar}foo = 1;
+
+printf("mkmasroing\n");
+baz=mkmasro(foo,1024);
+printf("as: %a\n",baz);
+
+printf("mutating mkmasro (should fail)\n");
+*(unsigned char *){baz}foo = 1;

@@ -3264,6 +3264,33 @@ masput(VM *vm, Imm argc, Val *argv, Val *disp, Val *rv)
 }
 
 static void
+roput(VM *vm, Imm argc, Val *argv, Val *disp, Val *rv)
+{
+	Str *dat;
+	Range *r, *mr;
+	Imm rb, rl, mb, ml;
+
+	if(argc != 3)
+		vmerr(vm, "wrong number of arguments to put method");
+	checkarg(vm, argv, 1, Qrange);
+	checkarg(vm, argv, 2, Qstr);
+	mr = valrange(disp[0]);
+	r = valrange(argv[1]);
+	rb = cvalu(r->beg);
+	rl = cvalu(r->len);
+	mb = cvalu(mr->beg);
+	ml = cvalu(mr->len);
+	if(!checkrange(mb, ml, rb, rl))
+		vmerr(vm, "address space access out of bounds");
+	dat = valstr(argv[2]);
+	if(dat->len < rl)
+		vmerr(vm, "not enough bytes for address space update");
+
+	vmerr(vm, "memory access fault");
+	USED(rv);
+}
+
+static void
 masmap(VM *vm, Imm argc, Val *argv, Val *disp, Val *rv)
 {
 	Vec *v;
@@ -3306,8 +3333,13 @@ mkmas(VM *vm, Range *r, unsigned x)
 	mtab = mktab();
 	tabput(mtab, mkvalstr(mkstr0("get")),
 		mkvalcl(mkccl("masget", masget, 1, mkvalrange(r))));
-	tabput(mtab, mkvalstr(mkstr0("put")),
-		mkvalcl(mkccl("masput", masput, 1, mkvalrange(r))));
+	if(x&2) {
+		tabput(mtab, mkvalstr(mkstr0("put")),
+			mkvalcl(mkccl("roput", roput, 1, mkvalrange(r))));
+	} else {
+		tabput(mtab, mkvalstr(mkstr0("put")),
+			mkvalcl(mkccl("masput", masput, 1, mkvalrange(r))));
+	}
 	tabput(mtab, mkvalstr(mkstr0("map")),
 		mkvalcl(mkccl("masmap", masmap, 1, mkvalrange(r))));
 	tabput(mtab, mkvalstr(mkstr0("ismapped")),
@@ -3316,7 +3348,7 @@ mkmas(VM *vm, Range *r, unsigned x)
 	/* check if asked for intersection with managed
 	   range, but *after* any potential heap churn
 	   of this call. */
-	if(x && ismanagedrange((void*)(uptr)cvalu(r->beg), cvalu(r->len)))
+	if((x&1) && ismanagedrange((void*)(uptr)cvalu(r->beg), cvalu(r->len)))
 		vmerr(vm, "range includes managed address space");
 	return as;
 }
@@ -4352,6 +4384,7 @@ dovm(VM *vm)
 		gotab[Ibox]	= &&Ibox;
 		gotab[Ibox0]	= &&Ibox0;
 		gotab[Icall]	= &&Icall;
+		gotab[Icall2]	= &&Icall2;
 		gotab[Icallt]	= &&Icallt;
 		gotab[Ichkcl]	= &&Ichkcl;
 		gotab[Ichkint]	= &&Ichkint;
@@ -4473,6 +4506,8 @@ dovm(VM *vm)
 		LABEL Igcpoll:
 			gcpoll(vm);
 			continue;
+		LABEL Icall2:
+			vm->fp += i->scnt;
 		LABEL Icall:
 			val = getvalrand(vm, &i->op1);
 			vm->fp[Ora] = (Val)(uptr)vm->pc;
@@ -5352,6 +5387,12 @@ static void
 l1_mkmas(VM *vm, Imm argc, Val *argv, Val *rv)
 {
 	domkmas(vm, "mkmas", argc, argv, rv, 0);
+}
+
+static void
+l1_mkmasro(VM *vm, Imm argc, Val *argv, Val *rv)
+{
+	domkmas(vm, "mkmasro", argc, argv, rv, 2);
 }
 
 static void
@@ -7471,6 +7512,7 @@ mktopenv(void)
 	FN(mkdom);
 	FN(mkfd);
 	FN(mkmas);
+	FN(mkmasro);
 	FN(mkmasx);
 	FN(mknas);
 	FN(mkns);
@@ -7697,6 +7739,7 @@ initvm()
 	REGFN(nasismapped);
 	REGFN(nasmap);
 	REGFN(nilfn);
+	REGFN(roput);
 	REGFN(sasget);
 	REGFN(sasismapped);
 	REGFN(sasmap);

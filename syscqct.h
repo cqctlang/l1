@@ -474,8 +474,9 @@ struct Rd {
 
 typedef
 enum {
-	Sperm,			/* don't free */
-	Sheap,			/* managed by gc */
+	Sperm = 1,			/* don't free */
+	Sheap = 2,			/* managed by gc */
+	Sro = 4,			/* read-only */
 } Skind;
 
 struct Str {
@@ -490,11 +491,13 @@ struct Strperm {
 	char *s;		/* data */
 } Strperm;
 
-#define strdata(x) (((x)->skind == Sheap)	   \
+#define strdata(x) (((x)->skind & Sheap)	   \
 		    ? (char*)((x)+1)	           \
 	            : (((Strperm*)(x))->s))
 /* size of Sheap strings */
 #define strsize(n) (sizeof(Str)+(n)*sizeof(char))
+/* is the string read-only? */
+#define strro(x) (((x)->skind & Sro)?1:0)
 
 struct Vec {
 	Head hd;
@@ -617,6 +620,7 @@ enum {
 	Ibox,
 	Ibox0,
 	Icall,
+	Icall2,
 	Icallt,
 	Ichkcl,
 	Ichkint,

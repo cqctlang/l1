@@ -1,0 +1,11 @@
+allocating buffer
+mutating malloc
+mkmasing
+as: <as>
+mutating mkmas
+mkmasroing
+as: <as>
+mutating mkmasro (should fail)
+error: memory access fault
+	#0                   roput	(builtin function)
+	#1                   entry	(mkmas.l1:20)
