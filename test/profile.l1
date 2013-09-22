@@ -1,35 +1,109 @@
 // simple cases
 
 // degenerate cases
+printf("simple cases...\n");
 @profile("haslabel") {}
 @profile() {} // should have file:lineno label
 
-// return inside profile body
+printf("return inside profile body...\n");
 @lambda() {
 	@profile("return") {
 		return;
-		printf("Shouldn't be here");
+		printf("Shouldn't be here\n");
 	}
 }();
+
+printf("return inside block...\n");
 @lambda() {
 	@profile("return_inside_block") {
 		{
 			return;
 		}
-		printf("Shouldn't be here");
+		printf("Shouldn't be here\n");
 	}
 }();
+printf("return inside if...\n");
 @lambda() {
 	@profile("return_inside_if") {
 		if(1) return;	
-		printf("Shouldn't be here");
+		printf("Shouldn't be here\n");
 	}
 }();
+printf("return inside if block...\n");
 @lambda() {
 	@profile("return_inside_if_block") {
 		if(1) { return;	}
-		printf("Shouldn't be here");
+		printf("Shouldn't be here\n");
 	}
+}();
+printf("break inside...\n");
+@lambda() {
+	while(1) {
+		@profile("break_inside") {
+			break;
+			printf("Shouldn't be here\n");
+		}
+	}
+	printf("Should be here\n");
+}();
+printf("break inside loop...\n");
+@lambda() {
+	@profile("break_inside_loop") {
+		while(1) {
+			break;
+			printf("Shouldn't be here\n");
+		}
+	}
+	printf("Should be here\n");
+}();
+printf("continue inside...\n");
+@lambda() {
+	@local x;
+	x=1;
+	while(x--) {
+		@profile("continue_inside") {
+			continue;
+			printf("Shouldn't be here\n");
+		}
+	}
+	printf("Should be here\n");
+}();
+printf("continue inside loop...\n");
+@lambda() {
+	@local x;
+	x=1;
+	@profile("continue_inside_loop") {
+		while(x--) {
+			continue;
+			printf("Shouldn't be here\n");
+		}
+	}
+	printf("Should be here\n");
+}();
+printf("return after label...\n");
+@lambda() {
+	@profile("return_after_label") {
+	foo:
+		return;
+	}
+}();
+printf("goto to inside...\n");
+@lambda() {
+	@profile("goto_to_inside") {
+		goto in;
+		printf("Shouldn't be here\n");
+		in:
+		printf("Should be here\n");
+	}
+}();
+printf("goto to outside...\n");
+@lambda() {
+	@profile("goto_to_outside") {
+		goto out;
+		printf("Shouldn't be here\n");
+	}
+	out:
+	printf("Should be here\n");
 }();
 
 printf("each should have one call\n");
