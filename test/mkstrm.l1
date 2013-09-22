@@ -1,0 +1,19 @@
+
+printf("allocating buffer\n");
+foo=malloc(1024);
+printf("stringizing buffer\n");
+bar=mkstrm(foo,1024);
+printf("mutating buffer\n");
+bar[0]=0;
+printf("stringizing buffer as read-only\n");
+baz=mkstrmro(foo,1024);
+applyk(@lambda() {
+	printf("mutating buffer. should fail\n");
+	// should fault
+	baz[0]=1;
+	printf("still here.\n");
+},@lambda(x) {
+	printf("uh oh. we succeeded in mutating a read-only string\n");
+},@lambda(x) {
+	printf("we successfully failed to mutate a read-only string\n");
+},[]);

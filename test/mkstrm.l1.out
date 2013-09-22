@@ -1,0 +1,6 @@
+allocating buffer
+stringizing buffer
+mutating buffer
+stringizing buffer as read-only
+mutating buffer. should fail
+we successfully failed to mutate a read-only string
