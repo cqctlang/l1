@@ -34,23 +34,21 @@
 				@local l,i,nxt,rep;
 
 				l = split(v,x);
-
 				nxt = [l[0]];
 
 				rep = sprintfa("\\%s",y);
-
 				if (l[0] == "" && length(l) == 1) {
-				v = rep;
-				return;
+					v = rep;
+					return;
 				}
 
 				for(i=1; i<length(l); ++i) {
-				append(nxt,rep);
-				append(nxt,l[i]);
+					append(nxt,rep);
+					append(nxt,l[i]);
 				}
 
 				v = join(nxt);
-				}, [ "\n" : "n", "\f" : "f", "\r" : "r", ]);
+			}, [ "\n" : "n", "\f" : "f", "\r" : "r", ]);
 		return "\""+v+"\"";
 	}
 
@@ -59,26 +57,26 @@
 		@local ss, m, keys, i;
 		keys = tabkeys(tab);
 		foreach(@lambda(x) { 
-		    //object names must be strings. 
-		    //see the grammar provided by http://www.json.org/
-		    if (!isstring(x)) 
-		        error("json non-string table key: %a\n",x);
+			//object names must be strings. 
+			//see the grammar provided by http://www.json.org/
+			if (!isstring(x)) 
+				error("json non-string table key: %a\n",x);
 		},keys);
 		sort(keys,strcmp);
 		ss = [];
 		append(ss,pp.linebreak);
 		m = length(tab);
 		for(i=0; i<length(keys); ++i) {
-            append(ss,ppval2json(keys[i],pp));
-            append(ss,": ");
-            append(ss,ppval2json(tab[keys[i]],pp));
-            if(--m > 0) {
-                append(ss, ",");
-                append(ss, pp.linebreak);
-            }
-        }
+			append(ss,ppval2json(keys[i],pp));
+			append(ss,": ");
+			append(ss,ppval2json(tab[keys[i]],pp));
+			if(--m > 0) {
+				append(ss, ",");
+				append(ss, pp.linebreak);
+			}
+		}
 		return [ "{", pp.mkogroup(4,ss), pp.linebreak, "}" ];
-		            
+					
 	}
 
 	@defloc pplist2json(l,pp)
@@ -88,12 +86,12 @@
 		m = length(l);
 		append(ss,pp.linebreak);
 		foreach(@lambda(val){
-                    append(ss, ppval2json(val,pp));
-                    if(--m > 0) {
-                        append(ss, ",");
-                        append(ss, pp.linebreak);
-                    }
-				}, l);
+				append(ss, ppval2json(val,pp));
+				if(--m > 0) {
+					append(ss, ",");
+					append(ss, pp.linebreak);
+				}
+			}, l);
 		return [ "[", pp.mkogroup(4,ss), pp.linebreak, "]" ];
 	}
 
@@ -109,8 +107,8 @@
 
 	ppjson = mkpp(appendprint,jsondocify,78);
 
-    //conforms to the format produced by python's
-    //json.dumps(v,indent=4,sorted=True)
+	//conforms to the format produced by python's
+	//json.dumps(v,indent=4,sorted=True)
 	@define val2jsonpp(v) {
 		accum = [];
 		ppjson(v);
@@ -144,8 +142,8 @@
 				append(ss, ":");
 				append(ss, val2json(val));
 				if(--m > 0)
-				append(ss, ",");
-				}, tab);
+					append(ss, ",");
+			}, tab);
 		append(ss, "}");
 		return join(ss);
 	}
@@ -159,10 +157,11 @@
 		foreach(@lambda(val){
 				append(ss, val2json(val));
 				if(--m > 0)
-				append(ss, ",");
-				}, l);
+					append(ss, ",");
+			}, l);
 		append(ss, "]");
 		return join(ss);
 	}
 }
 
+// vim:noet:ts=8
