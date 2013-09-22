@@ -56,22 +56,29 @@
 
 	@defloc pptab2json(tab,pp)
 	{
-		@local ss, m;
+		@local ss, m, keys, i;
+		keys = tabkeys(tab);
+		foreach(@lambda(x) { 
+		    //object names must be strings. 
+		    //see the grammar provided by http://www.json.org/
+		    if (!isstring(x)) 
+		        error("json non-string table key: %a\n",x);
+		},keys);
+		sort(keys,strcmp);
 		ss = [];
+		append(ss,pp.linebreak);
 		m = length(tab);
-		foreach(@lambda(key, val){
-				@local grp;
-				append(ss, pp.blank);
-				grp = pp.mkhgroup(2,[ppval2json(key,pp)," :",
-					pp.blank,ppval2json(val,pp)]);
-				if(--m > 0) {
-				append(grp, ",");
-				}
-				//fancier...
-				//append(ss, pp.mkogroup(0,grp));
-				append(ss, grp);
-				}, tab);
-		return pp.mkogroup(0,["{",pp.mkogroup(4,ss),pp.blank,"}"]);
+		for(i=0; i<length(keys); ++i) {
+            append(ss,ppval2json(keys[i],pp));
+            append(ss,": ");
+            append(ss,ppval2json(tab[keys[i]],pp));
+            if(--m > 0) {
+                append(ss, ",");
+                append(ss, pp.linebreak);
+            }
+        }
+		return [ "{", pp.mkogroup(4,ss), pp.linebreak, "}" ];
+		            
 	}
 
 	@defloc pplist2json(l,pp)
@@ -79,23 +86,15 @@
 		@local ss, m;
 		ss = [];
 		m = length(l);
-		append(ss,pp.blank);
+		append(ss,pp.linebreak);
 		foreach(@lambda(val){
-				@local grp;
-				grp = [];
-				if(m < length(l)) {
-				append(grp, pp.blank);
-				}
-				append(grp, ppval2json(val,pp));
-				if(--m > 0) {
-				append(grp, ",");
-				}
-				//fancier...
-				//append(ss, pp.mkogroup(0,grp));
-				append(ss, grp);
+                    append(ss, ppval2json(val,pp));
+                    if(--m > 0) {
+                        append(ss, ",");
+                        append(ss, pp.linebreak);
+                    }
 				}, l);
-		return pp.mkogroup(0,[ "[", pp.mkogroup(4,ss), 
-				pp.blank, "]" ]);
+		return [ "[", pp.mkogroup(4,ss), pp.linebreak, "]" ];
 	}
 
 	accum = [];
@@ -110,10 +109,11 @@
 
 	ppjson = mkpp(appendprint,jsondocify,78);
 
-	@define val2jsonpp(v,linewidth...) {
-		if (length(linewidth) == 0) linewidth = 78;
+    //conforms to the format produced by python's
+    //json.dumps(v,indent=4,sorted=True)
+	@define val2jsonpp(v) {
 		accum = [];
-		ppjson(v,linewidth);
+		ppjson(v);
 		return join(accum);
 	}
 
