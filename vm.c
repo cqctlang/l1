@@ -5818,6 +5818,8 @@ l1_split(VM *vm, Imm argc, Val *argv, Val *rv)
 			if(strchr(set, *q)){
 				listins(vm, r, n++, mkvalstr(mkstr(p, q-p)));
 				p = q+1;
+				if(p == e)
+					listins(vm, r, n++, mkvalstr(mkstrn(0)));
 				q = p;
 			}else
 				q++;
@@ -5837,8 +5839,11 @@ l1_split(VM *vm, Imm argc, Val *argv, Val *rv)
 				p = q+1;
 				while(p < e && strchr(set, *p))
 					p++;
-				if(p >= e)
+				if(p >= e){
+					listins(vm, r, n++,
+					        mkvalstr(mkstrn(0)));
 					break;
+				}
 				q = p;
 			}else{
 				q++;
