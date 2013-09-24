@@ -8947,6 +8947,33 @@ it is returned as the final element of the returned list.
 </div>
 
 
+<div class="docitem" id="fn:join">
+    <div class="proto">
+        <div class="function">
+            <span class="id">join(<span class="arg">lst</span>
+                                  [,<span class="arg">str</span>])</span>
+        </div>
+        <div class="param">
+            <span class="arg">lst</span>:
+            <span class="type">list</span> of 
+            <span class="type">strings</span>
+        </div>
+        <div class="param">
+            <span class="arg">str</span>: <span class="type">string</span>
+        </div>
+        <div class="returns">
+            <span class="type">string</span>
+        </div>
+    </div>
+    <div class="desc">
+        Returns the concatenation of all the strings in 
+        <span class="arg">lst</span>. If <span class="arg">str</span> is
+        provided, the elements of <span class="arg">lst</span> will be 
+        delimited by <span class="arg">str</span>.  This function allocates
+        only as much memory as is necessary to create the returned string. 
+    </div>
+</div>
+
 <div class="docitem" id="fn:mapfile">
 <div class="proto">
 <div class="function">
@@ -12134,6 +12161,7 @@ Prentice Hall, 1988.
 <a href="#fn:isvoid">isvoid</a><br />
 <a href="#fn:isweakpair">isweakpair</a><br />
 <a href="#fn:isxdigit">isxdigit</a><br />
+<a href="#fn:join">join</a><br />
 <a href="#fn:l1version">l1version</a><br />
 <a href="#fn:length">length</a><br />
 <a href="#fn:list">list</a><br />

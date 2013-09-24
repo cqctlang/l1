@@ -1,0 +1,39 @@
+
+
+
+@include <util.cqct>
+
+lst = ["a","b","c","d","e","f","g"];
+printf("%s\n",join(lst));
+printf("%s\n",join(lst,","));
+printf("%s\n",join(lst,", "));
+
+x = "asdfasdkjf;sldkfj;asldkfjsdk;lfjsadfsa;lkdjf";
+lst = split(x,"j");
+printf("%d\n",x == join(lst,"j"));
+
+printf("%s\n",join([],""));
+printf("%s\n",join([],"a"));
+printf("%s\n",join(["a","","","","b"],"sdfasdfasdfasdfasdfasdfasd"));
+
+applyk(join,
+    @lambda(r) { r; },
+    @lambda(m) { printf("%s\n",m); },
+    []);
+applyk(join,
+    @lambda(r) { r; },
+    @lambda(m) { printf("%s\n",m); },
+    [1]);
+applyk(join,
+    @lambda(r) { r; },
+    @lambda(m) { printf("%s\n",m); },
+    [["a"],"b","c"]);
+applyk(join,
+    @lambda(r) { r; },
+    @lambda(m) { printf("%s\n",m); },
+    [[1],"c"]);
+applyk(join,
+    @lambda(r) { r; },
+    @lambda(m) { printf("%s\n",m); },
+    [["a"],1]);
+

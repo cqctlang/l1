@@ -1,0 +1,12 @@
+abcdefg
+a,b,c,d,e,f,g
+a, b, c, d, e, f, g
+1
+
+
+asdfasdfasdfasdfasdfasdfasdsdfasdfasdfasdfasdfasdfasdsdfasdfasdfasdfasdfasdfasdsdfasdfasdfasdfasdfasdfasdb
+not enough arguments to join (expects at least 1, passed 0)
+first argument to join must be a list
+too many arguments to join
+first argument to join must only contain strings
+second argument to join must be a string
