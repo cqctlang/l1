@@ -6,6 +6,7 @@
 
 {
 	@local ppjson, accum;
+	@local json_escape_tab, json_escape_chars;
 
 	@defloc ppval2json(v,pp)
 	{
@@ -25,36 +26,31 @@
 			error("invalid value: %a", v);
 	}
 
+
+	json_escape_tab = 
+		[ "\v" : "\\v", "\n" : "\\n", "\f" : "\\f", "\r" : "\\r" ];
+	//make the keys into a string, which funcitons as a set in split
+	json_escape_chars = join(foldl(append,[],tabkeys(json_escape_tab)));
+
 	//Attempting to conform to escape sequences available in:
 	//https://developer.mozilla.org/en-US/docs/Web/JavaScript/Guide/Values,_variables,_and_literals#String_literals
 	@defloc str2json(v) {
 		if (v == "") return "\"\"";
 		v = sprintfa("%B",v);
-		foreach(@lambda(x,y) {
-				@local l,i,nxt,rep;
-
-				l = split(v,x);
-				nxt = [l[0]];
-
-				rep = sprintfa("\\%s",y);
-				if (l[0] == "" && length(l) == 1) {
-					v = rep;
-					return;
-				}
-
-				for(i=1; i<length(l); ++i) {
-					append(nxt,rep);
-					append(nxt,l[i]);
-				}
-
-				v = join(nxt);
-			}, [ "\n" : "n", "\f" : "f", "\r" : "r", ]);
-		return "\""+v+"\"";
+		if (length(split(v,json_escape_chars)) != 1) {
+			v = foldl(@lambda(str,fnd,rep) {
+				if (strstr(str,fnd) == nil) return str;
+				join(split(str,fnd),rep);
+			}, v, json_escape_tab);
+		}
+		return join(["\"",v,"\""]);
 	}
 
 	@defloc pptab2json(tab,pp)
 	{
 		@local ss, m, keys, i;
+		m = length(tab);
+		if (m == 0) return "{}";
 		keys = tabkeys(tab);
 		foreach(@lambda(x) { 
 			//object names must be strings. 
@@ -65,13 +61,12 @@
 		sort(keys,strcmp);
 		ss = [];
 		append(ss,pp.linebreak);
-		m = length(tab);
 		for(i=0; i<length(keys); ++i) {
 			append(ss,ppval2json(keys[i],pp));
 			append(ss,": ");
 			append(ss,ppval2json(tab[keys[i]],pp));
 			if(--m > 0) {
-				append(ss, ",");
+				append(ss, ", ");
 				append(ss, pp.linebreak);
 			}
 		}
@@ -82,13 +77,14 @@
 	@defloc pplist2json(l,pp)
 	{
 		@local ss, m;
-		ss = [];
 		m = length(l);
+		if (m == 0) return "[]";
+		ss = [];
 		append(ss,pp.linebreak);
 		foreach(@lambda(val){
 				append(ss, ppval2json(val,pp));
 				if(--m > 0) {
-					append(ss, ",");
+					append(ss, ", ");
 					append(ss, pp.linebreak);
 				}
 			}, l);
