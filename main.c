@@ -255,7 +255,7 @@ finishloadpath(char **lp, unsigned nlp)
 	free(s);
 #endif
 	p = getenv("L1LIBPATH");
-	if(p){
+	if(p && strlen(p)){
 		p = strtok(p, ":");
 		while(p){
 			if(nlp >= Maxloadpath)

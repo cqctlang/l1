@@ -6,6 +6,7 @@ LDFLAGS    = -r
 ARCH	  := $(shell uname -m | sed 's/x86_64/amd64/')
 OS	  := $(shell uname -s | tr '[:upper:]' '[:lower:]')
 CONF      ?= $(OS)
+L1LIBPATH  =
 L1LIBS	   =
 L1DEPS     =
 L1FUNS     =
