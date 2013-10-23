@@ -147,7 +147,8 @@ testasm: testasm.o amd64.o
 	@echo + ld $@
 	$(V)$(CC) $(CFLAGS) -o $@ $^
 
-test: $(TARG)
+dummy:
+test: $(TARG) dummy
 	cd test && ./test.py
 
 -include depend
