@@ -1,0 +1,21 @@
+
+if(args != nil) {
+	args = tail(args);
+	printf("RUNNING: ARGS %a\n", args);
+} else
+	printf("RUNNING WITH NO ARGS\n");
+
+printf("FOO!\n");
+main = @lambda(progname, args ...) {
+	printf("MAIN!\n", args);
+
+	if(length(args))
+		if(args[0] == "throw")
+			error("erroring");
+};
+printf("BAR!\n");
+
+if(args && length(args) && (args[0] == "throw") )
+	error("erroring");
+
+0;

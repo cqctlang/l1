@@ -21,7 +21,7 @@ if (library_defined == nil)
     @defstx @__library_compiletimecode() {
         @local libfns, reload;
 
-        //__library_exports is a map from library identifies (cids) to a map
+        //__library_exports is a map from library identifiers (cids) to a map
         //from exported symbols (also cids) to the value of those exported
         //symbols defined by that library.  
         __library_exports = mktab(mktab);
@@ -39,18 +39,7 @@ if (library_defined == nil)
         @defloc get_reload() { reload; }
         libfns.get_reload = get_reload;
 
-        @defloc pathto(f) {
-            return callcc(@lambda(found) {
-                foreach(@lambda(p) {
-                    @local fp;
-                    fp = sprintfa("%s/%s",p,f);
-                    if (access(fp,"r"))
-                        found(fp);
-                },loadpath());
-                return nil;
-            });
-        }
-        libfns.pathto = pathto;
+		libfns.pathto = loadwhich;
 
         @defloc mkliberror(src) {
             @local s;
@@ -91,7 +80,7 @@ if (library_defined == nil)
 
             __library_exports[lib].exports = [:];
 
-            fp = pathto(sprintfa("%s.cql",lib));
+            fp = loadwhich(cid2str(lib) + ".cql");
 
             if (fp == nil) {
                 //if the library was defined manually, this will be its parsed

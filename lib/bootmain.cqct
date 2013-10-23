@@ -9,6 +9,7 @@
 	eval,
 	expand,
 	l1path,
+	loadwhich,
 	load,
 	compile,
 	callfn,
@@ -35,32 +36,32 @@
 	{
 		@local err;
 		e = topwrap(e);
-		if(tracecompiler){
+		if(tracecompiler) {
 			printf("*** compiler input ***\n");
 			pp(e);
 		}
-		callcc(@lambda(done){
+		callcc(@lambda(done) {
 				@defloc myerr(msg)
 				{
 					printf("%s\n", msg);
 					done(nil);
 				}
-				dynamicwind(@lambda(){
+				dynamicwind(@lambda() {
 						err = errorhandler;
 						errorhandler = myerr;
 					    },
-					    @lambda(){
+					    @lambda() {
 						    @local i;
-						    for(i = 0; i < npass; i++){
+						    for(i = 0; i < npass; i++) {
 							    e = passes[i](e);
-							    if(tracecompiler && isstx(e)){
+							    if(tracecompiler && isstx(e)) {
 								    printf("*** %s ***\n", codename(clcode(passes[i])));
 								    pp(e);
 							    }
 						    }
 						    return e;
 					    },
-					    @lambda(){
+					    @lambda() {
 						    errorhandler = err;
 					    });
 			});
@@ -74,10 +75,10 @@ mkcompiler(bootcompilerpasses());
 	@local fn, in;
 	in = parse(str, whence, line);
 	if(in == nil)
-		return nil;
+		error("cannot parse %s", str);
 	fn = compile(in);
 	if(fn == nil)
-		return nil;
+		error("cannot compile %s", str);
 	fn();
 }
 
@@ -96,27 +97,60 @@ mkcompiler(bootcompilerpasses());
 @defloc findfileinpath(file, path)
 {
 	@local try;
-	while(!isempty(path)){
-		try = pop(path)+"/"+file;
+	while(!isempty(path)) {
+		try = pop(path) + "/" + file;
 		if(access(try, "r"))
 			return try;
 	}
 	return nil;
 }
 
-@define load(file)
+@define loadwhich(file)
 {
-	@local path, str;
-	if(file[0] == '/')
-		path = file;
-	else if(file[0] == '.')
-		path = file;
-	else
-		path = findfileinpath(file, loadpath());
+	if(!file || !length(file))
+		return nil;
+
+	if( (file[0] == '/') ||
+	    (file[0] == '.') ) {
+		if(access(file, "r"))
+			return file;
+		else
+			return nil;
+	} else {
+		return findfileinpath(file, loadpath());
+	}
+}
+
+@defloc loadcompile(file)
+{
+	@local path, str, ast, prog;
+
+	path = loadwhich(file);
 	if(path == nil)
 		error("cannot find %s in load path", file);
+
 	str = mapfile(path);
-	_eval(str, file, 1);
+	if(!str)
+		error("cannot map %s", path);
+
+	ast = parse(str, file, 1);
+	if(!ast)
+		error("cannot parse %s", path);
+
+	prog = compile(ast);
+	//if(!prog)
+	//	error("cannot compile %s", path);
+
+	return prog;
+}
+
+@define load(file)
+{
+	@local prog;
+
+	prog = loadcompile(file);
+
+	prog();
 }
 
 load("expand.cqct");
@@ -125,7 +159,7 @@ load("prelude.cqct");
 
 @define callfn(fn, args ...)
 {
-	callcc(@lambda(ret){
+	callcc(@lambda(ret) {
 			currentreset = ret;
 			return apply(fn, args);
 	       }); 
@@ -133,7 +167,7 @@ load("prelude.cqct");
 
 @defloc replerror(msg)
 {
-	callcc(@lambda(errk){
+	callcc(@lambda(errk) {
 			printf("error: %s\n", msg);
 			printstack(continuationstack(errk));
 			$lasterror = errk;
@@ -144,7 +178,7 @@ load("prelude.cqct");
 
 @defloc replinterrupt()
 {
-	callcc(@lambda(k){
+	callcc(@lambda(k) {
 		printf("\ninterrupted\n");
 		$debug(k);
 	});
@@ -152,7 +186,7 @@ load("prelude.cqct");
 
 @defloc batcherror(msg)
 {
-	callcc(@lambda(errk){
+	callcc(@lambda(errk) {
 			printf("error: %s\n", msg);
 			printstack(continuationstack(errk));
 			currentreturn(nil);
@@ -161,7 +195,7 @@ load("prelude.cqct");
 
 @defloc batchinterrupt()
 {
-	callcc(@lambda(k){
+	callcc(@lambda(k) {
 		printf("\ninterrupted\n");
 		printstack(continuationstack(k));
 		exit(1);
@@ -174,7 +208,7 @@ load("prelude.cqct");
 
 	@defloc myerr(msg)
 	{
-		callcc(@lambda(k){
+		callcc(@lambda(k) {
 				printf("error: %s\n", msg);
 				printstack(continuationstack(k));
 				done(nil);
@@ -183,24 +217,24 @@ load("prelude.cqct");
 
 	@defloc myint()
 	{
-		callcc(@lambda(k){
+		callcc(@lambda(k) {
 				printf("debugger evaluation interrupted\n");
 				printstack(continuationstack(k));
 				done(nil);
 			});
 	}
 
-	callcc(@lambda(k){
+	callcc(@lambda(k) {
 			done = k;
 			dynamicwind(
-				@lambda(){
+				@lambda() {
 					olderr = errorhandler;
 					oldint = interrupthandler;
 					errorhandler = myerr;
 					interrupthandler = myint;
 				},
 				fn,
-				@lambda(){
+				@lambda() {
 					errorhandler = olderr;
 					interrupthandler = oldint;
 				});
@@ -256,7 +290,7 @@ load("prelude.cqct");
 			rib = lex[lidx];
 			rlex = rib[0];
 			rib = slice(rib, 1, length(rib));
-			foreach(@lambda(d){
+			foreach(@lambda(d) {
 					@local id, kind, idx, box;
 					[id, kind, idx, box] = d;
 					if(kind == 'free)
@@ -283,7 +317,7 @@ load("prelude.cqct");
 
 		@defloc dump(ls)
 		{
-			foreach(@lambda(d){
+			foreach(@lambda(d) {
 					@local id, kind, val;
 					[id, kind, _, _, val] = d;
 					printf("\t%-5s   %10s   %a\n", kind, id, val);
@@ -293,7 +327,7 @@ load("prelude.cqct");
 		[cl, off] = fs[ufno];
 		code = clcode(cl);
 		loc = getlocs(ufno);
-		if(loc == nil){
+		if(loc == nil) {
 			printf("no lexical information for frame #%d (%s)\n", ufno, codename(code));
 			return;
 		}
@@ -316,7 +350,7 @@ load("prelude.cqct");
 		{
 			@local decl;
 			decl = #null;
-			foreach(@lambda(id, d){
+			foreach(@lambda(id, d) {
 					@local val;
 					[_, _, _, _, val] = d;
 					decl = Zcons(#id(id), decl);
@@ -345,7 +379,7 @@ load("prelude.cqct");
 
 		printf("debug> ");
 		s = read(stdin, 1024);
-		if(s == nil){
+		if(s == nil) {
 			printf("\n");
 			return;
 		}
@@ -354,7 +388,7 @@ load("prelude.cqct");
 		tok = split(s);
 		if(length(tok) < 1)
 			return debugloop();
-		switch(tok[0]){
+		switch(tok[0]) {
 		case "h":
 		case "?":
 		case "help":
@@ -364,33 +398,33 @@ load("prelude.cqct");
 		case "locals":
 			if(length(tok) == 1)
 				ufno = 0;
-			else if(length(tok) == 2){
+			else if(length(tok) == 2) {
 				ufno = strton(tok[1]);
-				if(ufno == nil){
+				if(ufno == nil) {
 					printf("error: \"locals\" requires a frame number\n");
 					break;
 				}
-			}else{
+			} else {
 				printf("error: wrong number of arguments to \"locals\"\n");
 				break;
 			}
-			if(ufno < 0 || ufno >= length(fs)){
+			if(ufno < 0 || ufno >= length(fs)) {
 				printf("error: invalid stack frame\n");
 				break;
 			}
 			dumplex(ufno);
 			break;
 		case "leval":
-			if(length(tok) < 2){
+			if(length(tok) < 2) {
 				printf("error: wrong number of arguments to \"leval\"\n");
 				break;
 			}
 			ufno = strton(tok[1]);
-			if(ufno == nil){
+			if(ufno == nil) {
 				printf("error: \"locals\" requires a frame number\n");
 				break;
 			}
-			if(ufno < 0 || ufno >= length(fs)){
+			if(ufno < 0 || ufno >= length(fs)) {
 				printf("error: invalid stack frame\n");
 				break;
 			}
@@ -441,21 +475,21 @@ load("prelude.cqct");
 	@defloc myerr(msg)
 	{
 		printf("oops!  debugger raised error: %s\n", msg);
-//		callcc(@lambda(k){ printstack(continuationstack(k)); });
+//		callcc(@lambda(k) { printstack(continuationstack(k)); });
 		printf("please report.\n");
 		reset(nil);
 	}
 
 	dynamicwind(
-		@lambda(){
+		@lambda() {
 			olderr = errorhandler;
 			errorhandler = myerr;
 		},
-		@lambda(){
-			callcc(@lambda(k){ reset = k; });
+		@lambda() {
+			callcc(@lambda(k) { reset = k; });
 			debugloop();
 		},
-		@lambda(){
+		@lambda() {
 			errorhandler = olderr;
 		});
 }
@@ -485,7 +519,7 @@ load("prelude.cqct");
 		[cl, off, _, fno] = f;
 		code = clcode(cl);
 		id = codename(code);
-		switch(codekind(code)){
+		switch(codekind(code)) {
 		case 'builtin:
 			printf("\t#%-4d %20s\t(builtin function)\n", fno, id);
 			break;
@@ -509,7 +543,7 @@ load("prelude.cqct");
 	}
 
 	m = length(uframes);
-	if(m > maxdepth){
+	if(m > maxdepth) {
 		foreach(printframe, slice(uframes, 0, maxdepth/2));
 		printf("\t...\n");
 		foreach(printframe, slice(uframes, m-maxdepth/2, m));
@@ -549,7 +583,7 @@ load("prelude.cqct");
 
 @define backtrace()
 {
-	callcc(@lambda(k){ printstack(continuationstack(k)); });
+	callcc(@lambda(k) { printstack(continuationstack(k)); });
 }
 
 $repllevel = 0;
@@ -570,7 +604,7 @@ $repllevel = 0;
 		@local s, v;
 		printf("%s ", prompt);
 		s = read(stdin, 1024);
-		if(s == nil){
+		if(s == nil) {
 			$repllevel--;
 			printf("\n");
 			currentreturn(nil);
@@ -584,10 +618,10 @@ $repllevel = 0;
 
 	level = ++$repllevel;
 	mkprompt();
-	callcc(@lambda(done){
+	callcc(@lambda(done) {
 			@local oldret, olderr, oldint, oldreset, thisreset;
 			dynamicwind(
-				@lambda(){
+				@lambda() {
 					oldret = currentreturn;
 					olderr = errorhandler;
 					oldint = interrupthandler;
@@ -598,13 +632,13 @@ $repllevel = 0;
 					interrupthandler = replinterrupt;
 					currentreset = thisreset;
 				},
-				@lambda(){ 
-					callcc(@lambda(reset){
+				@lambda() { 
+					callcc(@lambda(reset) {
 							currentreset = thisreset = reset;
 						});
 					$loop();
 				},
-				@lambda(){
+				@lambda() {
 					currentreturn = oldret;
 					errorhandler = olderr;
 					interrupthandler = oldint;
@@ -623,10 +657,12 @@ $repllevel = 0;
 	fprintf(stderr, "\t-s suppress default load path\n");
 	fprintf(stderr, "\t-x <expr> evaluate <expr>\n");
 	fprintf(stderr, "\t-e <symbol> enter script at function named <symbol>\n");
-	fprintf(stderr," \t-r run a repl\n");
+	fprintf(stderr, "\t-r run a repl\n");
+	fprintf(stderr, "\t-d <file> dump heap to <file> and exit after compiling\n\t   the program indicated on the command line with -L, -x, -r,\n\t   and <script>. The heap in <file> is configured to run the program.\n");
 	fprintf(stderr,"\nFlags -L, -x, and -r may be each specified multiple times and in any order.\n");
 	fprintf(stderr,"  They are processed together in the order supplied. Each -L or -x option\n");
 	fprintf(stderr,"  is processed as a new compilation unit.\n");
+
 	exit(0);
 
 }
@@ -634,41 +670,49 @@ $repllevel = 0;
 @defloc parseargs(args)
 {
 	@local arg;
-	@local actions, cmd, entry;
+	@local actions, cmd, flags;
 
 	l1path = pop(args);
 	actions = [];
+	flags = [:];
 	cmd = [];
-	entry = nil;
-	while(length(args)){
+	while(length(args)) {
 		arg = pop(args);
 		if(arg == "--")
 			break;
-		if(arg[0] != '-'){
+		if(arg[0] != '-') {
 			push(args, arg); /* command file */
 			break;
 		}
-		if(arg == "-x"){
+		if(arg == "-x") {
 			if(length(args) == 0)
 				error("missing form for -x");
 			append(actions, [ 'eval, pop(args) ]);
 			continue;
 		}
-		if(arg == "-L"){
+		if(arg == "-L") {
 			if(length(args) == 0)
 				error("missing file for -l");
 			append(actions, [ 'load, pop(args) ]);
 			continue;
 		}
-		if(arg == "-e"){
+		if(arg == "-e") {
 			if(length(args) == 0)
 				error("missing symbol for -e");
-			if(entry)
+			if(flags['entry])
 				error("multiple uses of -e");
-			entry = mkcid(pop(args));
+			flags['entry] = mkcid(pop(args));
 			continue;
 		}
-		if(arg == "-r"){
+		if(arg == "-d") {
+			if(length(args) == 0)
+				error("missing symbol for -d");
+			if(flags['dump])
+				error("multiple uses of -d");
+			flags['dump] = pop(args);
+			continue;
+		}
+		if(arg == "-r") {
 			append(actions, [ 'repl ]);
 			continue;
 		}
@@ -678,51 +722,146 @@ $repllevel = 0;
 		usage(l1path);
 	}
 	cmd = args;
-	if(entry && length(cmd) == 0)
+	if(flags['entry] && length(cmd) == 0)
 		error("entry specified without a script");
-	return [actions, entry, cmd];
+	return [actions, flags, cmd];
 }
 
 @define $l1start(arg ...)
 {
-	@local actions, entry, cmd, file, rv;
-	callcc(@lambda(root){
-			return @lambda(){
-				[actions, entry, cmd] = parseargs(arg);
-				if(length(cmd) == 0 && length(actions) == 0)
+	@local actions, flags, cmd, file, rv, thunks;
+
+	thunks = [];
+
+	callcc(@lambda(root) {
+		return @lambda() {
+			[actions, flags, cmd] = parseargs(arg);
+			if(length(cmd) == 0 && length(actions) == 0)
+				if(flags['dump]) {
+					$l1start = @lambda(arg ...) {
+						return repl();
+					};
+					return saveheap(flags['dump]);
+				} else {
 					return repl();
-				callcc(@lambda(done){
-						currentreturn = done;
-						errorhandler = batcherror;
-						interrupthandler = batchinterrupt;
-						while(length(actions)){
-							@local action;
-							action = pop(actions);
-							switch(action[0]) {
-							case 'eval: rv = eval(action[1],"<command-line>"); break;
-							case 'load: rv = load(action[1]); break;
-							case 'repl: rv = repl(); break;
-							default: error("unknown command line entry"); break;
-							}
-						}
-						if(length(cmd) == 0)
+				}
+			callcc(@lambda(done) {
+				currentreturn = done;
+				errorhandler = batcherror;
+				interrupthandler = batchinterrupt;
+				while(length(actions)) {
+					@local action;
+					action = pop(actions);
+					switch(action[0]) {
+					case 'eval:
+						rv = parse(action[1], "<command-line>");
+						if(!rv)
+							error("could not parse %a", action[1]);
+						rv = compile(rv);
+						if(!rv)
+							error("could not compile %a", action[1]);
+						if(flags['dump])
+							append(thunks,rv);
+						else
+							rv = rv();
+						break;
+					case 'load:
+						rv = loadcompile(action[1]);
+						if(!rv)
+							return 1;
+							// error("could not load and compile %a", action[1]);
+						if(flags['dump])
+							append(thunks,rv);
+						else
+							rv = rv();
+						break;
+					case 'repl:
+						if(flags['dump])
+							append(thunks,repl);
+						else
+							rv = repl();
+						break;
+					default: error("unknown command line entry");
+						break;
+					}
+				}
+				if(length(cmd) == 0)
+					if(flags['dump]) {
+						$l1start = @lambda(arg ...) {
+							foreach(@lambda(v) {
+								v();
+							}, thunks);
+
 							return rv;
-						file = cmd[0];
-						if(entry == nil){
-							args = cmd;
-							return load(file);
-						}else{
-							@local f;
-							load(file);
-							f = toplevel[entry];
-							if(f == nil)
-								error("entry %a is undefined",
-								      entry);
-							if(!isprocedure(f))
-								error("entry %a is not a function",
-								      entry);
-							return apply(f, cmd);
-						}
-					});
-			};})();
+						};
+						return saveheap(flags['dump]);
+					} else {
+						return rv;
+					}
+				file = cmd[0];
+
+				if(flags['entry] == nil) {
+					rv = loadcompile(file);
+					if(!rv)
+						return 1;
+					//	error("could not load and compile %a", file);
+					if(flags['dump]) {
+						$l1start = @lambda(arg ...) {
+							callcc(@lambda(done) {
+								currentreturn = done;
+
+								foreach(@lambda(v) {
+									v();
+								}, thunks);
+
+								args = arg;
+								rv();
+							});
+						};
+						return saveheap(flags['dump]);
+					} else {
+						args = cmd;
+						rv();
+					}
+				} else {
+					@local doentry;
+				
+					doentry = @lambda(argv) {
+						@local f;
+
+						f = toplevel[flags['entry]];
+						if(f == nil)
+							error("entry %a is undefined",
+							      flags['entry]);
+						if(!isprocedure(f))
+							error("entry %a is not a function",
+							      flags['entry]);
+						return apply(f, argv);
+					};
+
+					rv = loadcompile(file);
+					if(!rv)
+						return 1;
+						//error("could not load and compile %a", file);
+					if(flags['dump]) {
+						$l1start = @lambda(arg ...) {
+							callcc(@lambda(done) {
+								currentreturn = done;
+
+								foreach(@lambda(v) {
+									v();
+								}, thunks);
+
+								rv();
+								return doentry(arg);
+							});
+						};
+						return saveheap(flags['dump]);
+					} else {
+						rv();
+						return doentry(cmd);
+					}
+				}
+			});
+		};})();
 }

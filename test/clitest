@@ -1,0 +1,89 @@
+#!/bin/bash
+
+cleanup() {
+	echo "failed ${CASE}"
+	exit 1
+}
+
+
+CASE="script"
+
+echo "testing ${CASE}"
+../l1 clitest.cqct > a.out
+
+../l1 -d heap clitest.cqct 
+../l1 -m heap > b.out
+
+diff a.out b.out > /dev/null || cleanup
+
+################################################################
+
+CASE="parameterized script"
+
+echo "testing ${CASE}"
+../l1 clitest.cqct bogus > a.out
+
+../l1 -d heap clitest.cqct
+../l1 -m heap bogus > b.out
+
+diff a.out b.out > /dev/null || cleanup
+
+################################################################
+
+CASE="error script"
+
+echo "testing ${CASE}"
+../l1 clitest.cqct throw > a.out
+
+../l1 -d heap clitest.cqct
+../l1 -m heap throw > b.out
+
+diff a.out b.out > /dev/null || cleanup
+
+################################################################
+
+CASE="load script"
+
+echo "testing ${CASE}"
+../l1 -L clitest.cqct clitest.cqct > a.out
+
+../l1 -d heap -L clitest.cqct clitest.cqct
+../l1 -m heap > b.out
+
+diff a.out b.out > /dev/null || cleanup
+
+################################################################
+
+CASE="program"
+
+echo "testing ${CASE}"
+../l1 -e main clitest.cqct > a.out
+
+../l1 -d heap -e main clitest.cqct
+../l1 -m heap > b.out
+
+diff a.out b.out > /dev/null || cleanup
+
+################################################################
+
+CASE="parameterized program"
+
+echo "testing ${CASE}"
+../l1 -e main clitest.cqct bogus > a.out
+
+../l1 -d heap -e main clitest.cqct
+../l1 -m heap bogus > b.out
+
+diff a.out b.out > /dev/null || cleanup
+
+################################################################
+
+CASE="error program"
+
+echo "testing ${CASE}"
+../l1 -e main clitest.cqct throw > a.out
+
+../l1 -d heap -e main clitest.cqct
+../l1 -m heap throw > b.out
+
+diff a.out b.out > /dev/null || cleanup

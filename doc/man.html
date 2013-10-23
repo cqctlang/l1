@@ -10042,7 +10042,9 @@ these interfaces are likely to change.
 expression contained in the
 string <span class="arg">expr</span> and returns the
 computed value.  The evaluation occurs in the top-level
-environment of the caller.
+environment of the caller. <span class="id">eval</span>
+raises an error when <span class="arg">expr</span>
+cannot be parsed or compiled.
 </div>
 </div>
 
@@ -10757,6 +10759,23 @@ identifier.
 Returns the current load path as a list of strings.
 </div>
 </div>
+
+
+<div class="docitem" id="fn:loadwhich">
+<div class="proto">
+<div class="function">
+<span class="id">loadwhich(file)</span>
+</div>
+<div class="returns">
+<span class="type">string</span> or <span class="type">nil</span>
+</div>
+</div>
+<div class="desc">
+Returns the first entry in the load path matching <span class="arg">file</span>.
+Returns nil if no match is found in the load path.
+</div>
+</div>
+
 
 <div class="docitem" id="fn:setloadpath">
 <div class="proto">
