@@ -1,0 +1,53 @@
+#!/bin/bash
+
+P=$0
+D=`dirname ${P}`
+
+PROG=""
+
+while [ -n "$1" ] ; do
+	case "$1" in
+	"-o")
+		if [ -z "$2" ] ; then echo "Usage:\ndcc -o <target> -- <l1 option> ..." 1>&2 ; exit 1 ; fi
+		PROG="$2"
+		shift
+	;;
+	"--")
+		shift
+		break
+	;;
+	*)
+		echo "Unknown option: $1\nUsage:\ndcc -o <target> -- <l1 option> ..." 1>&2
+		exit 1
+	;;
+	esac
+	shift
+done
+
+if [ -z "${PROG}" ] ; then
+	echo "Usage:\ndcc -o <target> <l1 option> ..." 1>&2 ; exit 1
+fi
+
+rm -f ${PROG}
+
+T=`mktemp -t heapobj`
+if [ -z "${T}" ] ; then
+	echo "unable to create tempfile" 1>&2
+	exit 1
+fi
+T="${T}.o"
+
+if [ -f "${T}" ] ; then
+	rm "${T}" || exit 1
+fi
+
+if [ -z "${PROG}" ] ; then
+	echo "no prog"
+	exit 1
+fi
+
+"${D}"/../l1 -d /tmp/foo.heap "$@" || exit 1
+
+make -C "${D}"/.. relink RLTARG="${PROG}" HEAP=/tmp/foo.heap HEAPO="${T}"
+
+rm "${T}"

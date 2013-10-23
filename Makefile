@@ -12,8 +12,11 @@ L1DEPS     =
 L1FUNS     =
 TARG       = l1
 V	   = @
-L1X        =
 PREFIX	:= /usr/public
+
+# relink options
+L1X        =
+RLTARG	   =
 
 .DEFAULT_GOAL := all
 
@@ -132,6 +135,10 @@ l1s: l1.o main.o
 	@echo + ld $@
 	$(V)$(CC) -static $(CFLAGS) -o $@ $^ $(L1LIBS)
 
+dummy:
+relink: l1.o main.o dummy
+	$(V)$(CC) $(CFLAGS) -o $(RLTARG) l1.o main.o $(L1LIBS)
+
 libl1.so: CFLAGS += -fPIC -nostdlib
 
 libl1.so: l1.o
@@ -199,4 +206,4 @@ clean: testclean
 	@$(MAKE) -s -C x/libsec clean
 	@$(MAKE) -s -C udis clean
 	@$(MAKE) -s -C demo clean
-	@$(RM) *~ .gdbhistory core core.* callgrind.out.* vgcore.* c.output l1.names main.o l1.o fns.*.c *.o $(TARG) *.so *.dylib mkelf mks heap.l1 heap.S depend
+	@$(RM) *~ .gdbhistory core core.* callgrind.out.* vgcore.* c.output l1.names main.o l1.o fns.*.c *.o $(TARG) *.so *.dylib mkelf mks l1.heap heap.S depend

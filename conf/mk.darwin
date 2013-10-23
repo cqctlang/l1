@@ -1,12 +1,8 @@
 include conf/mk.unix
 
-L1X     += heap.o
+HEAPO	= heap.o
 
-MAYBEHEAP = lib/*.cqct
-
-mkelf: mkelf.o
-	@echo + ld $@
-	$(V)$(CC) $(CFLAGS) -o $@ $^
+L1X     += $(HEAPO)
 
 mkc: mkc.o
 	@echo + ld $@
@@ -16,19 +12,7 @@ mks: mks.o
 	@echo + ld $@
 	$(V)$(CC) $(CFLAGS) -o $@ $^
 
-tl1.o: $(L1C:.c=.o) $(L1DEPS)
-	@echo + ld $@
-	$(V)$(LD) $(LDFLAGS) -o $@ $^
-
-tl1: tl1.o main.o
-	@echo + ld $@
-	$(V)$(CC) $(CFLAGS) -o $@ $^ $(L1LIBS)
-
-heap.l1: tl1 $(MAYBEHEAP)
-	@echo + dump $@ 
-	$(V)./tl1 -x "saveheap(\"./heap.l1\");"
-
-heap.o: heap.l1 mks
+$(HEAPO): $(HEAP) mks
 	@echo + mks $@
-	$(V)./mks -a 0x1000 -s heapimage heap.l1 heap.S
-	$(V)$(AS) -o heap.o heap.S
+	$(V)./mks -a 0x1000 -s heapimage $(HEAP) heap.S
+	$(V)$(AS) -o $(HEAPO) heap.S

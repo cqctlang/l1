@@ -1,6 +1,7 @@
 # produce a portable l1 that runs on a lot of ARM embedded in HPC
 CC=arm-linux-gnueabi-gcc
 LD=arm-linux-gnueabi-ld
+RT=qemu-arm
 ARCH=armv7l
 CFLAGS+=-static
 
@@ -8,13 +9,4 @@ include conf/mk.linux
 
 tl1s: tl1.o main.o
 	@echo + ld $@
-	$(V)$(CC) -static $(CFLAGS) -o $@ $^ $(L1LIBS)
-
-heap.l1: tl1s $(MAYBEHEAP)
-	@echo + dump $@	
-	@qemu-arm ./tl1s -x "saveheap(\"./heap.l1\");"
-
-heap.o: heap.l1 mkelf
-	@echo + mkelf $@
-	$(V)qemu-arm ./mkelf -m $(ARCH) -a 0x1000 -s heapimage heap.l1 heap.o
-
+	$(V)$(CC) $(CFLAGS) -o $@ $^ $(L1LIBS)

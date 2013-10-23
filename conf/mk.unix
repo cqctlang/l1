@@ -1,3 +1,5 @@
+MAYBEHEAP = lib/*.cqct                                                          
+
 #UNIX = fnfs fnio fnnet fnsys fnsec fnflate fnsnap fndlfcn
 UNIX = fnfs fnio fnnet fnsys fnsec fnflate fndlfcn
 L1DEPS +=\
@@ -13,3 +15,21 @@ x/libsec/libsec.a: FORCE
 L1C      += unix.c $(addsuffix .c, $(UNIX))
 L1FUNS   += $(UNIX)
 L1LIBS   += -ldl
+
+TL1 = tl1
+# runtime preamble for some cross compilers
+RT =
+
+HEAP = l1.heap
+
+$(HEAP): $(TL1) $(MAYBEHEAP)                                                       
+	@echo + dump $@                                                         
+	$(V)$(RT) ./$(TL1) -x "saveheap(\"./$@\");"
+
+tl1.o: $(L1C:.c=.o) $(L1DEPS)                                                   
+	@echo + ld $@                                                           
+	$(V)$(LD) $(LDFLAGS) -o $@ $^                                           
+
+tl1: tl1.o main.o                                                               
+	@echo + ld $@                                                           
+	$(V)$(CC) $(CFLAGS) -o $@ $^ $(L1LIBS)
