@@ -3,13 +3,13 @@
 
 evalk("@export(lalala);",
     @lambda(r) { r; },
-    @lambda() {});
+    @lambda(msg) {});
 
 evalk("@import(lalala);",
     @lambda(r) { r; },
-    @lambda() {});
+    @lambda(msg) {});
 
 evalk("@with_imports(recursive) {};",
     @lambda(r) { r; },
-    @lambda() {});
+    @lambda(msg) {});
 
