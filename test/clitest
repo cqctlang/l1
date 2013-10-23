@@ -5,6 +5,17 @@ cleanup() {
 	exit 1
 }
 
+CASE="form"
+
+echo "testing ${CASE}"
+../l1 -x "printf(\"FOO!\\n\");" > a.out
+
+../l1 -d heap -x "printf(\"FOO!\\n\");"
+../l1 -m heap > b.out
+
+diff a.out b.out > /dev/null || cleanup
+
+################################################################
 
 CASE="script"
 
