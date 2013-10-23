@@ -10,13 +10,15 @@ L1LIBPATH  =
 L1LIBS	   =
 L1DEPS     =
 L1FUNS     =
+L1X        =
 TARG       = l1
 V	   = @
 PREFIX	:= /usr/public
+IDIR	   =
 
 # relink options
-L1X        =
 RLTARG	   =
+RLX	   =
 
 .DEFAULT_GOAL := all
 
@@ -123,21 +125,22 @@ parser:
 	@echo + cc $<
 	$(V)$(CC) $(CPPFLAGS) $(CFLAGS) -c -o $@ $<
 
-l1.o: $(L1C:.c=.o) $(L1DEPS) $(L1X)
+l1.o: $(L1C:.c=.o) $(L1DEPS)
 	@echo + ld $@
 	$(V)$(LD) $(LDFLAGS) -o $@ $^
 
-l1: l1.o main.o
+l1: l1.o main.o $(L1X)
 	@echo + ld $@
 	$(V)$(CC) $(CFLAGS) -o $@ $^ $(L1LIBS)
 
-l1s: l1.o main.o
+l1s: l1.o main.o $(L1X)
 	@echo + ld $@
 	$(V)$(CC) -static $(CFLAGS) -o $@ $^ $(L1LIBS)
 
 dummy:
-relink: l1.o main.o dummy
-	$(V)$(CC) $(CFLAGS) -o $(RLTARG) l1.o main.o $(L1LIBS)
+relink: l1.o main.o $(RLX) dummy
+	@echo + relinking $(RLTARG)
+	$(V)$(CC) $(CFLAGS) -o $(RLTARG) l1.o main.o $(L1LIBS) $(RLX)
 
 libl1.so: CFLAGS += -fPIC -nostdlib
 

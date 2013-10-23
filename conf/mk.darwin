@@ -1,7 +1,6 @@
 include conf/mk.unix
 
 HEAPO	= heap.o
-
 L1X     += $(HEAPO)
 
 mkc: mkc.o
@@ -14,5 +13,6 @@ mks: mks.o
 
 $(HEAPO): $(HEAP) mks
 	@echo + mks $@
-	$(V)./mks -a 0x1000 -s heapimage $(HEAP) heap.S
-	$(V)$(AS) -o $(HEAPO) heap.S
+	$(V)./mks -a 0x1000 -s heapimage $(HEAP) $(IDIR)heap.S
+	$(V)$(AS) -o $(HEAPO) $(IDIR)heap.S
+	$(V)rm -f $(IDIR)heap.S

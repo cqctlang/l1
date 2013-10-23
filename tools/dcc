@@ -30,15 +30,21 @@ fi
 
 rm -f ${PROG}
 
-T=`mktemp -t heapobj`
-if [ -z "${T}" ] ; then
-	echo -e "unable to create tempfile" 1>&2
+TD=`mktemp -t dcc_relink -d`
+if [ -z "${TD}" ] ; then
+	echo -e "unable to create tempdir" 1>&2
 	exit 1
 fi
-T="${T}.o"
+
+T="${TD}/heapobj.o"
+H="${TD}/app.heap"
 
 if [ -f "${T}" ] ; then
 	rm "${T}" || exit 1
+fi
+
+if [ -f "${H}" ] ; then
+	rm "${H}" || exit 1
 fi
 
 if [ -z "${PROG}" ] ; then
@@ -46,8 +52,8 @@ if [ -z "${PROG}" ] ; then
 	exit 1
 fi
 
-"${D}"/../l1 -d /tmp/foo.heap "$@" || exit 1
+"${D}"/../l1 -d "${H}" "$@" || exit 1
 
-make -C "${D}"/.. relink RLTARG="${PROG}" HEAP=/tmp/foo.heap HEAPO="${T}"
+make -C "${D}"/.. relink RLTARG="${PROG}" HEAP="${H}" HEAPO="${T}" RLX="${T}" IDIR="${TD}/"
 
-rm "${T}"
+rm -rf "${TD}"
