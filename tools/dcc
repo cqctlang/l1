@@ -30,7 +30,7 @@ fi
 
 rm -f ${PROG}
 
-TD=`mktemp -t dcc_relink -d`
+TD=`mktemp -t dcc_relink_XXXXX -d`
 if [ -z "${TD}" ] ; then
 	echo -e "unable to create tempdir" 1>&2
 	exit 1
