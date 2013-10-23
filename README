@@ -1,7 +1,8 @@
 l1 is an implementation of the Cinquecento programming language.
 
 It runs on 64-bit and 32-bit x86 versions of Linux, OS X,
-FreeBSD, and Solaris.
+FreeBSD, and Solaris. l1 is generally portable to 32 and 64 bit
+machines with a C compiler.
 
 doc/man.html is a manual for the language.
 The directory lib is a loosely organized collection of library code.
@@ -13,8 +14,7 @@ To build l1:
 
 To test (requires python):
 
-	% cd test
-	% ./test.py
+	% make test
 
 To run:
 
