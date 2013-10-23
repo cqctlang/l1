@@ -745,7 +745,7 @@ struct_declaration_list
 	 	if($2)
 			$$ = newexprsrc(&ctx->inp->src, Eelist, $2, $1, 0, 0);
 		else
-			$$ = Znull();
+			$$ = $1; 
 	}
 	;
 
