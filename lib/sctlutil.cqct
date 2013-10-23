@@ -15,9 +15,9 @@
 	Siginfo,
 	Syscall,
 	Signal,
-        decodectx,
+	decodectx,
 	encodectx,
-        decodesiginfo,
+	decodesiginfo,
 	encodesiginfo,
 	dumpctx,
 };

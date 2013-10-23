@@ -1,0 +1,40 @@
+
+Assignment:
+
+foo = bar
+
+Commas:
+
+foo, bar
+
+Braces:
+@lambda(...) {
+}
+
+if(...) {
+}
+
+if(...) {
+} else {
+}
+
+Indentation:
+... {
+	// we indent with tabs, followed by
+	// any necessary white space
+	...	
+}
+
+Case:
+switch(...) {
+case a:
+	...
+	break;
+}
+
+Bindings:
+... {
+	@local ...;
+
+	...
+}
