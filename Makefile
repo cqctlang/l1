@@ -150,6 +150,7 @@ testasm: testasm.o amd64.o
 dummy:
 test: $(TARG) dummy
 	cd test && ./test.py
+	cd test && ./clitest
 
 -include depend
 depend: $(L1C) Makefile
