@@ -1,0 +1,32 @@
+#!/bin/bash
+	exec l1 -e main "$0" "$@"
+	exit 1
+!#
+
+@include <debug.cqct>
+@include <dump.cqct>
+
+main = @lambda(progname, args ...) {
+	@local mux, cmd, ctl, exe;
+
+	if(!length(args)) {
+		fprintf(stderr, "usage: %s <prog> <args> ...\n", progname);
+		exit(1);
+	}
+	//atnames = snamesns;
+
+	mux = mksctlmux();
+	cmd = args;
+	ctl = ctllaunch(mux, cmd);
+	exe = ctl.exe();
+	ctl.trap('brk, &exe`insert,
+		 @lambda(ctl) {
+			 foreach(@lambda(ctx) {
+					 printf("%s\n", fmtframe(ctl, ctx));
+					 printf("%s", fmtldom(ctl, ctx));
+				 }, ctl.unwind());
+			 printf("\n");
+		 });
+	mux.run();
+
+};
