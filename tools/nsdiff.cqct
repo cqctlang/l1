@@ -1,0 +1,26 @@
+#!/bin/bash
+        exec l1 -e nsdiff_main "$0" "$@"
+        exit 1
+!#
+
+@include <nsutil.cqct>
+
+nsdiff_main = @lambda(progname, args ...) {
+	@local s, rootns, file1, file2, ns1, ns2;
+
+	if(length(args) != 3) {
+		fprintf(stderr, "usage: %s <rootns> <names1> <names2>\n", progname);
+		exit(1);
+	}
+
+	rootns = args[0];
+	file1 = args[1];
+	file2 = args[2];
+
+	s = sprintfa("@names %s { @include <%s> };", rootns, file1);
+	ns1 = eval(s);
+	s = sprintfa("@names %s { @include <%s> };", rootns, file2);
+	ns2 = eval(s);
+
+	nsdiff(ns1, ns2);
+};
