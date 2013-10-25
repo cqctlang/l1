@@ -1,6 +1,6 @@
-#!/usr/bin/env l1
-// dump information about a core file
-// usage: coreinfo.cqct <corefile>
+#!/bin/bash
+	exec l1 -e main "$0" "$@"
+	exit 1
 !#
 
 @include <elf.cqct>
@@ -318,6 +318,3 @@ gzip_names = @names c32le {
 		}
 	}
 }
-
-return apply(main,args);
-

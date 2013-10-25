@@ -1,4 +1,6 @@
-#!/usr/bin/env l1
+#!/bin/bash
+	exec l1 -e main "$0" "$@"
+	exit 1
 !#
 @include <ns9p.cqct>   /* Diru */
 @include <sctl.cqct>
@@ -14,6 +16,16 @@
 @global rootns;
 @global mode;
 
+main = @lambda(progname, args ...) {
+	@local notimpl, botch, mkreply;
+	@local tnames, tping, tversion, tlooktype;
+	@local tenumtype, tlooksym, tenumsym, tlookaddr;
+	@local tunwind1, tnsinfo, tlooksrc, tlookpc;
+	@local tenumloc, handle, tdispatch, remember;
+	@local record, bindns, opennsnames, opennssctl;
+	@local looknsid, inner_main, watchdog, port;
+
+/*
 sns = @names clp64be {
 	typedef short unsigned int sa_family_t;
 	typedef uint16 in_port_t;
@@ -32,7 +44,9 @@ sns = @names clp64be {
 		@0x10;
 	};
 };
+*/
 
+/*
 @define fmtsa(sa)
 {
 	@local p;
@@ -42,6 +56,7 @@ sns = @names clp64be {
 			p[0], p[1], p[2], p[3],
 			sa->sin_port);
 }
+*/
 
 @define notimpl(fd, msg, dat)
 {
@@ -523,7 +538,7 @@ nextid = 0;
 	return nil;
 }
 
-@define main(port, pref, vs)
+@define inner_main(port, pref, vs)
 {
 	@local lfd, fd, fds, rs, x;
 	lfd = tcplisten(sprintfa(":%u", port));
@@ -583,11 +598,11 @@ nextid = 0;
 }
 
 if(length(args) < 4){
-	printf("usage: %s PORT ROOTNS MODE PREFIX [VAR ...] \n", "snames.cqct");
+	printf("usage: %s PORT ROOTNS MODE PREFIX [VAR ...] \n", progname);
 	exit(1);
 }
 
-pop(args);
+//pop(args);
 port = strton(pop(args));
 rootns = pop(args);
 mode = pop(args);
@@ -597,8 +612,11 @@ if(mode == "sctl")
 else if(mode == "names")
 	openns = opennsnames;
 else{
-	printf("%s: mode must be \"sctl\" or \"names\"\n");
+	printf("%s: mode must be \"sctl\" or \"names\"\n", progname);
 	exit(1);
 }
+
+watchdog(@lambda(){ inner_main(port, prefix, args); });
 	
-watchdog(@lambda(){ main(port, prefix, args); });
+};
+

@@ -1,6 +1,6 @@
 #!/bin/bash
-        exec l1 -e nsdiff_main "$0" "$@"
-        exit 1
+	exec l1 -e nsdiff_main "$0" "$@"
+	exit 1
 !#
 
 @include <nsutil.cqct>

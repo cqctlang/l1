@@ -1,4 +1,6 @@
-#!/usr/bin/env l1
+#!/bin/bash
+	exec l1 -e main "$0" "$@"
+	exit 1
 !#
 // attempt to mimic readelf C program
 
@@ -936,8 +938,3 @@
 
 	return 0;
 }
-
-
-	
-	
-return apply(main,args);

@@ -1,131 +1,141 @@
-#!/usr/bin/env l1
+#!/bin/bash
+	exec l1 -e main "$0" "$@"
+	exit 1
 !#
 
 @include <elf.cqct>
 
-if(length(args) < 2) {
-	fprintf(stderr,"Usage: %s <ELF_file>\n",args[0]);
-	exit(1);
-}
+main = @lambda(progname, args ...) {
+	@local estr, edom, stab, stabns;
+	@local stabs, stablim, stabstr;
+	@local p, sp, esp, istypenum, typenum;
+	@local dotypeinfo, dolsym, n;
 
-estr = mapfile(args[1]);
-if(!iself(estr)) {
-	fprintf(stderr,"%s is not an ELF file\n",args[1]);
-	exit(1);
-}
-
-edom = mkelfrec(estr).elf;
-//showallelfsectionheaders(edom);
-stab = getelfsection(edom, ".stab");
-
-if(sizeof(nsptr(edom)) == 4)
-	stabns = @names edom.ns { @include <stabs32.names> };
-else
-	stabns = @names edom.ns { @include <stabs64.names> };
-
-stdom = mkdom(stabns, edom.as);
-
-stabs = getelfsection(edom, ".stab");
-stablim = strlen(stabs);
-stab = mkdom(stabns, mksas(stabs));
-stabstr = mkdom(stabns, mksas(getelfsection(edom, ".stabstr")));
-p = (char*){stabstr}0;
-
-sp = (struct stab*){stab}0;
-esp = (struct stab*)((unsigned char*)sp + stablim);
-
-@record Lsym { id, desc };
-
-@define istypenum(s){
-	@local c;
-	c = strref(s, 0);
-	if(c == '(' || isdigit(c))
-		return 1;
-	else
-		return 0;
-}
-
-@define typenum(s){
-	@local x;
-	if(strref(s, 0) == '('){
-		x = strstr(s, ")");
-		if(x == nil)
-			error("bad typenum");
-		x++;
-		return substr(s, 0, x);
-	}else{
-		x = 0;
-		while(isdigit(strref(s, x)))
-			x++;
-		if(x == 0)
-			return nil;
-		return substr(s, 0, x);
+	if(length(args) < 1) {
+		fprintf(stderr,"Usage: %s <ELF_file>\n",progname);
+		exit(1);
 	}
-}
 
-@define dotypeinfo(sym, s){
-	@local tid;
+	estr = mapfile(args[0]);
+	if(!iself(estr)) {
+		fprintf(stderr,"%s is not an ELF file\n",args[0]);
+		exit(1);
+	}
 
-	if(istypenum(s)){
-		tid = typenum(s);
-		s += strlen(tid);
-		printf("%s", tid);
-		if(strlen(s) == 0)
-			return nil;	/* lookup tid in table */
-		if(strref(s, 0) == '='){
-			printf("=\t");
-			s++;
-			//st = dotypeinfo(sym, s);
-		}else
-			error("i am confused: %s", s);
-	}else{
-		printf("base[%s]", s);
-		switch(strref(s, 0)){
-		case 'r':
-			return cbasetoctype(sym);
-		default:
-			return nil;
+	edom = mkelfrec(estr).elf;
+	//showallelfsectionheaders(edom);
+	stab = getelfsection(edom, ".stab");
+
+	if(sizeof(nsptr(edom)) == 4)
+		stabns = @names edom.ns { @include <stabs32.names> };
+	else
+		stabns = @names edom.ns { @include <stabs64.names> };
+
+	//stdom = mkdom(stabns, edom.as);
+
+	stabs = getelfsection(edom, ".stab");
+	stablim = strlen(stabs);
+	stab = mkdom(stabns, mksas(stabs));
+	stabstr = mkdom(stabns, mksas(getelfsection(edom, ".stabstr")));
+	p = (char*){stabstr}0;
+
+	sp = (struct stab*){stab}0;
+	esp = (struct stab*)((unsigned char*)sp + stablim);
+
+	@record Lsym { id, desc };
+
+	@define istypenum(s) {
+		@local c;
+		c = strref(s, 0);
+		if(c == '(' || isdigit(c))
+			return 1;
+		else
+			return 0;
+	}
+
+	@define typenum(s) {
+		@local x;
+		if(strref(s, 0) == '(') {
+			x = strstr(s, ")");
+			if(x == nil)
+				error("bad typenum");
+			x++;
+			return substr(s, 0, x);
+		}else{
+			x = 0;
+			while(isdigit(strref(s, x)))
+				x++;
+			if(x == 0)
+				return nil;
+			return substr(s, 0, x);
 		}
 	}
-}
 
-@define dolsym(stab){
-	@local x, rv;
-	rv = Lsym();
-	x = strstr(stab, ":");
-	if(x == nil)
-		error("bad lsym");
-	rv.id = substr(stab, 0, x);
-	if(rv.id == "" || rv.id == " ")
-		rv.id = nil;		/* anonymous */
-	printf("%30s\t", rv.id);
-	x++;
-	stab += x;
-	rv.desc = strref(stab, 0);
-	stab++;
-	printf("%c\t", rv.desc);
-	switch(rv.desc){
-	case 't':
-		dotypeinfo(rv.id, stab);
-		break;
-	case 'T':
-		printf("%s", stab);
-		break;
+	@define dotypeinfo(sym, s) {
+		@local tid;
+	
+		if(istypenum(s)) {
+			tid = typenum(s);
+			s += strlen(tid);
+			printf("%s", tid);
+			if(strlen(s) == 0)
+				return nil;	/* lookup tid in table */
+			if(strref(s, 0) == '=') {
+				printf("=\t");
+				s++;
+				//st = dotypeinfo(sym, s);
+			}else
+				error("i am confused: %s", s);
+		}else{
+			printf("base[%s]", s);
+			switch(strref(s, 0)) {
+			case 'r':
+				return cbasetoctype(sym);
+			default:
+				return nil;
+			}
+		}
 	}
-	printf("\n");
-	return rv;
-}
 
-n = 0;
-while(sp < esp){
-	if(sp->n_type == stab`N_LSYM){
-		printf("%s\n", p+sp->n_strx);
-		printf("%d\t%x\t%e\t",
-			n,
-			sp->n_strx,
-			(enum stabtype)sp->n_type);
-			dolsym(p+sp->n_strx);
+	@define dolsym(stab) {
+		@local x, rv;
+
+		rv = Lsym();
+		x = strstr(stab, ":");
+		if(x == nil)
+			error("bad lsym");
+		rv.id = substr(stab, 0, x);
+		if(rv.id == "" || rv.id == " ")
+			rv.id = nil;		/* anonymous */
+		printf("%30s\t", rv.id);
+		x++;
+		stab += x;
+		rv.desc = strref(stab, 0);
+		stab++;
+		printf("%c\t", rv.desc);
+		switch(rv.desc) {
+		case 't':
+			dotypeinfo(rv.id, stab);
+			break;
+		case 'T':
+			printf("%s", stab);
+			break;
+		}
+		printf("\n");
+		return rv;
 	}
-	sp++;
-	n++;
-}
+
+	n = 0;
+	while(sp < esp) {
+		if(sp->n_type == stab`N_LSYM) {
+			printf("%s\n", p+sp->n_strx);
+			printf("%d\t%x\t%e\t",
+				n,
+				sp->n_strx,
+				(enum stabtype)sp->n_type);
+				dolsym(p+sp->n_strx);
+		}
+		sp++;
+		n++;
+	}
+};

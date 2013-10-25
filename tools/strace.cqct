@@ -1,4 +1,4 @@
-#!/bin/sh
+#!/bin/bash
 	exec l1 -e strace_main "$0" "$@"
 	exit 1
 !#
