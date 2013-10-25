@@ -1,13 +1,13 @@
 @include <ctype.cqct>
 @include <xsas.cqct>
 @include <dump.cqct>
-
+@include <sctlns.cqct>
 
 ts = [ @typename(int),
        @typename(long long),
-       @typename(`T),
-       @typename(`T*),
-       @typename(`T***),
+       //@typename(`T),
+       //@typename(`T*),
+       //@typename(`T***),
        @typename(struct S),
        @typename(struct S*),
        @typename(union U*),
@@ -17,7 +17,7 @@ ts = [ @typename(int),
        @typename(int[]),
        @typename(int[10]),
        @typename(int (*)(int x, int y)),
-       @typename(`T** (*)(A *a, B *b)),
+       //@typename(`T** (*)(A *a, B *b)),
 	];
 
 us = map(@lambda(t) {
@@ -51,10 +51,21 @@ ns = @names c32le {
 
 };
 
+@define keysorted_tabvals(t) {                                                  
+	@local k,l;                                                             
+
+	k=tabkeys(t);                                                           
+	k=sort(k,@lambda(a,b) {                                                 
+		strcmp(sprintfa("%t",a),sprintfa("%t",b));                      
+	});
+	k;
+};
+
+t=ns.enumtype();
 //ts = map(@lambda(tn, td) { printtype(td); td; }, ns.enumtype());
-ts = map(@lambda(tn, td) { printf("%t\n", td); td; }, ns.enumtype());
+ts = map(@lambda(tn) { printf("%t\n", t[tn]); t[tn]; }, keysorted_tabvals(t));
 us = map(@lambda(td){
-		@local p, ud;
+		@local p;
 		p = mkxs();
 		encodetdef(p, td);
 		decodetdef(c32le, p)[0];

@@ -26,6 +26,7 @@
 	decodensinfo,
 	decodetname,
 	decodeuwrules,
+	decodetdef,
 	encodelexpr,
 	encodectx,
 	encodensinfo,
@@ -463,7 +464,7 @@ nexttag = 0;
 	}
 }
 
-@defloc decodetdef(ns, q)
+@define decodetdef(ns, q)
 {
 	@local k, cb, rep, sz, n, i, v, f, par, id, sid, c, mk, at, st;
 	@local w, pos;
