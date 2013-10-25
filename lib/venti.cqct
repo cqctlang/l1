@@ -131,6 +131,7 @@ venti = @names clp64be {
 @define pushn1(p, s)
 {
 	@local m;
+
 	if(s == nil)
 		return push1(p, 0);
 	m = length(s);
@@ -142,6 +143,7 @@ venti = @names clp64be {
 @define pushn2(p, s)
 {
 	@local m;
+
 	if(s == nil)
 		return push2(p, 0);
 	m = length(s);
@@ -153,6 +155,7 @@ venti = @names clp64be {
 @define pushn4(p, s)
 {
 	@local m;
+
 	if(s == nil)
 		return push4(p, 0);
 	m = length(s);
@@ -164,6 +167,7 @@ venti = @names clp64be {
 @define lenn1(s)
 {
 	@local sz;
+
 	sz = 1;
 	if(s == nil)
 		return sz;
@@ -174,6 +178,7 @@ venti = @names clp64be {
 @define lenn2(s)
 {
 	@local sz;
+
 	sz = 2;
 	if(s == nil)
 		return sz;
@@ -184,6 +189,7 @@ venti = @names clp64be {
 @define lenn4(s)
 {
 	@local sz;
+
 	sz = 4;
 	if(s == nil)
 		return sz;
@@ -194,6 +200,7 @@ venti = @names clp64be {
 @define vtversion(fd)
 {
 	@local v, s, sp;
+
 	write(fd, "venti-04-cqct\n");
 	v = "";
 	while(1){
@@ -216,6 +223,7 @@ venti = @names clp64be {
 @define vtsendmsg(fd, arg ...)
 {
 	@local p, sz;
+
 	p = arg[0];
 	switch(length(arg)){
 	case 1:
@@ -346,6 +354,7 @@ venti = @names clp64be {
 @define score2txt(score)
 {
 	@local i, s;
+
 	s = "";
 	for(i = 0; i < 20; i++)
 		s += sprintfa("%02x", score[i]);
@@ -392,6 +401,7 @@ venti = @names clp64be {
 @define vtread(fd, score)
 {
 	@local sz, t, r;
+
 	sz = sizeof(venti`VtTread);
 	t = (venti`VtTread*)malloc(sz);
 	t->op = venti`VtTread;
@@ -412,6 +422,7 @@ venti = @names clp64be {
 @define test()
 {
 	@local fd;
+
 	fd = tcpopen("localhost:17034");
 	vtversion(fd);
 

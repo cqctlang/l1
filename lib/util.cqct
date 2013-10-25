@@ -6,13 +6,13 @@
 	n = length(rs);
 	b = rangebeg(r);
 	e = b+rangelen(r);
-	for(i = 0; i < n; i++){
+	for(i = 0; i < n; i++) {
 		x = rs[i];
 		xb = rangebeg(x);
 		if(xb > b)
 			return 0;
 		xe = xb+rangelen(x);
-		if(b >= xb && b <= xe){
+		if(b >= xb && b <= xe) {
 			if(e <= xe)
 				return 1;
 			else
@@ -25,6 +25,7 @@
 @define time(fn)
 {
 	@local s, e;
+
 	s = gettimeofday();
 	fn();
 	e = gettimeofday();
@@ -36,7 +37,7 @@
 
 @define dumptab(fmt, t)
 {
-	foreach(@lambda(k, v){
+	foreach(@lambda(k, v) {
 			printf(fmt, k, v);
 		}, t);
 }
@@ -44,14 +45,16 @@
 @define dumpstats()
 {
 	@local s;
+
 	s = map(@lambda(k, v) { cons(k, v); }, statistics());
-	sort(s, @lambda(p1, p2){
+	sort(s, @lambda(p1, p2) {
 			@local s1, s2;
+
 			s1 = cid2str(car(p1));
 			s2 = cid2str(car(p2));
 			return strcmp(s1, s2);
 		});
-	foreach(@lambda(p){
+	foreach(@lambda(p) {
 			printf("\t%20s\t%20u\n", car(p), cdr(p));
 		}, s);
 }
@@ -59,40 +62,48 @@
 @define join(ss,args...)
 {
 	@local buf, p, m, j, first;
+
 	m = 0;
-	if (length(args)>1) error("too many arguments to join");
+	if (length(args)>1)
+		error("too many arguments to join");
+
 	if (length(args)>0) {
-	    j = args[0];
-	    if (!isstring(j)) error("second argument to join must be a string");
+		j = args[0];
+		if (!isstring(j))
+			error("second argument to join must be a string");
 	} else j = "";
-	if (!islist(ss)) error("first argument to join must be a list");
+	if (!islist(ss))
+		error("first argument to join must be a list");
 	if (length(ss) == 0) return "";
 	foreach(@lambda(s) { 
-	    if (!isstring(s))
-            error("first argument to join must only contain strings");
-	    m += length(s); 
+		if (!isstring(s))
+			error("first argument to join must only contain strings");
+		m += length(s); 
 	}, ss);
 	m += length(j) * (length(ss)-1);
 	buf = mkstr(m);
 	p = (char*)buf;
 	first = 1;
 	foreach(@lambda(s) { 
-	            if (first) first = 0;
-	            else {
-                    putbytes(p, j); 
-                    p += length(j); 
-	            }
-	            putbytes(p, s); 
-	            p += length(s); 
-	        }, ss);
+		if (first)
+			first = 0;
+		else {
+			putbytes(p, j); 
+			p += length(j); 
+		}
+		putbytes(p, s); 
+		p += length(s); 
+	}, ss);
+
 	return buf;
 }
 
 @define fread(fd, sz)
 {
 	@local ss, buf;
+
 	ss = [];
-	while(sz > 0){
+	while(sz > 0) {
 		buf = read(fd, sz);
 		if(buf == nil)
 			if(length(ss) == 0)
@@ -114,6 +125,7 @@
 	@defloc r(m, ns)
 	{
 		@local x;
+
 		if(length(ns) == 0)
 			return m;
 		x = pop(ns);
@@ -135,6 +147,7 @@
 	@defloc r(m, ns)
 	{
 		@local x;
+
 		if(length(ns) == 0)
 			return m;
 		x = pop(ns);
@@ -150,8 +163,9 @@
 @define flatten(ls)
 {
 	@local acc;
+
 	acc = [];
-	foreach(@lambda(l){
+	foreach(@lambda(l) {
 			acc = concat(acc, l);
 		}, ls);
 	return acc;
@@ -160,6 +174,7 @@
 @define iota(n)
 {
 	@local acc, i;
+
 	acc = [];
 	for(i = 0; i < n; i++)
 		append(acc, i);

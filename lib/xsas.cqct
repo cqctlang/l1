@@ -13,6 +13,7 @@ xsas_defined = 1;
 	@define get(self, r)
 	{
 		@local b, e;
+
 		b = rangebeg(r);
 		e = b+rangelen(r);
 		if(e <= m)
@@ -24,6 +25,7 @@ xsas_defined = 1;
 	@define put(self, r, x)
 	{
 		@local b, e, nm, ns;
+
 		b = rangebeg(r);
 		e = b+rangelen(r);
 		if(e > l)
