@@ -31,7 +31,7 @@ xstrnlen(char *s, size_t max)
 {
 	size_t rv;
 	rv = 0;
-	while(rv < max && *s != '\0'){
+	while(rv < max && *s != '\0') {
 		s++;
 		rv++;
 	}
@@ -107,7 +107,7 @@ erealloc(void *p, size_t old, size_t new)
 {
 	char *q;
 	q = emalloc(new);
-	if(new > old){
+	if(new > old) {
 		memcpy(q, p, old);
 		cqctmeminuse += new-old;
 		cqctmemtotal += new-old;
@@ -138,7 +138,7 @@ strnchr(char *s, int c, unsigned long len)
 {
 	char *e;
 	e = s+len;
-	while(s < e){
+	while(s < e) {
 		if(*s == c)
 			return s;
 		s++;
@@ -257,9 +257,9 @@ copystrv(char **lp)
 	n = 0;
 	nlp = 0;
 
-	if(lp != 0){
+	if(lp != 0) {
 		p = lp;
-		while(*p){
+		while(*p) {
 			n += strlen(*p)+1;
 			nlp++;
 			p++;
@@ -268,7 +268,7 @@ copystrv(char **lp)
 	rv = emalloc((nlp+1)*sizeof(char*)+n);
 	p = rv;
 	s = (char*)(rv+nlp+1);
-	for(i = 0; i < nlp; i++){
+	for(i = 0; i < nlp; i++) {
 		p[i] = s;
 		strcpy(s, lp[i]);
 		s += strlen(lp[i])+1;

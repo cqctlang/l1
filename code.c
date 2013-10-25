@@ -16,7 +16,7 @@ lookdbg(Code *c, uptr off)
 	e = d+c->ndbg;
 	if(d->off > off)
 		bug();
-	while(d < e-1){
+	while(d < e-1) {
 		n = d+1;
 		if(n->off > off)
 			return d;
@@ -32,7 +32,7 @@ ra2mask(void *ra, Code *code)
 	Imm fsz, lm;
 	Dbg *d;
 
-	switch(code->kind){
+	switch(code->kind) {
 	case Cnative:
 	case Cvm:
 		if(ra >= codeend(code))
@@ -63,7 +63,7 @@ ra2size(void *ra, Code *code)
 	Imm fsz;
 	Dbg *d;
 
-	switch(code->kind){
+	switch(code->kind) {
 	case Cnative:
 	case Cvm:
 		if(ra >= codeend(code))
@@ -120,7 +120,7 @@ off2scope(Code *c, u64 off)
 {
 	Dbg *d;
 
-	switch(c->kind){
+	switch(c->kind) {
 	case Cvm:
 		/* expect offset is in Insn units */
 		d = lookdbg(c, off*sizeof(Insn));
@@ -142,7 +142,7 @@ frameinfo(Closure *cl, void *pc)
 	l = mklist();
 	_listappend(l, mkvalcl(cl));
 	c = cl->code;
-	switch(c->kind){
+	switch(c->kind) {
 	case Cvm:
 		_listappend(l, mkvallitcval(Vuvlong,
 					    (Insn*)pc-(Insn*)codeinsn(c)));
@@ -164,7 +164,7 @@ printsrc(Xfd *xfd, Code *c, Insn *pc)
 {
 	Src src;
 
-	switch(c->kind){
+	switch(c->kind) {
 	case Ccfn:
 		cprintf(xfd, "%20s\t(builtin function)\n", ciddata(c->id));
 		break;
@@ -233,7 +233,7 @@ l1_codekind(VM *vm, Imm argc, Val *argv, Val *rv)
 		vmerr(vm, "wrong number of arguments to codekind");
 	checkarg(vm, argv, 0, Qcode);
 	c = valcode(argv[0]);
-	switch(c->kind){
+	switch(c->kind) {
 	case Cnative:
 		*rv = mkvalcid(mkcid0("native"));
 		break;
@@ -265,7 +265,7 @@ l1_codesrc(VM *vm, Imm argc, Val *argv, Val *rv)
 	checkarg(vm, argv, 1, Qcval);
 	c = valcode(argv[0]);
 	o = valcval(argv[1]);
-	switch(c->kind){
+	switch(c->kind) {
 	case Cvm:
 		break;
 	case Cnative:
@@ -297,7 +297,7 @@ l1_codescope(VM *vm, Imm argc, Val *argv, Val *rv)
 	checkarg(vm, argv, 1, Qcval);
 	c = valcode(argv[0]);
 	o = valcval(argv[1]);
-	switch(c->kind){
+	switch(c->kind) {
 	case Cvm:
 		break;
 	case Cnative:
@@ -328,7 +328,7 @@ l1_codelex(VM *vm, Imm argc, Val *argv, Val *rv)
 		vmerr(vm, "wrong number of arguments to codelex");
 	checkarg(vm, argv, 0, Qcode);
 	c = valcode(argv[0]);
-	switch(c->kind){
+	switch(c->kind) {
 	case Cvm:
 		if(c->lex)
 			*rv = mkvalvec(c->lex);

@@ -23,7 +23,7 @@ parseport(const char *s, unsigned short *port)
 	unsigned long l;
 
 	se = getservbyname(s, "tcp");
-	if(se){
+	if(se) {
 		*port = se->s_port;
 		return 0;
 	}
@@ -45,14 +45,14 @@ parseip(char *s, struct sockaddr_in *addr)
 	addr->sin_family = AF_INET;
 	addr->sin_addr.s_addr = INADDR_ANY;
 	addr->sin_port = htons(0);
-	if((p = strchr(buf, ':'))){
+	if((p = strchr(buf, ':'))) {
 		/* HOST:PORT */
 		*p++ = '\0';
 		if(0 > parseaddr(buf, &addr->sin_addr))
 			goto out;
 		if(0 > parseport(p, &addr->sin_port))
 			goto out;
-	}else if ((p = strchr(buf, '.'))){
+	}else if ((p = strchr(buf, '.'))) {
 		/* HOST */
 		if(0 > parseaddr(buf, &addr->sin_addr))
 			goto out;
@@ -104,7 +104,7 @@ l1__tcpopen(VM *vm, Imm argc, Val *argv, Val *rv)
 	checkarg(vm, argv, 0, Qstr);
 	str = valstr(argv[0]);
 	s = str2cstr(str);
-	if(0 > parseip(s, &saddr)){
+	if(0 > parseip(s, &saddr)) {
 		efree(s);
 		vmerr(vm, "unrecognized address: %.*s",
 		      (int)str->len, strdata(str));
@@ -113,7 +113,7 @@ l1__tcpopen(VM *vm, Imm argc, Val *argv, Val *rv)
 	fd = socket(AF_INET, SOCK_STREAM, 0);
 	if(0 > fd)
 		vmerr(vm, "tcpopen: %s", strerror(errno));
-	if(0 > connect(fd, (struct sockaddr*)&saddr, sizeof(saddr))){
+	if(0 > connect(fd, (struct sockaddr*)&saddr, sizeof(saddr))) {
 		setlasterrno(errno);
 		return;
 	}
@@ -134,7 +134,7 @@ l1__tcplisten(VM *vm, Imm argc, Val *argv, Val *rv)
 	checkarg(vm, argv, 0, Qstr);
 	str = valstr(argv[0]);
 	s = str2cstr(str);
-	if(0 > parseip(s, &saddr)){
+	if(0 > parseip(s, &saddr)) {
 		efree(s);
 		vmerr(vm, "unrecognized address: %.*s",
 		      (int)str->len, strdata(str));
@@ -271,14 +271,14 @@ l1__unixopen(VM *vm, Imm argc, Val *argv, Val *rv)
 		   max unix pathname */
 		vmerr(vm, "unix domain pathname is too long");
 	fd = socket(AF_UNIX, SOCK_STREAM, 0);
-	if(0 > fd){
+	if(0 > fd) {
 		setlasterrno(errno);
 		return;
 	}
 	sa.sun_family = AF_UNIX;
 	memcpy(sa.sun_path, strdata(str), str->len);
 	if(0 > connect(fd, (struct sockaddr*)&sa,
-		       sizeof(sa_family_t)+str->len)){
+		       sizeof(sa_family_t)+str->len)) {
 		setlasterrno(errno);
 		return;
 	}

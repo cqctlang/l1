@@ -40,7 +40,7 @@ main(int argc, char *argv[])
 	sym = 0;
 	mach = 0;
 	while(-1 != (c = getopt(argc, argv, "a:hl:m:s:")))
-		switch(c){
+		switch(c) {
 		case 'a':
 			opt['a'] = 1;
 			align = strtoull(optarg, &ep, 0);
@@ -77,11 +77,11 @@ main(int argc, char *argv[])
 	outfile = argv[optind+1];
 
 	ifd = open(infile, O_RDONLY);
-	if(0 > ifd){
+	if(0 > ifd) {
 		fprintf(stderr, "open: %s: %s\n", infile, strerror(errno));
 		exit(1);
 	}
-	if(0 > fstat(ifd, &st)){
+	if(0 > fstat(ifd, &st)) {
 		fprintf(stderr, "stat: %s: %s\n", infile, strerror(errno));
 		exit(1);
 	}
@@ -92,13 +92,13 @@ main(int argc, char *argv[])
 	if(mlen == 0)
 		mlen = 4096;
 	data = mmap(0, mlen, PROT_READ, MAP_PRIVATE, ifd, 0);
-	if(data == MAP_FAILED){
+	if(data == MAP_FAILED) {
 		fprintf(stderr, "mmap: %s: %s\n", infile, strerror(errno));
 		exit(1);
 	}
 	close(ifd);
 	ofd = open(outfile, O_TRUNC|O_CREAT|O_WRONLY, 0664);
-	if(0 > ofd){
+	if(0 > ofd) {
 		fprintf(stderr, "open: %s: %s\n", outfile, strerror(errno));
 		exit(1);
 	}

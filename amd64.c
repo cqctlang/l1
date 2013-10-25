@@ -92,7 +92,7 @@ emituptr(NC *nc, uptr w)
 static void
 nuptr(NC *nc, xImm imm)
 {
-	switch(imm.size){
+	switch(imm.size) {
 	case Byte:
 		emituptr(nc, imm.v.ubyte);
 		break;
@@ -316,7 +316,7 @@ indirect2(xRand b, xRand o)
 	   (probably something like
 	   mkindirect(b, RNONE, 0, o) */
 	assert(isreg(b));
-	switch(o.okind){
+	switch(o.okind) {
 	case opReg:
 		return mkindirect(b, o, 0, 0);
 	case opImm:
@@ -462,7 +462,7 @@ static int
 isxrand8(xRand o)
 {
 	if(isreg(o))
-		switch(randreg(o)){
+		switch(randreg(o)) {
 		case rSPL:
 		case rBPL:
 		case rSIL:
@@ -485,11 +485,11 @@ emitopcode(NC *nc, xOp op)
 static int
 sibpresent(xRand rand)
 {
-	switch(rand.okind){
+	switch(rand.okind) {
 	case opMem:
 		if(!isrnone(randidx(rand)) || randscale(rand) != 0)
 			return 1;
-		switch(randbase(rand)){
+		switch(randbase(rand)) {
 		case rESP:
 		case rRSP:
 		case rR12:
@@ -518,12 +518,12 @@ emitmodrm(NC *nc, u8 rbits, xRand rand)
 	b = (rbits&0x7)<<3;
 
 	/* mod */
-	switch(rand.okind){
+	switch(rand.okind) {
 	case opReg:
 		m = 0x3;
 		break;
 	case opMem:
-		if(!isrnone(randbase(rand))){
+		if(!isrnone(randbase(rand))) {
 			d = randdisp(rand);
 			if(d.size == Zero)
 				m = 0x0;
@@ -542,7 +542,7 @@ emitmodrm(NC *nc, u8 rbits, xRand rand)
 	b |= m<<6;
 
 	/* r/m */
-	switch(rand.okind){
+	switch(rand.okind) {
 	case opMem:
 		if(sibpresent(rand))
 			rm = regbits(rRSP);
@@ -567,7 +567,7 @@ static void
 emitsib(NC *nc, xRand rand)
 {
 	u8 s, i, b;
-	if(sibpresent(rand)){
+	if(sibpresent(rand)) {
 		s = randscale(rand);
 		i = (isrnone(randidx(rand))
 		     ? regbits(rESP) : regbits(randidx(rand)));
@@ -581,7 +581,7 @@ static void
 emitdisp(NC *nc, xRand rand)
 {
 	xImm imm;
-	switch(rand.okind){
+	switch(rand.okind) {
 	case opMem:
 		imm = randdisp(rand);
 		if(imm.size == Zero)
@@ -725,9 +725,9 @@ op2(NC *nc, xOp op, xRand dst, xRand src, u8 w)
 static void
 movi(NC *nc, xRand dst, xImm srci)
 {
-	switch(dst.okind){
+	switch(dst.okind) {
 	case opReg:
-		if(isbyte(srci)){
+		if(isbyte(srci)) {
 			shortop(nc, dst, 0xb0, REXW);
 			n1(nc, srci);
 		}else{
@@ -874,7 +874,7 @@ LEA(NC *nc, xRand dst, xRand src)
 void
 JMP(NC *nc, xRand dst)
 {
-	if(isimm(dst)){
+	if(isimm(dst)) {
 		emitu8(nc, 0xe9);
 		n4(nc, randimm(dst));
 	}else
@@ -884,7 +884,7 @@ JMP(NC *nc, xRand dst)
 void
 CALL(NC *nc, xRand dst)
 {
-	if(isimm(dst)){
+	if(isimm(dst)) {
 		emitu8(nc, 0xe8);
 		n4(nc, randimm(dst));
 	}else
@@ -947,7 +947,7 @@ void	CMOVG(NC *nc, xRand dst, xRand src)	{ movcc(nc, 0x4f, dst, src); }
 void
 PUSH(NC *nc, xRand o)
 {
-	switch(o.okind){
+	switch(o.okind) {
 	case opReg:
 		shortop(nc, o, 0x50, 0);
 		break;
@@ -966,7 +966,7 @@ PUSH(NC *nc, xRand o)
 void
 POP(NC *nc, xRand o)
 {
-	switch(o.okind){
+	switch(o.okind) {
 	case opReg:
 		shortop(nc, o, 0x58, 0);
 		break;
@@ -1033,7 +1033,7 @@ IMUL3(NC *nc, xRand dst, xRand src, xRand imm)
 	if(!isimm(imm))
 		bug();
 	i = randimm(imm);
-	if(fitsbyte(i)){
+	if(fitsbyte(i)) {
 		op2(nc, mkop(0x6a), src, dst, REXW);
 		n1(nc, i);
 	}else{
@@ -1132,7 +1132,7 @@ check(NC *p, char *form, char *result, u32 m)
 {
 	printf("%s\n", form);
 	disx86(p->buf, p->buf+p->n, 0);
-	if(p->n != m || memcmp(p->buf, result, p->n)){
+	if(p->n != m || memcmp(p->buf, result, p->n)) {
 		printf("failed %s\n", form);
 		printf("\texpected "); printbytes(result, m);
 		printf("\n");

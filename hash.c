@@ -51,7 +51,7 @@ hashs(char *s, unsigned len)
 	u32 h;
 
 	h = 0;
-	while(len != 0){
+	while(len != 0) {
 		h += *p;
 		h += h<<10;
 		h ^= h>>6;
@@ -111,9 +111,9 @@ freeht(HT* ht)
 	Hent *hp, *np;
 	unsigned long i;
 
-	for(i = 0; i < ht->sz; i++){
+	for(i = 0; i < ht->sz; i++) {
 		hp = ht->ht[i];
-		while(hp){
+		while(hp) {
 			np = hp->next;
 			efree(hp);
 			hp = np;
@@ -133,9 +133,9 @@ hsz(HT *ht)
 	m = 0;
 	m += esize(ht);
 	m += esize(ht->ht);
-	for(i = 0; i < ht->sz; i++){
+	for(i = 0; i < ht->sz; i++) {
 		hp = ht->ht[i];
-		while(hp){
+		while(hp) {
 			m += esize(hp);
 			hp = hp->next;
 		}
@@ -152,9 +152,9 @@ hexpand(HT *ht)
 
 	nsz = ht->sz*2;
 	nht = emalloc(nsz*sizeof(Hent*));
-	for(i = 0; i < ht->sz; i++){
+	for(i = 0; i < ht->sz; i++) {
 		hp = ht->ht[i];
-		while(hp){
+		while(hp) {
 			nxt = hp->next;
 			idx = ht->hash(hp)%nsz;
 			hp->next = nht[idx];
@@ -173,9 +173,9 @@ hforeachp(HT *ht, void (*f)(void *u, void *k, void *v), void *u)
 	Hent *hp;
 	unsigned long i;
 
-	for(i = 0; i < ht->sz; i++){
+	for(i = 0; i < ht->sz; i++) {
 		hp = ht->ht[i];
-		while(hp){
+		while(hp) {
 			f(u, &hp->key, &hp->val);
 			hp = hp->next;
 		}
@@ -188,9 +188,9 @@ hforeach(HT *ht, void (*f)(void *u, char *k, void *v), void *u)
 	Hent *hp;
 	unsigned long i;
 
-	for(i = 0; i < ht->sz; i++){
+	for(i = 0; i < ht->sz; i++) {
 		hp = ht->ht[i];
-		while(hp){
+		while(hp) {
 			f(u, hp->key, hp->val);
 			hp = hp->next;
 		}
@@ -215,7 +215,7 @@ _hgetp(HT *ht, void *k)
 	Hent *hp;
 
 	hp = ht->ht[hashp(k)%ht->sz];
-	while(hp){
+	while(hp) {
 		if(hp->key == k)
 			return hp;
 		hp = hp->next;
@@ -241,7 +241,7 @@ hputp(HT *ht, void *k, void *v)
 	u32 idx;
 
 	hp = _hgetp(ht, k);
-	if(hp){
+	if(hp) {
 		hp->val = v;
 		return;
 	}
@@ -265,8 +265,8 @@ hdelp(HT *ht, void *k)
 
 	q = &ht->ht[hashp(k)%ht->sz];
 	hp = *q;
-	while(hp){
-		if(hp->key == k){
+	while(hp) {
+		if(hp->key == k) {
 			*q = hp->next;
 			efree(hp);
 			ht->nent--;
@@ -289,7 +289,7 @@ _hgets(HT *ht, char *k, u32 len)
 	Hent *hp;
 
 	hp = ht->ht[hashs(k, len)%ht->sz];
-	while(hp){
+	while(hp) {
 		if(hp->keylen == len && memcmp(k, hp->key, len) == 0)
 			return hp;
 		hp = hp->next;
@@ -315,7 +315,7 @@ hputs(HT *ht, char *k, u32 len, void *v)
 	unsigned long idx;
 
 	hp = _hgets(ht, k, len);
-	if(hp){
+	if(hp) {
 		hp->val = v;
 		return;
 	}
@@ -340,8 +340,8 @@ hdels(HT *ht, char *k, u32 len)
 
 	q = &ht->ht[hashs(k, len)%ht->sz];
 	hp = *q;
-	while(hp){
-		if(hp->keylen == len && memcmp(k, hp->key, len) == 0){
+	while(hp) {
+		if(hp->keylen == len && memcmp(k, hp->key, len) == 0) {
 			*q = hp->next;
 			efree(hp);
 			ht->nent--;
@@ -362,18 +362,18 @@ heqs(HT *ha, HT *hb)
 	if(hnent(ha) != hnent(hb))
 		return 0;
 
-	for(i = 0; i < ha->sz; i++){
+	for(i = 0; i < ha->sz; i++) {
 		hp = ha->ht[i];
-		while(hp){
+		while(hp) {
 			v = hgets(hb, hp->key, hp->keylen);
 			if(v != hp->val)
 				return 0;
 			hp = hp->next;
 		}
 	}
-	for(i = 0; i < hb->sz; i++){
+	for(i = 0; i < hb->sz; i++) {
 		hp = hb->ht[i];
-		while(hp){
+		while(hp) {
 			v = hgets(ha, hp->key, hp->keylen);
 			if(v != hp->val)
 				return 0;

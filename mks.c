@@ -34,7 +34,7 @@ main(int argc, char *argv[])
 	len = 0;
 	sym = 0;
 	while(-1 != (c = getopt(argc, argv, "a:hl:s:")))
-		switch(c){
+		switch(c) {
 		case 'a':
 			opt['a'] = 1;
 			align = strtoull(optarg, &ep, 0);
@@ -67,13 +67,13 @@ main(int argc, char *argv[])
 	outfile = argv[optind+1];
 
 	ofd = open(outfile, O_TRUNC|O_CREAT|O_WRONLY, 0664);
-	if(0 > ofd){
+	if(0 > ofd) {
 		fprintf(stderr, "open: %s: %s\n", outfile, strerror(errno));
 		exit(1);
 	}
 
 	of = fdopen(ofd, "w");
-	if(!of){
+	if(!of) {
 		fprintf(stderr, "fdopen: %s: %s\n", outfile, strerror(errno));
 		exit(1);
 	}

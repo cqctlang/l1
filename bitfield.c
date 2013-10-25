@@ -14,9 +14,9 @@ logceil(int n)
 {
 	int i, j, logfloor = 0;
 	int bitcount = 0;
-	for(i = 0; i < 8*sizeof(int); i++){
+	for(i = 0; i < 8*sizeof(int); i++) {
 		j = n>>i;
-		if(j&1){
+		if(j&1) {
 			bitcount++;
 			logfloor = i;
 		}
@@ -60,7 +60,7 @@ bitfieldgeom(BFgeom *bfg)
 	if(als > MAX_ADDRESSABLE_UNIT)
 		return -1;
 
-	while(als < MAX_ADDRESSABLE_UNIT){
+	while(als < MAX_ADDRESSABLE_UNIT) {
 		if((lob%als)+bc > als)
 			als *= 2;
 		else
@@ -96,15 +96,15 @@ bitfieldget(char *s, BFgeom *bfg)
 
 	p = (unsigned char*)s;
 	v = 0;
-	if(bfg->isbe){
-		for(i = 0; i < bfg->cnt; i++){
+	if(bfg->isbe) {
+		for(i = 0; i < bfg->cnt; i++) {
 			v <<= 8;
 			v |= p[i];
 		}
 		v >>= bfg->bes;
 	}else{
 		x = 1;
-		for(i = 0; i < bfg->cnt; i++){
+		for(i = 0; i < bfg->cnt; i++) {
 			v |= p[i]*x;
 			x *= 256;
 		}
@@ -125,26 +125,26 @@ bitfieldput(char *s, BFgeom *bfg, Imm val)
 	m = (1ULL<<bfg->bs)-1;
 	val &= m;
 	w = 0;
-	if(bfg->isbe){
-		for(i = 0; i < bfg->cnt; i++){
+	if(bfg->isbe) {
+		for(i = 0; i < bfg->cnt; i++) {
 			w <<= 8;
 			w |= p[i];
 		}
 		w &= ~(m<<bfg->bes);
 		w |= val<<bfg->bes;
-		for(i = bfg->cnt-1; i >= 0; i--){
+		for(i = bfg->cnt-1; i >= 0; i--) {
 			p[i] = w&0xff;
 			w >>= 8;
 		}
 	}else{
 		x = 1;
-		for(i = 0; i < bfg->cnt; i++){
+		for(i = 0; i < bfg->cnt; i++) {
 			w |= p[i]*x;
 			x *= 256;
 		}
 		w &= ~(m<<bfg->les);
 		w |= val<<bfg->les;
-		for(i = 0; i < bfg->cnt; i++){
+		for(i = 0; i < bfg->cnt; i++) {
 			p[i] = w&0xff;
 			w >>= 8;
 		}

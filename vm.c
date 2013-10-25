@@ -147,7 +147,7 @@ valhead(Val v)
 {
 	if(v == 0)
 		return 0;
-	switch(Vkind(v)){
+	switch(Vkind(v)) {
 	case Qnil:
 		return 0;
 		break;
@@ -199,7 +199,7 @@ mkccl(char *id, Ccl *ccl, unsigned dlen, ...)
 	code->id = mkcid0(id);
 	cl = mkcl(code, dlen);
 	va_start(args, dlen);
-	for(m = 0; m < dlen; m++){
+	for(m = 0; m < dlen; m++) {
 		vp = va_arg(args, Val);
 		cldisp(cl)[m] = vp;
 	}
@@ -259,7 +259,7 @@ eqval(Val v1, Val v2)
 {
 	if(Vkind(v1) != Vkind(v2))
 		return 0;
-	switch(Vkind(v1)){
+	switch(Vkind(v1)) {
 	case Qnil:
 		return 1;
 	case Qas:
@@ -292,7 +292,7 @@ eqval(Val v1, Val v2)
 u32
 hashqval(Val v)
 {
-	switch(Vkind(v)){
+	switch(Vkind(v)) {
 	case Qnil:
 		return hashp(Xnil);
 	case Qas:
@@ -327,7 +327,7 @@ eqvval(Val v1, Val v2)
 {
 	if(Vkind(v1) != Vkind(v2))
 		return 0;
-	switch(Vkind(v1)){
+	switch(Vkind(v1)) {
 	case Qnil:
 		return 1;
 	case Qas:
@@ -368,7 +368,7 @@ eqvval(Val v1, Val v2)
 u32
 hashqvval(Val v)
 {
-	switch(Vkind(v)){
+	switch(Vkind(v)) {
 	case Qnil:
 		return hashp(Xnil);
 	case Qas:
@@ -411,7 +411,7 @@ equalval(Val v1, Val v2)
 {
 	if(Vkind(v1) != Vkind(v2))
 		return 0;
-	switch(Vkind(v1)){
+	switch(Vkind(v1)) {
 	case Qnil:
 		return 1;
 	case Qas:
@@ -452,7 +452,7 @@ equalval(Val v1, Val v2)
 u32
 hashval(Val v)
 {
-	switch(Vkind(v)){
+	switch(Vkind(v)) {
 	case Qnil:
 		return hashp(Xnil);
 	case Qas:
@@ -587,7 +587,7 @@ envbind(Env env, char *id, Val val)
 {
 	Cid *cid;
 	cid = mkcid0(id);
-	if(envbinds(env, cid)){
+	if(envbinds(env, cid)) {
 		xprintf("warning: rebinding %s via envbind\n", id);
 		envput(env, cid, val);
 	}else
@@ -711,12 +711,12 @@ kbacktrace(VM *vm, Cont *k)
 	pc = k->ra;
 	cl = k->cl;
 	fp = k->base+k->sz;
-	while((void*)fp >= k->base){
+	while((void*)fp >= k->base) {
 		cp = cl->code;
 		sz = ra2size(pc, cp);
 		printframe(vm, pc, cp);
 		fp -= sz;
-		if((void*)fp >= k->base){
+		if((void*)fp >= k->base) {
 			pc = stkp(fp[Ora]);
 			cl = valcl(fp[Ocl]);
 		}
@@ -735,7 +735,7 @@ stackframes(VM *vm, Cont *k)
 	u64 sz;
 
 	l = mklist();
-	while(1){
+	while(1) {
 		if(k == 0)
 			return l;
 		if(k->base == 0)
@@ -744,12 +744,12 @@ stackframes(VM *vm, Cont *k)
 		pc = k->ra;
 		cl = k->cl;
 		fp = k->base+k->sz;
-		while((void*)fp >= k->base){
+		while((void*)fp >= k->base) {
 			cp = cl->code;
 			sz = ra2size(pc, cp);
 			_listappend(l, mkvallist(frameinfo(cl, pc)));
 			fp -= sz;
-			if((void*)fp >= k->base){
+			if((void*)fp >= k->base) {
 				pc = stkp(fp[Ora]);
 				cl = valcl(fp[Ocl]);
 			}
@@ -770,7 +770,7 @@ liveinframe(VM *vm, Cont *k, u32 fno)
 	Vec *v;
 
 	fcnt = 0;
-	while(1){
+	while(1) {
 		if(k == 0)
 			vmerr(vm, "no such frame");
 		if(k->base == 0)
@@ -779,20 +779,20 @@ liveinframe(VM *vm, Cont *k, u32 fno)
 		pc = k->ra;
 		cl = k->cl;
 		fp = k->base+k->sz;
-		while((void*)fp >= k->base){
+		while((void*)fp >= k->base) {
 			cp = cl->code;
 			sz = ra2size(pc, cp);
 			fp -= sz;
-			if(fcnt == fno){
+			if(fcnt == fno) {
 				lm = ra2mask(pc, cp);
 				v = mkvecinit(sz, Xnil);
 
 				/* FIXME: merge with identical code in mem */
 				lp = fp;
-				if((lm>>(mwbits-1))&1){
+				if((lm>>(mwbits-1))&1) {
 					o = lm&~(1ULL<<(mwbits-1));
 					mp = (u64*)strdata(cp->lm)+o;
-					while(sz > 0){
+					while(sz > 0) {
 						lm = *mp++;
 						for(i = 0;
 						    sz > 0 && i < mwbits;
@@ -806,7 +806,7 @@ liveinframe(VM *vm, Cont *k, u32 fno)
 							_vecset(v, i, *lp);
 				return v;
 			}
-			if((void*)fp >= k->base){
+			if((void*)fp >= k->base) {
 				pc = stkp(fp[Ora]);
 				cl = valcl(fp[Ocl]);
 			}
@@ -926,9 +926,9 @@ static Val
 getvalrand(VM *vm, Operand *r)
 {
 	Val v;
-	switch(OKIND(r->mode)){
+	switch(OKIND(r->mode)) {
 	case Oreg:
-		switch(OIDX(r->mode)){
+		switch(OIDX(r->mode)) {
 		case Rac:
 			return vm->ac;
 		case Rfp:
@@ -962,7 +962,7 @@ getvalrand(VM *vm, Operand *r)
 		return cdr(r->val);
 	case Oval:
 		/* copy mutable values */
-		switch(Vkind(r->val)){
+		switch(Vkind(r->val)) {
 		case Qstr:
 			return mkvalstr(strcopy(valstr(r->val)));
 		default:
@@ -979,7 +979,7 @@ getvalrand(VM *vm, Operand *r)
 static Imm
 getimmrand(Operand *r)
 {
-	switch(OKIND(r->mode)){
+	switch(OKIND(r->mode)) {
 	case Oimm:
 		return r->imm;
 	default:
@@ -993,9 +993,9 @@ putvalrand(VM *vm, Val v, Operand *r)
 {
 	Val *dst;
 
-	switch(OKIND(r->mode)){
+	switch(OKIND(r->mode)) {
 	case Oreg:
-		switch(OIDX(r->mode)){
+		switch(OIDX(r->mode)) {
 		case Rac:
 			vm->ac = v;
 			break;
@@ -1040,7 +1040,7 @@ getbeint(char *s, unsigned nb)
 	unsigned i;
 	Imm w;
 	w = 0;
-	for(i = 0; i < nb; i++){
+	for(i = 0; i < nb; i++) {
 		w <<= 8;
 		w |= (s[i]&0xff);
 	}
@@ -1055,7 +1055,7 @@ str2enc(VM *vm, Ctype *t, Str *str)
 	char *s;
 
 	s = strdata(str);
-	switch(typerep(chasetype(t))){
+	switch(typerep(chasetype(t))) {
 	case Rs08le:
 		v.u = *(s8*)s;
 		break;
@@ -1120,7 +1120,7 @@ static void
 putbeint(char *p, Imm w, unsigned nb)
 {
 	int i;
-	for(i = nb-1; i >= 0; i--){
+	for(i = nb-1; i >= 0; i--) {
 		p[i] = w&0xff;
 		w >>= 8;
 	}
@@ -1132,7 +1132,7 @@ enc2str(VM *vm, Ctype *t, Enc v)
 	Str *str;
 	char *s;
 
-	switch(typerep(chasetype(t))){
+	switch(typerep(chasetype(t))) {
 	case Rs08le:
 		str = mkstrn(sizeof(s8));
 		s = strdata(str);
@@ -1240,7 +1240,7 @@ _rerep(Enc v, Ctype *old, Ctype *new)
 	   integer truncation
 	   (so div and shr work)
 	*/
-	switch((typerep(new)<<5)|typerep(old)){
+	switch((typerep(new)<<5)|typerep(old)) {
 		#include "rerep.switch" /* re-cast val */
 	}
  	return v;
@@ -1260,7 +1260,7 @@ static Ctype*
 fixrep(Ctype *t, Rkind rep)
 {
 	Ctypeenum *te;
-	switch(t->tkind){
+	switch(t->tkind) {
 	case Ttypedef:
 		return mkctypedef(typetid(t), fixrep(subtype(t), rep));
 	case Tenum:
@@ -1292,7 +1292,7 @@ typecast(VM *vm, Ctype *t, Cval *cv)
 	Ctype *old, *new;
 	old = chasetype(cv->type);
 	new = chasetype(t);
-	if(typerep(new) == Rundef){
+	if(typerep(new) == Rundef) {
 		/* if new is void* (or alias), steal
 		 * pointer representation from old */
 		if(typerep(old) == Rundef)
@@ -1319,7 +1319,7 @@ domcastbase(VM *vm, Dom *dom, Cval *cv)
 
 	/* FIXME: do we really want to lookup the type in the new domain? */
 	t = dom->ns->base[typecbase(t)];
-	if(t == 0){
+	if(t == 0) {
 		es = fmtctype(cv->type);
 		vmerr(vm, "cast to domain that does not define %.*s",
 		      (int)es->len, strdata(es));
@@ -1343,7 +1343,7 @@ domcast(VM *vm, Dom *dom, Cval *cv)
 		t = dolooktype(vm, chasetype(cv->type), dom->ns);
 	else
 		t = dolooktype(vm, cv->type, dom->ns);
-	if(t == 0){
+	if(t == 0) {
 		es = fmtctype(cv->type);
 		vmerr(vm, "cast to domain that does not define %.*s",
 		      (int)es->len, strdata(es));
@@ -1373,10 +1373,10 @@ dompromote(VM *vm, ikind op, Cval *op1, Cval *op2, Cval **rv1, Cval **rv2)
 	else{
 		b1 = chasetype(op1->type);
 		b2 = chasetype(op2->type);
-		if(b1->tkind != Tptr && b2->tkind != Tptr){
+		if(b1->tkind != Tptr && b2->tkind != Tptr) {
 			op1 = domcastbase(vm, litdom, op1);
 			op2 = domcastbase(vm, litdom, op2);
-		}else if(b1->tkind == Tptr && b2->tkind == Tptr){
+		}else if(b1->tkind == Tptr && b2->tkind == Tptr) {
 			if(!isrelop[op])
 				vmerr(vm, domerr);
 			op1 = domcast(vm, litdom,
@@ -1385,7 +1385,7 @@ dompromote(VM *vm, ikind op, Cval *op1, Cval *op2, Cval **rv1, Cval **rv2)
 			op2 = domcast(vm, litdom,
 				      typecast(vm, op2->dom->ns->base[Vptr],
 					       op2));
-		}else if(b1->tkind == Tptr){
+		}else if(b1->tkind == Tptr) {
 			if(op == Iadd || op == Isub || isrelop[op])
 				op2 = domcast(vm, op1->dom, op2);
 			else
@@ -1410,7 +1410,7 @@ intpromote(VM *vm, Cval *cv)
 	base = chasetype(cv->type);
 	if(base->tkind != Tbase)
 		return cv;
-	switch(typecbase(base)){
+	switch(typecbase(base)) {
 	case Vbool: // FIXME: is this case right?
 	case Vuchar:
 	case Vushort:
@@ -1428,9 +1428,9 @@ commontype(Ctype *t1, Ctype *t2)
 {
 	Ctype *p1, *p2;
 	p1 = t1;
-	while(1){
+	while(1) {
 		p2 = t2;
-		while(1){
+		while(1) {
 			if(equalctype(p1, p2))
 				return p1;
 			if(p2->tkind != Ttypedef && p2->tkind != Tenum)
@@ -1482,7 +1482,7 @@ usualconvs(VM *vm, Cval *op1, Cval *op2, Cval **rv1, Cval **rv2)
 	t2 = op2->type;
 	b1 = chasetype(t1);
 	b2 = chasetype(t2);
-	if(b1->tkind != Tbase || b2->tkind != Tbase){
+	if(b1->tkind != Tbase || b2->tkind != Tbase) {
 		/* presumably one of them is a Tptr; nothing else is sane. */
 		*rv1 = op1;
 		*rv2 = op2;
@@ -1493,12 +1493,12 @@ usualconvs(VM *vm, Cval *op1, Cval *op2, Cval **rv1, Cval **rv2)
 	c2 = typecbase(b2);
 	r1 = typerep(b1);
 	r2 = typerep(b2);
-	if(c1 == c2 && r1 == r2){
+	if(c1 == c2 && r1 == r2) {
 		/* combinations of distinct typedefs
 		   and/or enums yield the first type
 		   they have in common (not necessarily
 		   the base type). */
-		if(t1->tkind == Ttypedef || t2->tkind == Ttypedef){
+		if(t1->tkind == Ttypedef || t2->tkind == Ttypedef) {
 			nt = commontype(t1, t2);
 			if(t1 != nt)
 				op1 = typecast(vm, nt, op1);
@@ -1510,13 +1510,13 @@ usualconvs(VM *vm, Cval *op1, Cval *op2, Cval **rv1, Cval **rv2)
 		return;
 	}
 
-	if(isfloat[c1] || isfloat[c2]){
+	if(isfloat[c1] || isfloat[c2]) {
 		if(rank[c1] < rank[c2])
 			nc = c2;
 		else
 			nc = c1;
 	}else if((isunsigned[c1] && isunsigned[c2])
-	   || (!isunsigned[c1] && !isunsigned[c2])){
+	   || (!isunsigned[c1] && !isunsigned[c2])) {
 		if(rank[c1] < rank[c2])
 			nc = c2;
 		else
@@ -1566,7 +1566,7 @@ static void
 callalien(Code *c)
 {
 	void (*x)(void);
-	switch(Vkind(c->alien)){
+	switch(Vkind(c->alien)) {
 	case Qstr:
 		x = (void*)strdata(valstr(c->alien));
 		break;
@@ -1588,7 +1588,7 @@ _ccall(VM *vm, Closure *cl, Imm argc, Val *argv)
 
 	rv = Xnil;
 	c = cl->code;
-	switch(c->kind){
+	switch(c->kind) {
 	case Cvm:
 		if((void*)(vm->fp+Onfrhd+argc) >= vm->stk+vm->stksz)
 			/* compare current stack to definition of Redline */
@@ -1614,7 +1614,7 @@ _ccall(VM *vm, Closure *cl, Imm argc, Val *argv)
 	case Cccl:
 		vm->cl = cl;
 		vm->pc = 0;
-		switch(c->kind){
+		switch(c->kind) {
 		case Ccfn:
 			c->cfn(vm, argc, argv, &rv);
 			break;
@@ -1672,7 +1672,7 @@ ccall(VM *vm, Closure *cl, Imm argc, Val *argv)
 		/* first frame on the stack */
 		return _ccall(vm, cl, argc, argv);
 
-	switch(vm->cl->code->kind){
+	switch(vm->cl->code->kind) {
 	case Cvm:
 		/* we are in the middle of a VM operation. */
 		fsz = ra2size(vm->pc, vm->cl->code);
@@ -1732,14 +1732,14 @@ vcall(VM *vm)
 	if(showvcall)
 		printf("vcall %s\n", ciddata(vm->cl->code->id));
 	c = vm->cl->code;
-	switch(c->kind){
+	switch(c->kind) {
 	case Cvm:
 		vm->pc = codeentry(c);
 		break;
 	case Ccfn:
 	case Cccl:
 		rv = Xnil;
-		switch(c->kind){
+		switch(c->kind) {
 		case Ccfn:
 			c->cfn(vm, vm->vc, vm->fp+Oarg0, &rv);
 			break;
@@ -1842,7 +1842,7 @@ vapply(VM *vm)
 
 	/* make the call */
 	c = vm->cl->code;
-	switch(c->kind){
+	switch(c->kind) {
 	case Cvm:
 		vm->pc = codeentry(c);
 		/* vm will continue into call, then return to apply's caller */
@@ -1882,14 +1882,14 @@ ncallstat(VM *vm)
 	Env env;
 	env = vm->top;
 	v = envlookup(env, "ncallstat");
-	if(v == 0){
+	if(v == 0) {
 		t = mktab();
 		envbind(env, "ncallstat", mkvaltab(t));
 	}else
 		t = valtab(v);
 	k = mkvalcid(vm->cl->code->id);
 	v = tabget(t, k);
-	if(v == 0){
+	if(v == 0) {
 		tabput(t, k, mkvalcval2(cval1));
 		return;
 	}else
@@ -1906,7 +1906,7 @@ ncall(VM *vm)
 //	ncallstat(vm);
 
 	c = vm->cl->code;
-	switch(c->kind){
+	switch(c->kind) {
 	case Cvm:
 		/* push a halt frame */
 		memmove(vm->fp+Oarg0+Oarg0,
@@ -1923,7 +1923,7 @@ ncall(VM *vm)
 	case Ccfn:
 	case Cccl:
 		rv = Xnil;
-		switch(c->kind){
+		switch(c->kind) {
 		case Ccfn:
 			c->cfn(vm, vm->vc, vm->fp+Oarg0, &rv);
 			break;
@@ -1947,7 +1947,7 @@ xstrcmp(VM *vm, ikind op, Str *s1, Str *s2)
 {
 	int x;
 
-	switch(op){
+	switch(op) {
 	case Icmpeq:
 		return equalstr(s1, s2);
 	case Icmpneq:
@@ -1976,10 +1976,10 @@ xunopfp(VM *vm, ikind op, Cbase cb, Cval *cv)
 	float f;
 	double d;
 	Enc v;
-	switch(cb){
+	switch(cb) {
 	case Vfloat:
 		f = cvalf(cv);
-		switch(op){
+		switch(op) {
 		case Ineg:
 			f = -f;
 			break;
@@ -1991,7 +1991,7 @@ xunopfp(VM *vm, ikind op, Cbase cb, Cval *cv)
 		break;
 	case Vdouble:
 		d = cvald(cv);
-		switch(op){
+		switch(op) {
 		case Ineg:
 			d = -d;
 			break;
@@ -2015,7 +2015,7 @@ xunop(VM *vm, ikind op, Val v)
 	Ctype *t;
 	Cbase cb;
 
-	if(op == Inot){
+	if(op == Inot) {
 		if(Vkind(v) == Qcval)
 			goto cval;
 		else if(Vkind(v) == Qnil)
@@ -2030,14 +2030,14 @@ cval:
 	cv = intpromote(vm, valcval(v));
 	t = chasetype(cv->type);
 	cb = typecbase(t);
-	if(isfloat[cb]){
+	if(isfloat[cb]) {
 		cvr = xunopfp(vm, op, cb, cv);
 		goto out;
 	}
 
 	imm = cvalu(cv);
 
-	switch(op){
+	switch(op) {
 	case Ineg:
 		nv = -imm;
 		cvr = mkcval(cv->dom, cv->type, nv);
@@ -2062,7 +2062,7 @@ out:
 static Imm
 truncimm(Imm v, Rkind rep)
 {
-	switch(rep){
+	switch(rep) {
 	case Rs08be:
 	case Rs08le:
 		return (s8)v;
@@ -2103,7 +2103,7 @@ xcvalptralu(VM *vm, ikind op, Cval *op1, Cval *op2, Ctype *t1, Ctype *t2)
 	if(op != Iadd && op != Isub)
 		vmerr(vm, "attempt to apply %s to pointer operand", opstr[op]);
 
-	if(t1->tkind == Tptr && t2->tkind == Tptr){
+	if(t1->tkind == Tptr && t2->tkind == Tptr) {
 		if(op != Isub)
 			vmerr(vm, "attempt to apply %s to pointer operands",
 			      opstr[op]);
@@ -2132,11 +2132,11 @@ xcvalptralu(VM *vm, ikind op, Cval *op1, Cval *op2, Ctype *t1, Ctype *t2)
 
 	/* exactly one operand is a pointer */
 
-	if(t1->tkind == Tptr){
+	if(t1->tkind == Tptr) {
 		sub = chasetype(subtype(t1));
 		ptr = op1;
 		n = cvalu(op2);
-	}else if(op == Isub){
+	}else if(op == Isub) {
 		vmerr(vm, "invalid right-hand pointer operand to -");
 		return 0; /* not reached */
 	}else{
@@ -2171,11 +2171,11 @@ xcvalfpalu(VM *vm, ikind op, Cval *op1, Cval *op2, Ctype *t1, Ctype *t2)
 	cb = typecbase(t1);
 	if(cb != typecbase(t2))
 		bug();
-	switch(cb){
+	switch(cb) {
 	case Vfloat:
 		f1 = cvalf(op1);
 		f2 = cvalf(op2);
-		switch(op){
+		switch(op) {
 		case Iadd:
 			fr = ((float)f1+(float)f2);
 			break;
@@ -2198,7 +2198,7 @@ xcvalfpalu(VM *vm, ikind op, Cval *op1, Cval *op2, Ctype *t1, Ctype *t2)
 	case Vdouble:
 		d1 = cvald(op1);
 		d2 = cvald(op2);
-		switch(op){
+		switch(op) {
 		case Iadd:
 			dr = ((double)d1+(double)d2);
 			break;
@@ -2246,7 +2246,7 @@ xcvalalu1dom(VM *vm, ikind op, Cval *op1, Cval *op2)
 	i1 = cvalu(op1);
 	i2 = cvalu(op2);
 
-	switch(op){
+	switch(op) {
 	case Iadd:
 		rv = i1+i2;
 		break;
@@ -2335,7 +2335,7 @@ xcvalshift(VM *vm, ikind op, Cval *op1, Cval *op2)
 		    performs sign extension.
 	*/
 	if(isunsigned[b1])
-		switch(op){
+		switch(op) {
 		case Ishl:
 			rv = i1<<i2;
 			rv = truncimm(rv, typerep(t1));
@@ -2347,7 +2347,7 @@ xcvalshift(VM *vm, ikind op, Cval *op1, Cval *op2)
 			fatal("bug");
 		}
 	else
-		switch(op){
+		switch(op) {
 		case Ishl:
 			rv = (s64)i1<<i2;
 			rv = truncimm(rv, typerep(t1));
@@ -2371,7 +2371,7 @@ cvalfpcmp(VM *vm, Cval *op1, Cval *op2, Ctype *t1, Ctype *t2)
 	cb = typecbase(t1);
 	if(cb != typecbase(t2))
 		bug();
-	switch(cb){
+	switch(cb) {
 	case Vfloat:
 		f1 = cvalf(op1);
 		f2 = cvalf(op2);
@@ -2418,7 +2418,7 @@ cvalcmp(VM *vm, Cval *op1, Cval *op2)
 	b1 = typecbase(t1);
 	if(isfloat[b1])
 		return cvalfpcmp(vm, op1, op2, t1, t2);
-	if(t1->tkind == Tptr || t2->tkind == Tptr || isunsigned[b1]){
+	if(t1->tkind == Tptr || t2->tkind == Tptr || isunsigned[b1]) {
 		if(i1<i2)
 			return -1;
 		else if(i1>i2)
@@ -2438,9 +2438,9 @@ cvalcmp(VM *vm, Cval *op1, Cval *op2)
 static Cval*
 xcvalcmp(VM *vm, ikind op, Cval *op1, Cval *op2)
 {
-	switch(cvalcmp(vm, op1, op2)){
+	switch(cvalcmp(vm, op1, op2)) {
 	case -1:
-		switch(op){
+		switch(op) {
 		case Icmpeq:
 		case Icmpge:
 		case Icmpgt:
@@ -2453,7 +2453,7 @@ xcvalcmp(VM *vm, ikind op, Cval *op1, Cval *op2)
 			fatal("bug");
 		}
 	case 0:
-		switch(op){
+		switch(op) {
 		case Icmpeq:
 		case Icmpge:
 		case Icmple:
@@ -2466,7 +2466,7 @@ xcvalcmp(VM *vm, ikind op, Cval *op1, Cval *op2)
 			fatal("bug");
 		}
 	case 1:
-		switch(op){
+		switch(op) {
 		case Icmpeq:
 		case Icmple:
 		case Icmplt:
@@ -2490,10 +2490,10 @@ xbinop(VM *vm, ikind op, Val v1, Val v2)
 	Str *s1, *s2;
 	Imm nv;
 
-	if(Vkind(v1) == Qcval && Vkind(v2) == Qcval){
+	if(Vkind(v1) == Qcval && Vkind(v2) == Qcval) {
 		cv1 = valcval(v1);
 		cv2 = valcval(v2);
-		switch(op){
+		switch(op) {
 		case Iadd:
 		case Iand:
 		case Idiv:
@@ -2522,7 +2522,7 @@ xbinop(VM *vm, ikind op, Val v1, Val v2)
 		return mkvalcval2(cvr);
 	}
 
-	if(Vkind(v1) == Qstr && Vkind(v2) == Qstr){
+	if(Vkind(v1) == Qstr && Vkind(v2) == Qstr) {
 		s1 = valstr(v1);
 		s2 = valstr(v2);
 dostr:
@@ -2537,9 +2537,9 @@ dostr:
 		}
 	}
 
-	if(Vkind(v1) == Qstr && Vkind(v2) == Qcval){
+	if(Vkind(v1) == Qstr && Vkind(v2) == Qcval) {
 		cv2 = valcval(v2);
-		if(isstrcval(cv2)){
+		if(isstrcval(cv2)) {
 			s2 = stringof(vm, cv2);
 			s1 = valstr(v1);
 			goto dostr;
@@ -2547,9 +2547,9 @@ dostr:
 		/* fall through */
 	}
 
-	if(Vkind(v2) == Qstr && Vkind(v1) == Qcval){
+	if(Vkind(v2) == Qstr && Vkind(v1) == Qcval) {
 		cv1 = valcval(v1);
-		if(isstrcval(cv1)){
+		if(isstrcval(cv1)) {
 			s1 = stringof(vm, cv1);
 			s2 = valstr(v2);
 			goto dostr;
@@ -2576,7 +2576,7 @@ kcapture(VM *vm)
 	Cont *k;
 	u32 sz;
 
-	if(vm->fp != vm->stk){
+	if(vm->fp != vm->stk) {
 		sz = (void*)vm->fp-vm->stk;
 		k = mkcont(vm->stk, sz, vm->fp[Ora], valcl(vm->fp[Ocl]),
 			   vm->klink, vm->level, vm->levgen[vm->level]);
@@ -2658,7 +2658,7 @@ kunderflow(VM *vm)
 	   first frame in the continuation is a halt frame (top == fp).
 	   we don't split in that case.
 	*/
-	if(k->sz > lim){
+	if(k->sz > lim) {
 		top = k->base+k->sz;
 		fp = (Val*)top;
 		ra = k->ra;
@@ -2668,7 +2668,7 @@ kunderflow(VM *vm)
 			/* FIXME: we assume frame size never exceeds limit, but
 			   this should be enforced by the compiler */
 			bug();
-		while(top - (void*)(fp-fsz) < lim){
+		while(top - (void*)(fp-fsz) < lim) {
 			if(ishalt(cl))
 				/* don't split across non-vm frames -- we don't
 				   have a strategy for updating vm level in the
@@ -2679,7 +2679,7 @@ kunderflow(VM *vm)
 			cl = valcl(fp[Ocl]);
 			fsz = ra2size(ra, cl->code);
 		}
-		if((void*)fp < top){
+		if((void*)fp < top) {
 			/* fp points to base of last frame that will fit in
 			   a lim-sized segment */
 			nk = mkcont(k->base, (void*)fp-k->base, ra, cl, k->link,
@@ -2696,7 +2696,7 @@ kunderflow(VM *vm)
 	}
 
 	/* allocate a new stack if current one is too small */
-	if(vm->stksz < k->sz){
+	if(vm->stksz < k->sz) {
 		vm->stk = malstack(Maxstk);
 		vm->stksz = Maxstk;
 	}
@@ -2730,7 +2730,7 @@ isfalse(Val v)
 {
 	Cval *cv;
 
-	switch(Vkind(v)){
+	switch(Vkind(v)) {
 	case Qcval:
 		cv = valcval(v);
 		return cvalu(cv) == 0;
@@ -2750,7 +2750,7 @@ checkoverflow(VM *vm, unsigned m)
 	if((void*)vm->fp >= vm->stk+vm->stksz)
 		/* stack is insane */
 		bug();
-	if((void*)(vm->fp+m) > vm->stk+vm->stksz-Redline){
+	if((void*)(vm->fp+m) > vm->stk+vm->stksz-Redline) {
 		koverflow(vm);
 		/* eventually unnecessary sanity checks */
 		if((void*)vm->fp < vm->stk)
@@ -2781,7 +2781,7 @@ l1_cref(VM *vm, Imm argc, Val *argv, Val *rv)
 	t = valctype(argv[1]);
 	cv = valcval(argv[2]);
 	b = chasetype(t);
-	switch(b->tkind){
+	switch(b->tkind) {
 	case Tvoid:
 	case Tbase:
 	case Tundef:
@@ -2871,8 +2871,8 @@ l1_cval(VM *vm, Imm argc, Val *argv, Val *rv)
 	cv = valcval(argv[2]);
 
 	/* special case: enum constants can be referenced through namespace */
-	if(b->tkind == Tconst){
-		switch(Vkind(argv[0])){
+	if(b->tkind == Tconst) {
+		switch(Vkind(argv[0])) {
 		case Qdom:
 			d = valdom(argv[0]);
 			*rv = mkvalcval(d, subtype(b), cvalu(cv));
@@ -2890,10 +2890,10 @@ l1_cval(VM *vm, Imm argc, Val *argv, Val *rv)
 	if(Vkind(argv[0]) != Qdom)
 		vmerr(vm, "attempt to access address space through non-domain");
 	d = valdom(argv[0]);
-	switch(b->tkind){
+	switch(b->tkind) {
 	case Tbitfield:
 		sub = subtype(b);
-		if(sub->tkind == Tundef){
+		if(sub->tkind == Tundef) {
 			sub = subtype(sub);
 			es = fmtctype(sub);
 			vmerr(vm, "attempt to read object of undefined type: "
@@ -3007,18 +3007,18 @@ xxcast(VM *vm, Val tv, Val ov)
 		cv = valcval(ov);
 	if(Vkind(tv) != Qctype && Vkind(ov) == Qstr)
 		vmerr(vm, "illegal conversion");
-	if(Vkind(tv) == Qctype){
+	if(Vkind(tv) == Qctype) {
 		t = valctype(tv);
 		if(!iscvaltype(t))
 			vmerr(vm, "bad type conversion");
 		rv = mkvalcval2(typecast(vm, t, cv));
-	}else if(Vkind(tv) == Qdom){
+	}else if(Vkind(tv) == Qdom) {
 		d = valdom(tv);
 		rv = mkvalcval2(domcast(vm, d, cv));
-	}else if(Vkind(tv) == Qns){
+	}else if(Vkind(tv) == Qns) {
 		d = mkdom(valns(tv), cv->dom->as, 0);
 		rv = mkvalcval2(domcast(vm, d, cv));
-	}else if(Vkind(tv) == Qas){
+	}else if(Vkind(tv) == Qas) {
 		d = mkdom(cv->dom->ns, valas(tv), 0);
 		rv = mkvalcval2(domcast(vm, d, cv));
 	}else
@@ -3035,7 +3035,7 @@ l1_sizeof(VM *vm, Imm argc, Val *argv, Val *rv)
 
 	if(argc != 1)
 		vmerr(vm, "wrong number of arguments to sizeof");
-	switch(Vkind(argv[0])){
+	switch(Vkind(argv[0])) {
 	case Qcval:
 		cv = valcval(argv[0]);
 		t = cv->type;
@@ -3374,7 +3374,7 @@ _dolooktype(VM *vm, Ctype *t, Ns *ns)
 	Ctypefunc *tf;
 	Ctypebitfield *tw;
 
-	switch(t->tkind){
+	switch(t->tkind) {
 	case Tvoid:
 		return mkctypevoid();
 	case Tbase:
@@ -3409,7 +3409,7 @@ _dolooktype(VM *vm, Ctype *t, Ns *ns)
 			return 0;
 		tf = (Ctypefunc*)t;
 		v1 = mkvec(tf->param->len);
-		for(i = 0; i < tf->param->len; i++){
+		for(i = 0; i < tf->param->len; i++) {
 			v2 = veccopy(valvec(vecref(tf->param, i)));
 			vecset(v1, i, mkvalvec(v2));
 			tmp = _dolooktype(vm,
@@ -3438,7 +3438,7 @@ _dolooktype(VM *vm, Ctype *t, Ns *ns)
 static Ctype*
 dolooktype(VM *vm, Ctype *t, Ns *ns)
 {
-	switch(t->tkind){
+	switch(t->tkind) {
 	case Tvoid:
 		return mkctypevoid();
 	case Tbase:
@@ -3473,7 +3473,7 @@ nscachebase(VM *vm, Ns *ns)
 	argv[0] = mkvalns(ns);
 	argv[1] = mkvalctype(mkctypeptr(mkctypevoid(), Rundef));
 	rv = ccall(vm, ns->looktype, 2, argv);
-	if(Vkind(rv) == Qnil){
+	if(Vkind(rv) == Qnil) {
 		argv[1] = mkvalctype(mkctypebase(Vptr, Rundef));
 		rv = ccall(vm, ns->looktype, 2, argv);
 	}
@@ -3550,20 +3550,20 @@ stdlookaddr(VM *vm, Imm argc, Val *argv, Val *disp, Val *rv)
 	cv = valcval(argv[1]);
 	addr = cvalu(cv);
 	n = listlen(l);
-	if(n == 0){
+	if(n == 0) {
 		*rv = Xnil;
 		return;
 	}
 	sym = valvec(listref(l, 0));
 	a = valcval(attroff(vecref(sym, Attrpos)));
-	if(cvalu(a) > addr){
+	if(cvalu(a) > addr) {
 		*rv = Xnil;
 		return;
 	}
 
 	/* binary search */
 	b = 0;
-	while(1){
+	while(1) {
 		i = n/2;
 		m = b+i;
 		if(i == 0)
@@ -3607,7 +3607,7 @@ resolvetid(VM *vm, Val tv, NSctx *ctx)
 
 	/* do we have an unprocessed definition for the type? */
 	rv = tabget(ctx->rawtype, tv);
-	if(rv){
+	if(rv) {
 		if(Vkind(rv) != Qctype)
 			vmerr(vm, "invalid raw type table");
 		t = valctype(tv);
@@ -3620,7 +3620,7 @@ resolvetid(VM *vm, Val tv, NSctx *ctx)
 		if(def->tkind != Ttypedef)
 			vmerr(vm, "invalid typedef in raw type table");
 		setsubtype(new, resolvetypename(vm, subtype(def), ctx));
-		if(subtype(new) == new){
+		if(subtype(new) == new) {
 			id = typetid(def);
 			vmerr(vm, "circular definition in name space: "
 			      "typedef %.*s",
@@ -3631,7 +3631,7 @@ resolvetid(VM *vm, Val tv, NSctx *ctx)
 
 	/* does the ns from which we inherit have a definition? */
 	rv = tabget(ctx->otype, tv);
-	if(rv){
+	if(rv) {
 		tabput(ctx->type, tv, rv);
 		return valctype(rv);
 	}
@@ -3657,7 +3657,7 @@ doenconsts(VM *vm, Vec *v, Ns *ns)
 
 	/* determine type that contains all constant values */
 	a = mkcval(d, d->ns->base[Vint], 0);
-	for(m = 0; m < v->len; m++){
+	for(m = 0; m < v->len; m++) {
 		e = valvec(vecref(v, m)); /* FIXME check sanity */
 		a = xcvalalu1dom(vm, Iadd, a,
 				 domcastbase(vm, d, valcval(vecref(e, 1))));
@@ -3665,7 +3665,7 @@ doenconsts(VM *vm, Vec *v, Ns *ns)
 	t = a->type;
 
 	/* cast all values to new type */
-	for(m = 0; m < v->len; m++){
+	for(m = 0; m < v->len; m++) {
 		e = valvec(vecref(v, m)); /* FIXME check sanity */
 		cv = typecast(vm, t, domcastbase(vm, d, valcval(vecref(e, 1))));
 		val = mkvalcval2(cv);
@@ -3693,11 +3693,11 @@ resolvetag(VM *vm, Val tv, NSctx *ctx)
 
 	/* do we have an unprocessed definition for the type? */
 	rv = tabget(ctx->rawtype, tv);
-	if(rv){
+	if(rv) {
 		if(Vkind(rv) != Qctype)
 			vmerr(vm, "invalid raw type table");
 		t = valctype(rv);
-		switch(t->tkind){
+		switch(t->tkind) {
 		case Tstruct:
 		case Tunion:
 			ts = (Ctypesu*)t;
@@ -3711,7 +3711,7 @@ resolvetag(VM *vm, Val tv, NSctx *ctx)
 			/* bind before recursive resolve call to stop cycles */
 			tabput(ctx->type, tv, mkvalctype(new));
 
-			for(i = 0; i < fld->len; i++){
+			for(i = 0; i < fld->len; i++) {
 				vec = valvec(vecref(fld, i));
 				tmp = fieldtype(vec);
 				tmp = resolvetypename(vm, tmp, ctx);
@@ -3741,7 +3741,7 @@ resolvetag(VM *vm, Val tv, NSctx *ctx)
 
 	/* does the ns from which we inherit have a definition? */
 	rv = tabget(ctx->otype, tv);
-	if(rv){
+	if(rv) {
 		tabput(ctx->type, tv, rv);
 		return valctype(rv);
 	}
@@ -3762,7 +3762,7 @@ resolvebase(VM *vm, Val tv, NSctx *ctx)
 
 	/* does the ns from which we inherit have a definition? */
 	rv = tabget(ctx->otype, tv);
-	if(rv){
+	if(rv) {
 		tabput(ctx->type, tv, rv);
 		return valctype(rv);
 	}
@@ -3780,7 +3780,7 @@ resolvetypename(VM *vm, Ctype *t, NSctx *ctx)
 	Ctypefunc *tf;
 	Ctypebitfield *tw;
 
-	switch(t->tkind){
+	switch(t->tkind) {
 	case Tvoid:
 		return mkctypevoid();
 	case Tbase:
@@ -3811,7 +3811,7 @@ resolvetypename(VM *vm, Ctype *t, NSctx *ctx)
 	case Tfun:
 		tf = (Ctypefunc*)t;
 		np = mkvec(tf->param->len);
-		for(i = 0; i < tf->param->len; i++){
+		for(i = 0; i < tf->param->len; i++) {
 			vec = valvec(vecref(tf->param, i));
 			tmp = paramtype(vec);
 			tmp = resolvetypename(vm, tmp, ctx);
@@ -3853,13 +3853,13 @@ ascache1method(As *as, char *id, Closure **p)
 
 	/* is method in method table? */
 	v = tabget(as->mtab, mkvalstr(ids));
-	if(v){
+	if(v) {
 		*p = valcl(v);
 		return;
 	}
 
 	/* no dispatch, no dice */
-	if(as->dispatch == 0){
+	if(as->dispatch == 0) {
 		*p = 0;
 		return;
 	}
@@ -3913,13 +3913,13 @@ nscache1method(Ns *ns, char *id, Closure **p)
 
 	/* is method in method table? */
 	v = tabget(ns->mtab, mkvalstr(ids));
-	if(v){
+	if(v) {
 		*p = valcl(v);
 		return;
 	}
 
 	/* no dispatch, no dice */
-	if(ns->dispatch == 0){
+	if(ns->dispatch == 0) {
 		*p = 0;
 		return;
 	}
@@ -4023,7 +4023,7 @@ mknstypesym(VM *vm, Tab *type, Tab *sym, Str *name)
 	vec = tabenum(sym);
 	len = vec->len/2;
 	ls = mklist();
-	for(m = 0; m < len; m++){
+	for(m = 0; m < len; m++) {
 		vp = vecref(vec, len+m);	/* symbol #m */
 		s = valvec(vp);
 		op = vecref(s, Attrpos);
@@ -4081,9 +4081,9 @@ mknsraw(VM *vm, Ns *ons, Tab *rawtype, Tab *rawsym, Str *name)
 	ctx.ptrrep = typerep(valctype(vp));
 
 	t = ctx.rawtype;
-	for(i = 0; i < t->sz; i++){
+	for(i = 0; i < t->sz; i++) {
 		x = vecref(t->ht, i);
-		while(islink(x)){
+		while(islink(x)) {
 			lnk = (Pair*)x;
 			v = linkkey(lnk);
 			x = linknext(lnk);
@@ -4094,9 +4094,9 @@ mknsraw(VM *vm, Ns *ons, Tab *rawtype, Tab *rawsym, Str *name)
 	}
 
 	t = ctx.rawsym;
-	for(i = 0; i < t->sz; i++){
+	for(i = 0; i < t->sz; i++) {
 		x = vecref(t->ht, i);
-		while(islink(x)){
+		while(islink(x)) {
 			/* id -> [ ctype, id, attr ] */
 			lnk = (Pair*)x;
 			idv = linkkey(lnk);
@@ -4111,7 +4111,7 @@ mknsraw(VM *vm, Ns *ons, Tab *rawtype, Tab *rawsym, Str *name)
 				vmerr(vm, "invalid raw symbol table");
 			tt = symtype(vec);
 			tt = resolvetypename(vm, tt, &ctx);
-			if(tt != 0){
+			if(tt != 0) {
 				/* reuse vec */
 				vecset(vec, Typepos, mkvalctype(tt));
 				tabput(ctx.sym, idv, vecv);
@@ -4121,9 +4121,9 @@ mknsraw(VM *vm, Ns *ons, Tab *rawtype, Tab *rawsym, Str *name)
 
 	/* inherit sym and type definitions not shadowed by @names */
 	t = ctx.otype;
-	for(i = 0; i < t->sz; i++){
+	for(i = 0; i < t->sz; i++) {
 		x = vecref(t->ht, i);
-		while(islink(x)){
+		while(islink(x)) {
 			lnk = (Pair*)x;
 			vp = linkkey(lnk);
 			if(!tabget(ctx.type, vp))
@@ -4132,9 +4132,9 @@ mknsraw(VM *vm, Ns *ons, Tab *rawtype, Tab *rawsym, Str *name)
 		}
 	}
 	t = ctx.osym;
-	for(i = 0; i < t->sz; i++){
+	for(i = 0; i < t->sz; i++) {
 		x = vecref(t->ht, i);
-		while(islink(x)){
+		while(islink(x)) {
 			lnk = (Pair*)x;
 			vp = linkkey(lnk);
 			if(!tabget(ctx.sym, vp))
@@ -4145,9 +4145,9 @@ mknsraw(VM *vm, Ns *ons, Tab *rawtype, Tab *rawsym, Str *name)
 
 	/* add enumeration constants to symtab */
 	t = ctx.type;
-	for(i = 0; i < t->sz; i++){
+	for(i = 0; i < t->sz; i++) {
 		x = vecref(t->ht, i);
-		while(islink(x)){
+		while(islink(x)) {
 			lnk = (Pair*)x;
 			tt = valctype(linkval(lnk));
 			if(tt->tkind != Tenum)
@@ -4155,7 +4155,7 @@ mknsraw(VM *vm, Ns *ons, Tab *rawtype, Tab *rawsym, Str *name)
 			te = (Ctypeenum*)tt;
 			tmp = mkctypeconst(tt);
 			vec = valvec(te->konst);
-			for(j = 0; j < vec->len; j++){
+			for(j = 0; j < vec->len; j++) {
 				kvec = valvec(vecref(vec, j));
 				nvec = mkvec(3);
 				_vecset(nvec, Typepos, mkvalctype(tmp));
@@ -4171,7 +4171,7 @@ mknsraw(VM *vm, Ns *ons, Tab *rawtype, Tab *rawsym, Str *name)
 
 	vec = tabenum(ctx.undef);
 	m = vec->len/2;
-	if(m > 0 && cqctflags['w']){
+	if(m > 0 && cqctflags['w']) {
 		nvec = mkvec(m);
 		for(i = 0; i < m; i++)
 			vecset(nvec, i, vecref(vec, i));
@@ -4180,7 +4180,7 @@ mknsraw(VM *vm, Ns *ons, Tab *rawtype, Tab *rawsym, Str *name)
 		l1_sort(vm, 2, argv, &rv);
 		xprintf("warning: name space references undefined "
 			"type%s:\n", m > 1 ? "s" : "");
-		for(i = 0; i < m; i++){
+		for(i = 0; i < m; i++) {
 			vp = vecref(nvec, i);
 			as = fmtctype(valctype(vp));
 			xprintf("\t%.*s\n", (int)as->len, strdata(as));
@@ -4372,7 +4372,7 @@ dovm(VM *vm)
 	Val v1, v2, rv;
 
 #ifdef THREADED
-	if(!gotab[0]){
+	if(!gotab[0]) {
 		/* we've been called by initvm.
 		   we're only here to initialize gotab. */
 		gotab[Iabort] 	= &&Iabort;
@@ -4428,8 +4428,8 @@ dovm(VM *vm)
 	vm->level++;
 	vm->levgen[vm->level] = vm->gen++;
 	setjmp(vm->dovm[vm->level]);
-	while(1){
-		NEXTLABEL(i = vm->pc++){
+	while(1) {
+		NEXTLABEL(i = vm->pc++) {
 		LABEL Iabort:
 			fatal("vm reached abort instruction");
 		LABEL Inop:
@@ -4678,7 +4678,7 @@ dosort(VM *vm, Val *vs, Imm n, Closure *cmp)
 	p = n>>1;		/* weak pivot */
 	doswap(vs, p, lo);
 	pv = vs[0];
-	while(1){
+	while(1) {
 		do
 			lo++;
 		while(lo < n && docmp(vm, vs[lo], pv, cmp) < 0);
@@ -4710,7 +4710,7 @@ l1_sort(VM *vm, Imm argc, Val *argv, Val *rv)
 	checkarg(vm, argv, 1, Qcl);
 	cmp = valcl(argv[1]);
 	o = argv[0];
-	switch(Vkind(o)){
+	switch(Vkind(o)) {
 	case Qlist:
 		l = vallist(o);
 		n = l->t-l->h;
@@ -4724,7 +4724,7 @@ l1_sort(VM *vm, Imm argc, Val *argv, Val *rv)
 	default:
 		return;
 	}
-	if(n < 2){
+	if(n < 2) {
 		*rv = o;
 		return;
 	}
@@ -4739,7 +4739,7 @@ dobsearch(VM *vm, Val key, Val *vs, Imm n, Closure *cmp)
 	int rv;
 
 	b = 0;
-	while(n > 1){
+	while(n > 1) {
 		i = n/2;
 		m = b+i;
 		rv = docmp(vm, key, vs[m], cmp);
@@ -4772,7 +4772,7 @@ l1_bsearch(VM *vm, Imm argc, Val *argv, Val *rv)
 		vmerr(vm, "operand 2 to bsearch must a list or vector");
 	checkarg(vm, argv, 2, Qcl);
 	cmp = valcl(argv[2]);
-	switch(Vkind(argv[1])){
+	switch(Vkind(argv[1])) {
 	case Qlist:
 		l = vallist(argv[1]);
 		n = l->t-l->h;
@@ -4802,7 +4802,7 @@ l1_looktype(VM *vm, Imm argc, Val *argv, Val *rv)
 	ns = 0;
 	if(Vkind(argv[0]) == Qns)
 		ns = valns(argv[0]);
-	else if(Vkind(argv[0]) == Qdom){
+	else if(Vkind(argv[0]) == Qdom) {
 		dom = valdom(argv[0]);
 		ns = dom->ns;
 	}else
@@ -4829,7 +4829,7 @@ l1_looksym(VM *vm, Imm argc, Val *argv, Val *rv)
 	ns = 0;
 	if(Vkind(argv[0]) == Qns)
 		ns = valns(argv[0]);
-	else if(Vkind(argv[0]) == Qdom){
+	else if(Vkind(argv[0]) == Qdom) {
 		dom = valdom(argv[0]);
 		ns = dom->ns;
 	}else
@@ -4850,7 +4850,7 @@ l1_domof(VM *vm, Imm argc, Val *argv, Val *rv)
 	if(argc != 1)
 		vmerr(vm, "wrong number of arguments to domof");
 	arg0 = argv[0];
-	if(Vkind(arg0) == Qcval){
+	if(Vkind(arg0) == Qcval) {
 		cv = valcval(arg0);
 		*rv = mkvaldom(cv->dom);
 	}else if(Vkind(arg0) == Qstr)
@@ -4881,7 +4881,7 @@ valstrorcval(VM *vm, char *fn, Val *argv, unsigned arg)
 	Cval *cv;
 	if(Vkind(argv[arg]) == Qstr)
 		return valstr(argv[arg]);
-	else if(Vkind(argv[arg]) == Qcval){
+	else if(Vkind(argv[arg]) == Qcval) {
 		cv = valcval(argv[arg]);
 		if(isstrcval(cv))
 			return stringof(vm, cv);
@@ -4898,7 +4898,7 @@ valstrorcvalornil(VM *vm, char *fn, Val *argv, unsigned arg)
 	Cval *cv;
 	if(Vkind(argv[arg]) == Qstr)
 		return valstr(argv[arg]);
-	else if(Vkind(argv[arg]) == Qcval){
+	else if(Vkind(argv[arg]) == Qcval) {
 		cv = valcval(argv[arg]);
 		if(isstrcval(cv))
 			return stringof(vm, cv);
@@ -4979,7 +4979,7 @@ mapstab(VM *vm, Vec *map, Imm addr, Imm len)
 	Val rp;
 	Range *r;
 
-	for(m = 0; m < map->len; m++){
+	for(m = 0; m < map->len; m++) {
 		rp = vecref(map, m);
 		if(Vkind(rp) != Qrange)
 			vmerr(vm, "address space map returned invalid value");
@@ -5021,11 +5021,11 @@ stringof(VM *vm, Cval *cv)
 	n = MIN(m, PAGESZ-o%PAGESZ);
 	if(!ismapped(vm, cv->dom->as, o, 1))
 		vmerr(vm, "address space access out of bounds");
-	while(m > 0){
+	while(m > 0) {
 		s = callget(vm, cv->dom->as, o, n);
 		buf = strdata(s);
 		q = strnchr(buf, '\0', s->len);
-		if(q){
+		if(q) {
 			l += q-buf;
 			break;
 		}
@@ -5125,7 +5125,7 @@ l1_typeof(VM *vm, Imm argc, Val *argv, Val *rv)
 	if(argc != 1)
 		vmerr(vm, "wrong number of arguments to $typeof");
 	t = 0;
-	if(Vkind(argv[0]) == Qcval){
+	if(Vkind(argv[0]) == Qcval) {
 		cv = valcval(argv[0]);
 		t = cv->type;
 	}else if(Vkind(argv[0]) == Qctype)
@@ -5185,7 +5185,7 @@ l1_put(VM *vm, Imm argc, Val *iargv, Val *rv)
 	t = valctype(iargv[2]);
 	cv = valcval(iargv[3]);
 	b = chasetype(t);
-	switch(b->tkind){
+	switch(b->tkind) {
 	case Tbase:
 	case Tptr:
 		cv = typecast(vm, t, cv);
@@ -5195,7 +5195,7 @@ l1_put(VM *vm, Imm argc, Val *iargv, Val *rv)
 		break;
 	case Tbitfield:
 		s = subtype(b);
-		if(s->tkind == Tundef){
+		if(s->tkind == Tundef) {
 			es = fmtctype(subtype(s));
 			vmerr(vm, "attempt to write object of undefined type: "
 			      "%.*s", (int)es->len, strdata(es));
@@ -5248,7 +5248,7 @@ l1__close(VM *vm, Imm argc, Val *argv, Val *rv)
 	if(fd->flags&Fclosed)
 		return;
 	fd->flags |= Fclosed;
-	if(fd->flags&Ffn){
+	if(fd->flags&Ffn) {
 		if(fd->u.fn.close)
 			fd->u.fn.close(&fd->u.fn);
 	}else
@@ -5324,7 +5324,7 @@ l1_mkfd(VM *vm, Imm argc, Val *argv, Val *rv)
 		w = valcl(argv[1]);
 	if(Vkind(argv[2]) == Qcl)
 		c = valcl(argv[2]);
-	if(argc == 4){
+	if(argc == 4) {
 		checkarg(vm, argv, 3, Qstr);
 		n = valstr(argv[3]);
 	}
@@ -5363,7 +5363,7 @@ domkmas(VM *vm, char *fn, Imm argc, Val *argv, Val *rv, unsigned x)
 	As *as;
 	Cval *p, *l;
 	Range *r;
-	switch(argc){
+	switch(argc) {
 	case 0:
 		r = mkrange(mklitcval(Vptr, 0), mklitcval(Vptr, (uptr)-1));
 		break;
@@ -5432,7 +5432,7 @@ l1_mkas(VM *vm, Imm argc, Val *argv, Val *rv)
 		vmerr(vm, "wrong number of arguments to mkas");
 	checkarg(vm, argv, 0, Qtab);
 	name = 0;
-	if(argc == 2){
+	if(argc == 2) {
 		checkarg(vm, argv, 1, Qstr);
 		name = valstr(argv[1]);
 	}
@@ -5456,7 +5456,7 @@ l1_mknsraw(VM *vm, Imm argc, Val *argv, Val *rv)
 	checkarg(vm, argv, 1, Qtab);
 	checkarg(vm, argv, 2, Qtab);
 	name = 0;
-	if(argc == 4){
+	if(argc == 4) {
 		checkarg(vm, argv, 3, Qstr);
 		name = valstr(argv[3]);
 	}
@@ -5491,7 +5491,7 @@ l1_mkns(VM *vm, Imm argc, Val *argv, Val *rv)
 		vmerr(vm, "wrong number of arguments to mkns");
 	checkarg(vm, argv, 0, Qtab);
 	name = 0;
-	if(argc == 2){
+	if(argc == 2) {
 		checkarg(vm, argv, 1, Qstr);
 		name = valstr(argv[1]);
 	}
@@ -5516,7 +5516,7 @@ l1_mkdom(VM *vm, Imm argc, Val *argv, Val *rv)
 	checkarg(vm, argv, 0, Qns);
 	checkarg(vm, argv, 1, Qas);
 	name = 0;
-	if(argc == 3){
+	if(argc == 3) {
 		checkarg(vm, argv, 2, Qstr);
 		name = valstr(argv[2]);
 	}
@@ -5537,13 +5537,13 @@ l1_nameof(VM *vm, Imm argc, Val *argv, Val *rv)
 	name = 0;
 	if(argc != 1)
 		vmerr(vm, "wrong number of arguments to nameof");
-	if(Vkind(argv[0]) == Qdom){
+	if(Vkind(argv[0]) == Qdom) {
 		dom = valdom(argv[0]);
 		name = dom->name;
-	}else if(Vkind(argv[0]) == Qns){
+	}else if(Vkind(argv[0]) == Qns) {
 		ns = valns(argv[0]);
 		name = ns->name;
-	}else if(Vkind(argv[0]) == Qas){
+	}else if(Vkind(argv[0]) == Qas) {
 		as = valas(argv[0]);
 		name = as->name;
 	}else
@@ -5570,13 +5570,13 @@ l1_setname(VM *vm, Imm argc, Val *argv, Val *rv)
 		name = valstr(argv[1]);
 	else
 		name = 0;
-	if(Vkind(argv[0]) == Qdom){
+	if(Vkind(argv[0]) == Qdom) {
 		dom = valdom(argv[0]);
 		dom->name = name;
-	}else if(Vkind(argv[0]) == Qns){
+	}else if(Vkind(argv[0]) == Qns) {
 		ns = valns(argv[0]);
 		ns->name = name;
-	}else if(Vkind(argv[0]) == Qas){
+	}else if(Vkind(argv[0]) == Qas) {
 		as = valas(argv[0]);
 		as->name = name;
 	}else
@@ -5595,7 +5595,7 @@ l1_asof(VM *vm, Imm argc, Val *argv, Val *rv)
 	dom = 0;
 	if(Vkind(argv[0]) == Qdom)
 		dom = valdom(argv[0]);
-	else if(Vkind(argv[0]) == Qcval){
+	else if(Vkind(argv[0]) == Qcval) {
 		cv = valcval(argv[0]);
 		dom = cv->dom;
 	}else
@@ -5614,7 +5614,7 @@ l1_nsof(VM *vm, Imm argc, Val *argv, Val *rv)
 		vmerr(vm, "wrong number of arguments to nsof");
 	if(Vkind(argv[0]) == Qdom)
 		dom = valdom(argv[0]);
-	else if(Vkind(argv[0]) == Qcval){
+	else if(Vkind(argv[0]) == Qcval) {
 		cv = valcval(argv[0]);
 		dom = cv->dom;
 	}else
@@ -5630,10 +5630,10 @@ l1_dispatchtab(VM *vm, Imm argc, Val *argv, Val *rv)
 
 	if(argc != 1)
 		vmerr(vm, "wrong number of arguments to dispatchtab");
-	if(Vkind(argv[0]) == Qns){
+	if(Vkind(argv[0]) == Qns) {
 		ns = valns(argv[0]);
 		*rv = mkvaltab(ns->mtab);
-	}else if(Vkind(argv[0]) == Qas){
+	}else if(Vkind(argv[0]) == Qas) {
 		as = valas(argv[0]);
 		*rv = mkvaltab(as->mtab);
 	}else
@@ -5655,7 +5655,7 @@ l1_nsreptype(VM *vm, Imm argc, Val *argv, Val *rv)
 	checkarg(vm, argv, 1, Qcval);
 	if(Vkind(argv[0]) == Qns)
 		ns = valns(argv[0]);
-	else if(Vkind(argv[0]) == Qdom){
+	else if(Vkind(argv[0]) == Qdom) {
 		dom = valdom(argv[0]);
 		ns = dom->ns;
 	}else
@@ -5666,7 +5666,7 @@ l1_nsreptype(VM *vm, Imm argc, Val *argv, Val *rv)
 	if(rep >= Rnrep)
 		vmerr(vm, "invalid representation identifier");
 	for(cb = Vlo; cb < Vnallbase; cb++)
-		if(typerep(ns->base[cb]) == rep){
+		if(typerep(ns->base[cb]) == rep) {
 			*rv = mkvalctype(ns->base[cb]);
 			return;
 		}
@@ -5791,19 +5791,19 @@ l1_split(VM *vm, Imm argc, Val *argv, Val *rv)
 
 	/* split limit */
 	lim = 0;
-	if(argc == 3){
+	if(argc == 3) {
 		checkarg(vm, argv, 2, Qcval);
 		lim = valcval(argv[2]);
 		if(!isnatcval(lim))
 			vmerr(vm, "split expects a non-negative limit");
-		if(cvalu(lim) == 0){
+		if(cvalu(lim) == 0) {
 			*rv = mkvallist(r);
 			return;
 		}
 	}
 
 	/* delimiter set */
-	if(argc > 1 && (s = valstrorcvalornil(vm, "split", argv, 1))){
+	if(argc > 1 && (s = valstrorcvalornil(vm, "split", argv, 1))) {
 		set = str2cstr(s);
 		mflag = 0;
 	}else{
@@ -5811,11 +5811,11 @@ l1_split(VM *vm, Imm argc, Val *argv, Val *rv)
 		mflag = 1;
 	}
 
-	if(!mflag){
+	if(!mflag) {
 		n = 0;
 		q = p;
-		while(q < e && (!lim || n < cvalu(lim))){
-			if(strchr(set, *q)){
+		while(q < e && (!lim || n < cvalu(lim))) {
+			if(strchr(set, *q)) {
 				listins(vm, r, n++, mkvalstr(mkstr(p, q-p)));
 				p = q+1;
 				if(p == e)
@@ -5830,8 +5830,8 @@ l1_split(VM *vm, Imm argc, Val *argv, Val *rv)
 		n = 0;
 		q = p;
 		intok = 0;
-		while(q < e && (!lim || n < cvalu(lim))){
-			if(strchr(set, *q)){
+		while(q < e && (!lim || n < cvalu(lim))) {
+			if(strchr(set, *q)) {
 				if(intok)
 					listins(vm, r, n++,
 						mkvalstr(mkstr(p, q-p)));
@@ -5839,7 +5839,7 @@ l1_split(VM *vm, Imm argc, Val *argv, Val *rv)
 				p = q+1;
 				while(p < e && strchr(set, *p))
 					p++;
-				if(p >= e){
+				if(p >= e) {
 					listins(vm, r, n++,
 					        mkvalstr(mkstrn(0)));
 					break;
@@ -5867,14 +5867,14 @@ l1_ismapped(VM *vm, Imm argc, Val *argv, Val *rv)
 	checkarg(vm, argv, 0, Qcval);
 	addr = valcval(argv[0]);
 	sz = 0;
-	if(argc == 2){
+	if(argc == 2) {
 		checkarg(vm, argv, 1, Qcval);
 		len = valcval(argv[1]);
 		if(!isnatcval(len))
 			vmerr(vm, "ismapped expects a non-negative length");
 		sz = cvalu(len);
 	}
-	if(sz == 0){
+	if(sz == 0) {
 		if(!isptrtype(addr->type))
 			vmerr(vm, "ismapped expects a pointer cvalue");
 		sz = typesize(vm, subtype(chasetype(addr->type)));
@@ -5896,7 +5896,7 @@ cntrlen(VM *vm, char *name, Val v)
 	Imm len;
 
 
-	switch(Vkind(v)){
+	switch(Vkind(v)) {
 	default:
 		vmerr(vm, "operand 1 to %s must be a container", name);
 	case Qlist:
@@ -5920,7 +5920,7 @@ cntrlen(VM *vm, char *name, Val v)
 		break;
 	case Qpair:
 		len = 0;
-		while(Vkind(v) == Qpair){
+		while(Vkind(v) == Qpair) {
 			len++;
 			p = valpair(v);
 			v = p->cdr;
@@ -5971,7 +5971,7 @@ l1_count(VM *vm, Imm argc, Val *argv, Val *rv)
 		vmerr(vm, "wrong number of arguments to count");
 	v = argv[1];
 	m = 0;
-	switch(Vkind(argv[0])){
+	switch(Vkind(argv[0])) {
 	default:
 		vmerr(vm, "operand 1 to count must be a list, string, "
 		      "or vector");
@@ -6019,7 +6019,7 @@ l1_index(VM *vm, Imm argc, Val *argv, Val *rv)
 	if(argc != 2)
 		vmerr(vm, "wrong number of arguments to index");
 	v = argv[1];
-	switch(Vkind(argv[0])){
+	switch(Vkind(argv[0])) {
 	default:
 		vmerr(vm, "operand 1 to index must be a list, string, "
 		      "or vector");
@@ -6071,7 +6071,7 @@ l1_ismember(VM *vm, Imm argc, Val *argv, Val *rv)
 		vmerr(vm, "wrong number of arguments to ismember");
 	*rv = mkvalcval2(cval0);
 	v = argv[1];
-	switch(Vkind(argv[0])){
+	switch(Vkind(argv[0])) {
 	default:
 		vmerr(vm, "operand 1 to ismember must be a list, string, "
 		      "table, or vector");
@@ -6123,13 +6123,13 @@ l1_delete(VM *vm, Imm argc, Val *argv, Val *rv)
 	if(argc != 2)
 		vmerr(vm, "wrong number of arguments to delete");
 	v = argv[1];
-	switch(Vkind(argv[0])){
+	switch(Vkind(argv[0])) {
 	default:
 		vmerr(vm, "operand 1 to delete must be a list or table");
 	case Qlist:
 		lst = vallist(argv[0]);
 		i = 0;
-		while(i < listlen(lst)){
+		while(i < listlen(lst)) {
 			if(!equalval(v, listref(lst, i)))
 				i++;
 			else
@@ -6155,13 +6155,13 @@ l1_delq(VM *vm, Imm argc, Val *argv, Val *rv)
 	if(argc != 2)
 		vmerr(vm, "wrong number of arguments to delq");
 	v = argv[1];
-	switch(Vkind(argv[0])){
+	switch(Vkind(argv[0])) {
 	default:
 		vmerr(vm, "operand 1 to delq must be a list or table");
 	case Qlist:
 		lst = vallist(argv[0]);
 		i = 0;
-		while(i < listlen(lst)){
+		while(i < listlen(lst)) {
 			if(!eqval(v, listref(lst, i)))
 				i++;
 			else
@@ -6215,10 +6215,10 @@ l1_concat(VM *vm, Imm argc, Val *argv, Val *rv)
 	Str *str;
 	if(argc != 2)
 		vmerr(vm, "wrong number of arguments to concat");
-	if(Vkind(argv[0]) == Qlist && Vkind(argv[1]) == Qlist){
+	if(Vkind(argv[0]) == Qlist && Vkind(argv[1]) == Qlist) {
 		lst = listconcat(vm, vallist(argv[0]), vallist(argv[1]));
 		*rv = mkvallist(lst);
-	}else if(Vkind(argv[0]) == Qstr && Vkind(argv[1]) == Qstr){
+	}else if(Vkind(argv[0]) == Qstr && Vkind(argv[1]) == Qstr) {
 		str = strconcat(valstr(argv[0]), valstr(argv[1]));
 		*rv = mkvalstr(str);
 	}else
@@ -6230,7 +6230,7 @@ l1_cntrget(VM *vm, Imm argc, Val *argv, Val *rv)
 {
 	if(argc != 2)
 		vmerr(vm, "wrong number of arguments to cntrget");
-	switch(Vkind(argv[0])){
+	switch(Vkind(argv[0])) {
 	default:
 		vmerr(vm, "operand 1 to cntrget must be a container");
 	case Qlist:
@@ -6257,7 +6257,7 @@ l1_cntrput(VM *vm, Imm argc, Val *argv, Val *rv)
 	Cval *cv;
 	if(argc != 3)
 		vmerr(vm, "wrong number of arguments to cntrput");
-	switch(Vkind(argv[0])){
+	switch(Vkind(argv[0])) {
 	default:
 		vmerr(vm, "operand 1 to cntrput must be a container");
 	case Qlist:
@@ -6266,7 +6266,7 @@ l1_cntrput(VM *vm, Imm argc, Val *argv, Val *rv)
 		break;
 	case Qstr:
 		l1_strput(vm, argc, argv, rv);
-		if(Vkind(argv[2]) == Qcval){
+		if(Vkind(argv[2]) == Qcval) {
 			cv = valcval(argv[2]);
 			cv = typecast(vm, cv->dom->ns->base[Vchar], cv);
 			*rv = mkvalcval2(cv);
@@ -6526,11 +6526,11 @@ l1_gc(VM *vm, Imm argc, Val *argv, Val *rv)
 	u32 g, tg;
 	if(argc == 0)
 		gc(vm);
-	else if(argc == 1){
+	else if(argc == 1) {
 		checkarg(vm, argv, 0, Qcval);
 		g = cvalu(valcval(argv[0]));
 		dogc(vm, g, g+1);
-	}else if(argc == 2){
+	}else if(argc == 2) {
 		checkarg(vm, argv, 0, Qcval);
 		checkarg(vm, argv, 1, Qcval);
 		g = cvalu(valcval(argv[0]));
@@ -6608,7 +6608,7 @@ l1_loadpath(VM *vm, Imm argc, Val *argv, Val *rv)
 	USED(argv);
 	l = mklist();
 	lp = cqctloadpath;
-	while(*lp){
+	while(*lp) {
 		listappend(vm, l, mkvalstr(mkstr0(*lp)));
 		lp++;
 	}
@@ -6628,7 +6628,7 @@ l1_setloadpath(VM *vm, Imm argc, Val *argv, Val *rv)
 	checkarg(vm, argv, 0, Qlist);
 	l = vallist(argv[0]);
 	m = listlen(l);
-	for(i = 0; i < m; i++){
+	for(i = 0; i < m; i++) {
 		v = listref(l, i);
 		if(Vkind(v) != Qstr)
 			vmerr(vm, "argument 1 to setloadpath "
@@ -6656,12 +6656,12 @@ l1_parse(VM *vm, Imm argc, Val *argv, Val *rv)
 	if(argc != 1 && argc != 2 && argc != 3)
 		vmerr(vm, "wrong number of arguments to parse");
 	checkarg(vm, argv, 0, Qstr);
-	if(argc > 1){
+	if(argc > 1) {
 		checkarg(vm, argv, 1, Qstr);
 		whence = valstr(argv[1]);
 	}else
 		whence = mkstr0("(stdin)");
-	if(argc > 2){
+	if(argc > 2) {
 		checkarg(vm, argv, 2, Qcval);
 		line = cvalu(valcval(argv[2]));
 	}else
@@ -6757,7 +6757,7 @@ l1_cvalcmp(VM *vm, Imm argc, Val *argv, Val *rv)
 	checkarg(vm, argv, 0, Qcval);
 	checkarg(vm, argv, 1, Qcval);
 	r = cvalcmp(vm, valcval(argv[0]), valcval(argv[1]));
-	switch(r){
+	switch(r) {
 	case -1:
 		*rv = mkvalcval2(cvalminus1);
 		break;
@@ -7352,7 +7352,7 @@ basetab(NSroot *def, Ctype **base)
 	base[Vptr] = base[def->ptr];
 
 	type = mktab();
-	for(cb = Vlo; cb < Vnbase; cb++){
+	for(cb = Vlo; cb < Vnbase; cb++) {
 		kv = mkvalctype(mkctypebase(cb, Rundef));
 		vv = mkvalctype(base[cb]);
 		tabput(type, kv, vv);
@@ -7669,13 +7669,13 @@ cqctinit(char *memfile, char **loadpath)
 	tmp = mktoplevel();
 
 	vm = 0;
-	if(memfile){
+	if(memfile) {
 		top = restoreheap(memfile);
 		if(top == 0)
 			return 0;
 		cqctloadpath = copystrv(loadpath);
 		vm = mkvm(top);
-	}else if((top = restoreheap(0))){
+	}else if((top = restoreheap(0))) {
 		cqctloadpath = copystrv(loadpath);
 		vm = mkvm(top);
 	}else{
@@ -7684,7 +7684,7 @@ cqctinit(char *memfile, char **loadpath)
 		bootvm(vm);
 	}
 
-	if(vm){
+	if(vm) {
 		memset(&sa, 0, sizeof(sa));
 		sa.sa_handler = sigint;
 		sigaction(SIGINT, &sa, 0);

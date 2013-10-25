@@ -16,7 +16,7 @@ boot(VM *vm)
 	src = 0;
 	p = 0;
 	lp = cqctloadpath;
-	while(*lp){
+	while(*lp) {
 		len = strlen(*lp)+1+strlen(bootfile)+1;
 		p = emalloc(len);
 		snprint(p, len, "%s/%s", *lp, bootfile);

@@ -60,7 +60,7 @@ xenvupdate(Xenv *xe, char *id, void *v)
 {
 	if(xe == 0)
 		fatal("xenvupdate on unbound identifier: %s", id);
-	if(hgets(xe->ht, id, strlen(id))){
+	if(hgets(xe->ht, id, strlen(id))) {
 		hputs(xe->ht, id, strlen(id), v);
 		return;
 	}
