@@ -67,7 +67,7 @@
 	if (length(args)>1)
 		error("too many arguments to join");
 
-	if (length(args)>0) {
+	if (length(args)>0){
 		j = args[0];
 		if (!isstring(j))
 			error("second argument to join must be a string");
@@ -75,24 +75,24 @@
 	if (!islist(ss))
 		error("first argument to join must be a list");
 	if (length(ss) == 0) return "";
-	foreach(@lambda(s) { 
+	foreach(@lambda(s){
 		if (!isstring(s))
 			error("first argument to join must only contain strings");
-		m += length(s); 
+		m += length(s);
 	}, ss);
 	m += length(j) * (length(ss)-1);
 	buf = mkstr(m);
 	p = (char*)buf;
 	first = 1;
-	foreach(@lambda(s) { 
+	foreach(@lambda(s){
 		if (first)
 			first = 0;
-		else {
-			putbytes(p, j); 
-			p += length(j); 
+		else{
+			putbytes(p, j);
+			p += length(j);
 		}
-		putbytes(p, s); 
-		p += length(s); 
+		putbytes(p, s);
+		p += length(s);
 	}, ss);
 
 	return buf;
