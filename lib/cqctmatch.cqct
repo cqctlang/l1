@@ -1,16 +1,35 @@
 // search cqct source for syntactic patterns
-// example usage:  ./l1 -e checktabinit lib/cqctmatch.l1 mylib/*.l1
+// example usage:  ./l1 -e checktabinit lib/cqctmatch.cqct mylib/*.cqct
 
 @define parsefile(filename)
 {
-	return parse(sprintfa("@include \"%s\"", filename));
+	@local str;
+
+	str = mapfile(filename);
+	if(!str)
+		error("couldn't read %s", filename);
+
+	applyk(@lambda() {
+		@local p;
+
+		printf("processing %s\n", filename);
+		parse(str, filename, 1);
+	},@lambda(v) {
+		v;
+	}, @lambda(mesg) {
+		fprintf(stderr,"unable to parse %s: %s\n", filename, mesg);
+
+		nil;
+	}, []);
 }
 
 @define cqctmatch(filename, pred)
 {
 	@local loop;
+
 	@define loop(p){
 		@local kind, file, line;
+
 		if(p == nil)
 			return;
 		if(!islist(p))
@@ -31,6 +50,7 @@
 @define checktabinit(args ...)
 {
 	@local hit;
+
 	hit = mktab();
 	printf("{ key : val, ... } -> [ key : val, ... ]\n");
 	foreach(@lambda(f){
@@ -48,6 +68,7 @@
 @define checkvarg(args ...)
 {
 	@local hit;
+
 	hit = mktab();
 	printf("lambda arg body -> lambda (arg ...) body\n");
 	printf("define id arg body -> define id (arg ...) body\n");
@@ -68,6 +89,7 @@
 @define member(s, l)
 {
 	@local i, m;
+
 	m = length(l);
 	for(i = 0; i < m; i++)
 		if(l[i] == s)
@@ -78,6 +100,7 @@
 @define checknoamper(args ...)
 {
 	@local hit;
+
 	hit = mktab();
 	printf("containerof -> @containerof\n");
 	printf("define -> @define\n");
@@ -88,6 +111,7 @@
 	foreach(@lambda(f){
 			cqctmatch(f, @lambda(p) {
 					@local r;
+
 					r = (member("Econtainerof", p)
 					     || member("Edefine", p)
 					     || member("Elambda", p)
