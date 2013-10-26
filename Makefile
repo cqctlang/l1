@@ -21,6 +21,8 @@ RLTARG	   =
 RLX	   =
 HEAPIFY_HEAP =
 HEAPIFY_ARGS =
+HEAPIFY_CWD =$(shell pwd)
+MAKE_CWD = $(shell pwd)
 
 .DEFAULT_GOAL := all
 
@@ -157,7 +159,7 @@ libl1.dylib: l1.o
 
 heapify: dummy l1
 	@echo + heapify $(HEAPIFY_HEAP)
-	$(V)$(RT) ./l1 -d $(HEAPIFY_HEAP) $(HEAPIFY_ARGS)
+	$(V)cd $(HEAPIFY_CWD) && $(RT)$(MAKE_CWD)/l1 -d $(HEAPIFY_HEAP) $(HEAPIFY_ARGS)
 
 testasm: testasm.o amd64.o
 	@echo + ld $@
