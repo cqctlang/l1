@@ -4889,6 +4889,31 @@ the address space will be reflected in the other.
 </div>
 </div>
 
+<div class="docitem" id="fn:mkxsas">
+<div class="proto">
+<div class="function">
+<span class="id">mkxsas()</span>
+</div>
+<div class="returns">
+<span class="type">address space</span>
+</div>
+</div>
+<div class="desc">
+Returns an address space backed by an
+expanding string. Put operations
+to the address space succeed when within
+storage already allocated for the
+address space or when the runtime
+system allows new allocations. Get 
+operations succeed for any range
+between zero and the extent of the
+uppermost put. The address space
+exposes the method <span class="id">
+dat</span> that returns a new string
+representing the backing memory.
+</div>
+</div>
+
 <div class="docitem" id="fn:mkzas">
 <div class="proto">
 <div class="function">
@@ -12251,6 +12276,7 @@ Prentice Hall, 1988.
 <a href="#fn:mktabq">mktabq</a><br />
 <a href="#fn:mktabqv">mktabqv</a><br />
 <a href="#fn:mkvec">mkvec</a><br />
+<a href="#fn:mkxsas">mkxsas</a><br />
 <a href="#fn:mkzas">mkzas</a><br />
 <a href="#fn:myrootns">myrootns</a><br />
 <a href="#fn:nameof">nameof</a><br />

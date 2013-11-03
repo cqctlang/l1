@@ -11,4 +11,5 @@
 @include <util.cqct>
 @include <validate.cqct>
 @include <rand.cqct>
+@include <xsas.cqct>
 @include <library.cqct>

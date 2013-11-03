@@ -16,7 +16,7 @@ xsas_defined = 1;
 
 		b = rangebeg(r);
 		e = b+rangelen(r);
-		if(e <= m)
+		if(e <= l)
 			return substr(s, b, e);
 		else
 			error("xsas out of bounds get");
@@ -44,7 +44,7 @@ xsas_defined = 1;
 
 	@define map(self)
 	{
-		return vector(mkrange(0, m));
+		return vector(mkrange(0, l));
 	}
 
 	@define ismapped(self, r)
