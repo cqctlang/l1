@@ -9256,8 +9256,10 @@ Opens the file named <span class="arg">filename</span> and
 returns the associated file descriptor.  <span
 class="arg">Mode</span> specifies the mode of access:
 <span class="val">"r"</span> (read),
+<span class="val">"r+"</span> (read and write),
 <span class="val">"w"</span> (create or truncate for writing),
 <span class="val">"rw"</span> (create or truncate for reading and writing),
+<span class="val">"w+"</span> (create or truncate for reading and writing),
 <span class="val">"a"</span> (append), or
 <span class="val">"ra"</span> (append and read).
 If a call to open creates a new file, the file access permissions

@@ -531,12 +531,18 @@ l1__open(VM *vm, Imm argc, Val *argv, Val *rv)
 
 	flags = 0;
 	oflags = 0;
-	if(strchr(mode, 'r'))
+	if(strchr(mode, 'r')) {
 		flags |= Fread;
+		if(strchr(mode, '+'))
+			flags |= Fwrite;
+	}
 	if(strchr(mode, 'w') || strchr(mode, 'a'))
 		flags |= Fwrite;
-	if(strchr(mode, 'w'))
+	if(strchr(mode, 'w')) {
 		oflags |= O_CREAT|O_TRUNC;
+		if(strchr(mode, '+'))
+			flags |= Fread;
+	}
 	if((flags&Fread) && (flags&Fwrite))
 		oflags |= O_RDWR;
 	else if(flags&Fread)

@@ -192,7 +192,7 @@
 }
 
 @define _open(file, mode, perm) {
-	@local flags,oflags,fd;
+	@local flags, oflags, fd;
 
 	if(!isstring(file)) 	error("open: filename is not a string");
 	if(!isstring(mode)) 	error("open: mode is not a string");
@@ -202,20 +202,26 @@
 	flags = 0;
 	oflags = 0;
 
-	if(!isnil(strstr(mode,"r")))
+	if(!isnil(strstr(mode, "r"))) {
 		flags |= 1;
-	if((!isnil(strstr(mode,"w"))) || (!isnil(strstr(mode,"a"))))
+		if(!isnil(strstr(mode, "+")))
+			flags |= 2;
+	}
+	if((!isnil(strstr(mode, "w"))) || (!isnil(strstr(mode, "a"))))
 		flags |= 2;
-	if(!isnil(strstr(mode,"w")))
+	if(!isnil(strstr(mode, "w"))) {
 		oflags |= unix`O_CREAT|unix`O_TRUNC;
-	if((flags&1) && (flags&2))
+		if(!isnil(strstr(mode, "+")))
+			flags |= 1;		
+	}
+	if((flags &1 ) && (flags & 2))
 		oflags |= unix`O_RDWR;
-	else if(flags&1)
+	else if(flags & 1)
 		oflags |= unix`O_RDONLY;
-	else if(flags&2)                                                   
+	else if(flags & 2)                                                   
 		oflags |= unix`O_WRONLY;                 
 
-	fd=sys_open(file,oflags,perm);
+	fd=sys_open(file, oflags, perm);
 	if(0 > fd) {
 		return nil;
 	} 
