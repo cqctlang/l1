@@ -107,7 +107,7 @@ ions = @names c32le {
 	@local fds;
 
 	fds = apply(_popen, arg);
-	return map(@lambda(fd){
+	return map(@lambda(fd) {
 			/* FIXME: don't be overly permissive */
 			mksysfdfinal(fd, ions`Fread|ions`Fwrite);
 		}, fds);
@@ -122,7 +122,7 @@ ions = @names c32le {
 {
 	@local fds;
 	fds = _sockpair();
-	return map(@lambda(fd){
+	return map(@lambda(fd) {
 			mksysfdfinal(fd, ions`Fread|ions`Fwrite);
 		}, fds);
 }
@@ -208,6 +208,7 @@ ions = @names c32le {
 	}
 
 	fd = _open(file, fmode, 0);
+
 	if(isnil(fd))
 		return nil;
 
@@ -218,16 +219,18 @@ ions = @names c32le {
 
 	if(!rv)
 		return nil;
+	if(rv[0] == (unsigned long) -1)
+		return nil;
 
 	[addr, len] = rv;
-	if(len){
+	if(len) {
 		if(strstr(mode,"w"))
 			rv = mkstrm(addr, len);
 		else
 			rv = mkstrmro(addr, len);
-		finalize(rv, @lambda(x){ 
+		finalize(rv, @lambda(x) { 
 			_munmap(addr, len); });
-	}else
+	} else
 		rv = "";
 	return rv;
 }

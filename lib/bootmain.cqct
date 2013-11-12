@@ -460,7 +460,7 @@ load("prelude.cqct");
 		case "a":
 		case "abort":
 			currentabort();
-		        break;
+			break;
 		default:
 			printf("unrecognized command\n");
 			break;

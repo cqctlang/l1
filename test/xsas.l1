@@ -1,0 +1,55 @@
+@include <xsas.cqct>
+
+foo = mkxsas();
+
+if(foo.dat() != "") {
+	printf("empty address space is not empty\n");
+} else {
+	printf("empty address space is empty\n");
+}
+
+foop = (unsigned char *){mkdom(c32le, foo)}0;
+
+foob = getbytes(foop, 0);
+
+if(foob != "") {
+	printf("empty address space is not empty\n");
+} else {
+	printf("empty address space is empty\n");
+}
+
+putbytes(foop, "foo");
+
+foor = foo.map();
+
+foomax = 0;
+
+foreach(@lambda(v) {
+	@local e;
+
+	e = rangebeg(v) + rangelen(v);
+	if(e > foomax)
+		foomax = e;
+}, foor);
+
+if(foomax != length("foo")) {
+	printf("address space is broken\n");
+} else {
+	printf("address space is happy\n");
+}
+
+foob = getbytes(foop, foomax);
+
+if(foob != "foo") {
+	printf("address space is broken\n");
+} else {
+	printf("address space is happy\n");
+}
+
+food = foo.dat();
+
+if(food != "foo") {
+	printf("address space is broken\n");
+} else {
+	printf("address space is happy\n");
+}
