@@ -2,6 +2,7 @@
 
 @global strtoupper, strtolower, ucs2_to_ascii, ucs2n_to_ascii;
 @global hextobin, bintohex, hexdump;
+@global strreplace;
 {
 
 @define strtoupper(s) {
@@ -188,6 +189,26 @@
 		return ret;
 	}
 
+}
+
+
+@define strreplace(str,pat,rep) {
+	@local lst,off,l,pl;
+	if (!isstring(str) || !isstring(pat) || !isstring(rep))
+		error("bad parameter");
+	lst = [];
+	l = length(str);
+	pl = length(pat);
+	if (pl == 0) error("empty pattern");
+	while ( (off = strstr(str,pat)) != nil )
+	{
+		append(lst,substr(str,0,off));
+		append(lst,rep);
+		str = substr(str,off+pl,l);
+		l -= off+pl;
+	}
+	append(lst,str);
+	return join(lst);
 }
 
 

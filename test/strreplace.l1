@@ -1,0 +1,29 @@
+
+
+@include <strings.cqct>
+
+printf("%a\n",strreplace("ababababab","b","c"));
+printf("%a\n",strreplace("ababababab","a","c"));
+printf("%a\n",strreplace("ababababab","x","c"));
+printf("%a\n",strreplace("ababababab","ab","e"));
+printf("%a\n",strreplace("ababababab","aba","e"));
+printf("%a\n",strreplace("ababababab","aba","eeeeee"));
+printf("%a\n",strreplace("","aba","eeeeee"));
+printf("%a\n",strreplace("aaaaa","a",""));
+
+applyk(strreplace,
+    @lambda(r) { r; },
+    @lambda(m) { printf("error: %s\n",m); },
+    ["aaaaa","","EEEEEE"]);
+applyk(strreplace,
+    @lambda(r) { r; },
+    @lambda(m) { printf("error: %s\n",m); },
+    [1,"a","EEEEEE"]);
+applyk(strreplace,
+    @lambda(r) { r; },
+    @lambda(m) { printf("error: %s\n",m); },
+    ["",1,"EEEEEE"]);
+applyk(strreplace,
+    @lambda(r) { r; },
+    @lambda(m) { printf("error: %s\n",m); },
+    ["","a",2]);
