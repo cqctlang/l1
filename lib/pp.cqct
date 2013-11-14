@@ -1,5 +1,7 @@
 /*
 
+  //FIXME update to match l1 formatting.
+
   ppstx - abstract syntax pretty printer
 
   ppstx(STX) pretty prints the syntax object STX.
@@ -161,12 +163,14 @@
 	{
 		@local stk;
 		@local space;
+        @local didnl;
 
 	    rdsetfmt( @record E { offset, kind } ,
                   @lambda(e) { sprintfa("E(%a,%a)",e.offset,e.kind); });
 
 		space = margin;
 		stk = [ E(margin,'horizontal) ];
+        didnl = 0;
 
 		@defloc out(x, l)
 		{
@@ -197,7 +201,13 @@
 			@match B(n):
 				if(stk[0].kind == 'vertical) {
 					space = stk[0].offset;
-					nl(margin-space);
+                    if (didnl > -1 && margin-space-didnl > 0) {
+                        indent(margin-space-didnl);
+                        didnl = margin-space;
+                    } else {
+                        nl(margin-space);
+                        didnl = margin-space;
+                    }
 				}else{
 					space -= n;
 					indent(n);
@@ -207,6 +217,7 @@
 				/* string */
 				pr(x);
                 space -= (int)l;
+                didnl = -1;
 				break;
 			}
 		}
