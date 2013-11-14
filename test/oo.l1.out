@@ -1,0 +1,34 @@
+oo.l1:82: warning: reference to unbound variable: c
+oo.l1:82: warning: reference to unbound variable: c
+oo.l1:82: warning: reference to unbound variable: c
+oo.l1:82: warning: reference to unbound variable: c
+oo.l1:82: warning: reference to unbound variable: c
+oo.l1:82: warning: reference to unbound variable: c
+oo.l1:82: warning: reference to unbound variable: c
+<eval-input>:1: change to cnsttbl object
+error: cannot compile @cnsttbl(o) { o['a] = 2; }
+<eval-input>:1: change to cnsttbl object
+error: cannot compile @cnsttbl(o) { o.a = 2; }
+<eval-input>:1 bad cnsttbl parameter
+error: cannot compile @cnsttbl(o()) { }
+called c1
+called c4
+called c3
+called c2
+called c4
+called c3
+called c2
+called c5
+called c6
+called c7
+called c8
+called c9
+called c10
+called c11
+called c12
+called c13
+called c14
+called c15
+called c16
+called c17
+called c18
