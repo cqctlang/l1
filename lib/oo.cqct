@@ -1,3 +1,9 @@
+
+/*
+   Libraries to aid with object-oriented style programming in l1
+*/
+
+
 /*
 Object helper macro.
 
@@ -13,8 +19,8 @@ Example usage:
 	super = other_object();
 
 	//at this point, for all X for which super.X is defined, this.X will be
-	//given that value. (any this.X that had been set previously will be over
-	//written)
+	//given that value. (any this.X that had been set previously will be
+	//over written)
 	@inherit(super);
 	//alternatively (no direct references to super)
 	//@inherit(other_object())
@@ -30,16 +36,16 @@ Example usage:
 
 	//this.ftn1(); //now works.
 
-	//multiple @inherit can be specified. 
+	//multiple @inherit can be specified.
 	//Note that if Super2 defines a method named "public" or ftn1, then the
 	//above assignment would be overwritten by this statement (if the local
 	//assignment came after the @inherit, then it wouldn't be overwritten)
-	@inherit(Super2(a,a)); 
+	@inherit(Super2(a,a));
 
 	//defines this.ftn2(param)
 	@define ftn2(param) {
 		this.public = param;
-		ftn1(); 
+		ftn1();
 		this.ftn1(); //equivalent to above call
 	}
 
@@ -60,7 +66,7 @@ Inside the @object body, one is provided with the following:
  [args]   refers to parameters to the Creation object
 
 The returned table will always have the key 'type defined
-to be the name of the kind of object. 
+to be the name of the kind of object.
 */
 
 @defstx @object(name) body {
@@ -95,9 +101,9 @@ to be the name of the kind of object.
 			//add this.ftn_id = ftn_id;
 			//after the @define
 			return Zcons( e,
-				Zcons( #g( #dot( #id('this), 
-						stxref(e,0) ), 
-					stxref(e,0) ), 
+				Zcons( #g( #dot( #id('this),
+						stxref(e,0) ),
+					stxref(e,0) ),
 					#[]));
 		case 'mcall:
 
@@ -115,7 +121,9 @@ to be the name of the kind of object.
 						if (!istable(#,(tmp))) {
 							error("%a is not an object, it cannot be inherited",#,(tmp));
 						}
-						foreach(@lambda(x,y) { this[x] = y; }, #,(tmp));
+						foreach(@lambda(x,y)
+						        { this[x] = y; },
+						        #,(tmp));
 					}
 				};
 			} else return e;
@@ -126,19 +134,123 @@ to be the name of the kind of object.
 
 	}, old_body);
 
-	//__name = stxid(name)
-	new_body = Zcons( #g( #dot(#id('this),#id('type)) , 
-				#val( stxid(name) )), 
+	new_body = Zcons( #g( #dot(#id('this),#id('type)) ,
+				#val( stxid(name) )),
 			new_body);
-	new_body = Zappend( #'{ 
-		this = mktab(@lambda() { 
-			error("reference to undefined member of %s", 
-				this.type); 
+	new_body = Zappend( #'{
+		this = mktab(@lambda() {
+			error("reference to undefined member of %s",
+				this.type);
 		});
 	}, new_body);
 
 	new_body = Zappend( new_body, #'{ return this; } );
 
-	return #define( name, #[ #id('args), #ellipsis() ], 
+	return #define( name, #[ #id('args), #ellipsis() ],
 		#scope(#block(new_locals,new_body)) );
 }
+
+
+
+/*
+const table macro
+
+To be used when one does many lookups into a table without changing it.
+
+For a table o, this macro searches the body for uses of o.x or o[x], where
+x is an id or a val, and caches those lookups in a temporary local variable
+so that they are only performed once. If the table is modified during execution
+of the cnsttbl's body, one will get undefined behavior.
+
+Speedup provided:
+
+//takes 376052 microseconds
+for(i=0; i<1000000; ++i)
+	o.a();
+
+//takes 684314 microseconds
+@cnsttbl(o) {
+	for(i=0; i<1000000; ++i)
+		o.a();
+	}
+}
+
+*/
+@defstx @cnsttbl(o) body {
+	@local references, new_locals, new_body;
+	references = [:];
+
+	if (stxkind(o) != 'id)
+		error("%s:%d bad cnsttbl parameter",stxsrc(o)[0], stxsrc(o)[1]);
+
+	@defloc exp(e) {
+		@local p,l;
+		if (e == nil) return e;
+		switch(stxkind(e)){
+		case 'stxunquote:
+		case 'stxsplice:
+		case 'stxquasi:
+		case 'stxquote:
+		case 'val:
+		case 'id:
+			return e;
+		case 'elist:
+			p = e;
+			l = Znull();
+			while(stxkind(p) == 'elist){
+				l = Zcons(exp(Zcar(p)), l);
+				p = Zcdr(p);
+			}
+			return Zreverse(l);
+		case 'dot:
+			switch(e) {
+			@match #dot( a, #id(b) ):
+				if (a == o) {
+					references[b] = gensym();
+					return references[b];
+				}
+			}
+			return e;
+		case 'aref:
+			switch(e) {
+			@match #aref( a, #val(b) ):
+				if (a == o) {
+					references[b] = gensym();
+					return references[b];
+				}
+			}
+			return e;
+		case 'g:
+			if (stxkind(e[0]) == 'dot ||
+			    stxkind(e[0]) == 'aref)
+			{
+				if (e[0][0] == o)
+					apply(error,
+					      "%s:%d: change to cnsttbl object",
+					      [stxsrc(e)[0], stxsrc(e)[1]]
+					);
+			}
+		default:
+			return mkstx(stxkind(e),
+				     exp(stxref(e, 0)),
+				     exp(stxref(e, 1)),
+				     exp(stxref(e, 2)),
+				     exp(stxref(e, 3)),
+				     stxsrc(e));
+		}
+	}
+
+	new_body = #[exp(body)];
+
+	if (length(references) == 0) return body;
+
+	new_locals = #[];
+	foreach(@lambda(k,v) {
+		new_locals = Zcons(v,new_locals);
+		new_body = Zcons(#g(v,#dot(o,#id(k))),new_body);
+	}, references);
+
+	return #scope(#block(new_locals, new_body));
+}
+
+// vim:ts=8:sw=8:noet
