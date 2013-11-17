@@ -1668,9 +1668,12 @@ ccall(VM *vm, Closure *cl, Imm argc, Val *argv)
 	Imm fsz;
 	Val rv;
 
-	if(!vm->cl)
+	if(!vm->cl){
 		/* first frame on the stack */
-		return _ccall(vm, cl, argc, argv);
+		rv=_ccall(vm, cl, argc, argv);
+		vm->cl=0;
+		return rv;
+	}
 
 	switch(vm->cl->code->kind) {
 	case Cvm:
@@ -2617,7 +2620,7 @@ koverflow(VM *vm)
 	sz = (void*)vm->fp-vm->stk;
 	ra = vm->fp[Ora];
 	cl = valcl(vm->fp[Ocl]);
-	fsz = ra2size(ra, cl->code);
+	fsz = ra2size(vm->pc, vm->cl->code);
 	k = mkcont(vm->stk, sz, ra, cl, vm->klink,
 		   vm->level, vm->levgen[vm->level]);
 	vm->klink = k;

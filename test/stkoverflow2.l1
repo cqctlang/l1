@@ -1,0 +1,5 @@
+@define f(){
+}
+for(i=0;i<100000;++i)
+  callfn(f);
+
