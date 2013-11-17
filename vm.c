@@ -1668,10 +1668,10 @@ ccall(VM *vm, Closure *cl, Imm argc, Val *argv)
 	Imm fsz;
 	Val rv;
 
-	if(!vm->cl){
+	if(!vm->cl) {
 		/* first frame on the stack */
-		rv=_ccall(vm, cl, argc, argv);
-		vm->cl=0;
+		rv = _ccall(vm, cl, argc, argv);
+		vm->cl = 0;
 		return rv;
 	}
 
