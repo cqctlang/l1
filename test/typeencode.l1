@@ -1,6 +1,6 @@
 @include <ctype.cqct>
 @include <xsas.cqct>
-@include <dump.cqct>
+@include <nsutil.cqct>
 @include <sctlns.cqct>
 
 ts = [ @typename(int),
@@ -73,6 +73,7 @@ us = map(@lambda(td){
 foreach(@lambda(td, ud) {
 		printf("***\n");
 		printtype(td);
-		printf(" ->\n");
+		printf("\n ->\n");
 		printtype(ud);
+		printf("\n");
 	}, ts, us);
