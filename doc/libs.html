@@ -217,6 +217,9 @@ a core file as an address space.
 out namespaces and the values associated with typed pointers.
 </p>
 
+<b>This library will be DEPRECATED and replaced soon. Do not use.</b>
+
+
 <div class="docitem" id="fn:printtype">
 <div class="proto">
 <div class="function">
@@ -986,6 +989,25 @@ over types in namespaces.
 	retuns a namespace that contains all types and symbols in
 	both namespaces ns1 and ns2. When both namespaces define
 	a symbol or a type, the definition in ns2 is preferred.
+</div>
+</div>
+
+<div class="docitem" id="fn:nstostr">
+<div class="proto">
+<div class="function">
+	<span class="id">nstostr(<span class="arg">ns</span>)
+	</span>
+</div>
+<div class="param">
+<span class="arg">ns</span>: <span class="type">namespace</span> 
+</div>
+<div class="returns">
+<span class="type">string</span>
+</div>
+</div>
+<div class="desc">
+    Returns an @names-parsable string representation of the namespace eqivalent
+    to that printed to standard out by <a href=#fn:printns>printns</a>.
 </div>
 </div>
 
