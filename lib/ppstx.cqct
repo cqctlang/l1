@@ -206,6 +206,7 @@
                 queue(right);
                 queue(blank);
                 queue(left);
+                queue("#[");
                 m = Zlength(body);
                 i = 0;
                 foreach(@lambda(e){
@@ -222,6 +223,7 @@
                         }
                         i++;
                     }, body);
+                queue("]");
                 queue(right);
                 queue(right);
                 queue(")");
