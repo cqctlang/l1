@@ -1,0 +1,59 @@
+
+@include <usedom.cqct>
+
+ns = @names c32le {
+    struct A {
+        @0x0 int f1;
+        @0x4 int f2;
+        @0x8 int f3;
+        @0xc;
+    };
+
+    @0x0 struct A str;
+
+    enum E {
+        a,b,c,d
+    };
+
+    @0xc unsigned int value;
+    @0x20 float flt;
+};
+
+as = mkzas(100);
+
+dom = mkdom(ns,as);
+
+for(p = (unsigned int*){dom}0; ismapped(p); ++p)
+    *p = p+0x20;
+
+printf("%a\n",#'{ dom`str.f1; });
+printf("0x%x\n",dom`str.f1);
+printf("0x%x\n",usedom(dom,#id('dom),#'{ str.f1; }));
+printf("0x%x\n",@expwithdom(dom,str.f1));
+
+@withdom(dom) {
+    printf("0x%x\n",str.f1);
+    printf("0x%x\n",str.f2);
+    printf("0x%x\n",value);
+    printf("%f\n",flt);
+    printf("%e (%d)\n",a,a);
+    printf("%e (%d)\n",b,b);
+    printf("0x%x\n",&flt);
+    printf("%d\n",str.f3);
+}
+
+oldread = nil;
+idx = 0;
+cmds = [
+    "str.f3;", "&str;", "&(&str)[20];", "str.f3 = 40;", "str.f3;", "a;"
+];
+
+@define myread(args...) {
+    if (idx == length(cmds)) return nil;
+    printf("%s\n",cmds[idx]);
+    return cmds[idx++];
+}
+dynamicwind(@lambda() { oldread = read; read = myread; },
+            @lambda() { @domrepl(dom); },
+            @lambda() { read = oldread; });
+
