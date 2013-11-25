@@ -76,7 +76,7 @@
             @local m, i, es, s;
             switch(e){
             @match #id(id):
-                queue(sprintfa("%a", id));
+                queue(sprintfa("%a", e));
                 break;
             @match #val:
                 /* FIXME: need to recurse into val, esp for stx */
