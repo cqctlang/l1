@@ -7603,6 +7603,7 @@ mkvm(Env top)
 	vm->top = top;
 	vms[nvm++] = vm;
 	vmresetctl(vm);
+	vm->exelast = usec();
 	return vm;
 }
 
