@@ -30,19 +30,19 @@ i=0;
 }
 
 @maybeprofile("wrapper") {
-    @cnsttbl(o) {
+    @cnsttab(o) {
         for(i=0; i<cnt; ++i)
             o.a();
     }
 }
 
-evalk("@cnsttbl(o) { o['a] = 2; }",
+evalk("@cnsttab(o) { o['a] = 2; }",
     @lambda(r) { r; },
     @lambda(m) { printf("error: %s\n",m); });
-evalk("@cnsttbl(o) { o.a = 2; }",
+evalk("@cnsttab(o) { o.a = 2; }",
     @lambda(r) { r; },
     @lambda(m) { printf("error: %s\n",m); });
-evalk("@cnsttbl(o()) { }",
+evalk("@cnsttab(o()) { }",
     @lambda(r) { r; },
     @lambda(m) { printf("error: %s\n",m); });
 
@@ -56,7 +56,7 @@ for (i=0; i<20; ++i) {
     o[c] = mkfn(c);
 }
 
-@cnsttbl(o) {
+@cnsttab(o) {
     if (0) o.c0();
     else o.c1();
 
@@ -79,7 +79,7 @@ for (i=0; i<20; ++i) {
                                 if ((o.c14()))
                                     if ((o.c15()))
                                         o.c16();
-    o.c17() ? o.c18() : c.c19();
+    o.c17() ? o.c18() : o.c19();
 }
 
 if (profiling)
