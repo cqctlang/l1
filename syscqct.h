@@ -225,7 +225,7 @@ enum {
 	Onfrhd,			/* number of words in frame preamble */
 	Oarg0=Onfrhd,		/* offset of first argument */
 
-	Maxstk = 16384,
+	Maxstk = 16384*8,
 	Redline = 16*sizeof(uptr),
 	Maxargs = ((Maxstk-Onfrhd*sizeof(uptr)-Redline)/sizeof(uptr)),
 

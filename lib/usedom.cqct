@@ -1,0 +1,116 @@
+
+//XXX needs documentation
+
+
+@define usedom(dom,dstx,stx){
+	@local cmp;
+	if (!isstx(dstx))
+		error("argument 2 must be stx");
+	@defloc walk(e) {
+		@local p, l;
+		if(e == nil)
+			return e;
+		switch(stxkind(e)){
+		case 'stxunquote:
+			error("misplaced unquote");
+		case 'stxsplice:
+			error("misplaced splice");
+		case 'stxquasi:
+			error("quasi not allowed");
+		case 'stxquote:
+		case 'val:
+			return e;
+		case 'id:
+			if (dom.looksym(stxid(e)) != nil) {
+				return #ticke(dstx,e);
+			}
+			return e;
+		case 'elist:
+			p = e;
+			l = Znull();
+			while(stxkind(p) == 'elist){
+				l = Zcons(walk(Zcar(p)), l);
+				p = Zcdr(p);
+			}
+			return Zreverse(l);
+		default:
+			return mkstx(stxkind(e),
+				     walk(stxref(e, 0)),
+				     walk(stxref(e, 1)),
+				     walk(stxref(e, 2)),
+				     walk(stxref(e, 3)),
+				     stxsrc(e));
+		}
+	}
+
+	stx = walk(stx);
+
+	cmp = compile(stx);
+
+	if (cmp == nil)
+		error("bad syntax");
+
+	return cmp();
+}
+
+@defstx @expwithdom(dom,bdy) {
+	@local s;
+	s = gensym();
+	return #scope(#block(#[ s ], 
+                      #[ #g(s,dom),
+                         #call(#id('usedom),#[ s, #stxquote(dom), 
+                                               #stxquote(bdy) ])
+                       ]));
+}
+
+@defstx @withdom(dom) bdy {
+	@local s;
+	s = gensym();
+	return #scope(#block(#[ s ], 
+                      #[ #g(s,dom),
+                         #call(#id('usedom),#[ s, #stxquote(dom), 
+                                               #stxquote(bdy) ])
+                       ]));
+}
+
+//XXX error handling may need to be done better.
+@defstx @domrepl(dom) {
+	@local domsym;
+
+	domsym = gensym();
+
+	return #`{{
+		@global #,domsym;
+		#,domsym = #,dom;
+
+		@defloc $loop()
+		{
+			@local s, v;
+			printf("`; ");
+			s = read(stdin, 1024);
+			if (s == nil) {
+				printf("\n");
+				currentreturn(nil);
+			}
+			v = parse(s, "(stdin)", 1);
+			v = usedom(#,domsym,#,(#stxquote(domsym)),v);
+			if (v != nil)
+				printf("%a\n",v);
+			$loop();
+		}
+
+		callcc(@lambda(done) {
+			@local oldreturn;
+			dynamicwind(
+				@lambda() {
+					oldreturn = currentreturn;
+					currentreturn = done;
+				},$loop,@lambda() {
+					currentreturn = oldreturn;
+				});
+		});
+	}};
+}
+
+
+// vim:ts=8:sw=8:noet

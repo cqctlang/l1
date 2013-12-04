@@ -4,6 +4,8 @@
 /**
 dump.cqct provides code for printing out namespaces and the values associated 
 with typed pointers. 
+
+This library will be DEPRECATED and replaced soon. Do not use.
 */
 
 if (dump_defined == nil)

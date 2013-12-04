@@ -11,7 +11,7 @@
   the algorithm is based on the one described in:
 
   [1]  Derek C. Oppen.  Prettyprinting.  TOPLAS 2(4), Oct
-       1980, pp. 465-483.
+	   1980, pp. 465-483.
 
   (however, this implmentation uses O(n) space and time,
   for input size n)
@@ -20,16 +20,16 @@
   taken from:
 
   [2] Swierstra ,S. Doaitse, and Olaf Chitil. Linear, 
-      bounded, functional pretty-printing. Journal of
-      Functional Programming 10.01 (2009); 1-16
+	  bounded, functional pretty-printing. Journal of
+	  Functional Programming 10.01 (2009); 1-16
 
-*/   
+*/
 
 @global mkpp;
 @global ppprint;
 
 /*
-    default print to standard out for use with mkpp
+	default print to standard out for use with mkpp
 */
 @define ppprint(x) { printf("%s",x); }
 
@@ -42,10 +42,10 @@
 
   The parameters are:
   pr: output function, called as pr(s). Should "print" the string s.
-      The function ppprint is a provided default such function that 
-      prints to stdout. 
+	  The function ppprint is a provided default such function that 
+	  prints to stdout. 
   docify: creates the "document" to be printed (decribed below)
-          called as docify(e,queue,ppobj).
+		  called as docify(e,queue,ppobj).
   ppmargin: size of the margin
 
   To accomplish pretty printing, the pretty printer requires a docify function
@@ -69,48 +69,48 @@
 
   The rules for printing are (derived from [2])
   1) The symbols between a "left" symbol and a matching "right" symbol are a 
-     group. Groups can be recursive. There is an implicit topmost group.
+	 group. Groups can be recursive. There is an implicit topmost group.
   2) All "blank" symbols directly within a given group (i.e. within
-     the group but not within any of the group's subgroups) are 
-     formatted the same: as newlines or as whitespace. If the blank 
-     symbols within a group are formatted as newlines, we say the group 
-     is vertical, if formatted as spaces, we say the group is horizontal.
+	 the group but not within any of the group's subgroups) are 
+	 formatted the same: as newlines or as whitespace. If the blank 
+	 symbols within a group are formatted as newlines, we say the group 
+	 is vertical, if formatted as spaces, we say the group is horizontal.
   3) Excepting the topmost group, if a group is formatted horizontally, then 
-     all subgroups of that group must also be formatted horizontally
+	 all subgroups of that group must also be formatted horizontally
   4) All newlines within a given group are given the same level of indentation.
-     Where the indentation starts is determined by the group type. See group
-     types below.
+	 Where the indentation starts is determined by the group type. See group
+	 types below.
   5) If a group cannot fit on a line within the available width,
-     then it is converted to a vertical group.
+	 then it is converted to a vertical group.
 
   Group types: 
-    All groups have a type and an indentation level. These define how 
-    indentation after a newline will be handled. The group type specifies
-    where the post-newline indentation will start from (i.e. with respect to
-    the leftmost column, with respect to the previous newline, etc). 
-    There are three group types:
+	All groups have a type and an indentation level. These define how 
+	indentation after a newline will be handled. The group type specifies
+	where the post-newline indentation will start from (i.e. with respect to
+	the leftmost column, with respect to the previous newline, etc). 
+	There are three group types:
 	'nlleft: New line left groups indent their new lines starting at the 
-             leftmost margin. 
+			 leftmost margin. 
 	'nlhere: New line here groups indent their new lines starting from the 
-             current column.
+			 current column.
 	'nloff:  New line off groups indent their new lines starting from the
-             column on which the last group started.  
+			 column on which the last group started.  
 
   The ppobj is an object that gives access to constructors for these kinds of 
   objects. The fields of the ppobj are:
-     mkgroup    : called as ppobj.mkgroup(type,indent,lst). The output
-                  is a properly specified group of the given type with the
-                  given indentation level that can be passed to queue. The
-                  lst arguement is a list containing the contents of the group.
-     mkhgroup   : called as ppobj.mkhgroup(indent,lst). See mkgroup above,
-                  except that the group created is a "here" ('nlhere) group.
-     mklgroup   : called as ppobj.mklgroup(indent,lst). See mkgroup above,
-                  except that the group created is a "left" ('nlleft) group.
-     mkogroup   : called as ppobj.mkogroup(indent,lst). See mkgroup above,
-                  except that the group created is a "off" ('nloff) group.
-     mkblank    : called as ppobj.mkblank(n). Creates a blank n spaces long.
-     blank      : a blank one space long. 
-     linebreak  : blank gauranteed to force a newline. 
+	 mkgroup	: called as ppobj.mkgroup(type,indent,lst). The output
+				  is a properly specified group of the given type with the
+				  given indentation level that can be passed to queue. The
+				  lst arguement is a list containing the contents of the group.
+	 mkhgroup	: called as ppobj.mkhgroup(indent,lst). See mkgroup above,
+				  except that the group created is a "here" ('nlhere) group.
+	 mklgroup	: called as ppobj.mklgroup(indent,lst). See mkgroup above,
+				  except that the group created is a "left" ('nlleft) group.
+	 mkogroup	: called as ppobj.mkogroup(indent,lst). See mkgroup above,
+				  except that the group created is a "off" ('nloff) group.
+	 mkblank	: called as ppobj.mkblank(n). Creates a blank n spaces long.
+	 blank		: a blank one space long. 
+	 linebreak  : blank gauranteed to force a newline. 
   
 */
 @define mkpp(pr,docify,ppmargin)
@@ -119,8 +119,8 @@
 	@local print;
 	@local left, blank, right, linebreak;
 	@local margin;
-    @local ppobj;
-    @local r;
+	@local ppobj;
+	@local r;
 
 	r = @record B { n };
 	rdsetfmt(r,@lambda(a) { sprintfa("B(%d)",a.n); });
@@ -130,7 +130,7 @@
 	//'nloff: start at the offset of the last group
 	r = @record L { offset, kind, indent };
 	rdsetfmt(r,
-	    @lambda(a) { sprintfa("L(%d,%a,%d)",a.offset,a.kind,a.indent); });
+		@lambda(a) { sprintfa("L(%d,%a,%d)",a.offset,a.kind,a.indent); });
 	@record R { };
 
 	margin = ppmargin;
@@ -139,10 +139,10 @@
 
 	@defloc queue(x)
 	{
-	    if (islist(x))
-	        foreach(queue,x);
-        else
-            append(stream, x);
+		if (islist(x))
+			foreach(queue,x);
+		else
+			append(stream, x);
 	}
 
 	@defloc indent(w)
@@ -165,8 +165,8 @@
 		@local space;
         @local didnl;
 
-	    rdsetfmt( @record E { offset, kind } ,
-                  @lambda(e) { sprintfa("E(%a,%a)",e.offset,e.kind); });
+		rdsetfmt( @record E { offset, kind } ,
+				  @lambda(e) { sprintfa("E(%a,%a)",e.offset,e.kind); });
 
 		space = margin;
 		stk = [ E(margin,'horizontal) ];
@@ -174,26 +174,26 @@
 
 		@defloc out(x, l)
 		{
-            @local off;
-            //printf("%a %a %a %a %a\n",x,l,space,stk[0],length(stk));
+			@local off;
+			//printf("%a %a %a %a %a\n",x,l,space,stk[0],length(stk));
 			switch(x){
 			@match L(o, k, i):
-			    switch (k) {
-			    case 'nlleft:
-			        off = margin-i;
-			        break;
-                case 'nlhere:
-			        off = space-i;
-			        break;
-			    case 'nloff:
-			        off = stk[0].offset-i;
-			        break;
-			    default: error("bad group begin kind");
-			    }
-			    if (l < space)
-			        push(stk, E(off,'horizontal));
-			    else
-                    push(stk, E(off,'vertical));
+				switch (k) {
+				case 'nlleft:
+					off = margin-i;
+					break;
+				case 'nlhere:
+					off = space-i;
+					break;
+				case 'nloff:
+					off = stk[0].offset-i;
+					break;
+				default: error("bad group begin kind");
+				}
+				if (l < space)
+					push(stk, E(off,'horizontal));
+				else
+					push(stk, E(off,'vertical));
 				break;
 			@match R():
 				pop(stk);
@@ -216,8 +216,8 @@
 			default:
 				/* string */
 				pr(x);
-                space -= (int)l;
-                didnl = -1;
+				space -= (int)l;
+				didnl = -1;
 				break;
 			}
 		}
@@ -238,17 +238,19 @@
 		stk = [];
 		buf = [];
 		len = [];
+		l = r = 0;
+		rt = 1; /* ? */
 
 		@defloc loop()
 		{
 			@local x, i;
 			if(isempty(stream)) {
-                while(l < r) {
-                    print(buf[l], len[l]);
-                    l++;
-                }
+				while(l < r) {
+					print(buf[l], len[l]);
+					l++;
+				}
 				return;
-            }
+			}
 			switch(x = pop(stream)){
 			@match L(o, k, i): //XXX use i
 				if(isempty(stk)){
@@ -278,13 +280,13 @@
 				break;
 			@match B(n):
 				r++;
-                if (!isempty(stk)) {
-                    i = stk[0];
-                    if(isB(buf[i])){
-                        i = pop(stk);
-                        len[i] += rt;
-                    }
-                }
+				if (!isempty(stk)) {
+					i = stk[0];
+					if(isB(buf[i])){
+						i = pop(stk);
+						len[i] += rt;
+					}
+				}
 				buf[r] = x;
 				len[r] = -rt;
 				push(stk, r);
@@ -312,53 +314,54 @@
 	blank = B(1);
 	right = R();
 	linebreak = B(margin+1);
-    @defloc mkblank(n) { B(n); }
-    @defloc mkleft(k,i) { L(0,k,i); }
-    @defloc mkright() { R(); }
+	@defloc mkblank(n) { B(n); }
+	@defloc mkleft(k,i) { L(0,k,i); }
+	@defloc mkright() { R(); }
 
-    @defloc mkgroup(k,i,grp) {
-        return [L(0,k,i), grp, right];
-    }
+	@defloc mkgroup(k,i,grp) {
+		return [L(0,k,i), grp, right];
+	}
 
-    @defloc mkhgroup(i,args...) {
-        return apply(mkgroup,'nlhere,i,args);
-    }
-    @defloc mklgroup(i,args...) {
-        return apply(mkgroup,'nlleft,i,args);
-    }
-    @defloc mkogroup(i,args...) {
-        return apply(mkgroup,'nloff,i,args);
-    }
+	@defloc mkhgroup(i,args...) {
+		return apply(mkgroup,'nlhere,i,args);
+	}
+	@defloc mklgroup(i,args...) {
+		return apply(mkgroup,'nlleft,i,args);
+	}
+	@defloc mkogroup(i,args...) {
+		return apply(mkgroup,'nloff,i,args);
+	}
 
-    ppobj = mktab(@lambda() { error("undefined symbol\n"); });
-    foreach(@lambda(k,v) {
-        ppobj[k] = v;
-    },[
-        'left       : left,
-        'right      : right,
-        'blank      : blank,
-        'linebreak  : linebreak,
-        'mkblank    : mkblank,
-        'mkleft     : mkleft,
-        'mkright    : mkright,
-        'mkgroup    : mkgroup,
-        'mkhgroup    : mkhgroup,
-        'mklgroup    : mklgroup,
-        'mkogroup    : mkogroup,
-    ]);
+	ppobj = mktab(@lambda() { error("undefined symbol\n"); });
+	foreach(@lambda(k,v) {
+		ppobj[k] = v;
+	},[
+		'left		: left,
+		'right		: right,
+		'blank		: blank,
+		'linebreak	: linebreak,
+		'mkblank	: mkblank,
+		'mkleft		: mkleft,
+		'mkright	: mkright,
+		'mkgroup	: mkgroup,
+		'mkhgroup	: mkhgroup,
+		'mklgroup	: mklgroup,
+		'mkogroup	: mkogroup,
+	]);
 
-    
-    @defloc pp(e,args...) {
-        if(e == nil)
-            return;
-        if (length(args)>0) margin = args[0];
-        else margin = ppmargin;
-        print = mkprint();
-        docify(e,queue,ppobj);
-        scan();
-    };
+	
+	@defloc pp(e,args...) {
+		if(e == nil)
+			return;
+		if (length(args)>0) margin = args[0];
+		else margin = ppmargin;
+		print = mkprint();
+		docify(e,queue,ppobj);
+		scan();
+	};
 
-    return pp;
+	return pp;
 }
 
 
+// vim:ts=4:sw=4:noet

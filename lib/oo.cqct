@@ -160,7 +160,7 @@ To be used when one does many lookups into a table without changing it.
 For a table o, this macro searches the body for uses of o.x or o[x], where
 x is an id or a val, and caches those lookups in a temporary local variable
 so that they are only performed once. If the table is modified during execution
-of the cnsttbl's body, one will get undefined behavior.
+of the cnsttab's body, one will get undefined behavior.
 
 Speedup provided:
 
@@ -169,19 +169,19 @@ for(i=0; i<1000000; ++i)
 	o.a();
 
 //takes 684314 microseconds
-@cnsttbl(o) {
+@cnsttab(o) {
 	for(i=0; i<1000000; ++i)
 		o.a();
 	}
 }
 
 */
-@defstx @cnsttbl(o) body {
+@defstx @cnsttab(o) body {
 	@local references, new_locals, new_body;
 	references = [:];
 
 	if (stxkind(o) != 'id)
-		error("%s:%d bad cnsttbl parameter",stxsrc(o)[0], stxsrc(o)[1]);
+		error("%s:%d bad cnsttab parameter",stxsrc(o)[0], stxsrc(o)[1]);
 
 	@defloc exp(e) {
 		@local p,l;
@@ -206,8 +206,12 @@ for(i=0; i<1000000; ++i)
 			switch(e) {
 			@match #dot( a, #id(b) ):
 				if (a == o) {
-					references[b] = gensym();
-					return references[b];
+					@local s;
+					s = references[b];
+					if (s == nil) {
+						references[b] = s = gensym();
+					}
+					return s;
 				}
 			}
 			return e;
@@ -215,8 +219,12 @@ for(i=0; i<1000000; ++i)
 			switch(e) {
 			@match #aref( a, #val(b) ):
 				if (a == o) {
-					references[b] = gensym();
-					return references[b];
+					@local s;
+					s = references[b];
+					if (s == nil) {
+						references[b] = s = gensym();
+					}
+					return s;
 				}
 			}
 			return e;
@@ -226,7 +234,7 @@ for(i=0; i<1000000; ++i)
 			{
 				if (e[0][0] == o)
 					apply(error,
-					      "%s:%d: change to cnsttbl object",
+					      "%s:%d: change to cnsttab object",
 					      [stxsrc(e)[0], stxsrc(e)[1]]
 					);
 			}

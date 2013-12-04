@@ -12,6 +12,8 @@ ns1 = @names c32le {
 		@0	int e;
 		@4;
 	};
+	@["offset" : 100,
+	  "cc"     : "stdcall"] void function(int a);
 };
 
 ns2 = @names c32le {
@@ -40,3 +42,15 @@ printf("length of enumsym: %d\n",length(t));
 l = ns.enumtype();
 printf("length of enumsym: %d\n",length(l));
 
+printns(ns1);
+printns(ns2);
+
+str = nstostr(ns);
+printf("\n+++++++++++++++\n%s\n",str);
+ns3 = eval(sprintfa("@names c32le { %s };",str));
+
+printns(ns3);
+
+printf("%t\n",@typeof(struct ns1`s1));
+
+// vim:sw=8:ts=8:noet

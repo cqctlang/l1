@@ -583,7 +583,7 @@ fmtval(VM *vm, Fmt *f, Val val)
 		e = valexpr(val);
 		switch(e->kind){
 		case Eid:
-			if(fmtputs0(vm, f, "#id("))
+			if(fmtputs0(vm, f, "#id('"))
 				return -1;
 			if(fmtputs0(vm, f, ciddata(valcid(e->aux))))
 				return -1;
