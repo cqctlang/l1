@@ -157,6 +157,10 @@ libl1.dylib: l1.o
 	if [ ! -f libgcc_s.dylib ] ; then ln -s /usr/lib/libgcc_s.1.dylib libgcc_s.dylib ; fi
 	libtool -dynamic -lc -L. -lgcc_s -o $@ $^
 
+libl1.a: l1.o main.o
+	@echo + ld $@
+	ar rcS libl1.a l1.o main.o $(RLX)
+
 heapify: dummy l1
 	@echo + heapify $(HEAPIFY_HEAP)
 	$(V)cd $(HEAPIFY_CWD) && $(RT)$(MAKE_CWD)/l1 -d $(HEAPIFY_HEAP) $(HEAPIFY_ARGS)
