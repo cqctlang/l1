@@ -692,7 +692,7 @@ $repllevel = 0;
 		}
 		if(arg == "-L") {
 			if(length(args) == 0)
-				error("missing file for -l");
+				error("missing file for -L");
 			append(actions, [ 'load, pop(args) ]);
 			continue;
 		}
