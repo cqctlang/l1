@@ -14,9 +14,10 @@ mks: mks.o
 #	@echo + ld $@
 #	$(V)$(CC) $(CFLAGS) -o $@ $^
 
-$(HEAPO): $(HEAP) mkelf mks
+$(HEAPO): $(HEAP) mks
 	@echo + mks $@
 	$(V)$(RT) ./mks -a 0x1000 -S .data -s heapimage $(HEAP) $(IDIR)heap.S
 	$(V)$(AS) -o $(HEAPO) $(IDIR)heap.S
 	objcopy --only-section=.data heap.o heap.o
+	objcopy --rename-section .data=saveheap heap.o heap.o
 	$(V)rm -f $(IDIR)heap.S
