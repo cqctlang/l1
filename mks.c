@@ -27,13 +27,16 @@ main(int argc, char *argv[])
 	char *sym;
 	char *ep;
 	char *infile, *outfile;
+	char *prefix;
 	FILE *of;
 
 	maxlen = 0;
 	align = 0;
 	len = 0;
 	sym = 0;
-	while(-1 != (c = getopt(argc, argv, "a:hl:s:")))
+	prefix = "";
+
+	while(-1 != (c = getopt(argc, argv, "a:hl:p:s:")))
 		switch(c) {
 		case 'a':
 			opt['a'] = 1;
@@ -50,6 +53,9 @@ main(int argc, char *argv[])
 			maxlen = strtoull(optarg, &ep, 0);
 			if(*ep != '\0')
 				usage(argv[0]);
+			break;
+		case 'p':
+			prefix = optarg;
 			break;
 		case 'h':
 		case '?':
@@ -81,11 +87,11 @@ main(int argc, char *argv[])
 	fprintf(of, ".section savedheap, \"r\"\n");
 	if(align)
 		fprintf(of, ".balign 0x%x\n", (int)align);
-	fprintf(of, ".globl\t_%s\n", sym);
-	fprintf(of, ".globl\t_end%s\n", sym);
-	fprintf(of, "_%s:\n", sym);
+	fprintf(of, ".globl\t%s%s\n", prefix, sym);
+	fprintf(of, ".globl\t%send%s\n", prefix, sym);
+	fprintf(of, "%s%s:\n", prefix, sym);
 	fprintf(of, ".incbin \"%s\"\n", infile);
-	fprintf(of, "_end%s:\n", sym);
+	fprintf(of, "%send%s:\n", prefix, sym);
 	fflush(of);
 	close(ofd);
 	return 0;
