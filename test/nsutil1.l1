@@ -1,0 +1,25 @@
+@include <nsutil.cqct>
+ns=@names c32le {
+  @0x0 int thing;
+  enum {
+    a,
+    b,
+    c
+  } E;
+};
+nso=mknsoff(ns,10);
+
+@define f(ns,cid){
+  @local sym;
+  sym=ns.looksym(cid);
+  printf("%t\n", symtype(sym));
+  printf("%a\n", symoff(sym));
+  printf("%d\n", isenum(symtype(sym)));
+  printf("%d\n", isenumconst(symtype(sym)));
+  printf("\n");
+}
+f(ns,'a);
+f(nso,'a);
+f(ns,'thing);
+f(nso,'thing);
+
