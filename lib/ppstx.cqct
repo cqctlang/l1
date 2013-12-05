@@ -76,7 +76,7 @@
             @local m, i, es, s;
             switch(e){
             @match #id(id):
-                queue(sprintfa("%a", id));
+                queue(sprintfa("%a", e));
                 break;
             @match #val:
                 /* FIXME: need to recurse into val, esp for stx */
@@ -206,6 +206,7 @@
                 queue(right);
                 queue(blank);
                 queue(left);
+                queue("#[");
                 m = Zlength(body);
                 i = 0;
                 foreach(@lambda(e){
@@ -222,6 +223,7 @@
                         }
                         i++;
                     }, body);
+                queue("]");
                 queue(right);
                 queue(right);
                 queue(")");

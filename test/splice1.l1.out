@@ -1,1 +1,1 @@
-#lambda(#[ #id(a), #id(b), #id(c), #id(d), #id(e), #id(f), #id(g) ], #scope(#block(#[], #[ #id(nil) ])))
+#lambda(#[ #id('a), #id('b), #id('c), #id('d), #id('e), #id('f), #id('g) ], #scope(#block(#[], #[ #id('nil) ])))

@@ -6,6 +6,7 @@ if (nsutil_defined == nil)
 {
 @global typenameequal, typeequal, nsdiff, printtype, printns;
 @global types_with_ptrs, nsiter, all_types, nsjoin, mknsoff, mktnresolve;
+@global nstostr;
 
 nsutil_defined = 1;
 
@@ -19,7 +20,7 @@ nsutil_defined = 1;
 */
 @define typenameequal(t1, t2){
 	@local i, ps1, ps2, p1, p2,
-               tag1, tag2, n1, n2;
+	       tag1, tag2, n1, n2;
 
 	if(isvoid(t1) && isvoid(t2))
 		return 1;
@@ -239,8 +240,8 @@ nsutil_defined = 1;
 
 
 /**
-* Calculates the differences between the two namespaces 
-* (ignoring annonomous types) 
+* Calculates the differences between the two namespaces
+* (ignoring annonomous types)
 * param: ns1 - namespace
 * param: ns2 - namespace
 * returns: [tab1, tab2, tab3] where tab1 contains types in ns1 that are not
@@ -322,22 +323,22 @@ nsutil_defined = 1;
 				printf("\t");
 				printf("\t%t;\n", fld);
 			}else if(isbitfield(ft)){
-				printf("\t/*@@(8*0x%x+%x)*/",
+				printf("\t@@(8*0x%x+%x)",
 				       off, bitfieldpos(ft));
 				printf("\t%t %s : %d;\n",
 				       bitfieldcontainer(ft), id,
 				       bitfieldwidth(ft));
 			}else{
-				printf("\t/*@0x%x*/", off);
+				printf("\t@0x%x", off);
 				printf("\t%t;\n", fld);
 			}
 		}
 		sz = susize(t);
 		if(sz != nil)
-			printf("\t/*@0x%x;*/\n", sz);
-		printf("};\n");
+			printf("\t@0x%x;\n", sz);
+		printf("}");
 	}else if(istypedef(t)){
-		printf("typedef %t %s\n", typedeftype(t), typedefid(t));
+		printf("typedef %t %s", typedeftype(t), typedefid(t));
 	}else if(isenum(t)){
 		@local ens,en;
 		printf("%s %s {\n", suekind(t), suetag(t));
@@ -346,7 +347,7 @@ nsutil_defined = 1;
 			en = ens[i];
 			printf("\t%s = %d,\n", en[0], en[1]);
 		}
-		printf("};\n");
+		printf("}");
 	}
 }
 
@@ -358,20 +359,65 @@ nsutil_defined = 1;
 @define printns(ns){
 	@local i, vec;
 	vec = tabvals(ns.enumtype());
-	for(i = 0; i < length(vec); i++)
+	sort(vec,@lambda(x,y) { strcmp(sprintfa("%t",x),sprintfa("%t",y)); });
+	for(i = 0; i < length(vec); i++) {
+		if (isbase(vec[i]) || isvoid(vec[i])) continue;
+		if (isptr(vec[i]) &&
+		    (isbase(subtype(vec[i])) || isvoid(subtype(vec[i]))))
+		{
+			continue;
+		}
 		printtype(vec[i]);
+		printf(";\n");
+	}
 	vec = tabvals(ns.enumsym());
+	sort(vec,@lambda(x,y){ 
+		@local r;
+		r = symoff(x)-symoff(y);
+		if (r != 0) return r;
+	        return strcmp(cid2str(symid(x)),cid2str(symid(y)));
+	});
 	for(i = 0; i < length(vec); i++){
-		@local sym, off, type;
+		@local sym, off, type, attrs;
 		sym = vec[i];
 		type = symtype(sym);
 		if(isenumconst(type))
 			continue;
 		off = symoff(sym);
-		if(off != nil)
-			printf("/*@0x%x*/", off);
+		attrs = symattr(sym);
+		if(off != nil){
+			if (length(attrs) == 1)
+				printf("@0x%x", off);
+			else {
+				@local first;
+				first = 1;
+				foreach(@lambda(k,v) {
+					if (first) {
+						printf("@[");
+						first = 0;
+					} else printf(",\n  ");
+					printf("%a:%a",k,v);
+				},attrs);
+				printf("]");
+			}
+		}
 		printf("\t%t;\n", sym);
 	}
+}
+
+@define nstostr(ns) {
+	@local orig_printf, accum;
+	accum = [];
+	dynamicwind(@lambda() {
+		orig_printf = printf;
+		printf = @lambda(args...) {
+			append(accum,apply(sprintfa,args));
+		};
+	}, @lambda() { printns(ns); },
+	@lambda() {
+		printf = orig_printf;
+	});
+	return join(accum);
 }
 
 @define all_types(ns)
@@ -405,7 +451,7 @@ nsutil_defined = 1;
 		r2 = ns2.lookaddr(addr);
 		if (r1 == nil) return r2;
 		if (r2 == nil) return r1;
-		if ({litdom}(uintptr)symoff(r1) > 
+		if ({litdom}(uintptr)symoff(r1) >
  		    {litdom}(uintptr)symoff(r2)) return r1;
 		return r2;
 	}
@@ -454,7 +500,7 @@ nsutil_defined = 1;
 				new_attr[k] = v;
 			}
 		},attr);
-		sym_cache[symid(sym)] = ret = 
+		sym_cache[symid(sym)] = ret =
 			mksym(symtype(sym),symid(sym),new_attr);
 		return ret;
 	}
@@ -483,7 +529,7 @@ nsutil_defined = 1;
 		foreach(@lambda(k,v) {
 			if (symoff(v) <= addr &&
 				(sym1 == nil || symoff(sym1)<symoff(v)))
-				sym1 = v;	
+				sym1 = v;
 		}, sym_cache);
 		//if we happen to find exactly the right address, we
 		//don't have to ask the other ns.
@@ -499,7 +545,7 @@ nsutil_defined = 1;
 				if (symoff(sym)>symoff(sym1)) return sym;
 				else return sym1;
 			} //else return sym1 //sym was already in sym_cache
-					     //and was therefore considered 
+					     //and was therefore considered
 					     //when generating sym1.
 		} //else return sym1
 		return sym1;
@@ -656,10 +702,11 @@ nsutil_defined = 1;
 		}else
 			error("type resolution on unexpected type: %t", tn);
 	}
-	
+
 	return resolve;
 }
 
 
 }
+// vim:sw=8:ts=8:noet
 
