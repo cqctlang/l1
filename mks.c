@@ -13,7 +13,7 @@ static char opt[256];
 static void
 usage(char *argv0)
 {
-	printf("usage: %s -a <alignment> -s <symbol> [ -l <maxlen> ] <infile> <outfile>\n",
+	printf("usage: %s -a <alignment> -s <symbol> [ -p <abi_prefix> ] [ -S <section> ] [ -l <maxlen> ] <infile> <outfile>\n",
 	       argv0);
 	exit(1);
 }
@@ -27,13 +27,18 @@ main(int argc, char *argv[])
 	char *sym;
 	char *ep;
 	char *infile, *outfile;
+	char *prefix;
+	char *section;
 	FILE *of;
 
 	maxlen = 0;
 	align = 0;
 	len = 0;
 	sym = 0;
-	while(-1 != (c = getopt(argc, argv, "a:hl:s:")))
+	prefix = "";
+	section = "savedheap";
+
+	while(-1 != (c = getopt(argc, argv, "a:hl:p:s:S:")))
 		switch(c) {
 		case 'a':
 			opt['a'] = 1;
@@ -45,11 +50,17 @@ main(int argc, char *argv[])
 			opt['s'] = 1;
 			sym = optarg;
 			break;
+		case 'S':
+			section = optarg;
+			break;
 		case 'l':
 			opt['l'] = 1;
 			maxlen = strtoull(optarg, &ep, 0);
 			if(*ep != '\0')
 				usage(argv[0]);
+			break;
+		case 'p':
+			prefix = optarg;
 			break;
 		case 'h':
 		case '?':
@@ -78,14 +89,14 @@ main(int argc, char *argv[])
 		exit(1);
 	}
 
-	fprintf(of, ".section savedheap, \"r\"\n");
+	fprintf(of, ".section %s, \"r\"\n", section);
 	if(align)
 		fprintf(of, ".balign 0x%x\n", (int)align);
-	fprintf(of, ".globl\t_%s\n", sym);
-	fprintf(of, ".globl\t_end%s\n", sym);
-	fprintf(of, "_%s:\n", sym);
+	fprintf(of, ".globl\t%s%s\n", prefix, sym);
+	fprintf(of, ".globl\t%send%s\n", prefix, sym);
+	fprintf(of, "%s%s:\n", prefix, sym);
 	fprintf(of, ".incbin \"%s\"\n", infile);
-	fprintf(of, "_end%s:\n", sym);
+	fprintf(of, "%send%s:\n", prefix, sym);
 	fflush(of);
 	close(ofd);
 	return 0;

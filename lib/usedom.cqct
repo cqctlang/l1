@@ -18,8 +18,21 @@
 		case 'stxquasi:
 			error("quasi not allowed");
 		case 'stxquote:
-		case 'val:
 			return e;
+		case 'val:
+			if (iscvalue(stxval(e)))
+				return #xcast(dstx,e);
+			return e;
+		case 'typename:
+			if (stxkind(stxref(e,0)) != 'tickt) {
+				return #typename(#tickt(dstx,stxref(e,0)),
+				                 stxref(e,1));
+			}
+			return e;
+		case 'arrow:
+			return #arrow(walk(stxref(e,0)),stxref(e,1));
+		case 'dot:
+			return #dot(walk(stxref(e,0)),stxref(e,1));
 		case 'id:
 			if (dom.looksym(stxid(e)) != nil) {
 				return #ticke(dstx,e);

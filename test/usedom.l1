@@ -6,7 +6,8 @@ ns = @names c32le {
         @0x0 int f1;
         @0x4 int f2;
         @0x8 int f3;
-        @0xc;
+        @0xc int value;
+        @0x10;
     };
 
     @0x0 struct A str;
@@ -57,3 +58,11 @@ dynamicwind(@lambda() { oldread = read; read = myread; },
             @lambda() { @domrepl(dom); },
             @lambda() { read = oldread; });
 
+dom`str.value = 5555;
+printf("%a\n",@expwithdom(dom,str.value));
+printf("%a\n",@expwithdom(dom,(&str)->value));
+printf("%a\n",@expwithdom(dom,((struct A*)0)->value));
+printf("%e\n",@expwithdom(dom,(enum E)0));
+printf("%d\n",@expwithdom(dom,*(int*)0));
+printf("%d\n",@expwithdom(dom,*(int*)0 = 30));
+printf("%d\n",dom`str.f1);

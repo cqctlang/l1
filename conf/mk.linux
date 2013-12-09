@@ -1,13 +1,23 @@
 include conf/mk.unix
 
+CFLAGS	+= -DLINK_PCH
+
 HEAPO	= heap.o
 
 L1X     += $(HEAPO)
 
-mkelf: mkelf.o
+mks: mks.o
 	@echo + ld $@
 	$(V)$(CC) $(CFLAGS) -o $@ $^
 
-$(HEAPO): $(HEAP) mkelf
-	@echo + mkelf $@
-	$(V)$(RT) ./mkelf -m $(ARCH) -a 0x1000 -s heapimage $(HEAP) $(HEAPO)
+#mkelf: mkelf.o
+#	@echo + ld $@
+#	$(V)$(CC) $(CFLAGS) -o $@ $^
+
+$(HEAPO): $(HEAP) mks
+	@echo + mks $@
+	$(V)$(RT) ./mks -a 0x1000 -S .data -s heapimage $(HEAP) $(IDIR)heap.S
+	$(V)$(AS) -o $(HEAPO) $(IDIR)heap.S
+	objcopy --only-section=.data heap.o heap.o
+	objcopy --rename-section .data=saveheap heap.o heap.o
+	$(V)rm -f $(IDIR)heap.S
