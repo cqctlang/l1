@@ -89,7 +89,7 @@ main(int argc, char *argv[])
 		exit(1);
 	}
 
-	fprintf(of, ".section %s, \"r\"\n", section);
+	fprintf(of, ".section %s\n", section);
 	if(align)
 		fprintf(of, ".balign 0x%x\n", (int)align);
 	fprintf(of, ".globl\t%s%s\n", prefix, sym);
