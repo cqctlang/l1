@@ -1,7 +1,6 @@
 include conf/mk.unix
 
-HEAPO	= heap.o
-L1X     += $(HEAPO)
+L1C     += pcheap.o
 
 mkc: mkc.o
 	@echo + ld $@
@@ -11,11 +10,15 @@ mks: mks.o
 	@echo + ld $@
 	$(V)$(CC) $(CFLAGS) -o $@ $^
 
-$(HEAPO): $(HEAP) mks
+heap.o: l1.heap mks
 	@echo + mks $@
-	$(V)./mks -a 0x1000 -p _ -s heapimage $(HEAP) $(IDIR)heap.S
-	$(V)$(AS) -o $(HEAPO) $(IDIR)heap.S
+	$(V)./mks -f r -a 0x1000 -p _ -s heapimage l1.heap $(IDIR)heap.S
+	$(V)$(AS) -o heap.o $(IDIR)heap.S
 	$(V)rm -f $(IDIR)heap.S
+
+l1: l1.o main.o heap.o
+	@echo + ld $@
+	$(V)$(CC) $(CFLAGS) -o $@ $^ $(L1LIBS)
 
 libl1.dylib: l1.o
 	@echo + ld $@

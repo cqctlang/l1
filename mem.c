@@ -8,11 +8,7 @@ enum {
 };
 
 static Head constnil;
-#pragma weak heapimage
-#pragma weak endheapimage
 #pragma weak findheapimage
-char heapimage[1] = { Noheap };
-char endheapimage[0];
 extern void *findheapimage(u64 *len);
 static u32 heapversion = 2;
 
@@ -3399,13 +3395,6 @@ restoreheap(char *file)
 
 			op = p = mapmem(len); /* Segsize-aligned; closer to
 					 other segments than executable */
-			memcpy(p, heapimage, len);
-		} else {
-			if(heapimage[0] != Heapdefined)
-				return 0;
-			len = endheapimage-heapimage;
-			op = p = mapmem(len); /* Segsize-aligned; closer to
-						 other segments than executable */
 			memcpy(p, heapimage, len);
 		}
 	}
