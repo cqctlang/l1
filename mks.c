@@ -29,6 +29,7 @@ main(int argc, char *argv[])
 	char *infile, *outfile;
 	char *prefix;
 	char *section;
+	char *flags;
 	FILE *of;
 
 	maxlen = 0;
@@ -36,15 +37,19 @@ main(int argc, char *argv[])
 	len = 0;
 	sym = 0;
 	prefix = "";
+	flags = "";
 	section = "savedheap";
 
-	while(-1 != (c = getopt(argc, argv, "a:hl:p:s:S:")))
+	while(-1 != (c = getopt(argc, argv, "a:f:hl:p:s:S:")))
 		switch(c) {
 		case 'a':
 			opt['a'] = 1;
 			align = strtoull(optarg, &ep, 0);
 			if(*ep != '\0')
 				usage(argv[0]);
+			break;
+		case 'f':
+			flags = optarg;
 			break;
 		case 's':
 			opt['s'] = 1;
@@ -89,7 +94,7 @@ main(int argc, char *argv[])
 		exit(1);
 	}
 
-	fprintf(of, ".section %s\n", section);
+	fprintf(of, ".section %s, \"%s\"\n", section, flags);
 	if(align)
 		fprintf(of, ".balign 0x%x\n", (int)align);
 	fprintf(of, ".globl\t%s%s\n", prefix, sym);
