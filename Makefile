@@ -133,29 +133,13 @@ l1.o: $(L1C:.c=.o) $(L1DEPS)
 	@echo + ld $@
 	$(V)$(LD) $(LDFLAGS) -o $@ $^
 
-l1: l1.o main.o $(L1X)
+tl1: l1.o main.o
 	@echo + ld $@
 	$(V)$(CC) $(CFLAGS) -o $@ $^ $(L1LIBS)
 
-l1s: l1.o main.o $(L1X)
+tl1s: l1.o main.o
 	@echo + ld $@
 	$(V)$(CC) -static $(CFLAGS) -o $@ $^ $(L1LIBS)
-
-dummy:
-relink: l1.o main.o $(RLX) dummy
-	@echo + relinking $(RLTARG)
-	$(V)$(CC) $(CFLAGS) -o $(RLTARG) l1.o main.o $(L1LIBS) $(RLX)
-
-libl1.so: CFLAGS += -fPIC -nostdlib
-
-libl1.so: l1.o
-	@echo + ld $@
-	$(V)$(CC) -shared -Xlinker -Bsymbolic -o $@ $^
-
-libl1.dylib: l1.o
-	@echo + ld $@
-	if [ ! -f libgcc_s.dylib ] ; then ln -s /usr/lib/libgcc_s.1.dylib libgcc_s.dylib ; fi
-	libtool -dynamic -lc -L. -lgcc_s -o $@ $^
 
 libl1.a: l1.o main.o
 	@echo + ld $@

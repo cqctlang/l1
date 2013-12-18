@@ -16,20 +16,9 @@ L1C      += unix.c $(addsuffix .c, $(UNIX))
 L1FUNS   += $(UNIX)
 L1LIBS   += -ldl
 
-TL1 = tl1
 # runtime preamble for some cross compilers
 RT =
 
-HEAP = l1.heap
-
-$(HEAP): $(TL1) $(MAYBEHEAP)                                                       
+l1.heap: tl1 $(MAYBEHEAP)                                                       
 	@echo + dump $@                                                         
-	$(V)$(RT) ./$(TL1) -x "saveheap(\"./$@\");"
-
-tl1.o: $(L1C:.c=.o) $(L1DEPS)                                                   
-	@echo + ld $@                                                           
-	$(V)$(LD) $(LDFLAGS) -o $@ $^                                           
-
-tl1: tl1.o main.o                                                               
-	@echo + ld $@                                                           
-	$(V)$(CC) $(CFLAGS) -o $@ $^ $(L1LIBS)
+	$(V)$(RT) ./tl1 -x "saveheap(\"./$@\");"

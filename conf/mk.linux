@@ -1,23 +1,18 @@
 include conf/mk.unix
 
-CFLAGS	+= -DLINK_PCH
+L1C	+= elfheap.o
 
-HEAPO	= heap.o
+l1: tl1 l1.heap
+	@echo + relink
+	$(V)objcopy  --add-section saveheap=l1.heap tl1 l1
 
-L1X     += $(HEAPO)
+l1s: tl1s l1.heap
+	@echo + relink
+	$(V)objcopy  --add-section saveheap=l1.heap tl1s l1s
 
-mks: mks.o
+# make clean if you are building libl1.so after building a non-pic target
+libl1.so: CFLAGS += -fPIC -nostdlib
+
+libl1.so: l1.o
 	@echo + ld $@
-	$(V)$(CC) $(CFLAGS) -o $@ $^
-
-#mkelf: mkelf.o
-#	@echo + ld $@
-#	$(V)$(CC) $(CFLAGS) -o $@ $^
-
-$(HEAPO): $(HEAP) mks
-	@echo + mks $@
-	$(V)$(RT) ./mks -a 0x1000 -S .data -s heapimage $(HEAP) $(IDIR)heap.S
-	$(V)$(AS) -o $(HEAPO) $(IDIR)heap.S
-	objcopy --only-section=.data heap.o heap.o
-	objcopy --rename-section .data=saveheap heap.o heap.o
-	$(V)rm -f $(IDIR)heap.S
+	$(V)$(CC) -shared -Xlinker -Bsymbolic -o $@ $^

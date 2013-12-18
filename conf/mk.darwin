@@ -16,3 +16,8 @@ $(HEAPO): $(HEAP) mks
 	$(V)./mks -a 0x1000 -p _ -s heapimage $(HEAP) $(IDIR)heap.S
 	$(V)$(AS) -o $(HEAPO) $(IDIR)heap.S
 	$(V)rm -f $(IDIR)heap.S
+
+libl1.dylib: l1.o
+	@echo + ld $@
+	if [ ! -f libgcc_s.dylib ] ; then ln -s /usr/lib/libgcc_s.1.dylib libgcc_s.dylib ; fi
+	libtool -dynamic -lc -L. -lgcc_s -o $@ $^

@@ -10,8 +10,10 @@ enum {
 static Head constnil;
 #pragma weak heapimage
 #pragma weak endheapimage
+#pragma weak findheapimage
 char heapimage[1] = { Noheap };
 char endheapimage[0];
+extern void *findheapimage(u64 *len);
 static u32 heapversion = 2;
 
 /* if you change this, be sure the
@@ -3386,13 +3388,26 @@ restoreheap(char *file)
 		op = p = mapmem(len); /* Segsize-aligned */
 		memcpy(p, tmp, len);
 		munmap(tmp, roundup(len, 4096));
-	}else{
-		if(heapimage[0] != Heapdefined)
-			return 0;
-		len = endheapimage-heapimage;
-		op = p = mapmem(len); /* Segsize-aligned; closer to
+	} else {
+		if(findheapimage) {
+			unsigned char *heapimage;
+
+			heapimage = findheapimage(&len);
+
+			if((!heapimage) || (heapimage[0] != Heapdefined))
+				return 0;
+
+			op = p = mapmem(len); /* Segsize-aligned; closer to
 					 other segments than executable */
-		memcpy(p, heapimage, len);
+			memcpy(p, heapimage, len);
+		} else {
+			if(heapimage[0] != Heapdefined)
+				return 0;
+			len = endheapimage-heapimage;
+			op = p = mapmem(len); /* Segsize-aligned; closer to
+						 other segments than executable */
+			memcpy(p, heapimage, len);
+		}
 	}
 
 #define XRD(to,fr,sz) { 		\
