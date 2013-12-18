@@ -373,7 +373,7 @@ nsutil_defined = 1;
 	vec = tabvals(ns.enumsym());
 	sort(vec,@lambda(x,y){ 
 		@local r;
-		r = symoff(x)-symoff(y);
+		r = cvalcmp(symoff(x),symoff(y));
 		if (r != 0) return r;
 	        return strcmp(cid2str(symid(x)),cid2str(symid(y)));
 	});
