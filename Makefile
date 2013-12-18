@@ -145,6 +145,8 @@ libl1.a: l1.o main.o
 	@echo + ld $@
 	ar rcS libl1.a l1.o main.o $(RLX)
 
+dummy:
+
 heapify: dummy l1
 	@echo + heapify $(HEAPIFY_HEAP)
 	$(V)cd $(HEAPIFY_CWD) && $(RT)$(MAKE_CWD)/l1 -d $(HEAPIFY_HEAP) $(HEAPIFY_ARGS)
