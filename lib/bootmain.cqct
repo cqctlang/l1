@@ -764,7 +764,7 @@ $repllevel = 0;
 	p = getpid();
 	u = uname();
 	if(u[0] != "Linux") {
-		fprintf(stderr, "relinking supported only on Linux");
+		fprintf(stderr, "relinking supported only on Linux\n");
 		return -1;
 	}
 
