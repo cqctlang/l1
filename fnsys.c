@@ -58,11 +58,13 @@ static void
 l1_execve(VM *vm, Imm argc, Val *argv, Val *rv)
 {
 	int xargc;
+	int xec;
 	char **xargv;
+	char **xenviron;
 	int xrv;
 	Val cv;
 	Imm x;
-	List *av;
+	List *av, *ev;
 
 	if(argc != 3)
 		vmerr(vm, "wrong number of arguments to execve");
@@ -79,12 +81,32 @@ l1_execve(VM *vm, Imm argc, Val *argv, Val *rv)
 	xargv = emalloc((xargc+1)*sizeof(char*)); /* null terminated */
 	for(x = 0; x < xargc ; x++) {
 		cv = listref(av, x);
-		if(Vkind(cv) != Qstr)
+		if(Vkind(cv) != Qstr) {
+			free(xargv);
 			vmerr(vm, "argument 1 to execve must be a list of strings");
+		}
 		xargv[x] = str2cstr(valstr(cv));
 	}
 
-	xrv = execve(str2cstr(valstr(argv[0])), xargv, NULL);
+	if(Vkind(argv[2]) == Qnil) {
+		xenviron = NULL;
+	} else {
+		ev = vallist(argv[2]);
+		xec = listlen(ev);
+		xenviron = emalloc((xec+1)*sizeof(char*)); /* null terminated */
+	
+		for(x = 0; x < xec ; x++) {
+			cv = listref(ev, x);
+			if(Vkind(cv) != Qstr) {
+				free(xargv);
+				free(xenviron);
+				vmerr(vm, "argument 2 to execve must be a list of strings");
+			}
+			xenviron[x] = str2cstr(valstr(cv));
+		}
+	}
+
+	xrv = execve(str2cstr(valstr(argv[0])), xargv, xenviron);
 
 	*rv = mkvalcval2(mklitcval(Vint, xrv));
 
