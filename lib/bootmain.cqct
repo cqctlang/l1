@@ -658,8 +658,10 @@ $repllevel = 0;
 	fprintf(stderr, "\t-x <expr> evaluate <expr>\n");
 	fprintf(stderr, "\t-e <symbol> enter script at function named <symbol>\n");
 	fprintf(stderr, "\t-r run a repl\n");
-	fprintf(stderr, "\t-d <file> dump heap to <file> and exit after compiling\n\t   the program indicated on the command line with -L, -x, -r,\n\t   and <script>. The heap in <file> is configured to run the program.\n");
-	fprintf(stderr, "\t-ld <file> relink l1 into the new program <file>. This works like '-d' except that the output file is a new executable rather than an l1 heap file.\n");
+	fprintf(stderr, "\t-d <file> dump to <file> and exit after compiling\n\t   the program indicated on the command line with -L, -x, -r,\n\t   and <script>. The artifact in <file> is configured to run the\n\t   program. Use -t to select an output format.\n");
+	fprintf(stderr, "\t-t <format> select a dump format. Use 'heap' or 'relink'.\n\t   Default is 'heap'. This option has no effect without '-d'.\n");
+	fprintf(stderr, "\t   format 'heap' saves a binary version of the l1 heap. This heap\n\t   can be loaded into a subsequent session with '-m'.\n");
+	fprintf(stderr, "\t   format 'relink' saves a new executable based on the current l1. Any\n\t   pre-linked heap image is removed and the new heap image is added.\n\t   Relinking is only supported on some platforms.\n");
 	fprintf(stderr, "\nFlags -L, -x, and -r may be each specified multiple times and in any order.\n");
 	fprintf(stderr, "  They are processed together in the order supplied. Each -L or -x option\n");
 	fprintf(stderr, "  is processed as a new compilation unit.\n");
@@ -672,11 +674,18 @@ $repllevel = 0;
 {
 	@local arg;
 	@local actions, cmd, flags;
+	@local aerror;
 
 	l1path = pop(args);
 	actions = [];
 	flags = [:];
 	cmd = [];
+
+	aerror = @lambda(s) {
+		fprintf(stderr, "%s\n", s);
+		exit(1);
+	};
+
 	while(length(args)) {
 		arg = pop(args);
 		if(arg == "--")
@@ -687,42 +696,45 @@ $repllevel = 0;
 		}
 		if(arg == "-x") {
 			if(length(args) == 0)
-				error("missing form for -x");
+				aerror("missing form for -x");
 			append(actions, [ 'eval, pop(args) ]);
 			continue;
 		}
 		if(arg == "-L") {
 			if(length(args) == 0)
-				error("missing file for -L");
+				aerror("missing file for -L");
 			append(actions, [ 'load, pop(args) ]);
 			continue;
 		}
 		if(arg == "-e") {
 			if(length(args) == 0)
-				error("missing symbol for -e");
+				aerror("missing symbol for -e");
 			if(flags['entry])
-				error("multiple uses of -e");
+				aerror("multiple uses of -e");
 			flags['entry] = mkcid(pop(args));
 			continue;
 		}
 		if(arg == "-d") {
 			if(length(args) == 0)
-				error("missing file for -d");
+				aerror("missing file for -d");
 			if(flags['dump])
-				error("multiple uses of -d");
-			if(flags['relink])
-				error("-d cannot be combined with -ld");
+				aerror("multiple uses of -d");
 			flags['dump] = pop(args);
 			continue;
 		}
-		if(arg == "-ld") {
+		if(arg == "-t") {
 			if(length(args) == 0)
-				error("missing file for -ld");
-			if(flags['relink])
-				error("multiple uses of -ld");
-			if(flags['dump])
-				error("-ld cannot be combined with -d");
-			flags['relink] = pop(args);
+				aerror("missing type for -t");
+			if(flags['type])
+				aerror("multiple uses of -t");
+			flags['type] = pop(args);
+			switch(flags['type]) {
+				case "heap":
+				case "relink":
+					break;
+				default:
+					aerror("bad argument for -t. try 'heap' or 'relink'");
+			}
 			continue;
 		}
 		if(arg == "-r") {
@@ -734,9 +746,13 @@ $repllevel = 0;
 			continue; /* legacy flags */
 		usage(l1path);
 	}
+
+	if(flags['dump] && !flags['type])
+		flags['type] = "heap";
+
 	cmd = args;
 	if(flags['entry] && length(cmd) == 0)
-		error("entry specified without a script");
+		aerror("entry specified without a script");
 	return [actions, flags, cmd];
 }
 
@@ -800,12 +816,12 @@ $repllevel = 0;
 					$l1start = @lambda(arg ...) {
 						return repl();
 					};
-					return saveheap(flags['dump]);
-				} else if(flags['relink]) {
-					$l1start = @lambda(arg ...) {
-						return repl();
-					};
-					return relink(flags['relink]);
+					if(flags['type] == "heap")
+						return saveheap(flags['dump]);
+					else if(flags['type] == "relink")
+						return relink(flags['dump]);
+					else
+						return -1;
 				} else {
 					return repl();
 				}
@@ -825,7 +841,7 @@ $repllevel = 0;
 						rv = compile(rv);
 						if(!rv)
 							error("could not compile %a", action[1]);
-						if(flags['dump] || flags['relink])
+						if(flags['dump])
 							append(thunks,rv);
 						else
 							rv = rv();
@@ -835,13 +851,13 @@ $repllevel = 0;
 						if(!rv)
 							return 1;
 							// error("could not load and compile %a", action[1]);
-						if(flags['dump] || flags['relink])
+						if(flags['dump])
 							append(thunks,rv);
 						else
 							rv = rv();
 						break;
 					case 'repl:
-						if(flags['dump] || flags['relink])
+						if(flags['dump])
 							append(thunks,repl);
 						else
 							rv = repl();
@@ -859,16 +875,12 @@ $repllevel = 0;
 
 							return rv;
 						};
-						return saveheap(flags['dump]);
-					} else if(flags['relink]) {
-						$l1start = @lambda(arg ...) {
-							foreach(@lambda(v) {
-								v();
-							}, thunks);
-
-							return rv;
-						};
-						return relink(flags['relink]);
+						if(flags['type] == "heap")
+							return saveheap(flags['dump]);
+						else if(flags['type] == "relink")
+							return relink(flags['dump]);
+						else
+							return -1;
 					} else {
 						return rv;
 					}
@@ -895,21 +907,12 @@ $repllevel = 0;
 								rv();
 							});
 						};
-						return saveheap(flags['dump]);
-					} else if(flags['relink]) {
-						$l1start = @lambda(arg ...) {
-							callcc(@lambda(done) {
-								currentreturn = done;
-
-								foreach(@lambda(v) {
-									v();
-								}, thunks);
-
-								args = arg;
-								rv();
-							});
-						};
-						return relink(flags['relink]);
+						if(flags['type] == "heap")
+							return saveheap(flags['dump]);
+						else if(flags['type] == "relink")
+							return relink(flags['dump]);
+						else
+							return -1;
 					} else {
 						args = cmd;
 						rv();
@@ -947,21 +950,12 @@ $repllevel = 0;
 								return doentry(arg);
 							});
 						};
-						return saveheap(flags['dump]);
-					} else if(flags['relink]) {
-						$l1start = @lambda(arg ...) {
-							callcc(@lambda(done) {
-								currentreturn = done;
-
-								foreach(@lambda(v) {
-									v();
-								}, thunks);
-
-								rv();
-								return doentry(arg);
-							});
-						};
-						return relink(flags['relink]);
+						if(flags['type] == "heap")
+							return saveheap(flags['dump]);
+						else if(flags['type] == "relink")
+							return relink(flags['dump]);
+						else
+							return -1;
 					} else {
 						rv();
 						return doentry(cmd);
