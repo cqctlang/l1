@@ -875,7 +875,6 @@ $repllevel = 0;
 				} else {
 					file = cmd[0];
 				}
-				printf("FILE: %a\n", file);
 
 				if(flags['entry] == nil) {
 					rv = loadcompile(file);
