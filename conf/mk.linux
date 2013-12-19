@@ -1,6 +1,6 @@
 include conf/mk.unix
 
-L1C	+= elfheap.o
+L1C	+= elfheap.c
 
 l1: tl1 l1.heap
 	@echo + relink

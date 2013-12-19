@@ -1,6 +1,6 @@
 include conf/mk.unix
 
-L1C     += pcheap.o
+L1C     += pcheap.c
 
 mkc: mkc.o
 	@echo + ld $@
