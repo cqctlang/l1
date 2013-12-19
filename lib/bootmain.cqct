@@ -659,9 +659,10 @@ $repllevel = 0;
 	fprintf(stderr, "\t-e <symbol> enter script at function named <symbol>\n");
 	fprintf(stderr, "\t-r run a repl\n");
 	fprintf(stderr, "\t-d <file> dump heap to <file> and exit after compiling\n\t   the program indicated on the command line with -L, -x, -r,\n\t   and <script>. The heap in <file> is configured to run the program.\n");
-	fprintf(stderr,"\nFlags -L, -x, and -r may be each specified multiple times and in any order.\n");
-	fprintf(stderr,"  They are processed together in the order supplied. Each -L or -x option\n");
-	fprintf(stderr,"  is processed as a new compilation unit.\n");
+	fprintf(stderr, "\t-ld <file> relink l1 into the new program <file>. This works like '-d' except that the output file is a new executable rather than an l1 heap file.\n");
+	fprintf(stderr, "\nFlags -L, -x, and -r may be each specified multiple times and in any order.\n");
+	fprintf(stderr, "  They are processed together in the order supplied. Each -L or -x option\n");
+	fprintf(stderr, "  is processed as a new compilation unit.\n");
 
 	exit(0);
 
@@ -706,10 +707,22 @@ $repllevel = 0;
 		}
 		if(arg == "-d") {
 			if(length(args) == 0)
-				error("missing symbol for -d");
+				error("missing file for -d");
 			if(flags['dump])
 				error("multiple uses of -d");
+			if(flags['relink])
+				error("-d cannot be combined with -ld");
 			flags['dump] = pop(args);
+			continue;
+		}
+		if(arg == "-ld") {
+			if(length(args) == 0)
+				error("missing file for -ld");
+			if(flags['relink])
+				error("multiple uses of -ld");
+			if(flags['dump])
+				error("-ld cannot be combined with -d");
+			flags['relink] = pop(args);
 			continue;
 		}
 		if(arg == "-r") {
@@ -727,6 +740,50 @@ $repllevel = 0;
 	return [actions, flags, cmd];
 }
 
+@defloc relink(file)
+{
+	@local fname, u, r, p;
+	@local c;
+
+	p = getpid();
+	u = uname();
+	if(u[0] != "Linux") {
+		fprintf(stderr, "relinking supported only on Linux");
+		return -1;
+	}
+
+	fname = sprintfa("/tmp/th%d%s", getpid(), getenv("USER"));
+
+	r = saveheap(fname);
+	if(r) {
+		fprintf(stderr, "relink: saveheap failed");
+		return -1;
+	}
+
+	c=fork();
+	if(c==0) {
+		execve("/foousr/bin/objcopy", [
+			"objcopy",
+			"--remove-section", "saveheap",
+			"--add-section", "saveheap=" + fname,
+			sprintfa("/proc/%d/exe", p), file
+		], environ());
+		exit(1);
+	} else if(c==-1) {
+		fprintf(stderr, "unable to fork");
+		return -1;
+	} else {
+		@local w;
+	
+		w = waitpid(-1, 0);
+		if( w[1] ) {
+			fprintf(stderr, "relink fails\n");
+			return -1;
+		}
+		return 0;
+	}
+}
+
 @define $l1start(arg ...)
 {
 	@local actions, flags, cmd, file, rv, thunks;
@@ -736,15 +793,21 @@ $repllevel = 0;
 	callcc(@lambda(root) {
 		return @lambda() {
 			[actions, flags, cmd] = parseargs(arg);
-			if(length(cmd) == 0 && length(actions) == 0)
+			if(length(cmd) == 0 && length(actions) == 0) {
 				if(flags['dump]) {
 					$l1start = @lambda(arg ...) {
 						return repl();
 					};
 					return saveheap(flags['dump]);
+				} else if(flags['relink]) {
+					$l1start = @lambda(arg ...) {
+						return repl();
+					};
+					return relink(flags['relink]);
 				} else {
 					return repl();
 				}
+			}
 			callcc(@lambda(done) {
 				currentreturn = done;
 				errorhandler = batcherror;
@@ -760,7 +823,7 @@ $repllevel = 0;
 						rv = compile(rv);
 						if(!rv)
 							error("could not compile %a", action[1]);
-						if(flags['dump])
+						if(flags['dump] || flags['relink])
 							append(thunks,rv);
 						else
 							rv = rv();
@@ -770,13 +833,13 @@ $repllevel = 0;
 						if(!rv)
 							return 1;
 							// error("could not load and compile %a", action[1]);
-						if(flags['dump])
+						if(flags['dump] || flags['relink])
 							append(thunks,rv);
 						else
 							rv = rv();
 						break;
 					case 'repl:
-						if(flags['dump])
+						if(flags['dump] || flags['relink])
 							append(thunks,repl);
 						else
 							rv = repl();
@@ -785,7 +848,7 @@ $repllevel = 0;
 						break;
 					}
 				}
-				if(length(cmd) == 0)
+				if(length(cmd) == 0) {
 					if(flags['dump]) {
 						$l1start = @lambda(arg ...) {
 							foreach(@lambda(v) {
@@ -795,10 +858,22 @@ $repllevel = 0;
 							return rv;
 						};
 						return saveheap(flags['dump]);
+					} else if(flags['relink]) {
+						$l1start = @lambda(arg ...) {
+							foreach(@lambda(v) {
+								v();
+							}, thunks);
+
+							return rv;
+						};
+						return relink(flags['relink]);
 					} else {
 						return rv;
 					}
-				file = cmd[0];
+				} else {
+					file = cmd[0];
+				}
+				printf("FILE: %a\n", file);
 
 				if(flags['entry] == nil) {
 					rv = loadcompile(file);
@@ -819,6 +894,20 @@ $repllevel = 0;
 							});
 						};
 						return saveheap(flags['dump]);
+					} else if(flags['relink]) {
+						$l1start = @lambda(arg ...) {
+							callcc(@lambda(done) {
+								currentreturn = done;
+
+								foreach(@lambda(v) {
+									v();
+								}, thunks);
+
+								args = arg;
+								rv();
+							});
+						};
+						return relink(flags['relink]);
 					} else {
 						args = cmd;
 						rv();
@@ -857,6 +946,20 @@ $repllevel = 0;
 							});
 						};
 						return saveheap(flags['dump]);
+					} else if(flags['relink]) {
+						$l1start = @lambda(arg ...) {
+							callcc(@lambda(done) {
+								currentreturn = done;
+
+								foreach(@lambda(v) {
+									v();
+								}, thunks);
+
+								rv();
+								return doentry(arg);
+							});
+						};
+						return relink(flags['relink]);
 					} else {
 						rv();
 						return doentry(cmd);
