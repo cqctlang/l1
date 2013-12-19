@@ -54,6 +54,43 @@ l1_waitpid(VM *vm, Imm argc, Val *argv, Val *rv)
 	*rv = mkvallist(l);
 }
 
+static void
+l1_execve(VM *vm, Imm argc, Val *argv, Val *rv)
+{
+	int xargc;
+	char **xargv;
+	int xrv;
+	Val cv;
+	Imm x;
+	List *av;
+
+	if(argc != 3)
+		vmerr(vm, "wrong number of arguments to execve");
+
+	if(Vkind(argv[0]) != Qstr)
+		vmerr(vm, "argument 1 to execve must be a string");
+	if(Vkind(argv[1]) != Qlist)
+		vmerr(vm, "argument 2 to execve must be a list");
+	if( (Vkind(argv[2]) != Qlist) && (Vkind(argv[2]) != Qnil))
+		vmerr(vm, "argument 3 to execve must be a list or nil");
+
+	av = vallist(argv[1]);
+	xargc = listlen(av);
+	xargv = emalloc((xargc+1)*sizeof(char*)); /* null terminated */
+	for(x = 0; x < xargc ; x++) {
+		cv = listref(av, x);
+		if(Vkind(cv) != Qstr)
+			vmerr(vm, "argument 1 to execve must be a list of strings");
+		xargv[x] = str2cstr(valstr(cv));
+	}
+
+	xrv = execve(str2cstr(valstr(argv[0])), xargv, NULL);
+
+	*rv = mkvalcval2(mklitcval(Vint, xrv));
+
+	return;
+}
+
 extern char **environ;
 
 static void
@@ -381,6 +418,7 @@ fnsys(Env env)
 	FN(cwd);
 	FN(environ);
 	FN(errno);
+	FN(execve);
 	FN(exit);
 	FN(fork);
 	FN(getenv);
