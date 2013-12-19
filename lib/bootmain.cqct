@@ -752,7 +752,7 @@ $repllevel = 0;
 		return -1;
 	}
 
-	fname = sprintfa("/tmp/th%d%s", getpid(), getenv("USER"));
+	fname = sprintfa("/tmp/th_%d_%s", getpid(), getenv("USER"));
 
 	r = saveheap(fname);
 	if(r) {
@@ -771,11 +771,13 @@ $repllevel = 0;
 		exit(1);
 	} else if(c==-1) {
 		fprintf(stderr, "unable to fork");
+		unlink(fname);
 		return -1;
 	} else {
 		@local w;
 	
 		w = waitpid(-1, 0);
+		unlink(fname);
 		if( w[1] ) {
 			fprintf(stderr, "relink fails\n");
 			return -1;
