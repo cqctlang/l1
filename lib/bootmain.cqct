@@ -712,6 +712,10 @@ $repllevel = 0;
 			append(actions, [ 'loadpath, pop(args) ]);
 			continue;
 		}
+		if(arg == "-s") {
+			append(actions, [ 'nullloadpath ]);
+			continue;
+		}
 		if(arg == "-e") {
 			if(length(args) == 0)
 				aerror("missing symbol for -e");
@@ -871,6 +875,10 @@ $repllevel = 0;
 
 						break;
 					}
+					case 'nullloadpath:
+						setloadpath([]);
+						
+						break;
 					case 'repl:
 						if(flags['dump])
 							append(thunks,repl);
