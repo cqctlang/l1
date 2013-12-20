@@ -381,7 +381,7 @@ G(char *s)
 	Expr *e;
 	char *t;
 	Imm m;
-	if(cqctflags['r'])
+	if(cqctflags['R'])
 		return doid(s);
 	e = newexpr(Eid, 0, 0, 0, 0);
 	m = strlen(s)+1;
