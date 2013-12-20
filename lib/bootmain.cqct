@@ -651,18 +651,18 @@ $repllevel = 0;
 {
 	fprintf(stderr, "usage: %s [flags] [ <script> [ arg ... ] ]\n", argv0);
 	fprintf(stderr, "\t-h print this usage\n");
-	fprintf(stderr, "\t-l <dir> add <dir> to the load path\n");
+	fprintf(stderr, "\t-l <dir> add <dir> to the load path. The change is reflected in the\n\t   compilation of subsequent arguments.\n");
 	fprintf(stderr, "\t-L <file> compile and run the cinquecento text in <file>\n");
 	fprintf(stderr, "\t-m <file> initialize heap from <file>\n");
 	fprintf(stderr, "\t-s suppress default load path\n");
 	fprintf(stderr, "\t-x <expr> evaluate <expr>\n");
 	fprintf(stderr, "\t-e <symbol> enter script at function named <symbol>\n");
 	fprintf(stderr, "\t-r run a repl\n");
-	fprintf(stderr, "\t-d <file> dump to <file> and exit after compiling\n\t   the program indicated on the command line with -L, -x, -r,\n\t   and <script>. The artifact in <file> is configured to run the\n\t   program. Use -t to select an output format.\n");
+	fprintf(stderr, "\t-d <file> dump to <file> and exit after compiling\n\t   the program indicated on the command line with -l, -L, -x, -r,\n\t   and <script>. The artifact in <file> is configured to run the\n\t   program. Use -t to select an output format.\n");
 	fprintf(stderr, "\t-t <format> select a dump format. Use 'heap' or 'relink'.\n\t   Default is 'heap'. This option has no effect without '-d'.\n");
 	fprintf(stderr, "\t   format 'heap' saves a binary version of the l1 heap. This heap\n\t   can be loaded into a subsequent session with '-m'.\n");
 	fprintf(stderr, "\t   format 'relink' saves a new executable based on the current l1. Any\n\t   pre-linked heap image is removed and the new heap image is added.\n\t   Relinking is only supported on some platforms.\n");
-	fprintf(stderr, "\nFlags -L, -x, and -r may be each specified multiple times and in any order.\n");
+	fprintf(stderr, "\nFlags -l, -L, -x, and -r may be each specified multiple times and in any order.\n");
 	fprintf(stderr, "  They are processed together in the order supplied. Each -L or -x option\n");
 	fprintf(stderr, "  is processed as a new compilation unit.\n");
 
@@ -704,6 +704,12 @@ $repllevel = 0;
 			if(length(args) == 0)
 				aerror("missing file for -L");
 			append(actions, [ 'load, pop(args) ]);
+			continue;
+		}
+		if(arg == "-l") {
+			if(length(args) == 0)
+				aerror("missing file for -l");
+			append(actions, [ 'loadpath, pop(args) ]);
 			continue;
 		}
 		if(arg == "-e") {
@@ -856,6 +862,15 @@ $repllevel = 0;
 						else
 							rv = rv();
 						break;
+					case 'loadpath: {
+						@local p;
+
+						p=loadpath();
+						append(p, action[1]);
+						setloadpath(p);
+
+						break;
+					}
 					case 'repl:
 						if(flags['dump])
 							append(thunks,repl);
