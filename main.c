@@ -298,9 +298,7 @@ main(int argc, char *argv[])
 
 	i = 1;
 	while(i < argc){
-		if(strcmp("--", argv[i]) == 0 || argv[i][0] != '-')
-			break;
-		else if(strcmp("-l", argv[i]) == 0){
+		if(strcmp("-l", argv[i]) == 0) {
 			if(i+1 >= argc)
 				usage();
 			if(nlp >= Maxloadpath)
@@ -308,7 +306,7 @@ main(int argc, char *argv[])
 			lp[nlp++] = xstrdup(argv[i+1]);
 			memmove(argv+i, argv+i+2, (argc-i-2)*sizeof(char*));
 			argc -= 2;
-		}else if(strcmp("-m", argv[i]) == 0){
+		} else if(strcmp("-m", argv[i]) == 0) {
 			if(i+1 >= argc)
 				usage();
 			if(opt['m'])
@@ -317,18 +315,28 @@ main(int argc, char *argv[])
 			memfile = xstrdup(argv[i+1]);
 			memmove(argv+i, argv+i+2, (argc-i-2)*sizeof(char*));
 			argc -= 2;
-		}else if(strcmp("-s", argv[i]) == 0){
+		} else if(strcmp("-s", argv[i]) == 0) {
 			opt['s'] = 1;
 			memmove(argv+i, argv+i+1, (argc-i-1)*sizeof(char*));
 			argc--;
-		//}else if(strcmp("-h", argv[i]) == 0){
-		//	usage();
-		}else{
-			/* pass through legacy flags referenced by run time */
-			if(argv[i][0] == '-' && strlen(argv[i]) == 2)
-				cqctflags[(int)argv[i][1]] = 1;
-			i++;
-		}
+		} else if(strcmp("--Xl1", argv[i]) == 0) {
+			if(argc <= i+1)
+				usage();
+			if(argv[i+1][0] != '-' || strlen(argv[i+1]) != 2)
+				usage();
+			cqctflags[(int)argv[i+1][1]] = 1;
+			memmove(argv+i, argv+i+2, (argc-i-2)*sizeof(char*));
+			argc -= 2;
+		} else
+			break;
+		//} else if(strcmp("--", argv[i]) == 0 || argv[i][0] != '-')
+			//break;
+		//else {
+			///* pass through legacy flags referenced by run time */
+			//if(argv[i][0] == '-' && strlen(argv[i]) == 2)
+				//cqctflags[(int)argv[i][1]] = 1;
+			//i++;
+		//}
 	}
 
 	nlp = finishloadpath(lp, nlp);

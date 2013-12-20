@@ -649,7 +649,18 @@ $repllevel = 0;
 
 @defloc usage(argv0)
 {
-	fprintf(stderr, "usage: %s [flags] [ <script> [ arg ... ] ]\n", argv0);
+	fprintf(stderr, "usage: %s [ [ -Xl1 cflag ] ... ] [flags] [ <script> [ arg ... ] ]\n", argv0);
+	fprintf(stderr, "Cflags (low-level guru options to the l1 compiler):\n");
+	fprintf(stderr, "\t-b print cg lambda debugging information\n");
+	fprintf(stderr, "\t-w print compiler warnings (always on)\n");
+	fprintf(stderr, "\t-T print compiler timing information\n");
+	fprintf(stderr, "\t-R\n");
+	fprintf(stderr, "\t-q print cpv debugging information\n");
+	fprintf(stderr, "\t-p print cpn debugging information\n");
+	fprintf(stderr, "\t-o print cg generated VM code\n");
+	fprintf(stderr, "\t-K check source information is preserved across compiler passes\n");
+	fprintf(stderr, "\n");
+	fprintf(stderr, "Flags:\n");
 	fprintf(stderr, "\t-h print this usage\n");
 	fprintf(stderr, "\t-l <dir> add <dir> to the load path. The change is reflected in the\n\t   compilation of subsequent arguments.\n");
 	fprintf(stderr, "\t-L <file> compile and run the cinquecento text in <file>\n");
@@ -662,6 +673,7 @@ $repllevel = 0;
 	fprintf(stderr, "\t-t <format> select a dump format. Use 'heap' or 'relink'.\n\t   Default is 'heap'. This option has no effect without '-d'.\n");
 	fprintf(stderr, "\t   format 'heap' saves a binary version of the l1 heap. This heap\n\t   can be loaded into a subsequent session with '-m'.\n");
 	fprintf(stderr, "\t   format 'relink' saves a new executable based on the current l1. Any\n\t   pre-linked heap image is removed and the new heap image is added.\n\t   Relinking is only supported on some platforms.\n");
+
 	fprintf(stderr, "\nFlags -l, -L, -x, and -r may be each specified multiple times and in any order.\n");
 	fprintf(stderr, "  They are processed together in the order supplied. Each -L or -x option\n");
 	fprintf(stderr, "  is processed as a new compilation unit.\n");
