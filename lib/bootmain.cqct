@@ -189,7 +189,7 @@ load("prelude.cqct");
 	callcc(@lambda(errk) {
 			printf("error: %s\n", msg);
 			printstack(continuationstack(errk));
-			currentreturn(nil);
+			currentreturn(1);
 		});
 }
 
