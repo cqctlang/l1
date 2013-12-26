@@ -904,11 +904,15 @@ $repllevel = 0;
 				if(length(cmd) == 0) {
 					if(flags['dump]) {
 						$l1start = @lambda(arg ...) {
-							foreach(@lambda(v) {
-								v();
-							}, thunks);
+							callcc(@lambda(done) {
+								currentreturn = done;
 
-							return rv;
+								foreach(@lambda(v) {
+									rv = v();
+								}, thunks);
+
+								rv;
+							});
 						};
 						if(flags['type] == "heap")
 							return saveheap(flags['dump]);
