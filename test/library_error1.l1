@@ -1,6 +1,7 @@
 
 //hack to keep regression from including absolute paths
 @defstx @onload() {
+	setloadpath(push(loadpath(),"."));
 	printstack = @lambda(args...) {
 		printf("<printstack-placeholder>\n");
 	};

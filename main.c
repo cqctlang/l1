@@ -235,7 +235,6 @@ finishloadpath(char **lp, unsigned nlp)
 
 	if(nlp >= Maxloadpath)
 		fatal("too many elements in load path");
-	lp[nlp++] = xstrdup(".");
 	if(opt['s']){
 		/* no system load path */
 		lp[nlp] = 0;

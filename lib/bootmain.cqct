@@ -144,6 +144,28 @@ mkcompiler(bootcompilerpasses());
 	return prog;
 }
 
+@defloc loadcompile_pwd(file)
+{
+	@local str, ast, prog;
+
+	if(!access(file, "r"))
+		error("cannot find %s from present working directory", file);
+
+	str = mapfile(file);
+	if(!str)
+		error("cannot map %s", file);
+
+	ast = parse(str, file, 1);
+	if(!ast)
+		error("cannot parse %s", file);
+
+	prog = compile(ast);
+	//if(!prog)
+	//	error("cannot compile %s", file);
+
+	return prog;
+}
+
 @define load(file)
 {
 	@local prog;
@@ -663,7 +685,7 @@ $repllevel = 0;
 	fprintf(stderr, "Flags:\n");
 	fprintf(stderr, "\t-h print this usage\n");
 	fprintf(stderr, "\t-l <dir> add <dir> to the load path. The change is reflected in the\n\t   compilation of subsequent arguments.\n");
-	fprintf(stderr, "\t-L <file> compile and run the cinquecento text in <file>\n");
+	fprintf(stderr, "\t-L find <file> in the load path then compile and run it\n");
 	fprintf(stderr, "\t-m <file> initialize heap from <file>\n");
 	fprintf(stderr, "\t-s suppress default load path\n");
 	fprintf(stderr, "\t-x <expr> evaluate <expr>\n");
@@ -677,6 +699,17 @@ $repllevel = 0;
 	fprintf(stderr, "\nFlags -l, -L, -x, and -r may be each specified multiple times and in any order.\n");
 	fprintf(stderr, "  They are processed together in the order supplied. Each -L or -x option\n");
 	fprintf(stderr, "  is processed as a new compilation unit.\n");
+
+	fprintf(stderr, "\nIf <script> is present, it names a file which will be loaded directly, not\n");
+	fprintf(stderr, "  through the load path. It will be compiled and run after every other\n");
+	fprintf(stderr, "  expression indicated on the command line.\n");
+
+	fprintf(stderr, "\nThe exit status of l1 is typically the result of the first call to exit().\n");
+	fprintf(stderr, "  If l1 encounters an error in processing command line arguments then the\n");
+	fprintf(stderr, "  exit status will be non-zero. If exit() is not called, l1 will examine\n");
+	fprintf(stderr, "  the result of the last computation indicated by -l, -s, -r, or <script>.\n");
+	fprintf(stderr, "  If that result can be converted to an integer, that integer will be the\n");
+	fprintf(stderr, "  exit status. The exit status will be zero otherwise.\n"); 
 
 	exit(0);
 
@@ -928,7 +961,7 @@ $repllevel = 0;
 				}
 
 				if(flags['entry] == nil) {
-					rv = loadcompile(file);
+					rv = loadcompile_pwd(file);
 					if(!rv)
 						return 1;
 					//	error("could not load and compile %a", file);
@@ -971,7 +1004,7 @@ $repllevel = 0;
 						return apply(f, argv);
 					};
 
-					rv = loadcompile(file);
+					rv = loadcompile_pwd(file);
 					if(!rv)
 						return 1;
 						//error("could not load and compile %a", file);

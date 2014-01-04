@@ -1,4 +1,10 @@
 
+@defstx @onload() {
+	setloadpath(push(loadpath(),"."));
+	return #[];
+}
+@onload();
+
 @add_loadpath(loadpath()[0] + "/../test/libs");
 
 evalk("@export(lalala);",
