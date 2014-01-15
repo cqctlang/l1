@@ -1360,7 +1360,7 @@ u64		meminuse();
 Pair*		mkguard();
 Head*		pop1guard(Pair *t);
 Head*		pop1tguard(Pair *t);
-int		saveheap(Tab *toplevel, char *file);
+int		saveheapfd(Tab *toplevel, int fd);
 void		tguard(Val o, Pair *g);
 
 /* ch.c */

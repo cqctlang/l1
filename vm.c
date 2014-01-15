@@ -6580,17 +6580,17 @@ l1_instguard(VM *vm, Imm argc, Val *argv, Val *rv)
 }
 
 static void
-l1_saveheap(VM *vm, Imm argc, Val *argv, Val *rv)
+l1_saveheapfd(VM *vm, Imm argc, Val *argv, Val *rv)
 {
-	char *s;
+	int fd;
 	if(argc != 1)
-		vmerr(vm, "wrong number of arguments to saveheap");
-	checkarg(vm, argv, 0, Qstr);
-	s = str2cstr(valstr(argv[0]));
+		vmerr(vm, "wrong number of arguments to saveheapfd");
+	checkarg(vm, argv, 0, Qcval);
+	fd = cvalu(valcval(argv[0]));
 	fullgc(vm);
-	saveheap(vm->top, s);
-	efree(s);
+	saveheapfd(vm->top, fd);
 }
+
 
 static void
 l1_resettop(VM *vm, Imm argc, Val *argv, Val *rv)
@@ -7541,7 +7541,7 @@ mktopenv(void)
 	FN(rangebeg);
 	FN(rangelen);
 	FN(resettop);
-	FN(saveheap);
+	FN(saveheapfd);
 	FN(setclosed);
 	FN(setname);
 	FN(setloadpath);

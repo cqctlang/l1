@@ -20,7 +20,8 @@
 	$l1start,
 	$lasterror,
 	printstack,
-	mkcompiler
+	mkcompiler,
+	saveheap
 	;
 
 @defloc topwrap(e)
@@ -855,6 +856,21 @@ $repllevel = 0;
 		}
 		return 0;
 	}
+}
+
+@define saveheap(filename)
+{
+	@local f, fd, r;
+
+	f = open(filename, "rw");
+	if(isnil(f))
+		error("saveheap: unable to open %a for writing\n", filename);
+
+	fd = sysfdno(f);
+	r = saveheapfd(fd);
+	close(f);
+
+	return r;
 }
 
 @define $l1start(arg ...)

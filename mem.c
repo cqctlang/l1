@@ -3004,7 +3004,7 @@ segsummary(int fd, Seg *s)
 #endif
 	return 0;
 fail:
-	fprintf(stderr, "saveheap: write: %s\n", strerror(errno));
+	fprintf(stderr, "saveheapfd: write: %s\n", strerror(errno));
 	return -1;
 }
 
@@ -3057,25 +3057,20 @@ skipmt(unsigned mt)
 	}
 }
 
+/* this function maps and seeks fd. no pipes or sockets */
 int
-saveheap(Tab *toplevel, char *file)
+saveheapfd(Tab *toplevel, int fd)
 {
 	u8 mt, g;
 	u32 i, sn, nsp, sz;
 	M *m;
 	Seg *s, *t;
-	int fd, err;
+	int err;
 	off_t off;
 	void *op, *p;
 	u8 magic;
 
 	op = p = 0;
-	fd = -1;
-	fd = open(file, O_RDWR|O_TRUNC|O_CREAT, 0600);
-	if(0 > fd){
-		fprintf(stderr, "saveheap: open: %s\n", strerror(errno));
-		goto fail;
-	}
 
 	/* number all segments */
 	sn = 0;
@@ -3106,35 +3101,35 @@ saveheap(Tab *toplevel, char *file)
 	/* meta */
 	magic = Heapdefined;
 	if(-1 == xwrite(fd, &magic, sizeof(u8))){
-		fprintf(stderr, "saveheap: write: %s\n", strerror(errno));
+		fprintf(stderr, "saveheapfd: write: %s\n", strerror(errno));
 		goto fail;
 	}
 	if(-1 == xwrite(fd, &heapversion, sizeof(u32))){
-		fprintf(stderr, "saveheap: write: %s\n", strerror(errno));
+		fprintf(stderr, "saveheapfd: write: %s\n", strerror(errno));
 		goto fail;
 	}
 	sz = strlen(sysos)+1;
 	if(-1 == xwrite(fd, &sz, sizeof(u32))){
-		fprintf(stderr, "saveheap: write: %s\n", strerror(errno));
+		fprintf(stderr, "saveheapfd: write: %s\n", strerror(errno));
 		goto fail;
 	}
 	if(-1 == xwrite(fd, sysos, sz)){
-		fprintf(stderr, "saveheap: write: %s\n", strerror(errno));
+		fprintf(stderr, "saveheapfd: write: %s\n", strerror(errno));
 		goto fail;
 	}
 	sz = strlen(sysarch)+1;
 	if(-1 == xwrite(fd, &sz, sizeof(u32))){
-		fprintf(stderr, "saveheap: write: %s\n", strerror(errno));
+		fprintf(stderr, "saveheapfd: write: %s\n", strerror(errno));
 		goto fail;
 	}
 	if(-1 == xwrite(fd, sysarch, sz)){
-		fprintf(stderr, "saveheap: write: %s\n", strerror(errno));
+		fprintf(stderr, "saveheapfd: write: %s\n", strerror(errno));
 		goto fail;
 	}
 
 	/* segment descriptors */
 	if(-1 == xwrite(fd, &sn, sizeof(u32))){
-		fprintf(stderr, "saveheap: write: %s\n", strerror(errno));
+		fprintf(stderr, "saveheapfd: write: %s\n", strerror(errno));
 		goto fail;
 	}
 	for(mt = 0; mt < Nmt; mt++){
@@ -3176,7 +3171,7 @@ saveheap(Tab *toplevel, char *file)
 		}
 	}
 	if(-1 == xwrite(fd, &nsp, sizeof(u32))){
-		fprintf(stderr, "saveheap: write: %s\n", strerror(errno));
+		fprintf(stderr, "saveheapfd: write: %s\n", strerror(errno));
 		goto fail;
 	}
 	for(mt = 0; mt < Nmt; mt++){
@@ -3187,17 +3182,17 @@ saveheap(Tab *toplevel, char *file)
 			if(m->h == 0)
 				continue;
 			if(-1 == xwrite(fd, &mt, sizeof(u8))){
-				fprintf(stderr, "saveheap: write: %s\n",
+				fprintf(stderr, "saveheapfd: write: %s\n",
 					strerror(errno));
 				goto fail;
 			}
 			if(-1 == xwrite(fd, &g, sizeof(u8))){
-				fprintf(stderr, "saveheap: write: %s\n",
+				fprintf(stderr, "saveheapfd: write: %s\n",
 					strerror(errno));
 				goto fail;
 			}
 			if(-1 == saveroot(fd, (Val)m->scan)){
-				fprintf(stderr, "saveheap: write: %s\n",
+				fprintf(stderr, "saveheapfd: write: %s\n",
 					strerror(errno));
 				goto fail;
 			}
@@ -3220,30 +3215,30 @@ saveheap(Tab *toplevel, char *file)
 	for(i = 0; i < Nsgen; i++)
 		err |= saveroot(fd, (Val)H.guard.gd[i]);
 	if(err != 0){
-		fprintf(stderr, "saveheap: saveroot: %s\n", strerror(errno));
+		fprintf(stderr, "saveheapfd: saveroot: %s\n", strerror(errno));
 		goto fail;
 	}
 
 	/* C symbols */
 	if(-1 == xwrite(fd, &ncfn, sizeof(u32))){
-		fprintf(stderr, "saveheap: write: %s\n", strerror(errno));
+		fprintf(stderr, "saveheapfd: write: %s\n", strerror(errno));
 		goto fail;
 	}
 	for(i = 0; i < ncfn; i++)
 		if(-1 == xwrite(fd, cfn[i].name, strlen(cfn[i].name)+1)){
-			fprintf(stderr, "saveheap: write: %s\n",
+			fprintf(stderr, "saveheapfd: write: %s\n",
 				strerror(errno));
 			goto fail;
 		}
 
 	off = lseek(fd, 0, SEEK_CUR);
 	if(off == -1){
-		fprintf(stderr, "saveheap: lseek: %s\n", strerror(errno));
+		fprintf(stderr, "saveheapfd: lseek: %s\n", strerror(errno));
 		goto fail;
 	}
 	off = lseek(fd, roundup(off, Segsize), SEEK_SET);
 	if(off == -1){
-		fprintf(stderr, "saveheap: lseek: %s\n", strerror(errno));
+		fprintf(stderr, "saveheapfd: lseek: %s\n", strerror(errno));
 		goto fail;
 	}
 
@@ -3259,7 +3254,7 @@ saveheap(Tab *toplevel, char *file)
 			while(1){
 				if(-1 == xwrite(fd, s2a(s), Segsize)){
 					fprintf(stderr,
-						"saveheap: write: %s\n",
+						"saveheapfd: write: %s\n",
 						strerror(errno));
 					goto fail;
 				}
@@ -3268,7 +3263,7 @@ saveheap(Tab *toplevel, char *file)
 					while(MTbigcont(t->mt)){
 						if(-1 == xwrite(fd, s2a(t), Segsize)){
 							fprintf(stderr,
-								"saveheap: write: %s\n",
+								"saveheapfd: write: %s\n",
 								strerror(errno));
 							goto fail;
 						}
@@ -3284,7 +3279,7 @@ saveheap(Tab *toplevel, char *file)
 
 	op = p = mmap(0, sn*Segsize, PROT_READ|PROT_WRITE, MAP_SHARED, fd, off);
 	if(p == MAP_FAILED){
-		fprintf(stderr, "saveheap: mmap: %s\n", strerror(errno));
+		fprintf(stderr, "saveheapfd: mmap: %s\n", strerror(errno));
 		goto fail;
 	}
 
@@ -3315,15 +3310,12 @@ saveheap(Tab *toplevel, char *file)
 	}
 
 	munmap(op, sn*Segsize);
-	close(fd);
 	return 0;
 
 fail:
 	if(op && op != MAP_FAILED)
 		munmap(op, sn*Segsize);
-	close(fd);
 	return -1;
-
 }
 
 typedef
