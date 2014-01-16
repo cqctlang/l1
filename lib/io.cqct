@@ -36,10 +36,15 @@ ions = @names c32le {
 
 @defloc mksysfdfinal(arg ...)
 {
-	@local rv;
+	@local rv,g;
+
+	g = $procgen;
 
 	rv = apply(mksysfd, arg);
-	finalize(rv, close);
+	finalize(rv, @lambda(f) {
+		if($procgen == g)
+			close(f);
+	});
 	return rv;
 }
 

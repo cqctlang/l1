@@ -7342,6 +7342,8 @@ static NSroot clp64be = {
 .name = "clp64be",
 };
 
+static Imm procgen = 0;
+
 static Tab*
 basetab(NSroot *def, Ctype **base)
 {
@@ -7584,6 +7586,7 @@ mktopenv(void)
 	builtincval(env, "NULL", cvalnull);
 	builtinnil(env, "$$"); /* FIXME: get rid of this */
 	builtincode(env, "kresumecode", kresumecode());
+	builtincval(env, "$procgen", mkcval(litdom, litdom->ns->base[Vuint], procgen));
 
 	/* expanded source may call these magic functions */
 	builtinfn(env, "$put", mkcfn("$put", l1_put));
@@ -7629,6 +7632,20 @@ static void
 sigint(int sig)
 {
 	cqctinterrupt(vms[0]);
+}
+
+static void
+procincr(Env env) {
+	Val pg;
+	Cid *cid;
+
+	pg = envlookup(env, "$procgen");
+	if((pg != 0) && (Vkind(pg) == Qcval)) {
+		procgen = cvalu(valcval(pg));
+		procgen++;
+		cid = mkcid0("$procgen");
+		envput(env, cid, mkvalcval2(mkcval(litdom, litdom->ns->base[Vuint], procgen)));
+	}
 }
 
 VM*
@@ -7679,9 +7696,11 @@ cqctinit(char *memfile, char **loadpath)
 			return 0;
 		cqctloadpath = copystrv(loadpath);
 		vm = mkvm(top);
+		procincr(top);
 	}else if((top = restoreheap(0))) {
 		cqctloadpath = copystrv(loadpath);
 		vm = mkvm(top);
+		procincr(top);
 	}else{
 		cqctloadpath = copystrv(loadpath);
 		vm = mkvm(tmp);
