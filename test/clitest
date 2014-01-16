@@ -56,9 +56,9 @@ diff a.out b.out > /dev/null || cleanup
 CASE="load script"
 
 echo "testing ${CASE}"
-../l1 -L clitest.cqct clitest.cqct > a.out
+../l1 -L ./clitest.cqct clitest.cqct > a.out
 
-../l1 -d heap -L clitest.cqct clitest.cqct
+../l1 -d heap -L ./clitest.cqct clitest.cqct
 ../l1 -m heap > b.out
 
 diff a.out b.out > /dev/null || cleanup
