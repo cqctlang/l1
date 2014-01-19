@@ -24,7 +24,7 @@
 Cinquecento provides a syntax-based mechanism for modularizing code.
 The primary goals of this system are both to allow the creation of libraries
 that do not assign global variables, and to allow easy swapping of different
-implementations for the same set of symbols into a given piece of code. 
+implementations for the same set of symbols into a given piece of code.
 </p>
 
 <p>
@@ -36,16 +36,19 @@ macro limitations.
 </p>
 
 <p>
-Cinquecento library files have the <b>.cql</b> extension. 
+Cinquecento library files have the <b>.cql</b> extension.
 Here is an example library file, named <b>lib1.cql</b>:
 <div class="code">
 <pre>
-//variables local to the library must be declared 
-//at the top of the file
-@local helper_func2; 
+//variables local to the library must be declared
+//at the top of the file, before anything else
+@local helper_func2, local_flag;
 
 //it is best practice to only export functions from a library
 @export( func1, func2 );
+
+//library initialization code maybe necessary
+local_flag = 'initial_value;
 
 //the library's contents look like normal cqct code
 @define func1() { ... }
@@ -54,22 +57,22 @@ Here is an example library file, named <b>lib1.cql</b>:
 
 </pre>
 </div>
-That code defines and exports two symbols: func1 and func2. 
+That code defines and exports two symbols: func1 and func2.
 It also defines a local variable helper_func2 that is visible only
-within the library. 
-Assuming lib1.cql is in the load path, one can 
+within the library.
+Assuming lib1.cql is in the load path, one can
 load and run lib1's exports. For instance:
 </p>
 <div class="code">
 <pre>
-lib1 = @import_object( lib1 ); //loads lib1 
+lib1 = @import_object( lib1 ); //loads lib1
 //lib1 is a normal cqct variable, it can be local or global
 lib1.func1(); //runs the function func1 exported by lib1
 lib1.func2(); //runs the function func2 exported by lib1
 
 //lib1 will not be re-parsed and re-compiled by the below line
 //because it was already loaded above.
-lib1_v2 = @import_object( lib1 ); //loads lib1 
+lib1_v2 = @import_object( lib1 ); //loads lib1
 lib1_v2.func2(); //runs the same code as lib1.func2 above.
 
 @with_imports( lib1 ) {
@@ -83,19 +86,18 @@ func2(); //again, runs the same code as a above calls to func2
 </pre>
 </div>
 The various import macros check that lib1.cql has been loaded,
-loading it only if necessary, and bind the library's exported 
-functions to an object, local variables, or global variables depending
-on the sort of import being used. 
-Subsequent loads of lib1 will not re-compile lib1, but will use
-the same code as was alredy loaded. Any private state in lib1 will be
-shared between the various instances.
+loading it only if necessary, and bind the library's exported functions to an
+object, local variables, or global variables depending on the sort of import
+being used.  Subsequent loads of lib1 will not re-compile or re-initialize
+lib1, but will use the same code as was alredy loaded. Any private state in
+lib1 (i.e. local_flag) will be shared between the various instances.
 </p>
 
 <p>
 While the above import statements can be used in any Cinquecento code,
 when writing a library (a .cql file) one can also use the <em>@import</em>
 macro, which will make all of the exported symbols from the associated
-library visible within the given library definition. 
+library visible within the given library definition.
 Consider for example <b>lib2.cql</b>:
 <div class="code">
 <pre>
@@ -103,8 +105,8 @@ Consider for example <b>lib2.cql</b>:
 @export( something, somethingelse );
 @import( lib1 );
 
-@define something() { 
-  ... 
+@define something() {
+  ...
   func1(); //calls func1 from lib1
   ...
 }
@@ -113,21 +115,21 @@ Consider for example <b>lib2.cql</b>:
 </div>
 The <em>@import</em> macro only works inside a library file -- at the top
 level <em>@import_object</em>, <em>@with_imports</em>,
-or <em>@import_globals</em> must be used instead. 
+or <em>@import_globals</em> must be used instead.
 </p>
 
 
 <h5 id=import_spec>Import Specification</h5>
 <p>
-<em>@import</em>, <em>@with_imports</em>, and <em>@import_globals</em> are 
+<em>@import</em>, <em>@with_imports</em>, and <em>@import_globals</em> are
 variable argument macros which support the same import specification.
 There are three valid import specification forms, which allow one to
 either import all of the exported symbols from a library, import a
-library as an object, or to import only specific named symbols from 
-a library (possibly renaming them in the local scope). 
+library as an object, or to import only specific named symbols from
+a library (possibly renaming them in the local scope).
 </p>
 
-All import specification forms use the same <b>library name specification</b>. 
+All import specification forms use the same <b>library name specification</b>.
 Libraries are specified by a name that maps to their
 actual file name. The name is path-like to allow for the organization
 of libraries into modules and to help organize the libraries in the file
@@ -144,7 +146,7 @@ path/to/name
 </pre>
 </div>
 This references the first instance of the file path/to/name.cql found
-in the <a href=man.html#sec:loadpath>load path</a>. 
+in the <a href=man.html#sec:loadpath>load path</a>.
 </p>
 
 <p>
@@ -181,7 +183,7 @@ as this library specification.
 </p>
 
 <p>
-<em>(binding, library_name.export)</em>: This will create a local 
+<em>(binding, library_name.export)</em>: This will create a local
 binding with the given name to the given library export. For instance:
 <div class="code">
 <pre>
@@ -194,15 +196,68 @@ lib1_fn1(); //this will call function fn1 exported by library lib1
 <p>
 Imported libraries must be present in the load path. That is, when importing
 from <em>lib1</em>, there must be a lib1.cql present in the load path at
-compile time. 
+compile time.
 </p>
 
 <p>
 Recursive or mutually recursive libraries are currently not supported.
-Macro definitions (i.e. <em>@defstx</em> statements) in any library 
+Macro definitions (i.e. <em>@defstx</em> statements) in any library
 will have undefined effects on the system and should not be included
 in libraries at this time.
 </p>
+
+<h4>When does library initialization code run?</h4>
+
+Library initialization code is code in the body of a library (i.e. not inside
+of a function body). For instance, consider the library a.cql:
+<div class="code">
+<pre>
+printf("Initializing library a\n");
+
+@export( fn_a );
+@define fn_a() {
+    printf("Running fn_a\n");
+}
+
+printf("Finished initializing library a\n");
+</pre>
+</div>
+The first and last printf statements are part of the library's
+initialization. Any valid cqct code is allowed in the initialization.
+The initialization is run once, before the first time the library could
+be used, and is not run again. When the below code is run, we will see
+the library initialization printfs occur exactly once, between printfs
+1 and 2.
+<div class="code">
+<pre>
+printf("before with_imports(a)\n"); //printf 1
+@with_imports(a) {
+    printf("in the with_imports(a)\n"); //printf 2
+    fn_a();
+}
+@with_imports(a) { // a's initialization does not run again here
+    printf("in second with_imports(a)\n");
+    fn_a();
+}
+</pre>
+</div>
+In this code snippet, the first thing that happens is compilation.
+During compilation, a.cql is compiled along with the above code.
+Then at runtime, printf 1 is run, then the library initialization code
+associated with library a is run, then the contents of the two import
+statements are run, resulting in the following output:
+<div class="code">
+<pre>
+before with_imports(a)
+Initializing library a
+Finished initializing library a
+in the with_imports(a)
+Running fn_a
+in second with_imports(a)
+Running fn_a
+</pre>
+</div>
+
 
 <h3>Cinquecento Library Macros</h3>
 
@@ -214,8 +269,8 @@ This section describes all of the macros associated with the library system.
       <span class="id">@add_loadpath(path))</span>
     </div>
     <div class="param">
-      <span class="arg">path</span>: 
-      <span class="type">string</span> 
+      <span class="arg">path</span>:
+      <span class="type">string</span>
     </div>
     <div class="returns">
       <span class="type">nothing</span>
@@ -245,15 +300,15 @@ path = compute_path(); //this statement does not execute until run time
       <span class="id">@export( sym1 [, sym2 [,...]] )</span>
     </div>
     <div class="param">
-      <span class="arg">sym1</span>: 
-      <span class="type">symbol name</span> 
+      <span class="arg">sym1</span>:
+      <span class="type">symbol name</span>
     </div>
     <div class="returns">
       <span class="type">nothing</span>
     </div>
   </div>
   <div class="desc">
-    Can only be used inside a library file. 
+    Can only be used inside a library file.
     Exports the named symbols. Only symbols named in this way will
     be exported from the library.
   </div>
@@ -272,9 +327,9 @@ path = compute_path(); //this statement does not execute until run time
 </div>
 </div>
 <div class="desc">
-  Can only be used inside a library file. 
-  Imports the named libraries and symbols. 
-  See <a href=#import_spec>import specification</a> 
+  Can only be used inside a library file.
+  Imports the named libraries and symbols.
+  See <a href=#import_spec>import specification</a>
   for a description of valid import specifications.
 </div>
 </div>
@@ -286,17 +341,17 @@ path = compute_path(); //this statement does not execute until run time
       </span>
     </div>
     <div class="param">
-      <span class="arg">import_spec</span>: 
-      <span class="type">import specification</span> 
+      <span class="arg">import_spec</span>:
+      <span class="type">import specification</span>
     </div>
     <div class="returns">
       <span class="type">nothing</span>
     </div>
   </div>
   <div class="desc">
-    Imports the named libraries and symbols to the global scope. 
-    For use in top-level execution. 
-    See <a href=#import_spec>import specification</a> 
+    Imports the named libraries and symbols to the global scope.
+    For use in top-level execution.
+    See <a href=#import_spec>import specification</a>
     for a description of valid import specifications.
   </div>
 </div>
@@ -340,13 +395,13 @@ lib.fn(); //calls function fn exported by sublib
     </div>
   </div>
   <div class="desc">
-      Sets the reload flag to v. When the reload flag evalutates to true, 
+      Sets the reload flag to v. When the reload flag evalutates to true,
       the library system will reload libraries (that is, re-compile them and
-      set new bindings) every time they are imported (via 
-      <a href=#fn:@import>@import</a>, 
-      <a href=#fn:@with_imports>@with_imports</a>, 
-      <a href=#fn:@import_object>@import_object</a>, or  
-      <a href=#fn:@import_globals>@import_globals</a>). 
+      set new bindings) every time they are imported (via
+      <a href=#fn:@import>@import</a>,
+      <a href=#fn:@with_imports>@with_imports</a>,
+      <a href=#fn:@import_object>@import_object</a>, or
+      <a href=#fn:@import_globals>@import_globals</a>).
       This is to aid developers
       in library development and should not be used in production code: the
       reload flag will affect every subsequent import statment. The reload flag
@@ -360,21 +415,21 @@ lib.fn(); //calls function fn exported by sublib
       <span class="id">@with_exports(name, sym [, sym [,...]] ) { body }</span>
     </div>
     <div class="param">
-      <span class="arg">name</span>: 
-      <span class="type">library name</span> 
+      <span class="arg">name</span>:
+      <span class="type">library name</span>
     </div>
     <div class="param">
-      <span class="arg">sym1</span>: 
-      <span class="type">symbol names</span> 
+      <span class="arg">sym1</span>:
+      <span class="type">symbol names</span>
     </div>
     <div class="param">
-      <span class="arg">body</span>: 
-      <span class="type">cqct code</span> 
+      <span class="arg">body</span>:
+      <span class="type">cqct code</span>
     </div>
   </div>
   <div class="desc">
-    Mainly for internal use. 
-    This macro exports the given symbols that are 
+    Mainly for internal use.
+    This macro exports the given symbols that are
     <a href=#fn:@export>exported</a> in its body
     as though they were associated with the given library name.
   </div>
@@ -386,16 +441,16 @@ lib.fn(); //calls function fn exported by sublib
       <span class="id">@with_imports( import_spec [, import_spec [,...]] ) { body }</span>
     </div>
     <div class="param">
-      <span class="arg">import_spec</span>: 
-      <span class="type">import_spec</span> 
+      <span class="arg">import_spec</span>:
+      <span class="type">import_spec</span>
     </div>
     <div class="param">
-      <span class="arg">body</span>: 
-      <span class="type">cqct code</span> 
+      <span class="arg">body</span>:
+      <span class="type">cqct code</span>
     </div>
   </div>
   <div class="desc">
-    Used to import code from libraries. 
+    Used to import code from libraries.
     All imported symbols will only be visible inside the provided body.
     See <a href=#import_spec>import specification</a> for a list of
     valid import specifications.

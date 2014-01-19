@@ -5,9 +5,13 @@ arglib2 = @import_object(lib1);
 arglib2.printargs();
 
 @with_imports ( lib3 ) {
+    printf("f1 from lib3:\n");
     f1();
+    printf("f2 from lib3:\n");
     f2();
 }
+
+printf("past lib3 import\n");
 
 @with_imports ( (l, lib2.f3), (m, lib2.f4), (n, lib2.f4) ) {
     l();
@@ -19,18 +23,20 @@ arglib2.printargs();
 //@with_imports ( (l, lib2.f3), (m, lib2.f4), (n, lib2.f4) ) {
 //}
 
-@with_imports ( (f1, lib3.f2), lib2 ) { 
-  @defloc f4() { printf("Running f4 from main!\n"); } 
-  printf("In main\n"); 
-  f1(); 
-  f3(); 
-  f4(); 
-  printf("constant c1's value: %a\n",c1); 
+@with_imports ( (f1, lib3.f2), lib2 ) {
+  @defloc f4() { printf("Running f4 from main!\n"); }
+  printf("In main\n");
+  f1();
+  f3();
+  f4();
+  printf("constant c1's value: %a\n",c1);
 }
 
-@with_imports ( lib3, lib2 ) { 
-  1+1; 
+@with_imports ( lib3, lib2 ) {
+  1+1;
 }
+
+printf("pre test library\n");
 
 @library(test) {
   @import( lib3 );
@@ -41,6 +47,8 @@ arglib2.printargs();
   printf("test loaded\n");
 };
 
+printf("still pre test library\n");
+
 @with_imports( test ) {
   func();
 }
@@ -48,6 +56,8 @@ arglib2.printargs();
 @with_imports( test ) {
   func();
 }
+
+printf("should have seen only one 'test loaded'\n");
 
 @with_imports( subdir/sublib, (f2, subdir/sublib.fn1) ) {
   fn1();
@@ -70,7 +80,7 @@ arglib2.printargs();
   meme.fn1();
   meme.fn1000();
   meme.fn1();
-  applyk(@lambda() { meme.fn5(); }, 
+  applyk(@lambda() { meme.fn5(); },
          @lambda(ret) { printf("success\n"); },
          @lambda(msg) { printf("expected error found: %s\n",msg); },
          []);
@@ -85,3 +95,12 @@ arglib.printargs();
 
 @with_imports(test) {}
 
+printf("before with_imports(a)\n");
+@with_imports(a) {
+    printf("in the with_imports(a)\n");
+    fn_a();
+}
+@with_imports(a) {
+    printf("in second with_imports(a)\n");
+    fn_a();
+}

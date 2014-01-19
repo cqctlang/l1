@@ -6,6 +6,13 @@
    see doc/library_system.html
 */
 
+@defstx @dprintf(args...) {
+    //return #`{ printf(#,@args); };
+    return #[];
+}
+
+@dprintf("Library debug output enabled\n");
+
 if (library_defined == nil)
 {
 	//This global contains compiled libraries.
@@ -20,6 +27,7 @@ if (library_defined == nil)
 	//library system has a chance to run.
 	@defstx @__library_compiletimecode() {
 		@local libfns, reload;
+		@dprintf("Initializing library system\n");
 
 		//__library_exports is a map from library identifiers (cids) to
 		//a map from exported symbols (also cids) to the value of those
@@ -44,14 +52,17 @@ if (library_defined == nil)
 		@defloc mkliberror(src) {
 			@local s;
 			s = stxsrc(src);
+			@dprintf("+++Making liberror for %a\n",s);
 			if (s[1] != nil) {
 				@defloc liberror(msg,args...) {
+					@dprintf("+++error for %a\n",s);
 					msg = "error: %s:%d: " + msg;
 					apply(error,msg,s[0],s[1],args);
 				}
 				return liberror;
 			} else {
 				@defloc liberror(msg,args...) {
+					@dprintf("+++error for %a\n",s);
 					msg = "error: %s: " + msg;
 					apply(error,msg,s[0],args);
 				}
@@ -68,6 +79,7 @@ if (library_defined == nil)
 		@defloc load_library(err,lib) {
 			@local l,fp,parsed,compiled;
 			@global __library_exports;
+			@dprintf("+++Loading library %s\n",lib);
 
 			if (__library_exports[lib] == nil)
 				__library_exports[lib] = [:];
@@ -100,29 +112,31 @@ if (library_defined == nil)
 				@lambda(r) { r; },
 				@lambda(msg) {
 					callcc(@lambda(k) {
-			  			printstack(
+						printstack(
 						    continuationstack(k));
 					});
 					err("could not load library %a: %s",
 					    lib,msg);
 				}, [parsed]);
+			@dprintf("+++Compiled %s\n",lib);
 
 			if (compiled == nil)
 				err("could not load library %a",lib);
 
-			applyk(compiled,
-				@lambda(r) { r; },
-				@lambda(msg) {
-					callcc(@lambda(k) {
-			  			printstack(
-					   	    continuationstack(k));
-					});
-					err("could not load library %a: %s",
-					    lib,msg);
-				}, []);
+			__library_exports[lib].compiled = @lambda() {
+				@dprintf("+++Initializing %s\n",lib);
+				applyk(compiled,
+					@lambda(r) { r; },
+					@lambda(msg) {
+						err("could not load library %a: %s",
+						    lib,msg);
+					}, []);
+				__library_exports[lib].compiled = @lambda() {};
+			};
 
 			__library_exports[lib].loading = 0;
 			__library_exports[lib].loaded = 1;
+			@dprintf("+++Finished loading %s\n",lib);
 		}
 		libfns.load_library = load_library;
 
@@ -160,6 +174,7 @@ if (library_defined == nil)
 	@__library_compiletimecode();
 
 	@defstx @reload_imports(v) {
+		@dprintf("---Running @reload_imports(%a)",v);
 		__library_exports[0].set_reload(compile(v)());
 		return #`{
 			__library_exports[0].set_reload(#,(v));
@@ -183,6 +198,7 @@ if (library_defined == nil)
 	//this macro adds the provided path to the loadpath at compile time.
 	@defstx @add_loadpath(path) {
 		@local p,lp;
+		@dprintf("+++@add_loadpath(%a)",path);
 		p = compile(path)();
 		lp = loadpath();
 		append(lp,p);
@@ -207,9 +223,10 @@ if (library_defined == nil)
 		new_locals = Znull();
 		libnms = [];
 
+		//iterate over all of the imports
 		foreach(@lambda(en) {
 			@local s,fn,lname,lnamecid;
-			//parse (fn, lib.fn) or (lib)
+			//parse (fn, lib), (fn, lib.fn), or (lib)
 			switch(en) {
 			@match #comma(x,y): //(fn, lib)
 
@@ -235,14 +252,14 @@ if (library_defined == nil)
 						liberror("Attempt to import "
 						         "non-exported symbol "
 						         "%s from %s",
-							 lfn,lname );
+						         lfn,lname );
 					}
 					s = #`{
 						#,(#id(fn)) =
 						    __library_exports
 						        [#,(#val(lnamecid))]
 						        ['exports]
-							[#,(#val(lfn))];
+						        [#,(#val(lfn))];
 					};
 					new_body = Zcons(s,new_body);
 				} else {
@@ -250,7 +267,7 @@ if (library_defined == nil)
 						#,(#id(fn)) =
 						    copy(__library_exports
 						           [#,(#val(lnamecid))]
-							   ['exports]);
+						           ['exports]);
 					};
 					new_body = Zcons(s,new_body);
 				}
@@ -276,8 +293,8 @@ if (library_defined == nil)
 						#,(#id(lfn)) =
 						    __library_exports
 						        [#,(#val(lnamecid))]
-							['exports]
-							[#,(#val(lfn))];
+						        ['exports]
+						        [#,(#val(lfn))];
 						//FIXME hack to avoid variable
 						//defined but not referenced
 						//warnings
@@ -288,6 +305,12 @@ if (library_defined == nil)
 				break;
 			}
 		},Ztolist(imports));
+
+		foreach(@lambda(lib) {
+			@local s;
+			s = #`{ __library_exports[#,lib].compiled(); };
+			new_body = Zcons(s,new_body);
+		}, map(@lambda(x) { #val(x); }, libnms));
 
 		if (libfns.get_reload()) {
 			@local s;
@@ -373,6 +396,11 @@ if (library_defined == nil)
 				                 [#,(#val(stxid(en)))]
 				    = #,(en);
 			};
+			//put a temporary marker in the __library_exports
+			//so that we can fail compilation when unexported
+			//symbols are referenced
+			__library_exports[libnamecid].exports[stxid(en)] 
+				= 'defined;
 
 			new_postbody = Zcons(s,new_postbody);
 		},Ztolist(exports));
