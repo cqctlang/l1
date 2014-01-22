@@ -1,0 +1,217 @@
+typeencode.l1:55: warning: unused variable: l
+***
+int
+ -> int
+***
+long long
+ -> long long
+***
+struct S
+ -> struct S
+***
+struct S *
+ -> struct S *
+***
+union U *
+ -> union U *
+***
+enum E
+ -> enum E
+***
+enum E *
+ -> enum E *
+***
+enum E [100]
+ -> enum E [100]
+***
+int []
+ -> int [0]
+***
+int [10]
+ -> int [10]
+***
+int (*)(int x, int y)
+ -> int (*)(int x, int y)
+unsigned long
+_Bool
+char
+double
+double _Complex
+enum E
+float
+float _Complex
+int
+int16
+int32
+int64
+int8
+long
+long double
+long double _Complex
+long long
+short
+struct X
+struct Y
+uint16
+uint32
+uint64
+uint8
+uintptr
+unsigned char
+unsigned int
+unsigned long
+unsigned long long
+unsigned short
+void *
+***
+
+ ->
+
+***
+
+ ->
+
+***
+
+ ->
+
+***
+
+ ->
+
+***
+
+ ->
+
+***
+enum E {
+	c1 = 0,
+	c2 = 1,
+	c3 = 1,
+	c4 = 2,
+}
+ ->
+enum E {
+	c1 = 0,
+	c2 = 1,
+	c3 = 1,
+	c4 = 2,
+}
+***
+
+ ->
+
+***
+
+ ->
+
+***
+
+ ->
+
+***
+typedef short int16
+ ->
+typedef short int16
+***
+typedef long int32
+ ->
+typedef long int32
+***
+typedef long long int64
+ ->
+typedef long long int64
+***
+typedef char int8
+ ->
+typedef char int8
+***
+
+ ->
+
+***
+
+ ->
+
+***
+
+ ->
+
+***
+
+ ->
+
+***
+
+ ->
+
+***
+struct X {
+	@0x0	int x;
+	@0x4	int y;
+	@0x8;
+}
+ ->
+struct X {
+	@0x0	int x;
+	@0x4	int y;
+	@0x8;
+}
+***
+struct Y {
+	@0x0	int x;
+	@@(8*0x4+0)	int y : 2;
+	@@(8*0x4+2)	int z : 3;
+	@0x8;
+}
+ ->
+struct Y {
+	@0x0	int x;
+	@@(8*0x4+0)	int y : 2;
+	@@(8*0x4+2)	int z : 3;
+	@0x8;
+}
+***
+typedef unsigned short uint16
+ ->
+typedef unsigned short uint16
+***
+typedef unsigned long uint32
+ ->
+typedef unsigned long uint32
+***
+typedef unsigned long long uint64
+ ->
+typedef unsigned long long uint64
+***
+typedef unsigned char uint8
+ ->
+typedef unsigned char uint8
+***
+typedef unsigned long uintptr
+ ->
+typedef unsigned long uintptr
+***
+
+ ->
+
+***
+
+ ->
+
+***
+
+ ->
+
+***
+
+ ->
+
+***
+
+ ->
+
+***
+
+ ->
+
