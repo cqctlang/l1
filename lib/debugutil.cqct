@@ -127,8 +127,8 @@
 {
 	@local sp, ctx, id, ns, rt;
 	ns = ctl.ns(a);
-	a = ctl.cast(a);
 	rt = fnret(a);
+	a = ctl.cast(a);
 	ctx = ctl.ctx();
 	sp = (void**)ctl.cast(ctx->sp);
 	id = ctl.trap('brk, *sp,

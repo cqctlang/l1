@@ -111,10 +111,11 @@ idxev = [
 
 	@defloc cast(a)
 	{
-		@local _ns;
+		@local _ns, t;
 		_ns = ns(a);
+		t = @typeof(a);
 		if(_ns)
-			return {mkdom(_ns, mem())}a;
+			return {t}{mkdom(_ns, mem())}(void*)a;
 		else
 			return {mem()}a;
 	}
