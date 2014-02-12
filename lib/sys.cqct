@@ -32,6 +32,7 @@ _unameres = nil;
 		eval("@include <linux-x86.cqct>"); 
 		break;
 	case ["Linux","armv7l",4]:
+	case ["Linux","armv6l",4]:
 		eval("@include <linux-arm.cqct>"); 
 		break;
 	case ["Darwin","x86_64",8]:
