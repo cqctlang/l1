@@ -167,9 +167,8 @@ equalctype(Ctype *a, Ctype *b)
 	bug();
 }
 
-
-Ctype*
-subtype(Ctype *t)
+static Ctype*
+subtype0(Ctype *t)
 {
 	Ctypearr *ta;
 	Ctypeconst *tc;
@@ -180,44 +179,41 @@ subtype(Ctype *t)
 	Ctypeundef *tu;
 	Ctypebitfield *tw;
 
-	Ctype *ret=0;
-
 	switch(t->tkind){
 	case Tenum:
 		te = (Ctypeenum*)t;
-		ret = te->sub;
-		break;
+		return te->sub;
 	case Ttypedef:
 		td = (Ctypedef*)t;
-		ret = td->sub;
-		break;
+		return td->sub;
 	case Tfun:
 		tf = (Ctypefunc*)t;
-		ret = tf->sub;
-		break;
+		return tf->sub;
 	case Tptr:
 		tp = (Ctypeptr*)t;
-		ret = tp->sub;
-		break;
+		return tp->sub;
 	case Tarr:
 		ta = (Ctypearr*)t;
-		ret = ta->sub;
-		break;
+		return ta->sub;
 	case Tbitfield:
 		tw = (Ctypebitfield*)t;
-		ret = tw->sub;
-		break;
+		return tw->sub;
 	case Tconst:
 		tc = (Ctypeconst*)t;
-		ret = tc->sub;
-		break;
+		return tc->sub;
 	case Tundef:
 		tu = (Ctypeundef*)t;
-		ret = tu->sub;
-		break;
+		return tu->sub;
 	default:
 		bug();
 	}
+}
+
+Ctype*
+subtype(Ctype *t)
+{
+	Ctype *ret;
+	ret=subtype0(t);
 	if(ret==0)
 		fatal("subtype of incomplete type");
 	return ret;
@@ -296,7 +292,7 @@ safechasetype(Ctype *t)
 	switch(t->tkind){
 	case Ttypedef:
 	case Tenum:
-		return safechasetype(subtype(t));
+		return safechasetype(subtype0(t));
 	default:
 		return t;
 	}
@@ -1383,7 +1379,9 @@ l1_subtype(VM *vm, Imm argc, Val *argv, Val *rv)
 
 	t = valctype(argv[0]);
 	if(t->tkind == Ttypedef)
-		t = chasetype(t);
+		t = safechasetype(t);
+	if(!t)
+		return;
 	switch(t->tkind){
 	case Tptr:
 	case Tarr:
@@ -1394,7 +1392,7 @@ l1_subtype(VM *vm, Imm argc, Val *argv, Val *rv)
 	default:
 		vmerr(vm, err);
 	}
-	t = subtype(t);
+	t = subtype0(t);
 	if(t)
 		*rv = mkvalctype(t);
 }
@@ -1402,7 +1400,7 @@ l1_subtype(VM *vm, Imm argc, Val *argv, Val *rv)
 static void
 l1_rettype(VM *vm, Imm argc, Val *argv, Val *rv)
 {
-	Ctype *t;
+	Ctype *t,*st;
 
 	if(argc != 1)
 		vmerr(vm, "wrong number of arguments to rettype");
@@ -1411,7 +1409,10 @@ l1_rettype(VM *vm, Imm argc, Val *argv, Val *rv)
 	t = valctype(argv[0]);
 	if(t->tkind != Tfun)
 		vmerr(vm, "operand 1 to rettype must be a function ctype");
-	*rv = mkvalctype(subtype(t));
+	st=subtype0(t);
+	if(st==0)
+		vmerr(vm, "operand 1 to rettype is incomplete");
+	*rv = mkvalctype(st);
 }
 
 static void
@@ -1513,7 +1514,7 @@ l1_bitfieldwidth(VM *vm, Imm argc, Val *argv, Val *rv)
 static void
 l1_bitfieldcontainer(VM *vm, Imm argc, Val *argv, Val *rv)
 {
-	Ctype *t;
+	Ctype *t,*st;
 
 	if(argc != 1)
 		vmerr(vm, "wrong number of arguments to bitfieldcontainer");
@@ -1525,7 +1526,10 @@ l1_bitfieldcontainer(VM *vm, Imm argc, Val *argv, Val *rv)
 	if(t->tkind != Tbitfield)
 		vmerr(vm, "operand 1 to bitfieldcontainer "
 		      "must be a bitfield ctype");
-	*rv = mkvalctype(subtype(t));
+	st=subtype0(t);
+	if(st==0)
+		vmerr(vm, "operand 1 to bitfieldcontainer is incomplete");
+	*rv = mkvalctype(st);
 }
 
 
@@ -1594,7 +1598,7 @@ l1_typedeftype(VM *vm, Imm argc, Val *argv, Val *rv)
 	if(t->tkind != Ttypedef)
 		vmerr(vm,
 		      "operand 1 to typedeftype must be a typedef ctype");
-	t = subtype(t);
+	t = subtype0(t);
 	if(t)
 		*rv = mkvalctype(t);
 }
