@@ -180,34 +180,47 @@ subtype(Ctype *t)
 	Ctypeundef *tu;
 	Ctypebitfield *tw;
 
+	Ctype *ret=0;
+
 	switch(t->tkind){
 	case Tenum:
 		te = (Ctypeenum*)t;
-		return te->sub;
+		ret = te->sub;
+		break;
 	case Ttypedef:
 		td = (Ctypedef*)t;
-		return td->sub;
+		ret = td->sub;
+		break;
 	case Tfun:
 		tf = (Ctypefunc*)t;
-		return tf->sub;
+		ret = tf->sub;
+		break;
 	case Tptr:
 		tp = (Ctypeptr*)t;
-		return tp->sub;
+		ret = tp->sub;
+		break;
 	case Tarr:
 		ta = (Ctypearr*)t;
-		return ta->sub;
+		ret = ta->sub;
+		break;
 	case Tbitfield:
 		tw = (Ctypebitfield*)t;
-		return tw->sub;
+		ret = tw->sub;
+		break;
 	case Tconst:
 		tc = (Ctypeconst*)t;
-		return tc->sub;
+		ret = tc->sub;
+		break;
 	case Tundef:
 		tu = (Ctypeundef*)t;
-		return tu->sub;
+		ret = tu->sub;
+		break;
 	default:
 		bug();
 	}
+	if(ret==0)
+		fatal("subtype of incomplete type");
+	return ret;
 }
 
 /* the existence of this function is unfortunate.
@@ -604,6 +617,8 @@ typesize(VM *vm, Ctype *t)
 	case Tstruct:
 	case Tunion:
 		ts = (Ctypesu*)t;
+		if(ts->attr==0)
+			vmerr(vm, "attempt to determine size of incomplete type");
 		v = attroff(ts->attr);
 		if(Vkind(v) == Qnil)
 			vmerr(vm, "attempt to determine size of "
@@ -1447,6 +1462,9 @@ l1_susize(VM *vm, Imm argc, Val *argv, Val *rv)
 		vmerr(vm,
 		      "operand 1 to susize must be a struct or union ctype");
 	ts = (Ctypesu*)t;
+	if(ts->attr==0)
+		vmerr(vm,
+		      "operand 1 to susize is incomplete");
 	*rv = attroff(ts->attr);
 }
 
@@ -1466,6 +1484,9 @@ l1_suattr(VM *vm, Imm argc, Val *argv, Val *rv)
 		vmerr(vm,
 		      "operand 1 to suattr must be a struct or union ctype");
 	ts = (Ctypesu*)t;
+	if(ts->attr==0)
+		vmerr(vm,
+		      "operand 1 to suattr is incomplete");
 	*rv = ts->attr;
 }
 
