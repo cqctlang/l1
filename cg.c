@@ -1955,7 +1955,7 @@ mkraiseinterrupt(void)
 	i->kind = Imov;
 	randloc(&i->op1, AC);
 	randframeloc(&i->dst, Oarg0+2);
-	fset(&f, Oarg0);
+	fset(&f, Oarg0+2);
 	femit(&f, ode);
 	
 	/* set up call to handler (arg 1) */
