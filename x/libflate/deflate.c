@@ -317,7 +317,7 @@ deflatereset(LZstate *lz, int level, int debug)
 }
 
 int
-deflate(void *wr, int (*w)(void*, void*, int), void *rr, int (*r)(void*, void*, int), int level, int debug)
+xdeflate(void *wr, int (*w)(void*, void*, int), void *rr, int (*r)(void*, void*, int), int level, int debug)
 {
 	LZstate *lz;
 	LZblock *lzb;

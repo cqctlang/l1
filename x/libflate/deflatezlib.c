@@ -44,7 +44,7 @@ deflatezlib(void *wr, int (*w)(void*, void*, int), void *rr, int (*r)(void*, voi
 	zr.rr = rr;
 	zr.r = r;
 	zr.adler = 1;
-	ok = deflate(wr, w, &zr, zlread, level, debug);
+	ok = xdeflate(wr, w, &zr, zlread, level, debug);
 	if(ok != FlateOk)
 		return ok;
 

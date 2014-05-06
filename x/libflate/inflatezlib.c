@@ -47,7 +47,7 @@ inflatezlib(void *wr, int (*w)(void*, void*, int), void *getr, int (*get)(void*)
 	zw.wr = wr;
 	zw.w = w;
 	zw.adler = 1;
-	i = inflate(&zw, zlwrite, getr, get);
+	i = xinflate(&zw, zlwrite, getr, get);
 	if(i != FlateOk)
 		return i;
 
