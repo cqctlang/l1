@@ -171,8 +171,8 @@ l1_mkdlfcnns(VM *vm, Imm argc, Val *argv, Val *rv)
 				outside);
 
 	tt=mktab();
-	tabput(tt, mkvalctype(typename(em)), mkvalctype(em));
-	tabput(tt, mkvalctype(typename(eh)), mkvalctype(eh));
+	tabput(tt, mkvalctype(ctypename(em)), mkvalctype(em));
+	tabput(tt, mkvalctype(ctypename(eh)), mkvalctype(eh));
 
 	st=mktab();
 

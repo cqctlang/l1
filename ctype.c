@@ -1749,7 +1749,7 @@ l1_enumconsts(VM *vm, Imm argc, Val *argv, Val *rv)
 }
 
 Ctype*
-typename(Ctype *td)
+ctypename(Ctype *td)
 {
 	Ctypearr *ta;
 	Ctypefunc *tf;
@@ -1763,9 +1763,9 @@ typename(Ctype *td)
 	case Tbase:
 		return mkctypebase(typecbase(td), Rundef);
 	case Tptr:
-		return mkctypeptr(typename(subtype(td)), Rundef);
+		return mkctypeptr(ctypename(subtype(td)), Rundef);
 	case Tconst:
-		return mkctypeconst(typename(subtype(td)));
+		return mkctypeconst(ctypename(subtype(td)));
 	case Ttypedef:
 		return mkctypedef(typetid(td), 0);
 	case Tstruct:
@@ -1774,7 +1774,7 @@ typename(Ctype *td)
 		return mkctypesu(td->tkind, typetag(td), 0, 0);
 	case Tarr:
 		ta = (Ctypearr*)td;
-		return mkctypearr(typename(subtype(td)), ta->cnt);
+		return mkctypearr(ctypename(subtype(td)), ta->cnt);
 	case Tfun:
 		tf = (Ctypefunc*)td;
 		pv = mkvec(tf->param->len);
@@ -1782,15 +1782,15 @@ typename(Ctype *td)
 			o = valvec(vecref(tf->param, i));
 			p = mkvec(3);
 			_vecset(p, Typepos,
-				mkvalctype(typename(fieldtype(o))));
+				mkvalctype(ctypename(fieldtype(o))));
 			_vecset(p, Idpos, vecref(o, Idpos));
 			_vecset(p, Attrpos, vecref(o, Attrpos));
 			_vecset(pv, i, mkvalvec(p));
 		}
-		return mkctypefunc(typename(subtype(td)), pv);
+		return mkctypefunc(ctypename(subtype(td)), pv);
 	case Tbitfield:
 		tw = (Ctypebitfield*)td;
-		return mkctypebitfield(typename(subtype(td)),
+		return mkctypebitfield(ctypename(subtype(td)),
 				       tw->cnt, tw->bit0);
 	case Tundef:
 		/* FIXME: this is made-up */
@@ -1805,7 +1805,7 @@ l1_typename(VM *vm, Imm argc, Val *argv, Val *rv)
 	if(argc != 1)
 		vmerr(vm, "wrong number of arguments to typename");
 	checkarg(vm, argv, 0, Qctype);
-	*rv = mkvalctype(typename(valctype(argv[0])));
+	*rv = mkvalctype(ctypename(valctype(argv[0])));
 }
 
 static void
