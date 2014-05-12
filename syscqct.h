@@ -1227,7 +1227,7 @@ Val		xunop(VM *vm, ikind op, Val v);
 #define valvec(v)	((Vec*)(v))
 #define stkimm(v)	(Imm)(uptr)(v)
 #define stkp(v)		(void*)(uptr)(v)
-#define REGFN(id)	{ registercfn(#id, id); }
+#define REGFN(id)	{ registercfn(#id, (void *)id); }
 #define FN(id)		{ builtinfn(env, "%"#id, cqctmkcfn(#id, l1_##id)); REGFN(l1_##id); }
 
 /* lib9's reliable, portable snprintf (x/lib9) */

@@ -4282,9 +4282,9 @@ builtinfn(Env env, char *name, Closure *cl)
 }
 
 void
-cqctbuiltinfn(Env top, char *name, Closure *cl)
+cqctbuiltinfn(VM* vm, char *name, Closure *cl)
 {
-	builtinfn(top, name, cl);
+	builtinfn(vm->top, name, cl);
 }
 
 static void
@@ -7649,29 +7649,36 @@ procincr(Env env) {
 }
 
 VM*
-cqctinit(char *memfile, char **loadpath)
+cqctinitxfd(char *memfile, char **loadpath, Xfd *in, Xfd *out, Xfd *err)
 {
 	Env top, tmp;
 	VM *vm;
-	Xfd in, out, err;
 	struct sigaction sa;
+	Xfd xfd[3];
 
 	/* users cannot disable warnings */
 	cqctflags['w'] = 1;
 
-	memset(&in, 0, sizeof(Xfd));
-	in.read = xfdread;
-	in.fd = 0;
+	if(in == 0){
+		in = &xfd[0];
+		memset(in, 0, sizeof(Xfd));
+		in->read = xfdread;
+		in->fd = 0;
+	}
+	if(out == 0){
+		out = &xfd[1];
+		memset(out, 0, sizeof(Xfd));
+		out->write = xfdwrite;
+		out->fd = 1;
+	}
+	if(err == 0){
+		err = &xfd[2];
+		memset(err, 0, sizeof(Xfd));
+		err->write = xfdwrite;
+		err->fd = 2;
+	}
 
-	memset(&out, 0, sizeof(Xfd));
-	out.write = xfdwrite;
-	out.fd = 1;
-
-	memset(&err, 0, sizeof(Xfd));
-	err.write = xfdwrite;
-	err.fd = 2;
-
-	initio(&in, &out, &err);
+	initio(in, out, err);
 	initos();
 	initmem();
 	initqc();
@@ -7715,6 +7722,11 @@ cqctinit(char *memfile, char **loadpath)
 	return vm;
 }
 
+VM*
+cqctinit(char *memfile, char **loadpath)
+{
+	return cqctinitxfd(memfile, loadpath, 0, 0, 0);
+}
 void
 cqctfini(VM *vm)
 {

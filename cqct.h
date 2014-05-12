@@ -126,7 +126,7 @@ struct Xfd {
 
 #define CQCTFN(top,id)	cqctbuiltinfn(top, "%"#id, cqctmkcfn(#id, l1_##id))
 
-void		cqctbuiltinfn(Env top, char *name, Closure *cl);
+void		cqctbuiltinfn(VM *vm, char *name, Closure *cl);
 int		cqctcallfn(VM *vm, Val cl, int argc, Val *argv, Val *rv);
 int		cqctcallthunk(VM *vm, Val cl, Val *rv);
 void		cqctcheckarg(VM *vm, Val *argv, unsigned arg, Qkind qkind);
@@ -134,8 +134,9 @@ Val		cqctcstrnval(char *s, uint64_t len);
 Val		cqctcstrnvalshared(char *s, uint64_t len);
 Val		cqctcstrval(char *s);
 Val		cqctcstrvalshared(char *s);
-void		cqctenvbind(Env top, char *name, Val v);
+void		cqctenvbind(VM *vm, char *name, Val v);
 Val		cqctenvlook(VM *vm, char *name);
+int		cqcteval(VM *vm, char *s, char *src, Val *rv);
 void		cqctfreecstr(char *s);
 Val		cqctint8val(int8_t);
 Val		cqctint16val(int16_t);
@@ -154,10 +155,10 @@ Val		cqctmkfd(Xfd *xfd, char *name);
 Val		cqctmklist(uint64_t n);
 Val		cqctmkrange(Val b, Val l);
 Val		cqctmkvec(uint64_t n);
-VM*		cqctmkvm(Env top);
 Val		cqctrangebeg(Val o);
 Val		cqctrangelen(Val o);
 char*		cqctsprintval(VM *vm, Val v);
+Val		cqcttabget(Val l, Val k);
 Val		cqctuint8val(uint8_t);
 Val		cqctuint16val(uint16_t);
 Val		cqctuint32val(uint32_t);
@@ -184,5 +185,6 @@ Env		restoreheap(char *file);
 
 /* vm.c */
 VM*		cqctinit(char *memfile, char **loadpath);
+VM*		cqctinitxfd(char *memfile, char **loadpath, Xfd *in, Xfd *out, Xfd *err);
 void		cqctfini(VM *vm);
 

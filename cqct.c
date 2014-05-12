@@ -5,6 +5,19 @@
 char **cqctloadpath;
 char cqctflags[256];
 
+int
+cqcteval(VM *vm, char *s, char *src, Val *rv)
+{
+	Val cl;
+	Val codeval = cqctcstrval(s);
+	cl = cqctenvlook(vm, (char *)"eval");
+	if(cl == 0)
+		return -1;
+	if (cqctcallfn(vm, cl, 1, &codeval, rv))
+		return -1;
+	return 0;
+}
+
 void
 cqctinterrupt(VM *vm)
 {
@@ -104,9 +117,9 @@ cqctfreecstr(char *s)
 }
 
 void
-cqctenvbind(Env env, char *name, Val v)
+cqctenvbind(VM *vm, char *name, Val v)
 {
-	envbind(env, name, v);
+	envbind(vm->top, name, v);
 }
 
 Val
@@ -189,6 +202,15 @@ cqctlistappend(Val l, Val v)
 		return 0;
 	_listappend(vallist(l), v);
 	return l;
+}
+
+Val
+cqcttabget(Val l, Val k) {
+	 Tab *tab;
+	 if (Vkind(l) != Qtab)
+		   return 0;
+	 tab = valtab(l);
+	 return tabget(tab, k);
 }
 
 Val
