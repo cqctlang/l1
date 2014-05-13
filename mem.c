@@ -2259,7 +2259,7 @@ void
 initmem()
 {
 	u32 i, gr;
-
+	memset(&H, 0, sizeof(H));
 	initsegmap();
 	gr = 1;
 	for(i = 0; i < Ngen; i++){

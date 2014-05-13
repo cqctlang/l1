@@ -4375,7 +4375,7 @@ dovm(VM *vm)
 	Val v1, v2, rv;
 
 #ifdef THREADED
-	if(!gotab[0]) {
+	if(!vm) {
 		/* we've been called by initvm.
 		   we're only here to initialize gotab. */
 		gotab[Iabort] 	= &&Iabort;
