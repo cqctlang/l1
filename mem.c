@@ -2260,6 +2260,7 @@ initmem()
 {
 	u32 i, gr;
 	memset(&H, 0, sizeof(H));
+	ncfn = 0;
 	initsegmap();
 	gr = 1;
 	for(i = 0; i < Ngen; i++){
@@ -2563,6 +2564,7 @@ loadsaveptr(Val *pp, LSctx *ls)
 static void
 savecfn(void **fnp)
 {
+    if (*fnp)
 	*fnp = (void*)mkreloc(Segcfn, lookcfnaddr(*fnp));
 }
 

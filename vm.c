@@ -7591,6 +7591,12 @@ mktopenv(void)
 	/* expanded source may call these magic functions */
 	builtinfn(env, "$put", mkcfn("$put", l1_put));
 	builtinfn(env, "$typeof", mkcfn("$typeof", l1_typeof));
+	builtinfd(env, "stdin",
+		  mkfdfn(mkstr0("<stdin>"), Fread, &l1stdin));
+	builtinfd(env, "stdout",
+		  mkfdfn(mkstr0("<stdout>"), Fwrite, &l1stdout));
+	builtinfd(env, "stderr",
+		  mkfdfn(mkstr0("<stderr>"), Fwrite, &l1stderr));
 
 	return env;
 }
