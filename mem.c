@@ -2508,6 +2508,8 @@ resolveptr(uptr x, LSctx *ls)
 
 	if(ls->mode != LSload)
 		bug();
+	if(x==0)
+		return 0;
 	n = x>>Segbits;
 	off = x&(Segsize-1);
 	switch(n){
@@ -2564,8 +2566,8 @@ loadsaveptr(Val *pp, LSctx *ls)
 static void
 savecfn(void **fnp)
 {
-    if (*fnp)
-	*fnp = (void*)mkreloc(Segcfn, lookcfnaddr(*fnp));
+	if (*fnp)
+		*fnp = (void*)mkreloc(Segcfn, lookcfnaddr(*fnp));
 }
 
 static u8
