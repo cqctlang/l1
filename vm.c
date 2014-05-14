@@ -4367,6 +4367,7 @@ dogc(VM *vm, u32 g, u32 tg)
 }
 
 Val
+__attribute__ ((noclone))
 dovm(VM *vm)
 {
 	Insn *i;
