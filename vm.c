@@ -7685,9 +7685,9 @@ cqctinitxfd(char *memfile, char **loadpath, Xfd *in, Xfd *out, Xfd *err)
 		err->fd = 2;
 	}
 
-	initio(in, out, err);
 	initos();
 	initmem();
+	initio(in, out, err);
 	initqc();
 	initparse();
 	initcid();
