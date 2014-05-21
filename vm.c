@@ -5576,12 +5576,15 @@ l1_setname(VM *vm, Imm argc, Val *argv, Val *rv)
 		name = 0;
 	if(Vkind(argv[0]) == Qdom) {
 		dom = valdom(argv[0]);
+		gcwb(mkvaldom(dom));
 		dom->name = name;
 	}else if(Vkind(argv[0]) == Qns) {
 		ns = valns(argv[0]);
+		gcwb(mkvalns(ns));
 		ns->name = name;
 	}else if(Vkind(argv[0]) == Qas) {
 		as = valas(argv[0]);
+		gcwb(mkvalas(as));
 		as->name = name;
 	}else
 		vmerr(vm, "operand 1 to nameof must be a domain, name space"
