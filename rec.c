@@ -330,6 +330,7 @@ l1_rdsetfmt(VM *vm, Imm argc, Val *argv, Val *rv)
 	checkarg(vm, argv, 1, Qcl);
 	rd = valrd(argv[0]);
 	cl = valcl(argv[1]);
+	gcwb(mkvalrd(rd));
 	rd->fmt = cl;
 	USED(rv);
 }
