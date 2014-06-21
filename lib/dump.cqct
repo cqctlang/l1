@@ -2,10 +2,10 @@
 @global dump_defined;
 
 /**
-dump.cqct provides code for printing out namespaces and the values associated 
-with typed pointers. 
+dump.cqct provides code for printing out namespaces and the values associated
+with typed pointers.
 
-This library will be DEPRECATED and replaced soon. Do not use.
+This library is DEPRECATED. It has been replaced by nsutil and memstr.
 */
 
 if (dump_defined == nil)
@@ -17,177 +17,24 @@ dump_defined = 1;
 /**
 Prints the type t in a way parsable in a .names file.
 */
-@define printtype(t){
-	@local i, fld, flds, sz, off;
-
-	if(issu(t)){
-		printf("%s %s {\n", suekind(t), suetag(t));
-		flds = fields(t);
-		for(i = 0; i < length(flds); i++){
-			@local ft,id;
-			fld = flds[i];
-			off = fieldoff(fld);
-			ft = fieldtype(fld);
-			id = fieldid(fld);
-			if(isnil(off)){
-				printf("\t");
-				printf("\t%t;\n", fld);
-			}else if(isbitfield(ft)){
-				printf("\t@@(8*0x%x+0x%x)",
-				       off, bitfieldpos(ft));
-				printf("\t%t %s : %d;\n",
-				       bitfieldcontainer(ft), id,
-				       bitfieldwidth(ft));
-			}else{
-				printf("\t@0x%x", off);
-				printf("\t%t;\n", fld);
-			}
-		}
-		sz = susize(t);
-		if(!isnil(sz))
-			printf("\t@0x%x;\n", sz);
-		printf("};\n");
-	}else if(istypedef(t))
-		printf("typedef %t %s;\n", typedeftype(t), typedefid(t));
-	else if(isenum(t)){
-		@local ens,en;
-		printf("%s %s {\n", suekind(t), suetag(t));
-		ens = enumconsts(t);
-		for(i = 0; i < length(ens); i++){
-			en = ens[i];
-			printf("\t%s = %d,\n", en[0], en[1]);
-		}
-		printf("};\n");
-	}else
-		printf("%t;\n", t);
-};
+@define printtype(t) {
+	error("dump.cqct's printtype has been deprecated. "
+	      " include nsutil.cqct instead\n");
+}
 
 /**
 print a namespace in .names file format.
 */
 @define dumpns(dn){
-	@local ns, vec,i;
-	if(isdom(dn))
-		ns = dn.ns;
-	else
-		ns = dn;
-	
-	vec = copy(tabvals(ns.enumtype()));
-	sort(vec,@lambda(x,y) { 
-		return strcmp(sprintfa("%t",x),sprintfa("%t",y));
-	}); //possibly wasteful, but makes the output cleaner.
-	for(i = 0; i < length(vec); i++) {
-		if (isbase(vec[i])) continue;
-		if (isptr(vec[i])) continue;
-			printtype(vec[i]);
-	}
-
-	vec = copy(tabvals(ns.enumsym()));
-	sort(vec,@lambda(x,y) { 
-		return strcmp(sprintfa("%s",symid(x)),sprintfa("%s",symid(y)));
-	}); //possibly wasteful, but makes the output cleaner.
-	for(i = 0; i < length(vec); i++)
-		if(!isenumconst(symtype(vec[i])))
-			printf("%t;\n", vec[i]);
+	fprintf(stderr, "Warning: dumpns from dump.cqct is deprecated. "
+	                "Use printns from nsutil.cqct instead.");
 }
 
-/**
-* returns a string representation of the object pointed to by x (including 
-* its values in memory).
-* params: x is a pointer to an object
-* returns: a string representation of x and its content
-*/
 @define objectstr(argv ...)
 {
-	@local p, t, indent;
-
-	if (length(argv) == 0) fault();
-	p = argv[0]; 
-	//indent is the amount to indent all except the first line
-	if (length(argv) > 1) indent = argv[1];
-	else indent = "";
-	t = @typeof(p); 
-	if (isptr(t)) {
-		@local t2;
-
-		t2 = subtype(t);
-		while(istypedef(t2))
-			t2 = typedeftype(t2);
-
-		if (isvoid(t2)) return "VOID";
-		//check if it is an unspecified array before checking if it is mapped.
-		if (isarray(t2) && arraynelm(t2) == nil)
-			; //do nothing, no need to check if unspecified array is mapped
-		else if (!ismapped(p)) return "UNMAPPED";
-
-		if (issu(t2)) {
-			@local flds, i, nxt_indent, ret;
-
-			if (strlen(indent)>70 ) return sprintfa("...",p);
-			flds = fields(t2);
-			if (isstruct(t2)) ret = "struct ";
-			else if (isunion(t2)) ret = "union ";
-			else ret = "aggregate ";
-			ret += sprintfa("%s at 0x%x {", suetag(t2), p);
-			for(i=0; i<length(flds); ++i)
-			{
-				@local buf;
-
-				buf = sprintfa("\n%s%t %s = ",
-					indent + "   ",
-					fieldtype(flds[i]),
-					fieldid(flds[i]));
-				nxt_indent = "";
-				foreach(@lambda(x) {
-					nxt_indent += " "; 
-				}, mkvec(strlen(buf)-1));
-				ret += buf + objectstr(
-					{mkctype_ptr(fieldtype(flds[i]),
-						nsptr(domof(p).ns))}
-					(((void*)p) +
-					   fieldoff(flds[i])),
-						nxt_indent);
-			}
-			ret += sprintfa("\n%s};",indent);
-			return ret;
-		} else if (isbase(t2) && baseid(t2)=="char") {
-			return stringof(p);
-		} else if (isenum(t2)) {
-			return sprintfa("%e (%d)",{t2}*p,*p);
-		} else if (isbase(t2)) {
-			if (baseid(t2)=="int") 
-				return sprintfa("%d",*p);
-			else if (baseid(t2)=="unsigned int") 
-				return sprintfa("%u",*p);
-			else if (baseid(t2)=="char")
-				return sprintfa("%c",*p);
-			else if (baseid(t2)=="long")
-				return sprintfa("%d",*p);
-			else return sprintfa("%a",*p);
-		} else if (isenumconst(t2)) {
-			return sprintfa("%d",*p);
-		} else if (isfunc(t2)) {
-			return sprintfa("<function:0x%x>",p);
-		} else if (isarray(t2)) {
-			@local len, i, nxt_indent, ret;
-
-			nxt_indent = indent+" ";
-			len = arraynelm(t2);
-			if (len == nil) return sprintfa("[] // unknown size");
-			ret = "[";
-			for(i=0; i<len; ++i) {
-				if (i != 0) ret += ",\n"+nxt_indent;
-					ret += objectstr((*p)[i],nxt_indent);
-			}
-			ret += "]";
-			return ret;
-		} else if (isptr(t2)) {
-			return sprintfa("0x%x",*p);
-		}
-		return sprintfa("UNKNOWN TYPE: %t", t2);
-	} else {
-		return sprintfa("%d",p);
-	}
+	fprintf(stderr, "Warning: objectstr is bring deprecated. Use memstr's "
+	        "cptrstr instead.\n");
+	apply(@import_object(memstr).cptrstr,argv);
 }
 
 }

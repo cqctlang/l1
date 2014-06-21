@@ -1,8 +1,8 @@
 
-@include <dump.cqct>
+@include <nsutil.cqct>
 
 @define keysorted_tabvals(t) {
-	@local k,l;
+	@local k;
 
 	k=tabkeys(t);
 	k=sort(k,@lambda(a,b) {
@@ -56,8 +56,10 @@
 	fn = ns.enumtype();
 	//printf("FN: %a\n",fn);
 	vec = keysorted_tabvals(fn);
-	for(i = 0; i < length(vec); i++)
+	for(i = 0; i < length(vec); i++) {
 		printtype(vec[i]);
+		printf("\n");
+	}
 };
 
 foo();

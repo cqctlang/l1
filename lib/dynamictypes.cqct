@@ -17,15 +17,15 @@ stuct Vector {
 	int data[size];
 };
 
-The basic idea is to include an extra mapping in fields for the 
+The basic idea is to include an extra mapping in fields for the
 keyword "refine", which specifies a function for performing the
 transformation. Then for a pointer to an object p, one can call
-refine(p) to create a pointer that points to the refined version 
-of the type of p. 
-*/ 
+refine(p) to create a pointer that points to the refined version
+of the type of p.
+*/
 
 
-if (dynamictypes_defined == nil) 
+if (dynamictypes_defined == nil)
 {
 @local unrollTypedef;
 @global REFINE_KEY, refine, dynamictypes_example; 
@@ -91,9 +91,8 @@ REFINE_KEY = "refine";
 /**
 An example of how one might use dynamic types.
 */
-@define dynamictypes_example() {
+@define dynamictypes_example() { @with_imports(memstr) {
 	@local ns,dom,q,i;
-	@include <dump.cqct>
 	ns = @names c64le {
 		
 		struct Vector {
@@ -151,7 +150,7 @@ An example of how one might use dynamic types.
 	{
 		q->data[i] = i*i*i;
 	}
-	printf("%s\n",objectstr(q));
+	printf("%s\n",cptrstr(q));
 	q++;
 	q = (struct dom`EnumPtr*)q;
 	q->type = dom`T_INT;
@@ -162,21 +161,21 @@ An example of how one might use dynamic types.
 	//traversing the data struct
 	q = &dom`vector;
 	printf("Pre-refinement:\n");
-	printf("%s\n",objectstr(q));
+	printf("%s\n",cptrstr(q));
 	q = refine(q);
 	printf("Post-refinement:\n");
-	printf("%s\n",objectstr(q));
+	printf("%s\n",cptrstr(q));
 	printf("Type size: %d bytes (dec)\n",sizeof(subtype(@typeof(q))));
 	q = refine(q+1);
-	printf("%s\n",objectstr(q));
+	printf("%s\n",cptrstr(q));
 	q = (struct dom`EnumPtr*)(q+1);
 	printf("Pre-refinement:\n");
-	printf("%s\n",objectstr(q));
+	printf("%s\n",cptrstr(q));
 	q = refine(q);
 	printf("Post-refinement:\n");
-	printf("%s\n",objectstr(q));
+	printf("%s\n",cptrstr(q));
 
-}
+}}
 
 //dynamictypes_example();
 }

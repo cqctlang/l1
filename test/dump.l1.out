@@ -1,41 +1,40 @@
-dump.l1:5: warning: unused variable: l
-unsigned long;
-_Bool;
-char;
-double;
-double _Complex;
+unsigned long
+_Bool
+char
+double
+double _Complex
 enum et {
 	a = 1,
 	b = 2,
 	c = 3,
-};
-float;
-float _Complex;
-typedef struct foo foo_t;
-int;
-typedef short int16;
-typedef long int32;
-typedef long long int64;
-typedef char int8;
-long;
-long double;
-long double _Complex;
-long long;
-short;
+}
+float
+float _Complex
+typedef struct foo foo_t
+int
+typedef short int16
+typedef long int32
+typedef long long int64
+typedef char int8
+long
+long double
+long double _Complex
+long long
+short
 struct abc {
 		int x;
 	@0x4;
-};
+}
 struct bar {
 	@0x0	int x;
 		int y;
 	@0x8;
-};
+}
 struct blah {
 	@0x0	int x;
-	@@(8*0x4+0x3)	int y : 4;
+	@@(8*0x4+3)	int y : 4;
 	@0x8;
-};
+}
 struct foo {
 	@0x0	int x;
 	@0x4	int y;
@@ -49,19 +48,19 @@ struct foo {
 	@0x30	struct blah blahvar;
 	@0x34	foo_t *ptrtofoo;
 	@0x28;
-};
+}
 struct t2 {
 		int x;
 	@0x4;
-};
-typedef unsigned short uint16;
-typedef unsigned long uint32;
-typedef unsigned long long uint64;
-typedef unsigned char uint8;
-typedef unsigned long uintptr;
-unsigned char;
-unsigned int;
-unsigned long;
-unsigned long long;
-unsigned short;
-void *;
+}
+typedef unsigned short uint16
+typedef unsigned long uint32
+typedef unsigned long long uint64
+typedef unsigned char uint8
+typedef unsigned long uintptr
+unsigned char
+unsigned int
+unsigned long
+unsigned long long
+unsigned short
+void *

@@ -348,7 +348,8 @@ nsutil_defined = 1;
 			printf("\t%s = %d,\n", en[0], en[1]);
 		}
 		printf("}");
-	}
+	}else
+		printf("%t", t);
 }
 
 /**

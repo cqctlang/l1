@@ -1,4 +1,3 @@
-typeencode.l1:55: warning: unused variable: l
 ***
 int
  -> int
@@ -64,25 +63,25 @@ unsigned long long
 unsigned short
 void *
 ***
-
+unsigned long
  ->
-
+unsigned long
 ***
-
+_Bool
  ->
-
+_Bool
 ***
-
+char
  ->
-
+char
 ***
-
+double
  ->
-
+double
 ***
-
+double _Complex
  ->
-
+double _Complex
 ***
 enum E {
 	c1 = 0,
@@ -98,17 +97,17 @@ enum E {
 	c4 = 2,
 }
 ***
-
+float
  ->
-
+float
 ***
-
+float _Complex
  ->
-
+float _Complex
 ***
-
+int
  ->
-
+int
 ***
 typedef short int16
  ->
@@ -126,25 +125,25 @@ typedef char int8
  ->
 typedef char int8
 ***
-
+long
  ->
-
+long
 ***
-
+long double
  ->
-
+long double
 ***
-
+long double _Complex
  ->
-
+long double _Complex
 ***
-
+long long
  ->
-
+long long
 ***
-
+short
  ->
-
+short
 ***
 struct X {
 	@0x0	int x;
@@ -192,26 +191,26 @@ typedef unsigned long uintptr
  ->
 typedef unsigned long uintptr
 ***
-
+unsigned char
  ->
-
+unsigned char
 ***
-
+unsigned int
  ->
-
+unsigned int
 ***
-
+unsigned long
  ->
-
+unsigned long
 ***
-
+unsigned long long
  ->
-
+unsigned long long
 ***
-
+unsigned short
  ->
-
+unsigned short
 ***
-
+void *
  ->
-
+$nsptr

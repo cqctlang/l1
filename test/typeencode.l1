@@ -52,7 +52,7 @@ ns = @names c32le {
 };
 
 @define keysorted_tabvals(t) {                                                  
-	@local k,l;                                                             
+	@local k;
 
 	k=tabkeys(t);                                                           
 	k=sort(k,@lambda(a,b) {                                                 
