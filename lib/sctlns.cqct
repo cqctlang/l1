@@ -207,6 +207,7 @@ nexttag = 0;
 	sz = at["size"];
 	if(sz == nil)
 		sz = 0;
+	p = (uint64*)p;
 	*p++ = sz;
 	
 	/* typename */
@@ -228,6 +229,7 @@ nexttag = 0;
 	[at, p] = decodeattrs(p);
 	at["offset"] = v;
 	at["flags"] = f;
+	p = (uint64*)p;
 	sz = *p++;
 	at["size"] = sz;
 	[t, p] = decodetname(p);
