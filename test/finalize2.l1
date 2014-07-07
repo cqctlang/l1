@@ -1,8 +1,15 @@
+
+// re-enabled without the backtrace
 // Disabled because the output stack trace includes
 // varying and host-dependent source line information from lib/gc.cqct
 
-// no output: the point of this test is not to crash or mishandle memory
 ftab = mktab();
+
+errorhandler = @lambda(m) {
+    printf("error: %s\n", m);
+    exit(0);
+};
+
 @define fn(val) {
        error("does this work?");
        1; // suppress tail call
