@@ -2242,17 +2242,17 @@ ismanagedrange(void *p, Imm len)
 	p = (void*)rounddown(p, Segsize);
 	if(e <= segmap.lo)
 		return 0;
-	if(e >= segmap.hi)
+	if(p >= segmap.hi)
 		return 0;
 	while(p < e){
 		if(p >= segmap.lo && p < segmap.hi){
 			s = a2s(p);
 			if(s->mt != MThole)
-				return 0;
+				return 1;
 		}
 		p += Segsize;
 	}
-	return 1;
+	return 0;
 }
 
 void
