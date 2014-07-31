@@ -1,4 +1,4 @@
-MAYBEHEAP = lib/*.cqct                                                          
+MAYBEHEAP = lib/*.cqct
 
 #UNIX = fnfs fnio fnnet fnsys fnsec fnflate fnsnap fndlfcn
 UNIX = fnfs fnio fnnet fnsys fnsec fnflate fndlfcn
@@ -19,6 +19,6 @@ L1LIBS   += -ldl
 # runtime preamble for some cross compilers
 RT =
 
-l1.heap: tl1 $(MAYBEHEAP)                                                       
-	@echo + dump $@                                                         
+l1.heap: tl1 $(MAYBEHEAP)
+	@echo + dump $@
 	$(V)$(RT) ./tl1 -x "saveheap(\"./$@\");"
