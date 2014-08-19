@@ -69,12 +69,15 @@ static void
 l1_mkstxid(VM *vm, Imm argc, Val *argv, Val *rv)
 {
 	Expr *e;
-	if(argc != 1)
+	if(argc < 1 || argc > 2)
 		vmerr(vm, "wrong number of arguments to mkstxid");
 	checkarg(vm, argv, 0, Qcid);
 	e = Zidcid(valcid(argv[0]));
 	e->skind = mkcid0("id");
-	e->src = mksrcfake("(user syntax)");
+	if (1 == argc)
+		e->src = mksrcfake("(user syntax)");
+	else
+		e->src = valvec(argv[1]);
 	*rv = mkvalexpr(e);
 }
 
@@ -82,11 +85,14 @@ static void
 l1_mkstxval(VM *vm, Imm argc, Val *argv, Val *rv)
 {
 	Expr *e;
-	if(argc != 1)
+	if(argc < 1 || argc > 2)
 		vmerr(vm, "wrong number of arguments to mkstxval");
 	e = Zval(argv[0]);
 	e->skind = mkcid0("val");
-	e->src = mksrcfake("(user syntax)");
+	if (1 == argc)
+		e->src = mksrcfake("(user syntax)");
+	else
+		e->src = valvec(argv[1]);
 	*rv = mkvalexpr(e);
 }
 
