@@ -10215,7 +10215,7 @@ Cinquecento provides a macro system that transforms the syntax trees
 of <em>parsed</em> statements. This is dramatically different from C,
 where the macro system is part of a preprocessor and runs before the
 syntax tree is generated. In Cinquecento, a macro is a function that takes
-in a syntax tree and returns a new syntax tree.
+in syntax trees and returns a new syntax tree.
 </p>
 
 <p>
@@ -10271,19 +10271,70 @@ debug global.
 </p>
 
 <p>
-The order of operations for Cinquecento compilation is:
-<ol>
-    <li>Parsing / generation of syntax tree including macro nodes</li>
-    <li>Compilation of macro transform code into L1 bytecode</li>
-    <li>Macro expansion: recursively apply macro transform code (run in L1 VM)
-    to macro nodes until no macro nodes exist</li>
-    <li>Compilation of syntax tree into L1 bytecode</li>
-    <li>Execution of L1 bytecode by the L1 VM</li>
-</ol>
-We refer to the execution of L1 bytecode (step 5) as <em>runtime</em> and 
-all activites
-before that phase as <em>compiletime</em>.
+Macros are defined in @defstx statements. In a macro definition, one names
+parameters as one would in the definition of a function. Macros may also
+optionally include a <em>body</em> parameter.
 </p>
+
+<div class="code">
+<pre>
+@defstx @<span class="arg">name</span>(<span class="arg">param</span>, ...)
+[body]
+{
+	<span class="arg">statement</span>;
+	...
+	return #[ ... ]
+}
+</pre>
+</div>
+
+<p>
+Defined macros must have names that begin with '@'.
+Macros are run at compile time and are expected to return valid syntax.
+The returned syntax will be used in place of the macro code for the remainder
+of the compilation process. Macros in the returned syntax will continue
+to be expanded until there are no more macros.
+</p>
+
+<p>
+Macros without a body may be expanded within an arbitrary expression,
+while macros with a body will only be expanded as a statement in a
+statement list.
+</p>
+
+<p>
+Before a macro is run, the parameters are bound to the compilation of
+the corresponding code at the macro call site. Likewise, if the macro
+specified a <em>body</em>, that variable is bound to the compilation of
+the first scope following the macro.
+</p>
+
+<p>
+So, for instance, consider the following macros:
+<div class="code">
+<pre>
+@defstx @a(a,b) body { printf("%a %a %a\n", a, b, body); return #[]; }
+@defstx @b(c,d) { printf("%a %a\n", c, d); return #[]; }
+</pre>
+</div>
+These cause the following output in the following situations:
+<div class="code">
+<pre>
+; printf("hi\n"); @a(1,2) { 3; }
+#val(1) #val(2) #scope(#block(#[], #[ #val(3) ]))
+hi
+; printf("hi\n"); @b("x", 'y);
+#val("x") #val(y)
+hi
+</pre>
+</div>
+Note that in both cases the "hi" printf comes after the printf associated
+with the macros, which appear after the "hi" printf in the code.
+This is because macro expansion happens before runtime, when the "hi"
+printf is executed.
+</p>
+
+<h4 id="sec:syntax">Syntax Objects</h4>
 
 <p>
 In L1, syntax trees are represented by
@@ -10346,10 +10397,52 @@ They are created via the <a href=#fn:mkstx>mkstx</a> function, and
 their elements may be extracted via the <a href=#fn:stxref>stxref</a>
 functions.
 One may use any arbitrary tag as the <em>kind</em> of an internal
-syntax nodes, but there is a set of kinds that are
+syntax node, but there is a set of kinds that are
 understood by the compiler. An incomplete listing of these kinds
 is provided <a href=stx.html>here</a>.
 </p>
+
+<p>
+There are several functions used for manipulating syntax objects:
+</p>
+
+<div class="docitem" id="fn:mkstx">
+    <div class="proto">
+        <div class="function">
+            <span class="id">mkstx(k [, c1 [, c2 [, c3 [, c3]]]] [, src])
+            </span>
+        </div>
+        <div class="param">
+            <span class="arg">k</span>: <span class="type">cid</span>
+        </div>
+        <div class="param">
+            <span class="arg">c1</span>: <span class="type">stx</span>
+        </div>
+        <div class="param">
+            <span class="arg">c2</span>: <span class="type">stx</span>
+        </div>
+        <div class="param">
+            <span class="arg">c3</span>: <span class="type">stx</span>
+        </div>
+        <div class="param">
+            <span class="arg">c4</span>: <span class="type">stx</span>
+        </div>
+        <div class="param">
+            <span class="arg">src</span>: <span class="type">vector</span>
+        </div>
+        <div class="returns">
+            <span class="type">stx</span>
+        </div>
+    </div>
+    <div class="desc">
+        Makes an stx object of kind k with children c1, c2, c3 and possibly
+        c4. src, if provided, should be a 2 element vector whose first element
+        is the string name of the source file for this stx element and whose
+        second element is the line number.
+        The syntax #k(c1, c2, c3, c4) maps to a call to
+        mkstx(k, c1, c2, c3, c4).
+    </div>
+</div>
 
 <p>
 Functions related to the macro system:
