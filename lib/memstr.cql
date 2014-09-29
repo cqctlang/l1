@@ -155,7 +155,7 @@ max_string = 50;
                     ret += buf + cptrstr_rec(
                             {mkctype_ptr(fieldtype(flds[i]),
                                             nsptr(domof(p).ns))}
-                                ((uintptr)p + fieldoff(flds[i])),
+                                ((uintptr)p + {domof(p)}fieldoff(flds[i])),
                             nxt_indent);
                 }
                 ret += sprintfa("\n%s}",indent);
