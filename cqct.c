@@ -61,19 +61,21 @@ cqctmkfd(Xfd *xfd, char *name)
 char*
 cqctvalcstr(Val v)
 {
-	if(Vkind(v) != Qstr)
-		return 0;
-	return str2cstr(valstr(v));
+	if(Vkind(v) == Qstr)
+		return str2cstr(valstr(v));
+	if(Vkind(v) == Qcid)
+		return str2cstr(cid2str(valcid(v)));
+	return 0;
 }
 
 char*
 cqctvalcstrshared(Val v)
 {
-	Str *s;
-	if(Vkind(v) != Qstr)
-		return 0;
-	s = valstr(v);
-	return strdata(s);
+	if(Vkind(v) == Qstr)
+		return strdata(valstr(v));
+	if(Vkind(v) == Qcid)
+		return ciddata(valcid(v));
+	return 0;
 }
 
 uint64_t

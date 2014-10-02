@@ -12117,9 +12117,9 @@ Responsibility for the storage remains with the caller.
 </div>
 </div>
 <div class="desc">
-Copies the Cinquecento string <span class="arg">v</span> to a C
+Copies the Cinquecento string or cid <span class="arg">v</span> to a C
 string.  The result is undefined
-if <span class="arg">v</span> is not a string.  The
+if <span class="arg">v</span> is not a string or cid.  The
 caller is responsible for freeing the returned string
 with <span class="fnindex"><a href="#fn:cqctfreecstr">cqctfreecstr</a></span>.
 </div>
@@ -12133,15 +12133,15 @@ with <span class="fnindex"><a href="#fn:cqctfreecstr">cqctfreecstr</a></span>.
 </div>
 <div class="desc">
 Returns a pointer to the underlying contiguous storage
-of the string <span class="arg">v</span>, if possible.
-The storage is shared with the Cinquecento string
+of the string/cid <span class="arg">v</span>, if possible.
+The storage is shared with the Cinquecento string/cid
 object; callers should arrange to protect this object
 from garbage collection when appropriate.  The result
 is zero if <span class="arg">v</span> is a string whose
 storage cannot be represented by a single pointer (call 
 <span class="fnindex"><a href="#fn:cqctvalcstr">cqctvalcstr</a></span>
 instead), and undefined if <span class="arg">v</span> is not a
-string.
+string or cid.
 </div>
 </div>
 

@@ -1367,6 +1367,7 @@ void		tguard(Val o, Pair *g);
 void		fnch(Env env);
 
 /* cid.c */
+Str*		cid2str(Cid *id);
 void		finicid();
 void		fncid(Env env);
 void		initcid();
