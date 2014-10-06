@@ -219,3 +219,37 @@
 		#,(rsym);
 	};
 }
+
+{
+	@global print_profiling;
+
+	@define print_profiling(fd...) {
+		@local tkeys;
+		@global profiles;
+
+		if(length(fd)>0) {
+			fd = fd[0];
+		} else {
+			fd = stdout;
+		}
+
+		tkeys = tabkeys(profiles);
+		sort(tkeys, strcmp);
+
+		fprintf(fd, "===================================================\n");
+		fprintf(fd, "             profile site    ");
+		fprintf(fd, "   time (us)    ");
+		fprintf(fd, " calls\n");
+		fprintf(fd, "---------------------------------------------------\n");
+
+		foreach(@lambda(k) {
+			@local v;
+			v = profiles[k];
+			fprintf(fd, "%25s    %12d    %6d\n", k, v[1], v[0]);
+		}, tkeys);
+
+		fprintf(fd, "===================================================\n");
+
+    }
+
+}

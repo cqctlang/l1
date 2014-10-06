@@ -119,3 +119,11 @@ printf("each should have one call\n");
 }
 
 dumpprof();
+
+for(i=0; i<20; ++i) {
+    @profile() {
+        i = i;
+    }
+}
+
+print_profiling();
