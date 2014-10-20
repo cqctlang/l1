@@ -31,24 +31,5 @@ label: calls location expansions
 "continue_inside_loop": 1 vector( profile.l1, 79 )
 "goto_to_outside": 1 vector( profile.l1, 102 )
 "return_inside_block": 1 vector( profile.l1, 21 )
-"profile.l1:125": 0 vector( profile.l1, 125 )
 "break_inside_loop": 1 vector( profile.l1, 55 )
 "goto_to_inside": 1 vector( profile.l1, 93 )
-===================================================
-             profile site       time (us)     calls
----------------------------------------------------
-             break_inside               2         1
-        break_inside_loop               2         1
-          continue_inside               2         1
-     continue_inside_loop               2         1
-           goto_to_inside               3         1
-          goto_to_outside               2         1
-                 haslabel               3         1
-           profile.l1:125              22        20
-             profile.l1:6               3         1
-                   return               2         1
-       return_after_label               2         1
-      return_inside_block               1         1
-         return_inside_if               2         1
-   return_inside_if_block               2         1
-===================================================
