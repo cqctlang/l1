@@ -8,7 +8,12 @@ should be "onehundred": onehundred
 should be 0x100: 0x100
 should be "oneeleven": oneeleven
 length of enumsym: 5
-length of enumsym: 31
+length of enumsym: 36
+typedef char ary2_t [80][81];
+typedef unsigned char ary3_t [80][81][82][83];
+typedef char ary_t [80];
+typedef int fun2_t(int,long,fun_t,void *);
+typedef void fun_t(void);
 typedef short int16;
 typedef long int32;
 typedef long long int64;
@@ -50,6 +55,11 @@ typedef unsigned long uintptr;
 @0x64	int onehundred;
 
 +++++++++++++++
+typedef char ary2_t [80][81];
+typedef unsigned char ary3_t [80][81][82][83];
+typedef char ary_t [80];
+typedef int fun2_t(int,long,fun_t,void *);
+typedef void fun_t(void);
 typedef short int16;
 typedef long int32;
 typedef long long int64;
@@ -76,6 +86,11 @@ typedef unsigned long uintptr;
 @0x64	int onehundred;
 @0x111	void *oneeleven;
 
+typedef char ary2_t [80][81];
+typedef unsigned char ary3_t [80][81][82][83];
+typedef char ary_t [80];
+typedef int fun2_t(int,long,fun_t,void *);
+typedef void fun_t(void);
 typedef short int16;
 typedef long int32;
 typedef long long int64;
