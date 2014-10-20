@@ -159,15 +159,15 @@ struct X {
 ***
 struct Y {
 	@0x0	int x;
-	@@(8*0x4+0)	int y : 2;
-	@@(8*0x4+2)	int z : 3;
+	@@(8*0x4+0x0)	int y : 2;
+	@@(8*0x4+0x2)	int z : 3;
 	@0x8;
 }
  ->
 struct Y {
 	@0x0	int x;
-	@@(8*0x4+0)	int y : 2;
-	@@(8*0x4+2)	int z : 3;
+	@@(8*0x4+0x0)	int y : 2;
+	@@(8*0x4+0x2)	int z : 3;
 	@0x8;
 }
 ***

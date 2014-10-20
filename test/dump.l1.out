@@ -32,7 +32,7 @@ struct bar {
 }
 struct blah {
 	@0x0	int x;
-	@@(8*0x4+3)	int y : 4;
+	@@(8*0x4+0x3)	int y : 4;
 	@0x8;
 }
 struct foo {
