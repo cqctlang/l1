@@ -1,0 +1,4 @@
+s = "string";
+c = 'c';
+print(s+c);
+print(c+s);

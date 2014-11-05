@@ -2542,6 +2542,12 @@ dostr:
 
 	if(Vkind(v1) == Qstr && Vkind(v2) == Qcval) {
 		cv2 = valcval(v2);
+		if(ischarcval(cv2)) {
+			char v = cvalu(cv2);
+			s2 = mkstr(&v,1);
+			s1 = valstr(v1);
+			goto dostr;
+		}
 		if(isstrcval(cv2)) {
 			s2 = stringof(vm, cv2);
 			s1 = valstr(v1);
@@ -2552,6 +2558,12 @@ dostr:
 
 	if(Vkind(v2) == Qstr && Vkind(v1) == Qcval) {
 		cv1 = valcval(v1);
+		if(ischarcval(cv1)) {
+			char v = cvalu(cv1);
+			s1 = mkstr(&v,1);
+			s2 = valstr(v2);
+			goto dostr;
+		}
 		if(isstrcval(cv1)) {
 			s1 = stringof(vm, cv1);
 			s2 = valstr(v2);
@@ -4862,6 +4874,18 @@ l1_domof(VM *vm, Imm argc, Val *argv, Val *rv)
 	else
 		vmerr(vm,
 		      "operand 1 to domof must be a cvalue or string");
+}
+
+int
+ischarcval(Cval *cv)
+{
+	Ctype *t;
+	t = chasetype(cv->type);
+	if(t->tkind != Tbase)
+		return 0;
+	if(typecbase(t) != Vchar && typecbase(t) != Vuchar)
+		return 0;
+	return 1;
 }
 
 int
