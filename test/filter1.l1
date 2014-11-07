@@ -12,6 +12,13 @@ vec = vector(1,2,3,5,1,1,1,1);
 printf("%a\n",filter(@lambda(x,y) { x != y; },ls,vec));
 printf("%a\n",filter(@lambda(x,y,z) { (x+y+z)%2; },ls,ls2,vec));
 
+str = "hello";
+str2 = "fepeo";
+printf("%a\n",filter(@lambda(x) { x == 'l'; },str));
+printf("%a\n",filter(@lambda(x,y) { x != y; },str,str2));
+
+printf("%a\n",filter(@lambda(x) { x == 1; },ls));
+printf("%a\n",filter(@lambda(x,y) { x != y; },ls,ls));
 @define printtab(t) {
     printf("[ ");
     if (length(t)==0) printf(":");

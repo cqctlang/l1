@@ -7288,10 +7288,10 @@ Returns a shallow copy of <span class="arg">container</span>.
 <span class="arg">fn</span>: <span class="type">function</span>
 </div>
 <div class="param">
-<span class="arg">container</span>: <span class="type">list</span>, <span class="type">vector</span>, or <span class="type">table</span>
+<span class="arg">container</span>: <span class="type">list</span>, <span class="type">vector</span>, <span class="type">string</span> or <span class="type">table</span>
 </div>
 <div class="param">
-<span class="arg">container2, ... </span>: <span class="type">list</span> or <span class="type">vector</span>
+<span class="arg">container2, ... </span>: <span class="type">list</span>, <span class="type">string</span> or <span class="type">vector</span>
 </div>
 <div class="returns">
 <span class="type">see description</span>
@@ -7302,7 +7302,7 @@ Returns a shallow copy of <span class="arg">container</span>.
 <div>
 Calls <span class="arg">fn</span> on each item in the provided <span
 class="arg">containers</span>. 
-If the containers are either lists or vectors,
+If the containers are either lists, vectors or strings,
 <span class="id">foreach</span> 
 calls <span class="arg">fn</span>
 on corresponding elements of the containers.
@@ -7331,7 +7331,7 @@ returned by <span class="arg">fn</span> and returns
 except that it collects the values
 returned by <span class="arg">fn</span> in a list,
 and returns the list.  If the <span class="arg">containers</span>
-are vectors or lists,
+are vectors, lists or strings,
 the order of the elements in
 the list returned by <span class="id">map</span>
 corresponds to the order of the elements
@@ -7356,11 +7356,13 @@ in the <span class="arg">containers</span>.
             <span class="arg">container</span>: 
             <span class="type">list</span>, 
             <span class="type">vector</span>, or 
+            <span class="type">string</span>, or 
             <span class="type">table</span>
         </div>
         <div class="param">
             <span class="arg">container2, ... </span>: 
-            <span class="type">list</span> or 
+            <span class="type">list</span>,
+            <span class="type">string</span>, or 
             <span class="type">vector</span>
         </div>
         <div class="returns">
@@ -7376,10 +7378,10 @@ in the <span class="arg">containers</span>.
         <span class=function>filter</span> returns
         a table when provided with a table. 
         If the provided container is a single 
-        list or vector, the returned container is a list containing
+        list, vector or string, the returned container is a list containing
         only those elements of the input list that cause 
         <span class=arg>fn</span> to return true. 
-        If multiple lists or vectors are provided, 
+        If multiple lists, vectors or strings are provided, 
         <span class=arg>fn</span> is called with as many parameters
         as there are provided containers, with each paramter having the
         same index in its respective container. 
@@ -7408,13 +7410,15 @@ in the <span class="arg">containers</span>.
         <div class="param">
             <span class="arg">container</span>: 
             <span class="type">list</span>, 
-            <span class="type">vector</span>, or 
+            <span class="type">vector</span>, 
+            <span class="type">string</span>, or 
             <span class="type">table</span>
         </div>
         <div class="param">
             <span class="arg">container2, ... </span>: 
-            <span class="type">list</span> or 
-            <span class="type">vector</span>
+            <span class="type">list</span>, 
+            <span class="type">vector</span>, or
+            <span class="type">string</span>
         </div>
         <div class="returns">
             <span class="type">see description</span>
@@ -7448,7 +7452,7 @@ in the <span class="arg">containers</span>.
         accepts only one container when the first container is a table.
         </p>
         <p>
-        If multiple lists or vectors are provided, they must all have
+        If multiple lists, vectors or strings are provided, they must all have
         the same length. There will be as many <span class="arg">elmt</span>
         arguments to <span class="arg">fn</span> as there are provided 
         containers. Each call to <span class="arg">fn</span> will be given
@@ -7476,13 +7480,15 @@ in the <span class="arg">containers</span>.
         <div class="param">
             <span class="arg">container</span>: 
             <span class="type">list</span>, 
-            <span class="type">vector</span>, or 
+            <span class="type">vector</span>, 
+            <span class="type">string</span>, or 
             <span class="type">table</span>
         </div>
         <div class="param">
             <span class="arg">container2, ... </span>: 
-            <span class="type">list</span> or 
-            <span class="type">vector</span>
+            <span class="type">list</span>, 
+            <span class="type">vector</span>, or
+            <span class="type">string</span>
         </div>
         <div class="returns">
             <span class="type">see description</span>
@@ -7518,7 +7524,7 @@ in the <span class="arg">containers</span>.
         accepts only one container when the first container is a table.
         </p>
         <p>
-        If multiple lists or vectors are provided, they must all have
+        If multiple lists, vectors or strings are provided, they must all have
         the same length. There will be as many <span class="arg">elmt</span>
         arguments to <span class="arg">fn</span> as there are provided 
         containers. Each call to <span class="arg">fn</span> will be given
