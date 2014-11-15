@@ -656,6 +656,12 @@ if(looksym(unix,'wait4)) {
 	return syscall(unix`setgid,gid);
 }
 
+@global sys_kill;
+@define sys_kill(pid, sig) {
+
+	return syscall(unix`kill, pid, sig);
+}
+
 @global sys_execve;
 @define sys_execve(filename,argv,envp) {
 	@local f,fl,a,e;
