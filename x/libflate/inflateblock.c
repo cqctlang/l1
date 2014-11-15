@@ -46,7 +46,7 @@ inflateblock(uchar *dst, int dsize, uchar *src, int ssize)
 	bd.pos = dst;
 	bd.limit = dst + dsize;
 
-	ok = inflate(&bd, blwrite, &bs, blgetc);
+	ok = xinflate(&bd, blwrite, &bs, blgetc);
 	if(ok != FlateOk)
 		return ok;
 	return bd.pos - dst;

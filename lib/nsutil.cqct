@@ -323,7 +323,7 @@ nsutil_defined = 1;
 				printf("\t");
 				printf("\t%t;\n", fld);
 			}else if(isbitfield(ft)){
-				printf("\t@@(8*0x%x+%x)",
+				printf("\t@@(8*0x%x+0x%x)",
 				       off, bitfieldpos(ft));
 				printf("\t%t %s : %d;\n",
 				       bitfieldcontainer(ft), id,
@@ -338,7 +338,23 @@ nsutil_defined = 1;
 			printf("\t@0x%x;\n", sz);
 		printf("}");
 	}else if(istypedef(t)){
-		printf("typedef %t %s", typedeftype(t), typedefid(t));
+		@local st;
+		st = typedeftype(t);
+		if(isfunc(st)){
+			@local prms;
+			prms = map(paramtype,params(st));
+			prms = map(@lambda(p) { sprintfa("%t", p); }, prms);
+			prms = join(prms, ",");
+			printf("typedef %t %s(%s)", rettype(st), typedefid(t),
+			       prms);
+		}else if (isarray(st)){
+			@local sp;
+			sp = split(sprintfa("%t", st));
+			listins(sp, length(sp)-1, cid2str(typedefid(t)));
+			printf("typedef %s", join(sp," "));
+		}else{
+			printf("typedef %t %s", typedeftype(t), typedefid(t));
+		}
 	}else if(isenum(t)){
 		@local ens,en;
 		printf("%s %s {\n", suekind(t), suetag(t));
@@ -348,7 +364,8 @@ nsutil_defined = 1;
 			printf("\t%s = %d,\n", en[0], en[1]);
 		}
 		printf("}");
-	}
+	}else
+		printf("%t", t);
 }
 
 /**
@@ -371,7 +388,7 @@ nsutil_defined = 1;
 		printf(";\n");
 	}
 	vec = tabvals(ns.enumsym());
-	sort(vec,@lambda(x,y){ 
+	sort(vec,@lambda(x,y){
 		@local r;
 		r = cvalcmp(symoff(x),symoff(y));
 		if (r != 0) return r;

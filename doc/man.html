@@ -7288,10 +7288,10 @@ Returns a shallow copy of <span class="arg">container</span>.
 <span class="arg">fn</span>: <span class="type">function</span>
 </div>
 <div class="param">
-<span class="arg">container</span>: <span class="type">list</span>, <span class="type">vector</span>, or <span class="type">table</span>
+<span class="arg">container</span>: <span class="type">list</span>, <span class="type">vector</span>, <span class="type">string</span> or <span class="type">table</span>
 </div>
 <div class="param">
-<span class="arg">container2, ... </span>: <span class="type">list</span> or <span class="type">vector</span>
+<span class="arg">container2, ... </span>: <span class="type">list</span>, <span class="type">string</span> or <span class="type">vector</span>
 </div>
 <div class="returns">
 <span class="type">see description</span>
@@ -7302,7 +7302,7 @@ Returns a shallow copy of <span class="arg">container</span>.
 <div>
 Calls <span class="arg">fn</span> on each item in the provided <span
 class="arg">containers</span>. 
-If the containers are either lists or vectors,
+If the containers are either lists, vectors or strings,
 <span class="id">foreach</span> 
 calls <span class="arg">fn</span>
 on corresponding elements of the containers.
@@ -7331,7 +7331,7 @@ returned by <span class="arg">fn</span> and returns
 except that it collects the values
 returned by <span class="arg">fn</span> in a list,
 and returns the list.  If the <span class="arg">containers</span>
-are vectors or lists,
+are vectors, lists or strings,
 the order of the elements in
 the list returned by <span class="id">map</span>
 corresponds to the order of the elements
@@ -7356,11 +7356,13 @@ in the <span class="arg">containers</span>.
             <span class="arg">container</span>: 
             <span class="type">list</span>, 
             <span class="type">vector</span>, or 
+            <span class="type">string</span>, or 
             <span class="type">table</span>
         </div>
         <div class="param">
             <span class="arg">container2, ... </span>: 
-            <span class="type">list</span> or 
+            <span class="type">list</span>,
+            <span class="type">string</span>, or 
             <span class="type">vector</span>
         </div>
         <div class="returns">
@@ -7376,10 +7378,10 @@ in the <span class="arg">containers</span>.
         <span class=function>filter</span> returns
         a table when provided with a table. 
         If the provided container is a single 
-        list or vector, the returned container is a list containing
+        list, vector or string, the returned container is a list containing
         only those elements of the input list that cause 
         <span class=arg>fn</span> to return true. 
-        If multiple lists or vectors are provided, 
+        If multiple lists, vectors or strings are provided, 
         <span class=arg>fn</span> is called with as many parameters
         as there are provided containers, with each paramter having the
         same index in its respective container. 
@@ -7408,13 +7410,15 @@ in the <span class="arg">containers</span>.
         <div class="param">
             <span class="arg">container</span>: 
             <span class="type">list</span>, 
-            <span class="type">vector</span>, or 
+            <span class="type">vector</span>, 
+            <span class="type">string</span>, or 
             <span class="type">table</span>
         </div>
         <div class="param">
             <span class="arg">container2, ... </span>: 
-            <span class="type">list</span> or 
-            <span class="type">vector</span>
+            <span class="type">list</span>, 
+            <span class="type">vector</span>, or
+            <span class="type">string</span>
         </div>
         <div class="returns">
             <span class="type">see description</span>
@@ -7448,7 +7452,7 @@ in the <span class="arg">containers</span>.
         accepts only one container when the first container is a table.
         </p>
         <p>
-        If multiple lists or vectors are provided, they must all have
+        If multiple lists, vectors or strings are provided, they must all have
         the same length. There will be as many <span class="arg">elmt</span>
         arguments to <span class="arg">fn</span> as there are provided 
         containers. Each call to <span class="arg">fn</span> will be given
@@ -7476,13 +7480,15 @@ in the <span class="arg">containers</span>.
         <div class="param">
             <span class="arg">container</span>: 
             <span class="type">list</span>, 
-            <span class="type">vector</span>, or 
+            <span class="type">vector</span>, 
+            <span class="type">string</span>, or 
             <span class="type">table</span>
         </div>
         <div class="param">
             <span class="arg">container2, ... </span>: 
-            <span class="type">list</span> or 
-            <span class="type">vector</span>
+            <span class="type">list</span>, 
+            <span class="type">vector</span>, or
+            <span class="type">string</span>
         </div>
         <div class="returns">
             <span class="type">see description</span>
@@ -7518,7 +7524,7 @@ in the <span class="arg">containers</span>.
         accepts only one container when the first container is a table.
         </p>
         <p>
-        If multiple lists or vectors are provided, they must all have
+        If multiple lists, vectors or strings are provided, they must all have
         the same length. There will be as many <span class="arg">elmt</span>
         arguments to <span class="arg">fn</span> as there are provided 
         containers. Each call to <span class="arg">fn</span> will be given
@@ -10048,8 +10054,7 @@ Returns a new string containing formatted output.
 
 <p>
 L1 provides access to some stages of
-Cinquecento expression evaluation.  The details of
-these interfaces are likely to change.
+Cinquecento expression evaluation.
 </p>
 
 <div class="docitem" id="fn:eval">
@@ -10208,6 +10213,555 @@ and
 </div>
 are equivalent.
 </p>
+
+<h4 id="sec:macro">Macro System</h4>
+
+<p>
+Cinquecento provides a macro system that transforms the syntax trees
+of <em>parsed</em> statements. This is dramatically different from C,
+where the macro system is part of a preprocessor and runs before the
+syntax tree is generated. In Cinquecento, a macro is a function that takes
+in syntax trees and returns a new syntax tree.
+</p>
+
+<p>
+This is beta functionality and is subject to change in future
+versions.
+</p>
+
+<p>
+A canonical example application of macros is the debug statement. Using
+a macro debug statement is preferable to guarding debug print statements with
+a global variable because it obviates the need to do a runtime check of the
+global variable, improving efficiency. Using Cinquecento's macro system,
+this could be done as follows:
+</p>
+
+<div class="code">
+<pre>
+@defstx @debugon() { @global debugging; debugging = 1; return #[]; }
+@defstx @debugoff() { @global debugging; debugging = 0; return #[]; }
+
+@defstx @debugprintf(fmt, args...) {
+    @global debugging;
+    if (debugging) {
+        @local src;
+        src = stxsrc(fmt);
+        fmt = mkstxval("%s:%d: " + stxval(fmt));
+        args = Zcons(mkstxval(src[0]), Zcons(mkstxval(src[1]), args));
+        return #call(#id('printf), Zcons(fmt, args));
+    } else return #[];
+}
+
+@debugon();
+//debugging = 1; //runtime statement, wouldn't affect compiletime expansion
+for(i=0; i<100; ++i) {
+    @debugprintf("debug message %s %s %d\n", 'some, 'data, i);
+}
+
+</pre>
+</div>
+
+<p>
+In the above code, the <span class="arg">debugging</span> global is checked
+once at compile time, when the macro functions are run, not 100 times at
+runtime. Note that the <span class="arg">debugging</span> global is set
+via the <span class="arg">@debugon</span> macro, rather than by the
+commented out simple assignment statement.
+This is necessary because the simple assignment statement will not execute
+until after the macro expansion pass, so the
+<span class="arg">debugging</span> variable will not
+be set to 1 until after <span class="arg">@debugprintf</span> macro has
+run, transforming the parse tree acording to the original value of the
+debug global.
+</p>
+
+<p>
+Macros are defined in @defstx statements. In a macro definition, one names
+parameters as one would in the definition of a function. Macros may also
+optionally include a <em>body</em> parameter.
+</p>
+
+<div class="code">
+<pre>
+@defstx @<span class="arg">name</span>(<span class="arg">param</span>, ...)
+[body]
+{
+	<span class="arg">statement</span>;
+	...
+	return #[ ... ]
+}
+</pre>
+</div>
+
+<p>
+Defined macros must have names that begin with '@'.
+Macros are run at compile time and are expected to return valid syntax.
+The returned syntax will be used in place of the macro code for the remainder
+of the compilation process. Macros in the returned syntax will continue
+to be expanded until there are no more macros.
+</p>
+
+<p>
+Macros without a body may be expanded within an arbitrary expression,
+while macros with a body will only be expanded as a statement in a
+statement list.
+</p>
+
+<p>
+Before a macro is run, the parameters are bound to the compilation of
+the corresponding code at the macro call site. Likewise, if the macro
+specified a <em>body</em>, that variable is bound to the compilation of
+the first scope following the macro.
+</p>
+
+<p>
+So, for instance, consider the following macros:
+<div class="code">
+<pre>
+@defstx @a(a,b) body { printf("%a %a %a\n", a, b, body); return #[]; }
+@defstx @b(c,d) { printf("%a %a\n", c, d); return #[]; }
+</pre>
+</div>
+These cause the following output in the following situations:
+<div class="code">
+<pre>
+; printf("hi\n"); @a(1,2) { 3; }
+#val(1) #val(2) #scope(#block(#[], #[ #val(3) ]))
+hi
+; printf("hi\n"); @b("x", 'y);
+#val("x") #val(y)
+hi
+</pre>
+</div>
+Note that in both cases the "hi" printf comes after the printf associated
+with the macros, which appear after the "hi" printf in the code.
+This is because macro expansion happens before runtime, when the "hi"
+printf is executed.
+</p>
+
+<h4 id="sec:syntax">Syntax Objects</h4>
+
+<p>
+In L1, syntax trees are represented by
+<b>stx</b> nodes. Every stx node has a <em>kind</em> and a <em>src</em>.
+The kind specifies the function of the stx node, and the src specifies the
+source information. The src is a two element vector whose first element is
+a string representation of the source file, and whose second element is
+an integer line number for the source of the stx element.
+</p>
+
+<p>
+There are four kinds
+of stx nodes: <em>value</em>, <em>id</em>, <em>list</em> and internal nodes.
+Each can be created by syntatic or programmatic methods.
+</p>
+
+<p>
+<em>stx value</em> elements are specified by <span class="arg">#val(x)</span>,
+where <em>x</em> is an integer, string or cid. <em>stx value</em> objects
+represent the contained value. They
+may be created by <a href=#fn:mkstxval>mkstxval</a>, the
+<a href=#fn:stxkind>stxkind</a> of <em>stx value</em> objects will be 'val,
+and one can extract the value of a <em>stx value</em> object with
+<a href=#fn:stxval>stxval</a>.
+</p>
+
+<p>
+<em>stx id</em> elements are specified by <span class="arg">#id(x)</span>,
+where <em>x</em> is a cid. <em>stx id</em> objects
+represent an identifier named by the contained cid. They
+may be created by <a href=#fn:mkstxid>mkstxid</a>, the
+<a href=#fn:stxkind>stxkind</a> of <em>stx id</em> objects will be 'id,
+and one can extract the value of a <em>stx id</em> object with
+<a href=#fn:stxid>stxid</a>.
+</p>
+
+<p>
+<em>stx list</em> are lists of syntax elements and can be specified in multiple
+ways.  The first method is through the <a href=#fn:Zcons>Zcons</a> and
+<a href=#fn:Znull>Znull</a> functions. Access can be achieved through
+the <a href=#fn:Zcar>Zcar</a> and <a href=#fn:Zcdr>Zcdr</a> functions.
+One can also create stx lists using the #[ ] syntax, i.e. the following
+equalities hold:
+<div class="code">
+    <pre>
+Znull() == #[ ];
+Zcons(mkstxid('a), Znull()) == #[ #id('a) ];
+Zcons(mkstxid('b), Zcons(mkstxid('a), Znull())) == #[ #id('b), #id('a) ];
+    </pre>
+</div>
+stx lists are treated as containers in Cinquecento and may be provided
+as parameters
+to the <a href=#fn:foreach>foreach</a>, <a href=#fn:map>map</a>,
+<a href=#fn:filter>filter</a> and similar functions.
+</p>
+
+<p>
+Internal syntax nodes can have up to four syntax elements as children.
+They are created via the <a href=#fn:mkstx>mkstx</a> function, and
+their elements may be extracted via the <a href=#fn:stxref>stxref</a>
+functions.
+One may use any arbitrary tag as the <em>kind</em> of an internal
+syntax node, but there is a set of kinds that are
+understood by the compiler. An incomplete listing of these kinds
+is provided <a href=stx.html>here</a>.
+</p>
+
+<p>
+There are several functions used for manipulating syntax objects:
+</p>
+
+<div class="docitem" id="fn:mkstx">
+    <div class="proto">
+        <div class="function">
+            <span class="id">mkstx(k [, c1 [, c2 [, c3 [, c3]]]] [, src])
+            </span>
+        </div>
+        <div class="param">
+            <span class="arg">k</span>: <span class="type">cid</span>
+        </div>
+        <div class="param">
+            <span class="arg">c1</span>: <span class="type">stx</span>
+        </div>
+        <div class="param">
+            <span class="arg">c2</span>: <span class="type">stx</span>
+        </div>
+        <div class="param">
+            <span class="arg">c3</span>: <span class="type">stx</span>
+        </div>
+        <div class="param">
+            <span class="arg">c4</span>: <span class="type">stx</span>
+        </div>
+        <div class="param">
+            <span class="arg">src</span>: <span class="type">vector</span>
+        </div>
+        <div class="returns">
+            <span class="type">stx</span>
+        </div>
+    </div>
+    <div class="desc">
+        Makes an stx object of kind k with children c1, c2, c3 and possibly
+        c4. src, if provided, should be a 2 element vector whose first element
+        is the string name of the source file for this stx element and whose
+        second element is the line number.
+        The syntax #k(c1, c2, c3, c4) maps to a call to
+        mkstx(k, c1, c2, c3, c4).
+    </div>
+</div>
+
+<p>
+Functions related to the macro system:
+</p>
+
+<div class="docitem" id="fn:mkstx">
+    <div class="proto">
+        <div class="function">
+            <span class="id">mkstx(k [, c1 [, c2 [, c3 [, c3]]]] [, src])
+            </span>
+        </div>
+        <div class="param">
+            <span class="arg">k</span>: <span class="type">cid</span>
+        </div>
+        <div class="param">
+            <span class="arg">c1</span>: <span class="type">stx</span>
+        </div>
+        <div class="param">
+            <span class="arg">c2</span>: <span class="type">stx</span>
+        </div>
+        <div class="param">
+            <span class="arg">c3</span>: <span class="type">stx</span>
+        </div>
+        <div class="param">
+            <span class="arg">c4</span>: <span class="type">stx</span>
+        </div>
+        <div class="param">
+            <span class="arg">src</span>: <span class="type">vector</span>
+        </div>
+        <div class="returns">
+            <span class="type">stx</span>
+        </div>
+    </div>
+    <div class="desc">
+        Makes an stx object of kind k with children c1, c2, c3 and possibly
+        c4. src, if provided, should be a 2 element vector whose first element
+        is the string name of the source file for this stx element and whose
+        second element is the line number.
+        The syntax #k(c1, c2, c3, c4) maps to a call to
+        mkstx(k, c1, c2, c3, c4).
+    </div>
+</div>
+
+<div class="docitem" id="fn:mkstxid">
+    <div class="proto">
+        <div class="function">
+            <span class="id">mkstxid(id [, src])
+            </span>
+        </div>
+        <div class="param">
+            <span class="arg">id</span>: <span class="type">cid</span>
+        </div>
+        <div class="param">
+            <span class="arg">src</span>: <span class="type">vector</span>
+        </div>
+        <div class="returns">
+            <span class="type">stx id</span>
+        </div>
+    </div>
+    <div class="desc">
+        Makes an stx id object with the provided id.
+        src, if provided, should be a 2 element vector whose first element
+        is the string name of the source file for this stx element and whose
+        second element is the line number.
+    </div>
+</div>
+
+<div class="docitem" id="fn:mkstxval">
+    <div class="proto">
+        <div class="function">
+            <span class="id">mkstxval(val [, src])
+            </span>
+        </div>
+        <div class="param">
+            <span class="arg">val</span>: <span class="type">cid</span>
+        </div>
+        <div class="param">
+            <span class="arg">src</span>: <span class="type">vector</span>
+        </div>
+        <div class="returns">
+            <span class="type">stx value</span>
+        </div>
+    </div>
+    <div class="desc">
+        Makes an stx val object with value val
+        src, if provided, should be a 2 element vector whose first element
+        is the string name of the source file for this stx element and whose
+        second element is the line number.
+    </div>
+</div>
+
+<div class="docitem" id="fn:stxid">
+    <div class="proto">
+        <div class="function">
+            <span class="id">stxid(sid)
+            </span>
+        </div>
+        <div class="param">
+            <span class="arg">sid</span>: <span class="type">stx id</span>
+        </div>
+        <div class="returns">
+            <span class="type">cid</span>
+        </div>
+    </div>
+    <div class="desc">
+        Returns the cid of the given stx id.
+    </div>
+</div>
+
+<div class="docitem" id="fn:stxkind">
+    <div class="proto">
+        <div class="function">
+            <span class="id">stxkind(s)
+            </span>
+        </div>
+        <div class="param">
+            <span class="arg">s</span>: <span class="type">stx</span>
+        </div>
+        <div class="returns">
+            <span class="type">cid</span>
+        </div>
+    </div>
+    <div class="desc">
+        Returns the cid kind of a stx object
+    </div>
+</div>
+
+<div class="docitem" id="fn:stxref">
+    <div class="proto">
+        <div class="function">
+            <span class="id">stxref(s, i)
+            </span>
+        </div>
+        <div class="param">
+            <span class="arg">s</span>: <span class="type">stx</span>
+        </div>
+        <div class="param">
+            <span class="arg">i</span>: <span class="type">int</span>
+        </div>
+        <div class="returns">
+            <span class="type">stx object</span>
+        </div>
+    </div>
+    <div class="desc">
+        Returns the stx object at index i (zero based) of the
+        passed stx object. Returns nil if there is no object.
+    </div>
+</div>
+
+<div class="docitem" id="fn:stxsrc">
+    <div class="proto">
+        <div class="function">
+            <span class="id">stxsrc(s)
+            </span>
+        </div>
+        <div class="param">
+            <span class="arg">s</span>: <span class="type">stx</span>
+        </div>
+        <div class="returns">
+            <span class="type">2 element vector</span>
+        </div>
+    </div>
+    <div class="desc">
+        Returns the src information from stx object s. src is a length
+        2 vector whose first element is the source file and whose second
+        element is the source file's line number.
+    </div>
+</div>
+
+<div class="docitem" id="fn:stxval">
+    <div class="proto">
+        <div class="function">
+            <span class="id">stxval(s)
+            </span>
+        </div>
+        <div class="param">
+            <span class="arg">s</span>: <span class="type">stx value</span>
+        </div>
+        <div class="returns">
+            <span class="type">string, cid, or cval</span>
+        </div>
+    </div>
+    <div class="desc">
+        Returns the value held in a stx value object s.
+    </div>
+</div>
+
+<div class="docitem" id="fn:Zcar">
+    <div class="proto">
+        <div class="function">
+            <span class="id">Zcar(l)</span>
+        </div>
+        <div class="param">
+            <span class="arg">l</span>: <span class="type">stx list</span>
+        </div>
+        <div class="returns">
+            <span class="type">any value</span>
+        </div>
+    </div>
+    <div class="desc">
+        Returns the head of the non-empty stx list l.
+    </div>
+</div>
+
+<div class="docitem" id="fn:Zcdr">
+    <div class="proto">
+        <div class="function">
+            <span class="id">Zcdr(l)</span>
+        </div>
+        <div class="param">
+            <span class="arg">l</span>: <span class="type">stx list</span>
+        </div>
+        <div class="returns">
+            <span class="type">stx list</span>
+        </div>
+    </div>
+    <div class="desc">
+        Returns the tail (all elements except the first) 
+        of the non-empty stx list l.
+    </div>
+</div>
+
+<div class="docitem" id="fn:Zcons">
+    <div class="proto">
+        <div class="function">
+            <span class="id">Zcons(h,t)</span>
+        </div>
+        <div class="param">
+            <span class="arg">h</span>: <span class="type">any value</span>
+        </div>
+        <div class="param">
+            <span class="arg">t</span>: <span class="type">stx list</span>
+        </div>
+        <div class="returns">
+            <span class="type">stx list</span>
+        </div>
+    </div>
+    <div class="desc">
+        Returns a new stx list whose first element is h and whose remaining
+        elements specified by the stx list t.
+        Note: as in lisp and other languages with cons cells,
+        t does not have to be another stx list.
+    </div>
+</div>
+
+<div class="docitem" id="fn:Znull">
+    <div class="proto">
+        <div class="function">
+            <span class="id">Znull()</span>
+        </div>
+        <div class="returns">
+            <span class="type">stx list</span>
+        </div>
+    </div>
+    <div class="desc">
+        Returns a new empty stx list;
+    </div>
+</div>
+
+<div class="docitem" id="fn:Zreverse">
+    <div class="proto">
+        <div class="function">
+            <span class="id">Zreverse(l)</span>
+        </div>
+        <div class="param">
+            <span class="arg">l</span>: <span class="type">stx list</span>
+        </div>
+        <div class="returns">
+            <span class="type">stx list</span>
+        </div>
+    </div>
+    <div class="desc">
+        Returns a newly allocated stx list containing all elements
+        from the passed stx list l in reverse order.
+    </div>
+</div>
+
+<div class="docitem" id="fn:Zlength">
+    <div class="proto">
+        <div class="function">
+            <span class="id">Zlength(l)</span>
+        </div>
+        <div class="param">
+            <span class="arg">l</span>: <span class="type">stx list</span>
+        </div>
+        <div class="returns">
+            <span class="type">integer</span>
+        </div>
+    </div>
+    <div class="desc">
+        Returns the number of elements in l.
+    </div>
+</div>
+
+<div class="docitem" id="fn:Zmember">
+    <div class="proto">
+        <div class="function">
+            <span class="id">Zmember(v,l)</span>
+        </div>
+        <div class="param">
+            <span class="arg">v</span>: <span class="type">any type</span>
+        </div>
+        <div class="param">
+            <span class="arg">l</span>: <span class="type">stx list</span>
+        </div>
+        <div class="returns">
+            <span class="type">0 or 1</span>
+        </div>
+    </div>
+    <div class="desc">
+        Returns 1 if v is in l, 0 otherwise.
+    </div>
+</div>
 
 
 <h4 id="sec:storage">Storage Management</h4>
@@ -11569,9 +12123,9 @@ Responsibility for the storage remains with the caller.
 </div>
 </div>
 <div class="desc">
-Copies the Cinquecento string <span class="arg">v</span> to a C
+Copies the Cinquecento string or cid <span class="arg">v</span> to a C
 string.  The result is undefined
-if <span class="arg">v</span> is not a string.  The
+if <span class="arg">v</span> is not a string or cid.  The
 caller is responsible for freeing the returned string
 with <span class="fnindex"><a href="#fn:cqctfreecstr">cqctfreecstr</a></span>.
 </div>
@@ -11585,15 +12139,15 @@ with <span class="fnindex"><a href="#fn:cqctfreecstr">cqctfreecstr</a></span>.
 </div>
 <div class="desc">
 Returns a pointer to the underlying contiguous storage
-of the string <span class="arg">v</span>, if possible.
-The storage is shared with the Cinquecento string
+of the string/cid <span class="arg">v</span>, if possible.
+The storage is shared with the Cinquecento string/cid
 object; callers should arrange to protect this object
 from garbage collection when appropriate.  The result
 is zero if <span class="arg">v</span> is a string whose
 storage cannot be represented by a single pointer (call 
 <span class="fnindex"><a href="#fn:cqctvalcstr">cqctvalcstr</a></span>
 instead), and undefined if <span class="arg">v</span> is not a
-string.
+string or cid.
 </div>
 </div>
 

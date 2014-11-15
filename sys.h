@@ -1,7 +1,9 @@
 #ifdef __GNUC__
 #ifndef _BISONFLAW_SYS_H_
 #define _BISONFLAW_SYS_H_
+#ifndef _GNU_SOURCE
 #define _GNU_SOURCE
+#endif /* _GNU_SOURCE */
 #include <stdio.h>
 #include <stdlib.h>
 #include <stdarg.h>

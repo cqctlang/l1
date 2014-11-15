@@ -2242,24 +2242,25 @@ ismanagedrange(void *p, Imm len)
 	p = (void*)rounddown(p, Segsize);
 	if(e <= segmap.lo)
 		return 0;
-	if(e >= segmap.hi)
+	if(p >= segmap.hi)
 		return 0;
 	while(p < e){
 		if(p >= segmap.lo && p < segmap.hi){
 			s = a2s(p);
 			if(s->mt != MThole)
-				return 0;
+				return 1;
 		}
 		p += Segsize;
 	}
-	return 1;
+	return 0;
 }
 
 void
 initmem()
 {
 	u32 i, gr;
-
+	memset(&H, 0, sizeof(H));
+	ncfn = 0;
 	initsegmap();
 	gr = 1;
 	for(i = 0; i < Ngen; i++){
@@ -2507,6 +2508,8 @@ resolveptr(uptr x, LSctx *ls)
 
 	if(ls->mode != LSload)
 		bug();
+	if(x==0)
+		return 0;
 	n = x>>Segbits;
 	off = x&(Segsize-1);
 	switch(n){
@@ -2563,7 +2566,8 @@ loadsaveptr(Val *pp, LSctx *ls)
 static void
 savecfn(void **fnp)
 {
-	*fnp = (void*)mkreloc(Segcfn, lookcfnaddr(*fnp));
+	if (*fnp)
+		*fnp = (void*)mkreloc(Segcfn, lookcfnaddr(*fnp));
 }
 
 static u8

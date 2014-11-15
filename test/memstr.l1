@@ -1,0 +1,171 @@
+
+
+@import_globals(memstr);
+
+ns = @names c32le {
+    enum et {
+        anenum = 0,
+        a = 1,
+        b = 2,
+        c = 3,
+    };
+    typedef enum et et_td;
+    typedef struct _foo {
+        @0x00 int x;
+        @0x04 double y;
+        @0x0c float z;
+        @0x10 int64 xp;
+        @0x18 int (*foo)();
+        @0x1c char str[10];
+        @0x2c char *a;
+        @0x30 enum et thenum;
+        @0x34 void* vd;
+        @0x38 bar thebar;
+        @0x3c bar* pthebar;
+        @0x40 et_td lalal;
+        @0x44 char hi;
+        @0x45 bar bars[3];
+        @0x51 double dbls[2];
+        @0x61 et_td enums[4];
+        @0x71 foo* next;
+        @0x75 unsigned char aaaa;
+        @0x76;
+    } foo;
+
+    @0x10 foo x;
+
+    typedef struct _bar {
+        @0x00 int size;
+        @0x04 int indeterminate_ary[];
+        @0x04;
+    } bar;
+
+    @0x0 bar y;
+
+    typedef struct _baz {
+        @0x0 bar bar1;
+        @0x4 bar bar2;
+        @0x8;
+    } baz;
+
+    @0x20 baz z;
+
+    typedef baz t1;
+    typedef t1 t2;
+    typedef t2 t3;
+
+    @0x20 t3 w;
+
+    @0x24 unsigned int val;
+
+    typedef struct _bon {
+        @@0  int a : 4;
+        @@4  int b : 3;
+        @@7  int c : 2;
+        @@9  int d : 1;
+        @@10 int e : 6;
+        @4   int f;
+        @@64 int g : 1;
+        @9;
+    } bon;
+
+    @0x28 bon tbon;
+
+    typedef struct _rec {
+        @0 rec* n;
+        @4;
+    } rec;
+
+    @0x30 rec r;
+
+    typedef int inta;
+    typedef inta intb;
+    typedef intb intc;
+
+    @0x40 intc anintc;
+
+};
+
+as = mkzas(300);
+
+dom = mkdom(ns,as);
+
+dom`x.a = (char*) ( (&dom`x) + 1 );
+dom`x.pthebar = &dom`y;
+
+putbytes(&dom`x.hi,"hi!\0");
+putbytes(dom`x.str,"012345678\0");
+putbytes(dom`x.a,"test string\0");
+
+dom`x.next = &dom`x;
+
+printf("%s\n",cptrstr(&dom`y));
+printf("%s\n",cptrstr(&dom`x));
+printf("%s\n",cptrstr(&dom`z));
+printf("%s\n",cptrstr(dom`x.a));
+
+dom`tbon.a = 0xf;
+dom`tbon.b = 0xd;
+dom`tbon.c = 0x5;
+dom`tbon.d = 0x1;
+dom`tbon.e = 47;
+dom`tbon.f = 0;
+dom`tbon.g = 1;
+
+printf("%s\n", cptrstr(&dom`tbon));
+
+dom`r.n = &dom`r;
+
+printf("%s\n", cptrstr(&dom`r));
+
+lstr = (char*){dom}200;
+memset(lstr, 'A', 99);
+
+printf("%s\n", cptrstr(lstr));
+
+lstr[99] = 'B';
+
+printf("%s\n", cptrstr(lstr));
+
+handlers = [:];
+
+handlers[@typeof(dom`bar*)] =
+    @lambda(p,indent,cv) {
+        return sprintfa("bar type at 0x%x",p);
+    };
+printf("%s\n",cptrstr(&dom`z,handlers));
+
+handlers[@typeof(dom`t2)] =
+    @lambda(p,indent,cv) {
+        return "[t2] " + cv(p);
+    };
+
+handlers[@typeof(dom`baz)] =
+    @lambda(p,indent,cv) {
+        return "[baz] " + cv(p);
+    };
+
+printf("%s\n",cptrstr(&dom`w,handlers));
+printf("%s\n",cptrstr(&dom`val,handlers));
+printf("%s\n",cptrstr(dom`val,handlers));
+
+printf("%s\n",cptrstr(&dom`anintc,handlers));
+
+handlers[@typeof(dom`inta)] =
+    @lambda(p, i, cv) {
+        return "nothing to see here";
+    };
+
+printf("%s\n",cptrstr(&dom`anintc,handlers));
+
+handlers[@typeof(dom`intb)] =
+    @lambda(p, i, cv) {
+        return "[intb] " + cv(p);
+    };
+
+handlers[@typeof(dom`intc)] =
+    @lambda(p, i, cv) {
+        return "[intc] " + cv(p);
+    };
+
+printf("%s\n",cptrstr(&dom`anintc,handlers));

@@ -48,7 +48,7 @@ deflateblock(uchar *dst, int dsize, uchar *src, int ssize, int level, int debug)
 	bd.pos = dst;
 	bd.limit = dst + dsize;
 
-	ok = deflate(&bd, blwrite, &bs, blread, level, debug);
+	ok = xdeflate(&bd, blwrite, &bs, blread, level, debug);
 	if(ok != FlateOk)
 		return ok;
 	return bd.pos - dst;

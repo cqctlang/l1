@@ -26,10 +26,10 @@ enum
 };
 
 int	deflateinit(void);
-int	deflate(void *wr, int (*w)(void*, void*, int), void *rr, int (*r)(void*, void*, int), int level, int debug);
+int	xdeflate(void *wr, int (*w)(void*, void*, int), void *rr, int (*r)(void*, void*, int), int level, int debug);
 
 int	inflateinit(void);
-int	inflate(void *wr, int (*w)(void*, void*, int), void *getr, int (*get)(void*));
+int	xinflate(void *wr, int (*w)(void*, void*, int), void *getr, int (*get)(void*));
 
 int	inflateblock(uchar *dst, int dsize, uchar *src, int ssize);
 int	deflateblock(uchar *dst, int dsize, uchar *src, int ssize, int level, int debug);

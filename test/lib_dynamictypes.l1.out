@@ -1,37 +1,37 @@
-struct Vector at 0x20 {
-   int size = 3
-   int [3] data = [0,
-                   1,
-                   8]
-};
+struct Vector at 0x20 (size 0x10) {
+   size: int at 0x20 = 3
+   data: [int at 0x24 = 0,
+          int at 0x28 = 1,
+          int at 0x2c = 8]
+}
 Pre-refinement:
-struct Vector at 0x8 {
-   int size = 5
-   int [] data = [] // unknown size
-};
+struct Vector at 0x8 (size 0x8) {
+   size: int at 0x8 = 5
+   data: [] // unknown size
+}
 Post-refinement:
-struct Vector at 0x8 {
-   int size = 5
-   int [5] data = [0,
-                   1,
-                   4,
-                   9,
-                   16]
-};
+struct Vector at 0x8 (size 0x18) {
+   size: int at 0x8 = 5
+   data: [int at 0xc = 0,
+          int at 0x10 = 1,
+          int at 0x14 = 4,
+          int at 0x18 = 9,
+          int at 0x1c = 16]
+}
 Type size: 24 bytes (dec)
-struct Vector at 0x20 {
-   int size = 3
-   int [3] data = [0,
-                   1,
-                   8]
-};
+struct Vector at 0x20 (size 0x10) {
+   size: int at 0x20 = 3
+   data: [int at 0x24 = 0,
+          int at 0x28 = 1,
+          int at 0x2c = 8]
+}
 Pre-refinement:
-struct EnumPtr at 0x30 {
-   int type = 0
-   void * contents = 0x18
-};
+struct EnumPtr at 0x30 (size 0x8) {
+   type: int at 0x30 = 0
+   contents: void * at 0x18
+}
 Post-refinement:
-struct EnumPtr at 0x30 {
-   int type = 0
-   int * contents = 0x18
-};
+struct EnumPtr at 0x30 (size 0x8) {
+   type: int at 0x30 = 0
+   contents: int at 0x18 = 9
+}

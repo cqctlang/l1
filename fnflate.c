@@ -99,7 +99,7 @@ doinflate(VM *vm, struct getr *getr, Cval *omaxcv, int zlib)
 	if(zlib)
 		err = inflatezlib(&wr, wfn, getr, rfn);
 	else
-		err = inflate(&wr, wfn, getr, rfn);
+		err = xinflate(&wr, wfn, getr, rfn);
 	if(err < 0)
 		vmerr(vm, flateerr(err));
 

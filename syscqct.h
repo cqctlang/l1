@@ -1142,6 +1142,7 @@ void		heapfree(Head *p);
 int		iscomplete(Ctype *t);
 int		ismapped(VM *vm, As *as, Imm addr, Imm len);
 int		isstrcval(Cval *cv);
+int		ischarcval(Cval *cv);
 Range*		mapstab(VM *vm, Vec *map, Imm addr, Imm len);
 As*		mkastab(Tab *mtab, Str *name);
 Closure*	mkcfn(char *id, Cfn *cfn);
@@ -1227,7 +1228,7 @@ Val		xunop(VM *vm, ikind op, Val v);
 #define valvec(v)	((Vec*)(v))
 #define stkimm(v)	(Imm)(uptr)(v)
 #define stkp(v)		(void*)(uptr)(v)
-#define REGFN(id)	{ registercfn(#id, id); }
+#define REGFN(id)	{ registercfn(#id, (void *)id); }
 #define FN(id)		{ builtinfn(env, "%"#id, cqctmkcfn(#id, l1_##id)); REGFN(l1_##id); }
 
 /* lib9's reliable, portable snprintf (x/lib9) */
@@ -1300,8 +1301,8 @@ Expr*		Zgbinop(unsigned gop, Expr *x, Expr *y);
 Expr*		Zidcid(Cid *s);
 Expr*		Zid2sym(Expr *e);
 Expr*		Zids2syms(Expr *l);
-Expr*		Zif(Expr *cond, Expr *true);
-Expr*		Zifelse(Expr *cond, Expr *true, Expr *false);
+Expr*		Zif(Expr *cond, Expr *truecond);
+Expr*		Zifelse(Expr *cond, Expr *truecond, Expr *falsecond);
 Expr*		Zint(Imm val);
 Expr*		Zgoto(char *l);
 Expr*		Zgotosrc(Ysrc *src, Expr *id);
@@ -1367,6 +1368,7 @@ void		tguard(Val o, Pair *g);
 void		fnch(Env env);
 
 /* cid.c */
+Str*		cid2str(Cid *id);
 void		finicid();
 void		fncid(Env env);
 void		initcid();
@@ -1397,7 +1399,7 @@ Ctype*		safechasetype(Ctype *t);
 void		setsubtype(Ctype *t, Ctype *s);
 Ctype*		subtype(Ctype *t);
 Cbase		typecbase(Ctype *t);
-Ctype*		typename(Ctype *td);
+Ctype*		ctypename(Ctype *td);
 Rkind		typerep(Ctype *t);
 void		typesetrep(Ctype *t, Rkind rep);
 Imm		typesize(VM *vm, Ctype *t);

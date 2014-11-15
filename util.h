@@ -28,7 +28,7 @@ void fatal(char *fmt, ...) NORETURN;
 char* xstrdup(char *s);
 char* xstrndup(char *s, unsigned long len);
 void* emalloc(size_t size);
-void* erealloc(void *p, size_t old, size_t new);
+void* erealloc(void *p, size_t old, size_t newsize);
 void tvdiff(struct timeval *a, struct timeval *b, struct timeval *c);
 char* strnchr(char *s, int c, unsigned long len);
 void efree(void *p);

@@ -2542,6 +2542,12 @@ dostr:
 
 	if(Vkind(v1) == Qstr && Vkind(v2) == Qcval) {
 		cv2 = valcval(v2);
+		if(ischarcval(cv2)) {
+			char v = cvalu(cv2);
+			s2 = mkstr(&v,1);
+			s1 = valstr(v1);
+			goto dostr;
+		}
 		if(isstrcval(cv2)) {
 			s2 = stringof(vm, cv2);
 			s1 = valstr(v1);
@@ -2552,6 +2558,12 @@ dostr:
 
 	if(Vkind(v2) == Qstr && Vkind(v1) == Qcval) {
 		cv1 = valcval(v1);
+		if(ischarcval(cv1)) {
+			char v = cvalu(cv1);
+			s1 = mkstr(&v,1);
+			s2 = valstr(v2);
+			goto dostr;
+		}
 		if(isstrcval(cv1)) {
 			s1 = stringof(vm, cv1);
 			s2 = valstr(v2);
@@ -4282,9 +4294,9 @@ builtinfn(Env env, char *name, Closure *cl)
 }
 
 void
-cqctbuiltinfn(Env top, char *name, Closure *cl)
+cqctbuiltinfn(VM* vm, char *name, Closure *cl)
 {
-	builtinfn(top, name, cl);
+	builtinfn(vm->top, name, cl);
 }
 
 static void
@@ -4367,6 +4379,7 @@ dogc(VM *vm, u32 g, u32 tg)
 }
 
 Val
+__attribute__ ((noclone))
 dovm(VM *vm)
 {
 	Insn *i;
@@ -4375,7 +4388,7 @@ dovm(VM *vm)
 	Val v1, v2, rv;
 
 #ifdef THREADED
-	if(!gotab[0]) {
+	if(!vm) {
 		/* we've been called by initvm.
 		   we're only here to initialize gotab. */
 		gotab[Iabort] 	= &&Iabort;
@@ -4861,6 +4874,18 @@ l1_domof(VM *vm, Imm argc, Val *argv, Val *rv)
 	else
 		vmerr(vm,
 		      "operand 1 to domof must be a cvalue or string");
+}
+
+int
+ischarcval(Cval *cv)
+{
+	Ctype *t;
+	t = chasetype(cv->type);
+	if(t->tkind != Tbase)
+		return 0;
+	if(typecbase(t) != Vchar && typecbase(t) != Vuchar)
+		return 0;
+	return 1;
 }
 
 int
@@ -5575,12 +5600,15 @@ l1_setname(VM *vm, Imm argc, Val *argv, Val *rv)
 		name = 0;
 	if(Vkind(argv[0]) == Qdom) {
 		dom = valdom(argv[0]);
+		gcwb(mkvaldom(dom));
 		dom->name = name;
 	}else if(Vkind(argv[0]) == Qns) {
 		ns = valns(argv[0]);
+		gcwb(mkvalns(ns));
 		ns->name = name;
 	}else if(Vkind(argv[0]) == Qas) {
 		as = valas(argv[0]);
+		gcwb(mkvalas(as));
 		as->name = name;
 	}else
 		vmerr(vm, "operand 1 to nameof must be a domain, name space"
@@ -7591,6 +7619,12 @@ mktopenv(void)
 	/* expanded source may call these magic functions */
 	builtinfn(env, "$put", mkcfn("$put", l1_put));
 	builtinfn(env, "$typeof", mkcfn("$typeof", l1_typeof));
+	builtinfd(env, "stdin",
+		  mkfdfn(mkstr0("<stdin>"), Fread, &l1stdin));
+	builtinfd(env, "stdout",
+		  mkfdfn(mkstr0("<stdout>"), Fwrite, &l1stdout));
+	builtinfd(env, "stderr",
+		  mkfdfn(mkstr0("<stderr>"), Fwrite, &l1stderr));
 
 	return env;
 }
@@ -7649,31 +7683,38 @@ procincr(Env env) {
 }
 
 VM*
-cqctinit(char *memfile, char **loadpath)
+cqctinitxfd(char *memfile, char **loadpath, Xfd *in, Xfd *out, Xfd *err)
 {
 	Env top, tmp;
 	VM *vm;
-	Xfd in, out, err;
 	struct sigaction sa;
+	Xfd xfd[3];
 
 	/* users cannot disable warnings */
 	cqctflags['w'] = 1;
 
-	memset(&in, 0, sizeof(Xfd));
-	in.read = xfdread;
-	in.fd = 0;
+	if(in == 0){
+		in = &xfd[0];
+		memset(in, 0, sizeof(Xfd));
+		in->read = xfdread;
+		in->fd = 0;
+	}
+	if(out == 0){
+		out = &xfd[1];
+		memset(out, 0, sizeof(Xfd));
+		out->write = xfdwrite;
+		out->fd = 1;
+	}
+	if(err == 0){
+		err = &xfd[2];
+		memset(err, 0, sizeof(Xfd));
+		err->write = xfdwrite;
+		err->fd = 2;
+	}
 
-	memset(&out, 0, sizeof(Xfd));
-	out.write = xfdwrite;
-	out.fd = 1;
-
-	memset(&err, 0, sizeof(Xfd));
-	err.write = xfdwrite;
-	err.fd = 2;
-
-	initio(&in, &out, &err);
 	initos();
 	initmem();
+	initio(in, out, err);
 	initqc();
 	initparse();
 	initcid();
@@ -7715,6 +7756,11 @@ cqctinit(char *memfile, char **loadpath)
 	return vm;
 }
 
+VM*
+cqctinit(char *memfile, char **loadpath)
+{
+	return cqctinitxfd(memfile, loadpath, 0, 0, 0);
+}
 void
 cqctfini(VM *vm)
 {

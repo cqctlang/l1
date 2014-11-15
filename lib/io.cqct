@@ -2,7 +2,7 @@
 	fdopen,
 	fprintf,
 	ioctl,
-	mapfile,      
+	mapfile,
 	open,
 	close,
 	popen,
@@ -268,9 +268,9 @@ ions = @names c32le {
 	_close(fd);
 }
 
-
-stdin = mksysfdfinal(0, ions`Fread, "(stdin)");
-stdout = mksysfdfinal(1, ions`Fwrite, "(stdout)");
-stderr = mksysfdfinal(2, ions`Fwrite, "(stderr)");
+// Now created in vm.c
+//stdin = mksysfdfinal(0, ions`Fread, "(stdin)");
+//stdout = mksysfdfinal(1, ions`Fwrite, "(stdout)");
+//stderr = mksysfdfinal(2, ions`Fwrite, "(stderr)");
 
 }

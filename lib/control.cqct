@@ -28,6 +28,7 @@
 		for(i=0; i<length(arg); ++i) {
 			if (islist(arg[i])) continue;
 			if (isvector(arg[i])) continue;
+			if (isstring(arg[i])) continue;
 			error("bad argument to %s (argument %d)", fnnm,i+1);
 		}
 		m = length(arg[0]);
@@ -56,8 +57,8 @@
 
 	$checkargs("map",arg);
 
-	if (islist(arg[0]) || isvector(arg[0])) {
-		// list or vector: exactly one
+	if (islist(arg[0]) || isvector(arg[0]) || isstring(arg[0])) {
+		// list, vector or string: exactly one
 		if(length(arg) == 1){
 			a = arg[0];
 			rv = [];
@@ -67,7 +68,7 @@
 			return rv;
 		}
 
-		// list or vector: more than one
+		// list, vector or string: more than one
 		n = length(arg[0]);
 		m = length(arg);
 		rv = [];
@@ -125,8 +126,8 @@
 
 	//list is most likely, so it comes first.
 
-	if (islist(arg[0]) || isvector(arg[0])) {
-		// list or vector: exactly one
+	if (islist(arg[0]) || isvector(arg[0]) || isstring(arg[0])) {
+		// list, vector or string: exactly one
 		if(length(arg) == 1){
 			a = arg[0];
 			m = length(a);
@@ -135,7 +136,7 @@
 			return nil;
 		}
 
-		// list or vector: more than one
+		// list, vector or string: more than one
 		m = length(arg);
 		n = length(arg[0]);
 		a = mklist(m);
@@ -177,11 +178,11 @@
 	if(!isprocedure(fn))
 		error("argument 1 to foreach must be a procedure");
 	if(length(arg) == 0)
-		error("wrong number of arguments to foreach");
+		error("wrong number of arguments to filter");
 
 	//list is most likely, so it comes first.
 
-	if(islist(arg[0]) || isvector(arg[0])) {
+	if(islist(arg[0]) || isvector(arg[0]) || isstring(arg[0])) {
 		rv = [];
 		if(length(arg) == 1) 
 			foreach(@lambda(val){ if(fn(val)) append(rv, val); },arg[0]);
@@ -228,7 +229,7 @@
 
 	$checkargs("foldl",arg);
 
-	if(islist(arg[0]) || isvector(arg[0])) {
+	if(islist(arg[0]) || isvector(arg[0]) || isstring(arg[0])) {
 		@local i, len;
 		len = length(arg[0]);
 		if (length(arg) == 1) {
@@ -270,7 +271,7 @@
 
 	$checkargs("foldr",arg);
 
-	if(islist(arg[0]) || isvector(arg[0])) {
+	if(islist(arg[0]) || isvector(arg[0]) || isstring(arg[0])) {
 		@local i, len;
 		len = (long long)length(arg[0]);
 		if (length(arg) == 1) {

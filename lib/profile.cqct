@@ -1,8 +1,7 @@
 
 
 @defstx @init_profile() {
-	@global profiles, profentries,elist_length,elist_slice,elist_map;
-	@global elist_foreach;
+	@global profiles, profentries;
 	profiles = mktab(@lambda() {
 			 	return [0,  // count
 					0,  // time
@@ -10,62 +9,6 @@
 					nil]; // location
 			 });
 	profentries = [:];
-	elist_length = @lambda(el) {
-		@local x;
-
-		x=0;
-		while(el != #[]) {
-			x++;
-			el=el[1];
-		}
-		return x;
-	};
-	elist_slice = @lambda(el, start, finish) {
-		@local x,l,stx;
-
-		x=0;
-		while( (el != #[]) && (x<start)) {
-			x++;
-			el=el[1];	
-		}
-		if(x<start)
-			error("elist_slice: elist too short for start");
-		l=[];
-		while( (el != #[]) && (x<finish)) {
-			x++;
-			append(l,el[0]);
-		}
-		if(x<finish)
-			error("elist_slice: elist too short for finish");
-		l=reverse(l);
-		stx=#[];
-		foreach(@lambda(v) {
-			stx=mkstx('elist,v,stx);
-		},l);
-		return stx;
-	};
-	elist_map = @lambda(fn,el) {
-		@local l,stx;
-
-		l=[];
-		while( el != #[] ) {
-			append(l,el[0]);
-			el = el[1];
-		}
-		l=map(fn,l);
-		l=reverse(l);
-		stx=#[];
-		foreach(@lambda(v) {
-			stx=mkstx('elist,v,stx);
-		},l);
-		return stx;
-	};
-	elist_foreach = @lambda(fn,el) {
-		while( el != #[] ) {
-			fn(el[0]);
-			el = el[1];
-		}
-	};
 	return #[];
 }
 @init_profile();
@@ -82,9 +25,9 @@
 	@local multi_rewriter;
 	@local internal_labels;
 	@local get_labels;
-	
+
 	src = stxsrc(body);
-		
+
 	if(rest[0]) {
 		name = rest[0];
 		if(stxkind(name) != 'val)
@@ -185,7 +128,7 @@
 				return #goto(tsym);
 			}
 		} else if(stxkind(v) == 'elist) {
-			elist_map(@lambda(v) { multi_rewriter(v,isinner); }, v);
+			map(@lambda(v) { multi_rewriter(v,isinner); }, v);
 		} else
 			v;
 		// comma forms can't contain statements. no
@@ -212,14 +155,14 @@
 		} else if(stxkind(v) == 'label) {
 			append(internal_labels,v[0]);
 		} else if(stxkind(v) == 'elist) {
-			elist_foreach(get_labels, v);
+			foreach(get_labels, v);
 		}
 		// comma forms can't contain statements. no
 		// need to check there.
 	};
 
 	get_labels(elist);
-	elist = elist_map(@lambda(v) { multi_rewriter(v, 0); }, elist);
+	elist = map(@lambda(v) { multi_rewriter(v, 0); }, elist);
 
 	if(have_ret)
 		goto_ret_block=#`{
@@ -275,4 +218,38 @@
 		#,(unwarp_block);
 		#,(rsym);
 	};
+}
+
+{
+	@global print_profiling;
+
+	@define print_profiling(fd...) {
+		@local tkeys;
+		@global profiles;
+
+		if(length(fd)>0) {
+			fd = fd[0];
+		} else {
+			fd = stdout;
+		}
+
+		tkeys = tabkeys(profiles);
+		sort(tkeys, strcmp);
+
+		fprintf(fd, "===================================================\n");
+		fprintf(fd, "             profile site    ");
+		fprintf(fd, "   time (us)    ");
+		fprintf(fd, " calls\n");
+		fprintf(fd, "---------------------------------------------------\n");
+
+		foreach(@lambda(k) {
+			@local v;
+			v = profiles[k];
+			fprintf(fd, "%25s    %12d    %6d\n", k, v[1], v[0]);
+		}, tkeys);
+
+		fprintf(fd, "===================================================\n");
+
+    }
+
 }

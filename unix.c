@@ -1,5 +1,6 @@
 #include "sys.h"
 #include "util.h"
+#include "syscqct.h"
 
 char sysarch[256];
 char sysos[256];
@@ -69,8 +70,7 @@ xwrite(int fd, void *p, Imm len)
 void
 xvprintf(char *fmt, va_list args)
 {
-	vfprintf(stdout, fmt, args);
-	fflush(stdout);
+	cvprintf(&l1stdout, fmt, args);
 }
 
 void

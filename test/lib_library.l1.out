@@ -3,12 +3,13 @@ in lib3
 Running f1 from lib3
 Running f2 from lib3
 finished with lib3
-f1 from lib3:
 Running f1 from lib3
-f2 from lib3:
 Running f1 from lib3
 Running f2 from lib3
-past lib3 import
+Running f1 from lib3
+Running f1 from lib3
+Running f1 from lib3
+Running f2 from lib3
 in lib2
 Running f1 from lib3
 Running f2 from lib3
@@ -22,14 +23,11 @@ Running f2 from lib3
 Running f3 from lib2
 Running f4 from main!
 constant c1's value: 1
-pre test library
-still pre test library
 test loaded
 Running f1 from lib3
 Running f2 from lib3
 Running f1 from lib3
 Running f2 from lib3
-should have seen only one 'test loaded'
 Running sublib fn1
 Running sublib fn1
 Running f1 from lib3
@@ -45,10 +43,3 @@ expected error found: attempt to call non-procedure
 Testing lone object import
 Running sublib fn1
 in lib1
-before with_imports(a)
-Initializing library a
-Finished initializing library a
-in the with_imports(a)
-Running fn_a
-in second with_imports(a)
-Running fn_a

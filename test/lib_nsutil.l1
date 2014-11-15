@@ -14,6 +14,12 @@ ns1 = @names c32le {
 	};
 	@["offset" : 100,
 	  "cc"     : "stdcall"] void function(int a);
+
+	typedef void fun_t(void);
+	typedef int fun2_t(int, long, fun_t, void*);
+	typedef char ary_t[80];
+	typedef char ary2_t[80][81];
+	typedef unsigned char ary3_t[80][81][82][83];
 };
 
 ns2 = @names c32le {

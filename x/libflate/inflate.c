@@ -143,7 +143,7 @@ inflateinit(void)
 }
 
 int
-inflate(void *wr, int (*w)(void*, void*, int), void *getr, int (*get)(void*))
+xinflate(void *wr, int (*w)(void*, void*, int), void *getr, int (*get)(void*))
 {
 	History *his;
 	Input in;
