@@ -241,3 +241,21 @@ if(looksym(unix,'AF_UNIX)) {
 		}
 	}
 }
+
+@define kill(pid, sig) {
+
+	if(iscid(sig)) {
+		@local t;
+
+		t = looksym(unix, sig);
+		if(!t)
+			error("kill: bad signal specification %a\n", sig);
+
+		if(!isenumconst(t[0]))
+			error("kill: bad signal specification %a\n", sig);
+
+		sys_kill(pid, t[2]["offset"]);
+	} else {
+		sys_kill(pid, sig);
+	}
+}
