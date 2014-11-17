@@ -484,6 +484,7 @@ main(int argc,char **argv) {
 		// generic names
 		{ "PT_TRACE_ME", PT_TRACE_ME },
 
+#ifdef PTRACE_TRACEME
 		// linux names
 		{ "PTRACE_TRACEME", PTRACE_TRACEME },
 		{ "PTRACE_PEEKTEXT", PTRACE_PEEKTEXT },
@@ -516,6 +517,16 @@ main(int argc,char **argv) {
 		{ "PTRACE_KILL", PTRACE_KILL },
 		{ "PTRACE_ATTACH", PTRACE_ATTACH },
 		{ "PTRACE_DETACH", PTRACE_DETACH },
+#endif
+#ifdef PT_TRACE_ME // true on Darwin
+		{ "PT_TRACE_ME", PT_TRACE_ME },
+		{ "PT_DENY_ATTACH", PT_DENY_ATTACH },
+		{ "PT_CONTINUE", PT_CONTINUE },
+		{ "PT_STEP", PT_STEP },
+		{ "PT_KILL", PT_KILL },
+		{ "PT_ATTACH", PT_ATTACH },
+		{ "PT_DETACH", PT_DETACH },
+#endif
 		{ NULL },
 	};
 
