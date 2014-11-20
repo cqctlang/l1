@@ -124,6 +124,12 @@ cqctenvbind(VM *vm, char *name, Val v)
 	envbind(vm->top, name, v);
 }
 
+void
+cqctenvdel(VM *vm, char *name)
+{
+	envdel(vm->top, name);
+}
+
 Val
 cqctenvlook(VM *vm, char *name)
 {

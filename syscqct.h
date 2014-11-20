@@ -1118,6 +1118,7 @@ Cval*		domcast(VM *vm, Dom *dom, Cval *cv);
 void		dogc(VM *vm, u32 g, u32 tg);
 Val		dovm(VM* vm);
 void		envbind(Env env, char *id, Val v);
+void		envdel(Env env, char *id);
 int		envbinds(Env env, Cid *id);
 void		envdefine(Env env, Cid *id, Val v);
 Val		envget(Env env, Cid *id);
