@@ -594,6 +594,12 @@ envbind(Env env, char *id, Val val)
 		envdefine(env, cid, val);
 }
 
+void
+envdel(Env env, char *id)
+{
+	tabdel(env, mkvalcid(mkcid0(id)));
+}
+
 static Val
 envlookup(Env env, char *id)
 {

@@ -268,8 +268,8 @@ initos()
 	struct utsname buf;
 	if(0 > uname(&buf))
 		fatal("no uname");
-	memcpy(sysarch, buf.machine, sizeof(sysarch)-1);
-	memcpy(sysos, buf.sysname, sizeof(sysarch)-1);
+	strncpy(sysarch, buf.machine, sizeof(sysarch)-1);
+	strncpy(sysos, buf.sysname, sizeof(sysos)-1);
 	if(strcmp(sysarch, "x86_64") == 0)
 		strcpy(sysarch, "amd64");
 	stolower(sysarch);

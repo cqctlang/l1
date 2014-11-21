@@ -136,6 +136,7 @@ Val		cqctcstrval(char *s);
 Val		cqctcstrvalshared(char *s);
 void		cqctenvbind(VM *vm, char *name, Val v);
 Val		cqctenvlook(VM *vm, char *name);
+void		cqctenvdel(VM *vm, char *name);
 int		cqcteval(VM *vm, char *s, char *src, Val *rv);
 void		cqctfreecstr(char *s);
 Val		cqctint8val(int8_t);
