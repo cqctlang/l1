@@ -14,6 +14,12 @@ enum oflags {
 	O_EXCL	= 0x800,
 	O_CLOEXEC	= 0x1000000,
 };
+enum aflags {
+	R_OK	= 0x4,
+	W_OK	= 0x2,
+	X_OK	= 0x1,
+	F_OK	= 0x0,
+};
 enum seekflags {
 	SEEK_SET	= 0x0,
 	SEEK_CUR	= 0x1,
@@ -352,4 +358,14 @@ enum syscall_nr {
 	fremovexattr	= 0xef,
 	utimes	= 0x8a,
 	waitid	= 0xad,
+	openat	= 0x1cf,
+	mkdirat	= 0x1db,
+	fchownat	= 0x1d4,
+	unlinkat	= 0x1d8,
+	renameat	= 0x1d1,
+	linkat	= 0x1d7,
+	symlinkat	= 0x1da,
+	readlinkat	= 0x1d9,
+	fchmodat	= 0x1d3,
+	faccessat	= 0x1d2,
 };
