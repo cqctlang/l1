@@ -2,6 +2,7 @@
 #include <stdio.h>
 #include <fcntl.h>
 #include <termios.h>
+#include <unistd.h>
 #include <sys/types.h>
 #include <sys/mman.h>
 #include <sys/socket.h>
@@ -64,6 +65,14 @@ main(int argc,char **argv) {
 #ifdef O_DIRECT // linux since 2.4.10
 		{ "O_DIRECT", 	O_DIRECT },	
 #endif
+		{ NULL },
+	};
+
+	struct enum_entry aflags[]={
+		{ "R_OK",	R_OK },
+		{ "W_OK",	W_OK },
+		{ "X_OK",	X_OK },
+		{ "F_OK",	F_OK },
 		{ NULL },
 	};
 
@@ -970,9 +979,13 @@ main(int argc,char **argv) {
 #ifdef SYS_openat // Darwin misses these
 		{ "openat",		SYS_openat },
 		{ "mkdirat",		SYS_mkdirat },
+#ifdef SYS_mknodat // disappeared from Darwin by Yosemite
 		{ "mknodat",		SYS_mknodat },
+#endif
 		{ "fchownat",		SYS_fchownat },
+#ifdef SYS_futimesat // disappeared from Darwin by Yosemite
 		{ "futimesat",		SYS_futimesat },
+#endif
 #ifdef SYS_newfstatat // linux x86_64, not i386 or arm
 		{ "newfstatat",		SYS_newfstatat },
 #endif
@@ -1035,6 +1048,7 @@ main(int argc,char **argv) {
 
 	printf("/* generated automatically by mkunix */\n\n");
 	print_enum("oflags", oflags);
+	print_enum("aflags", aflags);
 	print_enum("seekflags", seekflags);
 	print_enum("mmap_consts",mmap_consts);
 	print_enum("waitflags",waitflags);
