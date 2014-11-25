@@ -163,14 +163,14 @@
 	{
 		@local stk;
 		@local space;
-        @local didnl;
+		@local didnl;
 
 		rdsetfmt( @record E { offset, kind } ,
 				  @lambda(e) { sprintfa("E(%a,%a)",e.offset,e.kind); });
 
 		space = margin;
 		stk = [ E(margin,'horizontal) ];
-        didnl = 0;
+		didnl = 0;
 
 		@defloc out(x, l)
 		{
@@ -201,13 +201,13 @@
 			@match B(n):
 				if(stk[0].kind == 'vertical) {
 					space = stk[0].offset;
-                    if (didnl > -1 && margin-space-didnl > 0) {
-                        indent(margin-space-didnl);
-                        didnl = margin-space;
-                    } else {
-                        nl(margin-space);
-                        didnl = margin-space;
-                    }
+					if (didnl > -1 && margin - space - didnl > 0) {
+						indent(margin - space - didnl);
+						didnl = margin - space;
+					} else {
+						nl(margin - space);
+						didnl = margin - space;
+					}
 				}else{
 					space -= n;
 					indent(n);
@@ -362,6 +362,3 @@
 
 	return pp;
 }
-
-
-// vim:ts=4:sw=4:noet

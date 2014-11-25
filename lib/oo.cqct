@@ -260,5 +260,3 @@ for(i=0; i<1000000; ++i)
 
 	return #scope(#block(new_locals, new_body));
 }
-
-// vim:ts=8:sw=8:noet

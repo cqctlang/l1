@@ -486,5 +486,3 @@ if (library_defined == nil)
 	}
 
 }
-
-// vim:ts=8:noet

@@ -1,3 +1,15 @@
+File hygiene
+------------
+
+Please don't leave any editor litter on the bottom of
+files that are part of the shared distribution
+
+Examples include:
+// vim:ts=8:sw=8:noet
+
+
+Specific styles for Cinquecento lexical forms
+---------------------------------------------
 
 Assignment:
 

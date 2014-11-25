@@ -6,21 +6,23 @@
 //pretty printer for syntax objects
 
 {
-    @local _ppstx;
+	@local _ppstx;
 
-    @defloc docifystx(e,queue,ppobj) {
-        @local left,right,blank,linebreak;
-        left = ppobj.left;
-        right = ppobj.right;
-        blank = ppobj.blank;
-        linebreak = ppobj.linebreak;
+	@defloc docifystx(e,queue,ppobj) {
+		@local left, right, blank, linebreak;
 
-        @defloc idlist(ids)
-        {
-            @local i, m;
-            m = Zlength(ids);
-            if(m == 0){
-                queue("#[ ]");
+		left = ppobj.left;
+		right = ppobj.right;
+		blank = ppobj.blank;
+		linebreak = ppobj.linebreak;
+
+		@defloc idlist(ids)
+		{
+			@local i, m;
+
+			m = Zlength(ids);
+			if(m == 0){
+			queue("#[ ]");
                 return;
             }
             queue(left);

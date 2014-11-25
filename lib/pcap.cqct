@@ -147,7 +147,6 @@ eth_names = @names c32be {
 	};
 };
 
-
 @define mkpcapdom(fname)
 {
 	@local myas;
