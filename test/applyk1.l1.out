@@ -1,6 +1,2 @@
-applyk1.l1:3: warning: assignment to unbound variable: i
-applyk1.l1:3: warning: assignment to unbound variable: x
-applyk1.l1:9: warning: assignment to unbound variable: i
-applyk1.l1:9: warning: assignment to unbound variable: x
 okay
 fail: hi

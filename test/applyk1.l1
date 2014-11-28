@@ -1,13 +1,26 @@
 N = 100000; /* get some gcs in apply call */
 
-applyk(@lambda(M) { for(i = 0; i < M; i++) x = mkstr(1000); return 'okay; },
-       @lambda(v) { printf("%a\n", v); },
-       @lambda(msg) { printf("fail: %s\n",msg); },
-       [N]);
+applyk(@lambda(M) {
+		@local i;
+		for(i = 0; i < M; i++)
+			mkstr(1000);
+
+		return 'okay;
+	},
+	@lambda(v) { printf("%a\n", v); },
+	@lambda(msg) { printf("fail: %s\n",msg); },
+	[N]);
 
 
-applyk(@lambda(M) { for(i = 0; i < M; i++) x = mkstr(1000); error("hi"); },
-       @lambda(v) { printf("okay!\n"); },
-       @lambda(msg) { printf("fail: %s\n",msg); },
-       [N]);
+applyk(@lambda(M) {
+		@local i;
+
+		for(i = 0; i < M; i++)
+			mkstr(1000);
+
+		error("hi");
+	},
+	@lambda(v) { printf("okay!\n"); },
+	@lambda(msg) { printf("fail: %s\n",msg); },
+	[N]);
 
