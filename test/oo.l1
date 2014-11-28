@@ -1,17 +1,15 @@
 
-
-
 @include <oo.cqct>
 
 profiling = 0;
 @defstx @maybeprofile(a) body {
-    return #if(#id('profiling),#mcall(#id('profile), #[ a ], body),body);
+	return #if(#id('profiling),#mcall(#id('profile), #[ a ], body),body);
 }
 
 if (profiling)
-    cnt = 1000000;
+	cnt = 1000000;
 else
-    cnt = 10;
+	cnt = 10;
 
 
 @define fn() { 1; }
@@ -20,69 +18,69 @@ o = [ 'a : fn ];
 i=0;
 
 @maybeprofile("baseline") {
-    for(i=0; i<cnt; ++i)
-        fn();
+	for(i=0; i<cnt; ++i)
+		fn();
 }
 
 @maybeprofile("no wrapper") {
-    for(i=0; i<cnt; ++i)
-        o.a();
+	for(i=0; i<cnt; ++i)
+		o.a();
 }
 
 @maybeprofile("wrapper") {
-    @cnsttab(o) {
-        for(i=0; i<cnt; ++i)
-            o.a();
-    }
+	@cnsttab(o) {
+		for(i=0; i<cnt; ++i)
+			o.a();
+	}
 }
 
-evalk("@cnsttab(o) { o['a] = 2; }",
-    @lambda(r) { r; },
-    @lambda(m) { printf("error: %s\n",m); });
-evalk("@cnsttab(o) { o.a = 2; }",
-    @lambda(r) { r; },
-    @lambda(m) { printf("error: %s\n",m); });
-evalk("@cnsttab(o()) { }",
-    @lambda(r) { r; },
-    @lambda(m) { printf("error: %s\n",m); });
+compile(parse("@cnsttab(o) { o['a] = 2; }"))
+	|| printf("success: compilation failed\n");
+
+compile(parse("@cnsttab(o) { o.a = 2; }"))
+	|| printf("success: compilation failed\n");
+
+compile(parse("@cnsttab(o) { o['a] = 2; }"))
+	|| printf("success: compilation failed\n");
 
 @define mkfn(n) {
-    return @lambda() { printf("called %a\n",n); return 1; };
+	return @lambda() { printf("called %a\n",n); return 1; };
 }
 
 for (i=0; i<20; ++i) {
-    @local c;
-    c = mkcid(sprintfa("c%d",i));
-    o[c] = mkfn(c);
+	@local c;
+
+	c = mkcid(sprintfa("c%d", i));
+	o[c] = mkfn(c);
 }
 
 @cnsttab(o) {
-    if (0) o.c0();
-    else o.c1();
+	if (0) o.c0();
+	else o.c1();
 
-    for(i=0; i<2; ++i, o.c2())
-        do {
-            o.c4();
-        } while(!o.c3());
+	for(i=0; i<2; ++i, o.c2())
+	do {
+		o.c4();
+	} while(!o.c3());
 
-    o.c5();
+	o.c5();
 
-    apply(o.c6,[]);
+	apply(o.c6,[]);
 
-    if ((o.c7()))
-        if ((o.c8()))
-            if ((o.c9()))
-                if ((o.c10()))
-                    if ((o.c11()))
-                        if ((o.c12()))
-                            if ((o.c13()))
-                                if ((o.c14()))
-                                    if ((o.c15()))
-                                        o.c16();
-    o.c17() ? o.c18() : o.c19();
+	if ((o.c7()))
+		if ((o.c8()))
+			if ((o.c9()))
+				if ((o.c10()))
+					if ((o.c11()))
+						if ((o.c12()))
+							if ((o.c13()))
+								if ((o.c14()))
+									if ((o.c15()))
+										o.c16();
+	o.c17() ? o.c18() : o.c19();
 }
 
 if (profiling)
-    foreach(@lambda(k,v) {
-        printf("%a %a\n",k,v);
-    }, profiles);
+	foreach(@lambda(k,v) {
+		printf("%a %a\n", k, v);
+	}, profiles);

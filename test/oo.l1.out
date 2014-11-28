@@ -1,9 +1,9 @@
-<eval-input>:1: change to cnsttab object
-error: cannot compile @cnsttab(o) { o['a] = 2; }
-<eval-input>:1: change to cnsttab object
-error: cannot compile @cnsttab(o) { o.a = 2; }
-<eval-input>:1 bad cnsttab parameter
-error: cannot compile @cnsttab(o()) { }
+(stdin):1: change to cnsttab object
+success: compilation failed
+(stdin):1: change to cnsttab object
+success: compilation failed
+(stdin):1: change to cnsttab object
+success: compilation failed
 called c1
 called c4
 called c3
