@@ -1,5 +1,8 @@
 @global
+	access,
 	fdopen,
+	read,
+	write,
 	fprintf,
 	ioctl,
 	mapfile,
@@ -22,6 +25,11 @@
 
 // import
 @global finalize;
+@global sysfdno;
+
+if(sysfdno == nil) {
+	error("you have no sysfdno");
+}
 
 {
 @local ions;
@@ -100,6 +108,52 @@ ions = @names c32le {
 		return nil;
 
 	return mksysfdfinal(fd, mode2flags(mode), file);
+}
+
+@define access(path, mode)
+{
+	@local r;
+	@local m;
+	@local x;
+
+	m = 0;
+	for(x = 0 ; x < length(mode) ; x++) {
+		if(mode[x] == 'r') m |= unix`R_OK;
+		else if(mode[x] == 'w') m |= unix`W_OK;
+		else if(mode[x] == 'x') m |= unix`X_OK;
+		else if(mode[x] == 'f') m |= unix`F_OK;
+		else error("access: invalid mode character");
+	}
+
+	r = sys_access(path, m);
+
+	// cinquecento library access is not libc access
+	if(r == -1)
+		return 0;
+	else
+		return 1;
+}
+
+@define read(fd, count)
+{
+	@local buf, r;
+
+	buf = malloc(count);
+
+	r = sys_read(sysfdno(fd), buf, count);
+
+	if(r < 0) {
+		error("read error");
+	} else if(!r) {
+		return nil;
+	}
+
+	return getbytes(buf, r);
+}
+
+@define write(fd, buf)
+{
+	sys_write(sysfdno(fd), buf, length(buf));
 }
 
 @define fdopen(fd, mode)
@@ -224,6 +278,7 @@ ions = @names c32le {
 
 	if(!rv)
 		return nil;
+
 	if(rv[0] == (unsigned long) -1)
 		return nil;
 
@@ -237,6 +292,7 @@ ions = @names c32le {
 			_munmap(addr, len); });
 	} else
 		rv = "";
+
 	return rv;
 }
 
