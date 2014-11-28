@@ -13,6 +13,7 @@ unlink = sys_unlink;
 /* LINUX_REBOOT_CMD_RESTART2 0xa1b2c3d4 */
 /* LINUX_REBOOT_CMD_CAD_ON RB_ENABLE_CAD 0x89abcdef */
 /* LINUX_REBOOT_CMD_CAD_OFF RB_DISABLE_CAD, 0 */
+@global reboot;
 @define reboot(cmd) {
 	return sys_reboot(0xfee1dead,672274793,cmd,0);
 }
@@ -218,6 +219,7 @@ if(looksym(unix,'AF_UNIX)) {
 }
 }
 
+@global system;
 @define system(cmd) {
 	@local p,r;
 
@@ -242,6 +244,7 @@ if(looksym(unix,'AF_UNIX)) {
 	}
 }
 
+@global kill;
 @define kill(pid, sig) {
 
 	if(iscid(sig)) {
