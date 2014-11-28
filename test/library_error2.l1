@@ -7,15 +7,9 @@
 
 @add_loadpath(loadpath()[0] + "/../test/libs");
 
-evalk("@export(lalala);",
-    @lambda(r) { r; },
-    @lambda(msg) {});
+compile(parse("@export(lalala);", "<eval-input>"));
 
-evalk("@import(lalala);",
-    @lambda(r) { r; },
-    @lambda(msg) {});
+compile(parse("@import(lalala);", "<eval-input>"));
 
-evalk("@with_imports(recursive) {};",
-    @lambda(r) { r; },
-    @lambda(msg) {});
+compile(parse("@with_imports(recursive) {};", "<eval-input>"));
 

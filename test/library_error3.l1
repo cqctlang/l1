@@ -1,30 +1,29 @@
 
 
-evalk("@with_imports(a()*b) { ; }",
-	@lambda(r) {r;},
-	@lambda(msg) {});
+compile(parse("@with_imports(a()*b) { ; }", "<eval-input>"));
 
-evalk("@with_imports(ab.b.c) { ; }",
-	@lambda(r) {r;},
-	@lambda(msg) {});
+compile(parse("@with_imports(ab.b.c) { ; }", "<eval-input>"));
 
-evalk("@with_imports( (f, ab.b.c) ) { ; }",
-	@lambda(r) {r;},
-	@lambda(msg) {});
+compile(parse("@with_imports( (f, ab.b.c) ) { ; }", "<eval-input>"));
 
-evalk("@with_imports( (f.a, ab.b) ) { ; }",
-	@lambda(r) {r;},
-	@lambda(msg) {});
+compile(parse("@with_imports( (f.a, ab.b) ) { ; }", "<eval-input>"));
 
 @library(test) {};
 
-evalk("@with_imports( (f, test.f) ) { ; }",
-	@lambda(r) {r;},
-	@lambda(msg) {});
+compile(parse("@with_imports( (f, test.f) ) { ; }", "<eval-input>"));
 
+applyk(@lambda() {
+		@with_imports( (t, test) ) { t.t(); }
+	}, @lambda(s) {
+	}, @lambda(msg) {
+		printf("caught error: %s\n", msg);
+	}, []);
+
+/*
 evalk("@with_imports( (t, test) ) { t.t(); }",
 	@lambda(r) {r;},
 	@lambda(msg) {
 		printf("caught error: %s\n",msg);
 	});
+*/
 
