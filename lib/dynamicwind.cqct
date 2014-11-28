@@ -1,4 +1,4 @@
-@global dynamicwind, $dynamicwind, syscallcc, applyk, evalk;
+@global dynamicwind, $dynamicwind, syscallcc, applyk;
 @global $winders;
 
 {
@@ -120,10 +120,5 @@
 	@define applyk(arg ...)
 	{
 		apply($applyk, arg);
-	}
-
-	@define evalk(s, succ, fail)
-	{
-		applyk(@lambda(arg ...) { eval(s); }, succ, fail, []);
 	}
 }

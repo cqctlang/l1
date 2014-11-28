@@ -10080,49 +10080,6 @@ cannot be parsed or compiled.
 </div>
 </div>
 
-<div class="docitem" id="fn:evalk">
-<div class="proto">
-<div class="function">
-<span class="id">evalk(<span class="arg">expr</span>, <span class="arg">succ</span>, <span class="arg">fail</span>)</span>
-</div>
-<div class="param">
-<span class="arg">expr</span>: <span class="type">string</span>
-</div>
-<div class="param">
-<span class="arg">succ</span>: <span class="type">function</span>
-</div>
-<div class="param">
-<span class="arg">fail</span>: <span class="type">function</span>
-</div>
-<div class="returns">
-<span class="type">see description</span>
-</div>
-</div>
-<div class="desc">
-<span class="id">Evalk</span> is like 
-<span class="id">eval</span>, but provides control over
-the outcome of evaluations that cause an error to be raised.
-<span class="id">Evalk</span> evaluates the Cinquecento
-expression contained in the
-string <span class="arg">expr</span>.
-If the evaluation causes an error to be raised, the
-same error message and stack trace that normally would be
-be printed are printed, then evaluation continues by calling the function
-<span class="arg">fail</span> with a single argument. This argument
-is a descriptive string -- typically produced by <a href="#fn:error">error</a>.
-Otherwise, the function <span class="arg">succ</span>
-is called with the result of the application as its
-single argument.
-<span class="id">Evalk</span>(<span class="arg">expr</span>,
-<span class="arg">succ</span>,<span class="arg">fail</span>)
-is equivalent to <span class="id">applyk</span>(
-<span class="id">eval</span>,
-<span class="arg">succ</span>,
-<span class="arg">fail</span>,
-<span class="arg">[expr]</span>).
-</div>
-</div>
-
 <div class="docitem" id="fn:parse">
 <div class="proto">
 <div class="function">
@@ -12672,7 +12629,6 @@ Prentice Hall, 1988.
 <a href="#fn:errno">errno</a><br />
 <a href="#fn:error">error</a><br />
 <a href="#fn:eval">eval</a><br />
-<a href="#fn:evalk">evalk</a><br />
 <a href="#fn:exit">exit</a><br />
 <a href="#fn:fault">fault</a><br />
 <a href="#fn:fdname">fdname</a><br />
