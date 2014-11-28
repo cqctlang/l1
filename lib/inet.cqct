@@ -1,8 +1,10 @@
 
+@global wswap;
 @define wswap(v) {
 	return ((v&0xff)<<8) | ((v&0xff00)>>8);
 }
 
+@global dswap;
 @define dswap(v) {
 	return
 	((v&0xff)<<24)      |
@@ -11,6 +13,7 @@
 	((v&0xff000000)>>24);
 }
 
+@global inet_ntoa;
 @define inet_ntoa(n) {
 	@local s;
 
@@ -22,6 +25,7 @@
 		(s&0x000000ff)>>0);
 }
 
+@global inet_aton;
 @define inet_aton(a) {
 	@local s,n,r;
 
@@ -50,17 +54,19 @@
 	return r;
 }
 
+@global ctons;
 @define ctons(v) {
 	if(baserep(looktype(domof(v),@typeof(unsigned int))) == cqct`Ru32le)
-                return wswap(v);
-        else
-                return v;
+		return wswap(v);
+	else
+		return v;
 }
 
+@global ctonl;
 @define ctonl(v) {
 	if(baserep(looktype(domof(v),@typeof(unsigned int))) == cqct`Ru32le)
-                return dswap(v);
-        else
-                return v;
+		return dswap(v);
+	else
+		return v;
 }
 
