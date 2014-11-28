@@ -2,15 +2,22 @@
 
 @global debugexpand, validateexpand;
 
-symn = 0;
-@define gensym()
 {
-	return mkstxid(mkcid(sprintfa("sym%d", symn++)));
+@local symn;
+
+	symn = 0;
+
+	@global gensym;
+	@define gensym()
+	{
+		return mkstxid(mkcid(sprintfa("sym%d", symn++)));
+	}
 }
 
 @global stxtab;
 stxtab = mktab();
 
+@global expand;
 @define expand(e)
 {
 	@defloc install(id, args, body, expander)
@@ -147,13 +154,13 @@ stxtab = mktab();
 		default:
 			
 			return #call(#id('mkstx),
-			             Zlist(mkstxval(stxkind(e)),
+					Zlist(mkstxval(stxkind(e)),
 					   e[0] ? quasi(e[0]) : Znil(),
 					   e[1] ? quasi(e[1]) : Znil(),
 					   e[2] ? quasi(e[2]) : Znil(),
 					   e[3] ? quasi(e[3]) : Znil(),
 					   mkstxval(stxsrc(e))),
-				     stxsrc(e));
+					stxsrc(e));
 		}
 	}
 
