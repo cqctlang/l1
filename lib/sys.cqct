@@ -3,16 +3,24 @@
 // resemble the low-level semantics
 // available in C programs through
 // libc and friends. 
+
+@global sys_defined;
+if(sys_defined == nil)
 {
 @local _unameres;
-@local __malloc;
+@local ___malloc;
 
 @global unix;
-@global linuxns;
+
+sys_defined = 1;
 
 _unameres = nil;
 
-// this entire mechanism is a crock.
+@include <darwin-x86_64.cqct>
+@include <linux-x86_64.cqct>
+@include <linux-x86.cqct>
+@include <linux-arm.cqct>
+
 {
 	@local u,r,a,o,w;
 
@@ -25,31 +33,35 @@ _unameres = nil;
 
 	switch([o,a,w]) {
 	case ["Linux","x86_64",8]:
-		eval("@include <linux-x86_64.cqct>"); 
+		unix = unix_linux_x86_64;
 		break;
 	case ["Linux","x86_64",4]:
+		unix = unix_linux_x86;
+		break;
 	case ["Linux","i686",4]:
-		eval("@include <linux-x86.cqct>"); 
+		unix = unix_linux_x86;
 		break;
 	case ["Linux","armv7l",4]:
 	case ["Linux","armv6l",4]:
-		eval("@include <linux-arm.cqct>"); 
+		unix = unix_linux_x86;
 		break;
 	case ["Darwin","x86_64",8]:
-		eval("@include <darwin-x86_64.cqct>"); 
+		// support for you included above
+		unix = unix_darwin_x86_64;
 		break;
 	case ["Darwin","x86_64",4]:
+		// running 32 bit on a 64 bit kernel
 	default:
-	// no direct syscalls for you
-		fprintf(stderr,"Unsupported OS: %a\n",[o,a,w]);
+		error("no direct syscalls for OS: %a\n", [o, a, w]);
 	}
 
-	@define __malloc(s) {
-		s=malloc(s);
-		if(s) {
-			return {mkdom(r,asof(s))}s;
+	@define ___malloc(s) {
+		@local b;
+		b = _malloc(s);
+		if(b) {
+			return (unsigned char *){mkdom(r,mkmas(b, s))}b;
 		} else {
-			return s;
+			return b;
 		}
 	}
 
@@ -60,7 +72,11 @@ _unameres = nil;
 @define sys_open(filename,oflag,rest ...) {
 	@local m,r;
 
-	m=__malloc(length(filename)+1);
+	m=___malloc(length(filename)+1);
+	if(!m) {
+		return -1;
+	}
+
 	putbytes(m,filename);
 	m[length(filename)]=0;
 
@@ -69,6 +85,8 @@ _unameres = nil;
 	} else {
 		r=syscall(unix`open,m,oflag);
 	}
+
+	_free(m);
 
 	return r;
 }
@@ -79,36 +97,47 @@ _unameres = nil;
 }
 
 @global sys_read;
-@define sys_read(fd,buf,len) {
-	@local m,r,c;
+@define sys_read(fd, buf, len) {
+	@local m, r, c;
 
-	m=__malloc(len);
-	r=syscall(unix`read,fd,m,len);
-	if(r>0) {
-		c=getbytes(m,r);
-		putbytes(buf,c);
+	m=___malloc(len);
+	if(!m) {
+		return -1;
 	}
+	r=syscall(unix`read, fd, m, len);
+	if(r > 0) {
+		c = getbytes(m, r);
+		putbytes(buf, c);
+	}
+
+	_free(m);
 
 	return r;
 }
 
 @global sys_write;
-@define sys_write(fd,buf,len) {
-	@local m,r;
+@define sys_write(fd, buf, len) {
+	@local m, r;
 
-	m=__malloc(len);
+	m=___malloc(len);
+
+	if(!m) {
+		return -1;
+	}
 
 	if(isstring(buf)) {
 		if(length(buf) > len) {
-			putbytes(m,substr(buf,0,len));
+			putbytes(m, substr(buf, 0, len));
 		} else {
-			putbytes(m,buf);
+			putbytes(m, buf);
 		}
 	} else {
-		memcpy(m,buf,len);
+		memcpy(m, buf, len);
 	}
 
-	r=syscall(unix`write,fd,m,len);
+	r=syscall(unix`write, fd, m, len);
+
+	_free(m);
 
 	return r;
 }
@@ -203,8 +232,8 @@ if (unix.looksym('fstat64) != nil)
 
 	l=sizeof(struct unix`stat);
 
-	m=__malloc(l);
-	if(0 > m)
+	m=___malloc(l);
+	if(0 >= m)
 		error("fstat: couldn't allocate stat buf");
 
 	if(isstring(statbuf)) {
@@ -226,6 +255,8 @@ if (unix.looksym('fstat64) != nil)
 		putbytes(statbuf,getbytes(m,l));
 	}
 
+	_free(m);
+
 	return r;
 }
 
@@ -233,7 +264,12 @@ if (unix.looksym('fstat64) != nil)
 
 @global FD_ALLOC;
 @define FD_ALLOC() {
-	return (unsigned char *)__malloc(128);
+	return ___malloc(128);
+}
+
+@global FD_FREE;
+@define FD_FREE(fd) {
+	_free(fd);	
 }
 
 @global FD_ISSET;
@@ -271,8 +307,19 @@ if(selnr) {
 	@local maxbyte;
 
 	rfds_foo=FD_ALLOC();
+	if(!rfds_foo)
+		return -1;
 	wfds_foo=FD_ALLOC();
+	if(!wfds_foo) {
+		_free(rfds_foo);
+		return -1;
+	}
 	xfds_foo=FD_ALLOC();
+	if(!xfds_foo) {
+		_free(rfds_foo);
+		_free(wfds_foo);
+		return -1;
+	}
 
 	maxbyte=n>>3;
 	for(x=0;x<=maxbyte;x++) {
@@ -282,7 +329,13 @@ if(selnr) {
 	}
 
 	if(timeout != 0) {
-		timeout_foo=(unsigned char *)__malloc(128);
+		timeout_foo=___malloc(128);
+		if(!timeout_foo) {
+			_free(rfds_foo);
+			_free(wfds_foo);
+			_free(xfds_foo);
+			return -1;
+		}
 		timeout_foo[0]=0;
 		timeout_foo[1]=0;
 		timeout_foo[2]=0;
@@ -308,6 +361,11 @@ if(selnr) {
 	r=syscall(selnr,n,rfds_foo,wfds_foo,xfds_foo,timeout_foo);
 
 	if(r==-1) {
+		FD_FREE(rfds_foo);
+		FD_FREE(wfds_foo);
+		FD_FREE(xfds_foo);
+		if(timeout_foo) _free(timeout_foo);
+
 		return [[],[],[]];
 	}
 
@@ -330,6 +388,11 @@ if(selnr) {
 		}
 	},xfds);
 
+	FD_FREE(rfds_foo);
+	FD_FREE(wfds_foo);
+	FD_FREE(xfds_foo);
+	if(timeout_foo) _free(timeout_foo);
+
 	return [rr,rw,rx];
 }
 
@@ -338,22 +401,46 @@ if(selnr) {
 }
 }
 
+@global sys_access;
+@define sys_access(path, amode) {
+	@local m,r;
+
+	m=___malloc(length(path)+1);
+	if(!m) {
+		return -1;
+	}
+
+	putbytes(m,path);
+	m[length(path)]=0;
+
+	r = syscall(unix`access, m, amode);
+
+	_free(m);
+
+	return r;
+}
+
+
 @global sys_unlink;
 @define sys_unlink(filename) {
-	@local m;
+	@local m, r;
 
-	m=__malloc(length(filename)+1);
+	m=___malloc(length(filename)+1);
 	putbytes(m,filename);
 	m[length(filename)]=0;
 
-	return syscall(unix`unlink,m);
+	r = syscall(unix`unlink,m);
+
+	_free(m);
+
+	return r;
 }
 
 @global sys_mmap;
 if(unix.looksym('mmap2)) {
 	// some linuxes don't support old mmap anymore
 	@define sys_mmap(addr,length,prot,flags,fd,offset) {
-		return (linuxns`void *)syscall(unix`mmap2,addr,length,prot,
+		return (unix`void *)syscall(unix`mmap2,addr,length,prot,
 						flags,fd,offset>>12);
 	}
 } else {
@@ -383,32 +470,40 @@ if(unix.looksym('mmap2)) {
 
 @global sys_connect;
 @define sys_connect(fd,sockaddr,size) {
-	@local sa;
+	@local sa, r;
 
 	if(isnil(size)) {
 		size=sizeof(*sockaddr);
 	}
-	sa=__malloc(size);
-	if(!sa) return nil;
+	sa=___malloc(size);
+	if(!sa) return -1;
 
 	putbytes(sa,getbytes(sockaddr,size));
 
-	return syscall(unix`connect,fd,sa,size);
+	r = syscall(unix`connect,fd,sa,size);
+
+	_free(sa);
+
+	return r;
 }
 
 @global sys_bind;
 @define sys_bind(fd,sockaddr,size) {
-	@local sa;
+	@local sa, r;
 
 	if(isnil(size)) {
 		size=sizeof(*sockaddr);
 	}
-	sa=__malloc(size);
-	if(!sa) return nil;
+	sa=___malloc(size);
+	if(!sa) return -1;
 
 	putbytes(sa,getbytes(sockaddr,size));
 
-	return syscall(unix`bind,fd,sa,size);
+	r = syscall(unix`bind,fd,sa,size);
+
+	_free(sa);
+
+	return r;
 }
 
 @global sys_listen;
@@ -419,26 +514,34 @@ if(unix.looksym('mmap2)) {
 
 @global sys_accept;
 @define sys_accept(fd,sockaddr,size) {
-	@local sa,ss;
+	@local sa, ss, r;
 
 	if(isnil(size)) {
 		size=sizeof(*sockaddr);
 	} else {
 		size=*size;
 	}
-	sa=__malloc(size);
-	if(!sa) return nil;
+	sa=___malloc(size);
+	if(!sa) return -1;
 
 	putbytes(sa,getbytes(sockaddr,size));
 
-	ss=__malloc(sizeof(linuxns`int));
-	if(!ss) return nil;
+	ss=___malloc(sizeof(unix`int));
+	if(!ss) {
+		_free(sa);
+		return -1;
+	}
 
-	ss=(linuxns`int *)ss;
+	ss=(unix`int *)ss;
 
 	*ss=size;
 
-	return syscall(unix`accept,fd,sa,ss);
+	r = syscall(unix`accept,fd,sa,ss);
+
+	_free(sa);
+	_free(ss);
+
+	return r;
 }
 
 @global sys_getsockname;
@@ -533,19 +636,34 @@ if(looksym(unix,'wait4)) {
 @define sys_sleep(secs) {
 	@local r,m,m2;
 
-	m=__malloc(sizeof(struct unix`timespec));
+	m=___malloc(sizeof(struct unix`timespec));
+	if(!m)
+		return -1;
 	m=(struct unix`timespec *)m;
 	m->tv_sec=secs;
 	m->tv_nsec=0;
-	m2=__malloc(sizeof(struct unix`timespec));
+
+	m2=___malloc(sizeof(struct unix`timespec));
+	if(!m2) {
+		_free(m);
+		return -1;
+	}
 	m2=(struct unix`timespec *)m2;
 
-	r=syscall(unix`nanosleep,m,m2);
+	r = syscall(unix`nanosleep,m,m2);
 
 	if(!r) {
+		_free(m);
+		_free(m2);
+
 		return r;
 	} else {
-		return m2->tv_sec;
+		r = m2->tv_sec;
+
+		_free(m);
+		_free(m2);
+
+		return r;
 	}
 }
 
@@ -562,10 +680,12 @@ if(looksym(unix,'wait4)) {
 @define sys_sched_getaffinity(pid, cpusetsize, mask) {
 	@local m,r;
 
-	m=(unsigned char *)__malloc(cpusetsize);
+	m=___malloc(cpusetsize);
 	memset(m,0,cpusetsize);
 
-	r=syscall(unix`sched_getaffinity,pid,cpusetsize,m);
+	r = syscall(unix`sched_getaffinity,pid,cpusetsize,m);
+
+	_free(m);
 
 	return r;
 }
@@ -575,13 +695,15 @@ if(looksym(unix,'wait4)) {
 	@local m,r;
 
 	if(isstring(mask) && length(mask) <= cpusetsize) {
-		m=(unsigned char *)__malloc(cpusetsize);
+		m=___malloc(cpusetsize);
 		putbytes(m,mask);
 	} else {
 		error("BAD MASK!\n");
 	}
 
 	r=syscall(unix`sched_setaffinity,pid,cpusetsize,m);
+
+	_free(m);
 
 	return r;
 }
@@ -593,13 +715,15 @@ if(looksym(unix,'wait4)) {
 	@local m,r;
 
 	if(isstring(nodemask)) {
-		m=(unsigned char *)__malloc(length(nodemask));
+		m=___malloc(length(nodemask));
 		putbytes(m,nodemask);
 	} else {
 		error("nodemask should be a string");
 	}
 
 	r=syscall(unix`get_mempolicy,mode, m, maxnode, addr, flags);
+
+	_free(m);
 
 	return r;
 }
@@ -609,13 +733,15 @@ if(looksym(unix,'wait4)) {
 	@local m,r;
 
 	if(isstring(nodemask)) {
-		m=(unsigned char *)__malloc(length(nodemask));
+		m=___malloc(length(nodemask));
 		putbytes(m,nodemask);
 	} else {
 		error("nodemask should be a string");
 	}
 
 	r=syscall(unix`get_setpolicy,mode, m, maxnode);
+
+	_free(m);
 
 	return r;
 }
@@ -664,18 +790,18 @@ if(looksym(unix,'wait4)) {
 
 @global sys_execve;
 @define sys_execve(filename,argv,envp) {
-	@local f,fl,a,e;
+	@local f,fl,a,e, r;
 
 	if(iscvalue(filename) && isptr(@typeof(filename))) {
 		@local fl;
 
 		fl=strlen(filename);
-		f=(unsigned char *)__malloc(fl + 1);
+		f=___malloc(fl + 1);
 		putbytes(f,getbytes(filename,fl));
 		f[fl]=0;
 	} else if(isstring(filename)) {
 		fl=length(filename);
-		f=(unsigned char *)__malloc(fl+1);
+		f=___malloc(fl+1);
 		putbytes(f,filename);
 		f[fl]=0;
 	} else {
@@ -685,13 +811,13 @@ if(looksym(unix,'wait4)) {
 	[a,e] = map(@lambda(ary) {
 		@local ret,i,len,strs;
 
-		len = sizeof(char*) * (length(ary)+1);
+		len = sizeof(char *) * (length(ary)+1);
 		foreach(@lambda(v) { 
 			if (isstring(v)) len += length(v)+1; 
 			else len += sizeof(v);
 		},ary);
-		ret=(char**)__malloc(len);
-		strs = (char*)&ret[length(ary)+1];
+		ret=(char **)___malloc(len);
+		strs = (char *)&ret[length(ary)+1];
 		for(i=0; i<length(ary); ++i) {
 			ret[i] = strs;
 			if (isstring(ary[i])) {
@@ -710,7 +836,12 @@ if(looksym(unix,'wait4)) {
 		return ret;
 	}, [argv,envp]);
 
-	return syscall(unix`execve,f,a,e);
+	r = syscall(unix`execve,f,a,e);
+
+	_free(a);
+	_free(e);
+
+	return r;
 }
 
 };

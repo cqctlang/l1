@@ -1,4 +1,5 @@
-linuxns = @names clp64le {
+@global linuxns_linux_x86_64;
+linuxns_linux_x86_64 = @names clp64le {
 	typedef
 	enum Syscall {
 		read				= 0,
@@ -344,7 +345,8 @@ linuxns = @names clp64le {
 	} Ctx;
 };
 
-unix = @names clp64le {
+@global unix_linux_x86_64;
+unix_linux_x86_64 = @names clp64le {
 
 	@include <linux-x86_64-enum.names>
 	@include <linux-unix.names>

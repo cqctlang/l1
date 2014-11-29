@@ -1,4 +1,5 @@
-linuxns = @names c32le {
+@global linuxns_linux_x86;
+linuxns_linux_x86 = @names c32le {
 	typedef
 	enum Syscall {
 	} Syscall;
@@ -9,7 +10,8 @@ linuxns = @names c32le {
 	} Ctx;
 };
 
-unix = @names c32le {
+@global unix_linux_x86;
+unix_linux_x86 = @names c32le {
 
 	@include <linux-x86-enum.names>
 	@include <linux-unix.names>

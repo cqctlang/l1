@@ -1,4 +1,5 @@
-linuxns = @names clp64le {
+@global linuxns_darwin_x86_64;
+linuxns_darwin_x86_64 = @names clp64le {
 	typedef
 	enum Syscall {
 		syscall       =  0,
@@ -361,7 +362,8 @@ linuxns = @names clp64le {
 	} Ctx;
 };
 
-unix = @names clp64le {
+@global unix_darwin_x86_64;
+unix_darwin_x86_64 = @names clp64le {
 	@include <darwin-x86_64-enum.names>
 	@include <darwin-unix.names>
 
