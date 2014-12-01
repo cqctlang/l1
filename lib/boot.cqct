@@ -1,29 +1,37 @@
-@define currentabort()
-{
-	exit(1);
-}
+callfn = @lambda(fn, args ...) {
 
-@define errorhandler(msg)
-{
-	printf("boot error: %s\n", msg);
-	exit(1);
-}
+	return apply(fn, args);
+};
+
+errorhandler = @lambda(args ...) {
+	// we may not even have I/O. You just lose.
+};
+
+// race to get I/O as soon as possible.
+@include <stx.cqct>
+@include <control.cqct>
+@include <dispatch.cqct>
+@include <as.cqct>
+@include <sys.cqct>
+
+errorhandler = @lambda(msg, args ...) {
+	@local s;
+
+	s = sprintfa("PRIMITIVE ERROR: %s\n", msg);
+	sys_write(2, s, length(s));
+	sys_exit(1);
+};
 
 @include <callcc.cqct>
 @include <dynamicwind.cqct>
-@include <dispatch.cqct>
-@include <as.cqct>
-@include <stx.cqct>
-@include <control.cqct>
 @include <gc.cqct>
-@include <sys.cqct>
+@include <malloc.cqct>
 @include <io.cqct>
-@include <ppstx.cqct>
+@include <cqct.cqct>
 
-/* once we have callcc, we can get a backtrace
-   on boot-time errors. */
+@global $l1start;
 
-callcc(@lambda(done){
+callcc(@lambda(done) {
 
 @define errorhandler(msg)
 {
@@ -42,7 +50,7 @@ callcc(@lambda(done){
 		exit(1);
 	});
 }
-	  
+
 @include "bootmain.cqct"
 
 });

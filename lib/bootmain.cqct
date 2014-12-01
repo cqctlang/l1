@@ -176,9 +176,14 @@ mkcompiler(bootcompilerpasses());
 	prog();
 }
 
-load("expand.cqct");
+@include <syslib.cqct>
+
+//load("expand.cqct");
+@include <expand.cqct>
 mkcompiler(push(bootcompilerpasses(), expand));
+
 load("prelude.cqct");
+
 
 @define callfn(fn, args ...)
 {
@@ -975,6 +980,7 @@ $repllevel = 0;
 				} else {
 					file = cmd[0];
 				}
+				//error("loaded");
 
 				if(flags['entry] == nil) {
 					rv = loadcompile_pwd(file);
