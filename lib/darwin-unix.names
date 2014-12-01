@@ -1,9 +1,20 @@
 
 
 struct stat {
-	@0x8 uint16 st_mode;
-	@0x48 int64 st_size;
-	@0x90;
+	// non-canonical fields as measured on yosemite
+	@24 unsigned char st_minor;
+	@27 unsigned char st_major;
+
+	// measured on yosemite
+	@4 uint16 st_mode;
+	@96 int64 st_size;
+
+	// an earlier mac os x?
+	//@0x8 uint16 st_mode;
+	//@0x48 int64 st_size;
+	//@0x90;
+
+	@256;
 };
 
 struct timespec {                                                                
