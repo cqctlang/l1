@@ -1,11 +1,19 @@
 @define malloc(len)
 {
 	@local p, as, dom;
+	@local g;
+
+	g = $procgen;
+
 	p = _malloc(len);
 	if(p == 0)
 		return p;
 	as = mkmas(p, len);
-	finalize(as, @lambda(as) { _free(p); });
+	finalize(as, @lambda(as) {
+		if(g == $procgen)
+			_free(p);
+		// else this is a stale finalization
+	});
 	dom = mkdom(myrootns(), as);
 	return {dom}(char*)p;
 }
