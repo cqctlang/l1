@@ -104,10 +104,16 @@ _unameres = nil;
 	if(!m) {
 		return -1;
 	}
+
 	r=syscall(unix`read, fd, m, len);
 	if(r > 0) {
-		c = getbytes(m, r);
-		putbytes(buf, c);
+		if(isstring(buf)) {
+			c = getbytes(m, r);
+			strput(buf, 0, c);
+		} else {
+			c = getbytes(m, r);
+			putbytes(buf, c);
+		}
 	}
 
 	_free(m);

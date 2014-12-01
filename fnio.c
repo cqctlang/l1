@@ -89,7 +89,6 @@ struct Dir
 	char	*extension;
 } Dir;
 
-
 static int
 issysfd(Fd *fd)
 {

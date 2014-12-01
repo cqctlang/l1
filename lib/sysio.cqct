@@ -1,8 +1,6 @@
 /* native syscall replacements for system functions in l1 */
 @include <sys.cqct>
 
-// We now replace only one function in io.cqct -- close
-
 // bindings needed for io.cqct
 // _open,_popen,_sockpair,_socket,_tcpopen,_unixopen,_recvfd,_tcpaccept,_mapfile,_ioctl,_close
 
@@ -245,21 +243,6 @@ unlink = sys_unlink;
 	return r;
 }
 */
-
-@define close(fd) {
-
-	if(!isfd(fd))
-		error("close: argument 0 must be a fd");
-	if(isclosed(fd))
-		return;
-
-	if(issysfd(fd)) {
-		sys_close(sysfdno(fd));
-		setclosed(fd);
-	} else {
-		_close(fd);
-	}
-}
 
 @global _socket;
 if(looksym(unix,'socket)) {

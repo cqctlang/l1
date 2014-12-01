@@ -16,6 +16,7 @@
 @include <stx.cqct>
 @include <control.cqct>
 @include <gc.cqct>
+@include <sys.cqct>
 @include <io.cqct>
 @include <ppstx.cqct>
 

@@ -134,26 +134,84 @@ ions = @names c32le {
 		return 1;
 }
 
+@define mkfd(read, write, close, rest ...) {
+	return [
+		'yup_its_a_fd: 1,
+		'read: read,
+		'write: write,
+		'close: close,
+		'closed: 0,
+		'name: length(rest) ? rest[0] : "<unnamed>"
+	];
+}
+
+@global isfd;
+{
+	@local _isfd;
+
+	_isfd = isfd;
+
+	isfd = @lambda(v) {
+		if(_isfd(v))
+			return 1;
+		else if(istable(v) && v.yup_its_a_fd)
+			return 1;
+		else
+			return 0;
+	};
+}
+
+@global issysfd;
+{
+	@local _issysfd;
+
+	_issysfd = issysfd;
+
+	issysfd = @lambda(fd) {
+		if(!isfd(fd)) {
+			error("issysfd: argument is not a fd");
+		}
+
+		if(istable(fd) && fd.yup_its_a_fd)
+			return 0;
+		else
+			return _issysfd(fd);
+	};
+}
+
 @define read(fd, count)
 {
-	@local buf, r;
+	if(issysfd(fd)) {
+		@local buf, r;
 
-	buf = malloc(count);
+		buf = mkstr(count);
 
-	r = sys_read(sysfdno(fd), buf, count);
+		r = sys_read(sysfdno(fd), buf, count);
 
-	if(r < 0) {
-		error("read error");
-	} else if(!r) {
-		return nil;
+		if(r < 0) {
+			error("read error");
+		} else if(!r) {
+			return nil;
+		}
+
+		if(r == count)
+			return buf;
+		else
+			return substr(buf, 0, r);
+	} else {
+		return fd.read(count);
 	}
-
-	return getbytes(buf, r);
 }
 
 @define write(fd, buf)
 {
-	sys_write(sysfdno(fd), buf, length(buf));
+
+	if(issysfd(fd)) {
+		sys_write(sysfdno(fd), buf, length(buf));
+	} else {
+		fd.write(buf);
+	}
+
 }
 
 @define fdopen(fd, mode)
@@ -316,12 +374,55 @@ ions = @names c32le {
 	}
 }
 
+@global isclosed;
+{
+	@local _isclosed;
+
+	_isclosed = isclosed;
+
+	isclosed = @lambda(fd) {
+		if(!isfd(fd))
+			error("isclosed: argument 0 must be a fd");
+
+		if(istable(fd) && fd.yup_its_a_fd)
+			return fd.closed;
+		else
+			return _isclosed(fd);
+	};
+}
+
+@global setclosed;
+{
+	@local _setclosed;
+
+	_setclosed = setclosed;
+
+	setclosed = @lambda(fd) {
+		if(!isfd(fd))
+			error("setclosed: argument 0 must be a fd");
+
+		if(istable(fd) && fd.yup_its_a_fd)
+		{
+			fd.closed = 1;
+		}
+		else
+			_setclosed(fd);
+	};
+}
+
 @define close(fd)
 {
 	if(!isfd(fd))
 		error("close: argument 0 must be a fd");
-
-	_close(fd);
+	if(isclosed(fd))
+		return;
+	if(issysfd(fd)) {
+		sys_close(sysfdno(fd));
+		setclosed(fd);
+	} else {
+		fd.close();
+		setclosed(fd);
+	}
 }
 
 // Now created in vm.c
