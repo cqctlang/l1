@@ -473,8 +473,28 @@ fmtval(VM *vm, Fmt *f, Val val)
 		else
 			snprint(buf, sizeof(buf), "<domain>");
 		return fmtputs0(vm, f, buf);
-	case Qfd:
 	case Qtab:
+		v = tabenum(valtab(val));
+		n = v->len/2;
+		if(fmtputs0(vm, f, "table("))
+			return -1;
+		for(m = 0; m < n; m++){
+			if(m > 0){
+				if(fmtputs0(vm, f, ", "))
+					return -1;
+			}else{
+				if(fmtputs0(vm, f, " "))
+					return -1;
+			}
+			if(fmtval(vm, f, vecdata(v)[m]))
+				return -1;
+			if(fmtputs0(vm, f, " : "))
+				return -1;
+			if(fmtval(vm, f, vecdata(v)[m+v->len/2]))
+				return -1;
+		}
+		return fmtputs0(vm, f, " )");
+	case Qfd:
 		hd = valhead(val);
 		snprint(buf, sizeof(buf), "<%s>", qname[Vkind(hd)]);
 		return fmtputs0(vm, f, buf);

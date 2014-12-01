@@ -2005,7 +2005,7 @@ Functions that operate on cvalues include:
 <div class="docitem" id="fn:domof">
 <div class="proto">
 <div class="function">
-<span class="id">domof(<span class="arg">v</span>))</span>
+<span class="id">domof(<span class="arg">v</span>)</span>
 </div>
 <div class="param">
 <span class="arg">v</span>: <span class="type">cvalue</span>
@@ -3127,8 +3127,8 @@ mapped without risk of error, call
 <h4 id="sec:objects">The object model</h4>
 
 <p>
-Three types in Cinquecento &mdash names spaces, address
-spaces, and domains &mdash have object-oriented structure.
+Three types in Cinquecento &emdash; names spaces, address
+spaces, and domains &emdash; have object-oriented structure.
 This section describes the object model.
 </p>
 
@@ -3313,7 +3313,7 @@ address space object.
 <div class="docitem" id="fn:mkdom">
 <div class="proto">
 <div class="function">
-<span class="id">mkdom(<span class="arg">ns</span>,<span class="arg">as</span>[,<span class="arg">name</span>)</span>
+<span class="id">mkdom(<span class="arg">ns</span>,<span class="arg">as</span>[,<span class="arg">name</span>])</span>
 </div>
 <div class="param">
 <span class="arg">ns</span>: <span class="type">name space</span>
@@ -3408,8 +3408,8 @@ include support for a better object system.
 <h4 id="sec:symbols">Symbols, Fields, Parameters</h4>
 
 <p>
-A C <em>symbol</em> &mdash a named, typed location
-&mdash is represented in Cinquecento as a triple
+A C <em>symbol</em> &emdash; a named, typed location
+&emdash; is represented in Cinquecento as a triple
 comprising name (of type string), type (ctype), and
 optional attribute table (table).
 </p>
@@ -3546,10 +3546,10 @@ attribute <span class="val">"offset"</span >.
 
 
 <p>
-Two additional C abstractions &mdash the fields of an
+Two additional C abstractions &emdash; the fields of an
 aggregate ctype (<span class="val">struct</span>
 or <span class="val">union</span>), and the parameters
-of a function &mdash are structually analogous to a
+of a function &emdash; are structually analogous to a
 symbol.  Because of the similarity, Cinquecento uses
 its symbol representation for these two abstractions.
 </p>
@@ -3865,7 +3865,7 @@ Modifying the table may cause undefined effects.
 </div>
 </div>
 <div class="desc">
-This name space method returns a table containing the symbols
+This name space returns a table containing the symbols
 defined by the name space.
 Keys are identifiers, values are corresponding symbols.
 Modifying the table may cause undefined effects.
@@ -3927,8 +3927,8 @@ and <span class="val">typedef</span>s.
 </p>
 
 <p>
-A composite type &mdash a pointer to, an array of, or a
-function of an already defined type &mdash need not be
+A composite type &emdash; a pointer to, an array of, or a
+function of an already defined type &emdash; need not be
 explicitly defined by
 <span class="fnindex"><a href="#fn:enumtype">enumtype</a></span>
 and
@@ -4294,7 +4294,7 @@ In the latter case, the table must include an
 entry whose key is the
 string <span class="val">"offset"</span> and whose
 value is a cvalue specifying the offset.  The table may
-include any number of addition key/value pairs, none of
+include any number of additional key/value pairs, none of
 which will consulted by the Cinquecento evaluator, but
 rather may be used by programs to  associate
 additional information with the aggregate or individual fields.
@@ -9702,7 +9702,7 @@ Its return value is ignored.
 Subsequent calls to <span class="id">close</span>
 are ignored.
 <span class="arg">Close</span> is <em>not</em>
-called impliclity when the file descriptor storage is reclaimed;
+called implicitly when the file descriptor storage is reclaimed;
 use a finalizer to arrange the <span class="arg">close</span> call.
 </div>
 
@@ -10087,7 +10087,11 @@ cannot be parsed or compiled.
 </div>
 <div class="param">
 <span class="arg">expr</span>: <span class="type">string</span>
+</div>
+<div class="param">
 <span class="arg">file</span>: <span class="type">string</span>
+</div>
+<div class="param">
 <span class="arg">line</span>: <span class="type">cvalue</span>
 </div>
 <div class="returns">
