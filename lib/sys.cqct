@@ -266,7 +266,7 @@ if (unix.looksym('fstat64) != nil)
 	return r;
 }
 
-}//end scope for _fstat
+}
 
 @global FD_ALLOC;
 @define FD_ALLOC() {
