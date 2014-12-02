@@ -1,0 +1,4 @@
+empty select: [ [ ], [ ], [ ] ]
+stdout write select: [ [ ], [ <fd> ], [ ] ]
+stdout write select (blocking): [ [ ], [ <fd> ], [ ] ]
+double stdout write select: [ [ ], [ <fd>, <fd> ], [ ] ]
