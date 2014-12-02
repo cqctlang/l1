@@ -1,0 +1,8 @@
+
+printf("stdin fd %a, name: %a\n", stdin, fdname(stdin));
+printf("stdout fd %a, name: %a\n", stdin, fdname(stdout));
+printf("stderr fd %a, name: %a\n", stdin, fdname(stderr));
+
+this = open("fd0.l1", "r");
+
+printf("the file: %a, name %a\n", this, fdname(this));

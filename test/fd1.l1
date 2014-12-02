@@ -1,22 +1,37 @@
 @define r(len)
 {
-       printf("reading %d bytes!\n", len);
-       return mkstr(len);
+	printf("reading %d bytes!\n", len);
+	return mkstr(len);
 }
 
 @define w(s)
 {
-       printf("writing %d bytes!\n", strlen(s));
-       return 3;
+	printf("writing %d bytes!\n", strlen(s));
+	return 3;
 }
 
+count = 0;
 @define c()
 {
-	printf("closing\n");
+	if(count) {
+		printf("error: close called %d times", ++count);
+	} else {
+		printf("closing\n");
+		count++;
+	}
 }
 
 fd = mkfd(r, w, c);
 fprintf(fd, "hi\n");
+
 printf("%B\n", read(fd, 10));
+
+if(isclosed(fd))
+	printf("fd closed prematurely\n");
+
 close(fd);
+
+if(!isclosed(fd))
+	printf("fd failed to mark closed\n");
+
 close(fd);
