@@ -32,10 +32,12 @@
 @defloc mkcompiler(passes)
 {
 	@local npass;
+
 	npass = length(passes);
 	@define compile(e)
 	{
 		@local err;
+
 		e = topwrap(e);
 		if(tracecompiler) {
 			printf("*** compiler input ***\n");
@@ -53,6 +55,7 @@
 					    },
 					    @lambda() {
 						    @local i;
+
 						    for(i = 0; i < npass; i++) {
 							    e = passes[i](e);
 							    if(tracecompiler && isstx(e)) {
@@ -74,6 +77,7 @@ mkcompiler(bootcompilerpasses());
 @defloc _eval(str, whence, line)
 {
 	@local fn, in;
+
 	in = parse(str, whence, line);
 	if(in == nil)
 		error("cannot parse %s", str);
@@ -98,6 +102,7 @@ mkcompiler(bootcompilerpasses());
 @defloc findfileinpath(file, path)
 {
 	@local try;
+
 	while(!isempty(path)) {
 		try = pop(path) + "/" + file;
 		if(access(try, "r"))
@@ -313,6 +318,7 @@ load("prelude.cqct");
 		@defloc collect(l, lidx)
 		{
 			@local rib, rlex;
+
 			if(lidx == nil)
 				return reverse(l);
 			rib = lex[lidx];
@@ -320,6 +326,7 @@ load("prelude.cqct");
 			rib = slice(rib, 1, length(rib));
 			foreach(@lambda(d) {
 					@local id, kind, idx, box;
+
 					[id, kind, idx, box] = d;
 					if(kind == 'free)
 						append(l, [id, kind, idx, box, 
@@ -347,6 +354,7 @@ load("prelude.cqct");
 		{
 			foreach(@lambda(d) {
 					@local id, kind, val;
+
 					[id, kind, _, _, val] = d;
 					printf("\t%-5s   %10s   %a\n", kind, id, val);
 				}, ls);
@@ -377,9 +385,11 @@ load("prelude.cqct");
 		@defloc wrap(body, ltab)
 		{
 			@local decl;
+
 			decl = #null;
 			foreach(@lambda(id, d) {
 					@local val;
+
 					[_, _, _, _, val] = d;
 					decl = Zcons(#id(id), decl);
 					body = Zcons(#g(#id(id), #val(val)), body);
@@ -544,6 +554,7 @@ load("prelude.cqct");
 	@defloc printframe(f)
 	{
 		@local cl, off, code, id, src, fno;
+
 		[cl, off, _, fno] = f;
 		code = clcode(cl);
 		id = codename(code);
@@ -586,6 +597,7 @@ load("prelude.cqct");
 	@defloc f(fr)
 	{
 		@local cl, s;
+
 		[cl, _] = fr;
 		s = cid2str(codename(clcode(cl)));
 		append(fr, cnt++);
@@ -622,6 +634,7 @@ $repllevel = 0;
 	@defloc mkprompt()
 	{
 		@local i;
+
 		prompt = "";
 		for(i = 0; i < level; i++)
 			prompt += ";";
@@ -630,6 +643,7 @@ $repllevel = 0;
 	@defloc $loop()
 	{
 		@local s, v;
+
 		printf("%s ", prompt);
 		s = read(stdin, 1024);
 		if(s == nil) {
@@ -648,6 +662,7 @@ $repllevel = 0;
 	mkprompt();
 	callcc(@lambda(done) {
 			@local oldret, olderr, oldint, oldreset, thisreset;
+
 			dynamicwind(
 				@lambda() {
 					oldret = currentreturn;
@@ -908,6 +923,7 @@ $repllevel = 0;
 				interrupthandler = batchinterrupt;
 				while(length(actions)) {
 					@local action;
+
 					action = pop(actions);
 					switch(action[0]) {
 					case 'eval:
