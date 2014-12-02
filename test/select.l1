@@ -1,0 +1,16 @@
+
+r = select([], [], [], [0, 0]);
+
+printf("empty select: %a\n", r);
+
+r = select([], [stdout], [], [0, 0]);
+
+printf("stdout write select: %a\n", r);
+
+r = select([], [stdout], []);
+
+printf("stdout write select (blocking): %a\n", r);
+
+r = select([], [stdout, stdout], []);
+
+printf("double stdout write select: %a\n", r);
