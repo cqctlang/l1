@@ -1,3 +1,6 @@
+// These bindings mirror bindings offered originally in fnio.c
+// They require sys.cqct and are required by io.cqct
+
 @global
 	access,
 	fdopen,
@@ -23,17 +26,21 @@
 	unixopen
 ;
 
-// import
-@global finalize;
-@global sysfdno;
-
-if(sysfdno == nil) {
-	error("you have no sysfdno");
-}
-
 {
-@global ions;
+@local fdrd, isnewfd, mknewfd;
 
+fdrd = mkrd('fd, [
+	'sysfd,
+	'fd,
+	'flags,
+	'closed,
+	'name,
+	'read,
+	'write,
+	'close
+]);
+
+@global ions;
 ions = @names c32le {
 	enum Fflag {
 		/* FFlag in syscqct.h */
@@ -41,6 +48,40 @@ ions = @names c32le {
 		Fwrite = 8,
 	};
 };
+
+isnewfd = rdis(fdrd);
+
+rdsetfmt(fdrd, @lambda(rec) { "<fd>"; });
+
+mknewfd = rdmk(fdrd);
+
+@global mksysfd;
+mksysfd = @lambda(fd, flags, rest ...) {
+	return mknewfd(
+		1, // sysfd
+		fd, // fd
+		flags, // flags
+		0, // closed
+		length(rest) ? rest[0] : "<unnamed>", // name
+		nil, // read
+		nil, // write
+		nil // close
+	);
+};
+
+@global mkfd;
+@define mkfd(read, write, close, rest ...) {
+	return mknewfd(
+		0, // sysfd
+		nil, // fd
+		nil, // flags
+		0, // closed
+		length(rest) ? rest[0] : "<unnamed>", // name
+		read, // read
+		write, // write
+		close // close
+	);
+}
 
 @defloc mksysfdfinal(arg ...)
 {
@@ -134,17 +175,6 @@ ions = @names c32le {
 		return 1;
 }
 
-@define mkfd(read, write, close, rest ...) {
-	return [
-		'yup_its_a_fd: 1,
-		'read: read,
-		'write: write,
-		'close: close,
-		'closed: 0,
-		'name: length(rest) ? rest[0] : "<unnamed>"
-	];
-}
-
 @global isfd;
 {
 	@local _isfd;
@@ -152,12 +182,16 @@ ions = @names c32le {
 	_isfd = isfd;
 
 	isfd = @lambda(v) {
-		if(_isfd(v))
+		if(isnewfd(v))
 			return 1;
-		else if(istable(v) && v.yup_its_a_fd)
-			return 1;
-		else
+		if(_isfd) {
+			if(_isfd(v))
+				return 1;
+			else
+				return 0;
+		} else {
 			return 0;
+		}
 	};
 }
 
@@ -172,10 +206,116 @@ ions = @names c32le {
 			error("issysfd: argument is not a fd");
 		}
 
-		if(istable(fd) && fd.yup_its_a_fd)
-			return 0;
-		else
-			return _issysfd(fd);
+		if(isnewfd(fd)) {
+			if(fd.sysfd)
+				return 1;
+			else
+				return 0;
+		} else {
+			if(_issysfd)
+				return _issysfd(fd);
+			//else
+			//	exit(24); // we somehow got a legacy fd
+		}
+	};
+}
+
+@global sysfdno;
+{
+	@local _sysfdno;
+
+	_sysfdno = sysfdno;
+
+	sysfdno = @lambda(fd) {
+		if(!isfd(fd))
+			error("sysfdno: argument is not a fd");
+		if(!issysfd(fd))
+			error("sysfdno: argument is not a system fd");
+
+		if(isnewfd(fd)) {
+			return fd.fd;
+		} else if(_sysfdno) {
+			return _sysfdno(fd);
+		} else {
+			// bad. we were leaked a legacy file descriptor
+			// and we have no access to legacy _sysfdno.
+			error("sysfdno: legacy fd without legacy library");
+		}
+	};
+}
+
+@global isclosed;
+{
+	@local _isclosed;
+
+	_isclosed = isclosed;
+
+	isclosed = @lambda(fd) {
+		if(!isfd(fd))
+			error("isclosed: argument is not a fd");
+
+		if(isnewfd(fd)) {
+			if(fd.closed)
+				return 1;
+			else
+				return 0;
+		} else if(_isclosed) {
+			return _isclosed(fd);
+		} else {
+			// bad. we were leaked a legacy file descriptor
+			// and we have no access to legacy library.
+			error("setclosed: legacy fd without legacy library");
+		}
+
+		nil;
+	};
+}
+
+@global setclosed;
+{
+	@local _setclosed;
+
+	_setclosed = setclosed;
+
+	setclosed = @lambda(fd) {
+		if(!isfd(fd))
+			error("setclosed: argument is not a fd");
+
+		if(isnewfd(fd)) {
+			fd.closed = 1;
+		} else if(_setclosed) {
+			return _setclosed(fd);
+		} else {
+			// bad. we were leaked a legacy file descriptor
+			// and we have no access to legacy library.
+			error("setclosed: legacy fd without legacy library");
+		}
+
+		nil;
+	};
+}
+
+@global fdname;
+{
+	@local _fdname;
+
+	_fdname = fdname;
+
+	fdname = @lambda(fd) {
+		if(!isfd(fd))
+			error("fdname: argument is not a fd");
+
+		if(isnewfd(fd)) {
+			return fd.name;
+		} else if(_fdname) {
+			return _fdname(fd);
+		} else {
+			// bad. we were leaked a legacy file descriptor
+			// and we have no access to legacy library.
+			error("fdname: legacy fd without legacy library");
+		}
+
+		nil;
 	};
 }
 
@@ -205,13 +345,11 @@ ions = @names c32le {
 
 @define write(fd, buf)
 {
-
 	if(issysfd(fd)) {
 		sys_write(sysfdno(fd), buf, length(buf));
 	} else {
 		fd.write(buf);
 	}
-
 }
 
 @define fdopen(fd, mode)
@@ -372,42 +510,6 @@ ions = @names c32le {
 	} else {
 		return rv;
 	}
-}
-
-@global isclosed;
-{
-	@local _isclosed;
-
-	_isclosed = isclosed;
-
-	isclosed = @lambda(fd) {
-		if(!isfd(fd))
-			error("isclosed: argument 0 must be a fd");
-
-		if(istable(fd) && fd.yup_its_a_fd)
-			return fd.closed;
-		else
-			return _isclosed(fd);
-	};
-}
-
-@global setclosed;
-{
-	@local _setclosed;
-
-	_setclosed = setclosed;
-
-	setclosed = @lambda(fd) {
-		if(!isfd(fd))
-			error("setclosed: argument 0 must be a fd");
-
-		if(istable(fd) && fd.yup_its_a_fd)
-		{
-			fd.closed = 1;
-		}
-		else
-			_setclosed(fd);
-	};
 }
 
 @define close(fd)

@@ -4,16 +4,19 @@
 // bindings needed for io.cqct
 // _open,_popen,_sockpair,_socket,_tcpopen,_unixopen,_recvfd,_tcpaccept,_ioctl,_close
 
+@global _ioctl;
 @define _ioctl(fd,req,bufp) {
 	sys_ioctl(fd,req,bufp);
 }
 
+@global _munmap;
 @define _munmap(addr, len) {
 	sys_munmap(addr ,len);
 
 	return nil;
 }
 
+@global _mapfd;
 @define _mapfd(fd, prot) {
 	@local st,p,s,m,f,fdno;
 
@@ -90,6 +93,7 @@
 	return [p, s];
 }
 
+@global _open;
 @define _open(file, mode, perm) {
 	@local flags, oflags, fd;
 
@@ -152,9 +156,106 @@ if(looksym(unix,'socket)) {
 
 		rv=sys_socket(d,t,p);
 		if(rv == -1) {
-			error("FOOsocket: %s", errno()[1]);
+			error("socket: %s", errno()[1]);
 		}
 		
 		return rv;
 	}
 }
+
+@global _sockpair;
+if(looksym(unix,'socketpair)) {
+	_sockpair = @lambda() {
+		@local b, r;
+
+		b = (unix`int *)malloc(2 * sizeof(unix`int));
+
+		r = syscall(unix`socketpair, unix`AF_UNIX, unix`SOCK_STREAM, 0, b);
+		if(r == -1) {
+			error("sockpair: %s", errno()[1]);
+		}
+
+		return [ *(b), *(b + 1) ];
+	};
+}
+
+@global indexof;
+indexof = @lambda(val, lst) {
+	@local l, x;
+
+	for(l = length(lst), x = 0; x < l ; x++) {
+		if(val == lst[x])
+			return x;
+	}
+
+	return -1;
+};
+
+@global select;
+select = @lambda(rfds, wfds, xfds, rest ...) {
+	@local timeout;
+	@local r, x;
+	@local rr, rw, rx;
+
+	if(!islist(rfds))
+		error("select: argument 0 must be a list");
+	if(!islist(wfds))
+		error("select: argument 1 must be a list");
+	if(!islist(xfds))
+		error("select: argument 2 must be a list");
+	if(length(rest) > 1)
+		error("select: too many arguments");
+	if(length(rest))
+		if(!islist(rest[0]))
+			error("select: bad timeout specifier");
+
+	x=0;
+	[ rr, rw, rx ] = map(@lambda(set) {
+		map(@lambda(fd) {
+			@local n;
+
+			if(!isfd(fd)) {
+				error("select on non file descriptor");
+			}
+			if(!issysfd(fd)) {
+				error("select on unselectable file descriptor");
+			}
+
+			n = sysfdno(fd);
+			if(n > x) x = n;
+
+			n;
+		}, set);
+	}, [ rfds, wfds, xfds ]);
+
+	if(length(rest)) {
+		timeout = (struct unix`timeval *)malloc(sizeof(struct unix`timeval));
+		timeout->tv_sec = rest[0][0];
+		timeout->tv_usec = rest[0][1];
+	} else
+		timeout = 0;
+
+	r = sys_select(x + 1, rr, rw, rx, timeout);
+
+	if(r == -1) {
+		error("select error");
+	}
+
+	rr=[];
+	foreach(@lambda(v) {
+		if(indexof(sysfdno(v), r[0]) != -1)
+			append(rr, v);
+	}, rfds);
+	rw=[];
+	foreach(@lambda(v) {
+		if(indexof(sysfdno(v), r[1]) != -1)
+			append(rw, v);
+	}, wfds);
+	rx=[];
+	foreach(@lambda(v) {
+		if(indexof(sysfdno(v), r[2]) != -1)
+			append(rx, v);
+	}, xfds);
+
+	[ rr, rw, rx ];
+};
