@@ -371,5 +371,11 @@ unix_linux_x86_64 = @names clp64le {
 		@0x13   char d_name[0x100];
 		@0x118;
 	};
+
+	struct timeval {
+		@0x0 int tv_sec;
+		@0x4 int tv_usec;
+		@0x8;
+	};
 };
 

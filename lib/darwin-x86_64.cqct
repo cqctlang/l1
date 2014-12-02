@@ -378,4 +378,10 @@ unix_darwin_x86_64 = @names clp64le {
 		@0x15   char d_name[0x400]; //__DARWIN_MAXPATHLEN
 		@0x418;
 	};
+
+	struct timeval {
+		@0x0 int tv_sec;
+		@0x4 int tv_usec;
+		@0x8;
+	};
 };
