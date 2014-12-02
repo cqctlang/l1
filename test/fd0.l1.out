@@ -1,0 +1,4 @@
+stdin fd <fd>, name: "<stdin>"
+stdout fd <fd>, name: "<stdout>"
+stderr fd <fd>, name: "<stderr>"
+the file: <fd>, name "fd0.l1"
