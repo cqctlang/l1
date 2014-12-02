@@ -32,7 +32,7 @@ if(sysfdno == nil) {
 }
 
 {
-@local ions;
+@global ions;
 
 ions = @names c32le {
 	enum Fflag {

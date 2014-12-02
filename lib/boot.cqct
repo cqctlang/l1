@@ -27,6 +27,12 @@ errorhandler = @lambda(msg, args ...) {
 @include <gc.cqct>
 @include <malloc.cqct>
 @include <io.cqct>
+
+// Yup. stdout doesn't exist any earlier than this.
+stdin = mksysfd(0, ions`Fread, "<stdin>");
+stdout = mksysfd(1, ions`Fwrite, "<stdout>");
+stderr = mksysfd(2, ions`Fwrite, "<stderr>");
+
 @include <cqct.cqct>
 
 @global $l1start;
