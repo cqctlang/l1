@@ -105,7 +105,7 @@ compile_lval(U *ctx, Expr *e, int needaddr)
 		se = Zset(doid("$dom"), e->e1);
 		te = Zcons(se, te);
 
-		// $tmp = looksym($dom,sym)
+		// $tmp = looksym($dom, sym)
 		se = Zset(doid("$tmp"),
 			  Zcall(G("looksym"), 2,
 				doid("$dom"), Zid2sym(e->e2)));
