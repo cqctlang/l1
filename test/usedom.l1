@@ -1,6 +1,7 @@
 
 @include <usedom.cqct>
 
+
 ns = @names c32le {
     struct A {
         @0x0 int f1;
@@ -29,7 +30,9 @@ for(p = (unsigned int*){dom}0; ismapped(p); ++p)
 
 printf("%a\n",#'{ dom`str.f1; });
 printf("0x%x\n",dom`str.f1);
-printf("0x%x\n",usedom(dom,#id('dom),#'{ str.f1; }));
+@with_imports(usedom) {
+    printf("0x%x\n",usedom(dom,#'{ str.f1; }));
+}
 printf("0x%x\n",@expwithdom(dom,str.f1));
 
 @withdom(dom) {
