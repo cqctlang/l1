@@ -480,12 +480,20 @@ mksysfd = @lambda(fd, flags, rest ...) {
 
 	[addr, len] = rv;
 	if(len) {
+		@local ulen;
+
+		if(! ( len % 4096) )
+			ulen = len;
+		else
+			ulen = ((len / 4096) + 1) * 4096;
 		if(strstr(mode,"w"))
 			rv = mkstrm(addr, len);
 		else
 			rv = mkstrmro(addr, len);
+
 		finalize(rv, @lambda(x) { 
-			_munmap(addr, len); });
+			sys_munmap(addr, {litdom}ulen);
+		});
 	} else
 		rv = "";
 
