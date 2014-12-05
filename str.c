@@ -157,6 +157,7 @@ l1__free(VM *vm, Imm argc, Val *argv, Val *rv)
 		vmerr(vm, "wrong number of arguments to malloc");
 	checkarg(vm, argv, 0, Qcval);
 	p = valcval(argv[0]);
+
 	free((void*)(uptr)cvalu(p));
 }
 

@@ -3108,6 +3108,7 @@ static As*
 mknas(void)
 {
 	Tab *mtab;
+
 	mtab = mktab();
 	tabput(mtab, mkvalstr(mkstr0("get")),
 	       mkvalcl(mkcfn("nasget", nasbad)));
@@ -3117,6 +3118,7 @@ mknas(void)
 	       mkvalcl(mkcfn("nasmap", nasmap)));
 	tabput(mtab, mkvalstr(mkstr0("ismapped")),
 	       mkvalcl(mkcfn("nasismapped", nasismapped)));
+
 	return mkastab(mtab, mkstr0("nullas"));
 }
 

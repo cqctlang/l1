@@ -44,17 +44,17 @@ enum
    in order to ensure that Nmt subsumes all types */
 enum
 {
-	MThole    = (Mhole<<Ftag),
-	MTnix     = (Mnix<<Ftag),
-	MTfree    = (Mfree<<Ftag),
-	MTweak    = (Mweak<<Ftag),
-	MTbox     = (Mbox<<Ftag),
-	MTmutable = (Mmutable<<Ftag),
-	MTdata    = (Mdata<<Ftag),
-	MTbigdata = (Mdata<<Ftag)|(1<<Fbig),
-	MTstack   = (Mstack<<Ftag),
-	MTcode    = (Mcode<<Ftag),
-	MTbigcode = (Mcode<<Ftag)|(1<<Fbig),
+	MThole    = (Mhole    << Ftag),
+	MTnix     = (Mnix     << Ftag),
+	MTfree    = (Mfree    << Ftag),
+	MTweak    = (Mweak    << Ftag),
+	MTbox     = (Mbox     << Ftag),
+	MTmutable = (Mmutable << Ftag),
+	MTdata    = (Mdata    << Ftag),
+	MTbigdata = (Mdata    << Ftag) | (1 << Fbig),
+	MTstack   = (Mstack   << Ftag),
+	MTcode    = (Mcode    << Ftag),
+	MTbigcode = (Mcode    << Ftag) | (1 << Fbig),
 	Nmt,
 };
 
@@ -84,43 +84,43 @@ static char *MTname[] = {
 	[MTbigcode|1<<Fold] = "old bigcode",
 };
 
-#define MTtag(mt)        ((mt)>>Ftag)
-#define MTold(mt)        (((mt)>>Fold)&1)
-#define MTbig(mt)        (((mt)>>Fbig)&1)
-#define MTbigcont(mt)    (((mt)>>Fbigcont)&1)
-#define MTsettag(mt,t)   ((mt) = ((t)<<Ftag)|((mt)&~(Ftag-1)))
-#define MTsetold(mt)     ((mt) |= 1<<Fold)
-#define MTsetbig(mt)     ((mt) |= 1<<Fbig)
-#define MTsetbigcont(mt) ((mt) |= 1<<Fbigcont)
-#define MTclrold(mt)     ((mt) &= ~(1<<Fold))
-#define MTclrbig(mt)     ((mt) &= ~(1<<Fbig))
-#define MTclrbigcont(mt) ((mt) &= ~(1<<Fbigcont))
+#define MTtag(mt)        ((mt) >> Ftag)
+#define MTold(mt)        (((mt) >> Fold) & 1)
+#define MTbig(mt)        (((mt) >> Fbig) & 1)
+#define MTbigcont(mt)    (((mt) >> Fbigcont) & 1)
+#define MTsettag(mt, t)   ((mt) = ((t) << Ftag) | ((mt) & ~(Ftag - 1)))
+#define MTsetold(mt)     ((mt) |= 1 << Fold)
+#define MTsetbig(mt)     ((mt) |= 1 << Fbig)
+#define MTsetbigcont(mt) ((mt) |= 1 << Fbigcont)
+#define MTclrold(mt)     ((mt) &= ~(1 << Fold))
+#define MTclrbig(mt)     ((mt) &= ~(1 << Fbig))
+#define MTclrbigcont(mt) ((mt) &= ~(1 << Fbigcont))
 
 /* #define to ensure 64-bit constants */
 #if 0
 #define Segbits   12
-#define Segsize   (((uptr)1)<<Segbits)
+#define Segsize   (((uptr)1) << Segbits)
 #define	GCthresh  2*1024*Segsize
 #define Seghunk	  4*1024*Segsize
 #else
 #define Segbits   20
-#define Segsize   (((uptr)1)<<Segbits)
+#define Segsize   (((uptr)1) << Segbits)
 #define	GCthresh  4*Segsize
 #define Seghunk	  4*Segsize
 #endif
 
 #define Cardbits  3
-#define Ncard     (((uptr)1)<<Cardbits)
-#define Cardsize  (((uptr)1)<<(Segbits-Cardbits))
-#define Seguse    (Segsize-sizeof(void*))
-#define Segmask   ~(Segsize-1)
+#define Ncard     (((uptr)1) << Cardbits)
+#define Cardsize  (((uptr)1) << (Segbits - Cardbits))
+#define Seguse    (Segsize - sizeof(void*))
+#define Segmask   ~(Segsize - 1)
 #define Minheap   10*Seghunk
 #define Align     4
 #define card(a)   ((u8)(((uptr)(a)>>(Segbits-Cardbits))&(Ncard-1)))
 
 /* n must be a power-of-2 */
-#define roundup(l,n)   ((uptr)(((uptr)(l)+((n)-1))&~((n)-1)))
-#define rounddown(l,n) ((uptr)(((uptr)(l))&~((n)-1)))
+#define roundup(l, n)   ((uptr)(((uptr)(l)+((n)-1))&~((n)-1)))
+#define rounddown(l, n) ((uptr)(((uptr)(l))&~((n)-1)))
 #define align(l)       (roundup((l), Align))
 
 enum
@@ -136,11 +136,11 @@ enum
 	G2,
 	G3,
 	Gstatic,
-	Ngen=Gstatic,
-	Nsgen=Gstatic+1,
+	Ngen = Gstatic,
+	Nsgen = Gstatic + 1,
 	Allgen,
-	Clean=0xff,
-	Dirty=0x00,
+	Clean = 0xff,
+	Dirty = 0x00,
 };
 
 static char *genname[] = {
@@ -347,6 +347,7 @@ scanas(Head *hd)
 
 	min = Clean;
 	as = (As*)hd;
+
 	gcopy((Val*)&as->mtab, &min);
 	gcopy((Val*)&as->name, &min);
 	gcopy((Val*)&as->get, &min);
@@ -1451,7 +1452,7 @@ copy(Val *v)
 	if(h == Xnil)
 		return Clean;
 	if(Vfwd(h)){
-		if(dbg)printf("copy: read fwd %p -> %p\n",
+		if(dbg) printf("copy: read fwd %p -> %p\n",
 			      h, (void*)Vfwdaddr(h));
 		*v = Vfwdaddr(h);
 		/* it may have been moved to an older
@@ -1506,7 +1507,7 @@ copy(Val *v)
 	}
 	memcpy(nh, h, sz);
 	Vsetfwd(h, (uptr)nh);
-	if(dbg)printf("set fwd %p -> %p %p (%d)\n",
+	if(dbg) printf("set fwd %p -> %p %p (%d)\n",
 		    h, Vfwdaddr(h), nh, (int)Vfwd(h));
 	*v = nh;
 	return H.tg;
@@ -1553,7 +1554,7 @@ scan(M *m)
 		while(m->scan < s->a){
 			rv = 1;
 			h = m->scan;
-			if(dbg)printf("scanning %p (%s)\n", h, qs[Vkind(h)].id);
+			if(dbg) printf("scanning %p (%s)\n", h, qs[Vkind(h)].id);
 			m->scan += qsz(h);
 			scan1(h);
 		}
@@ -2072,7 +2073,7 @@ _gc(u32 g, u32 tg)
 
 	H.g = g;
 	H.tg = tg;
-	if(dbg)printf("gc(%u,%u)\n", g, tg);
+	if(dbg) printf("gc(%u, %u)\n", g, tg);
 	stats.inittime += usec()-b;
 
 	b = usec();
@@ -2140,7 +2141,7 @@ _gc(u32 g, u32 tg)
 		copy((Val*)&vm->top);
 		copy(&vm->ac);
 	}
-	if(dbg)printf("copied vm roots\n");
+	if(dbg) printf("copied vm roots\n");
 
 	/* global roots */
 	copy(&syms);
@@ -2156,17 +2157,17 @@ _gc(u32 g, u32 tg)
 	stats.roottime += usec()-b;
 
 	scancards(g);
-	if(dbg)printf("scanned cards\n");
+	if(dbg) printf("scanned cards\n");
 	kleenescan(tg);
-	if(dbg)printf("re-scanned tg data (after prot)\n");
+	if(dbg) printf("re-scanned tg data (after prot)\n");
 
 	updateguards(&H.guard);
-	if(dbg)printf("did updateguards\n");
+	if(dbg) printf("did updateguards\n");
 	updateweak(tg);
 
 	b = usec();
 	recycle();
-	if(dbg)printf("did recycle\n");
+	if(dbg) printf("did recycle\n");
 	stats.recycletime += usec()-b;
 
 	b = usec();
@@ -2180,13 +2181,13 @@ _gc(u32 g, u32 tg)
 		resetalloc(MTmutable, H.tg);
 	}
 	H.na = 0;
-	if(dbg)printf("end of collection\n");
+	if(dbg) printf("end of collection\n");
 	H.ingc--;
 	stats.resettime += usec()-b;
 	b = usec();
 	maintain();
 	stats.finimainttime += usec()-b;
-	if(dbg)printf("gc returning\n");
+	if(dbg) printf("gc returning\n");
 }
 
 void
@@ -3395,9 +3396,9 @@ restoreheap(char *file)
 		}
 	}
 
-#define XRD(to,fr,sz) { 		\
+#define XRD(to, fr, sz) { 		\
 	if(len < (sz)) goto fail;	\
-	memcpy((to),(fr),(sz));		\
+	memcpy((to), (fr), (sz));		\
 	(fr) += (sz);			\
 	len -= (sz);			\
 }
