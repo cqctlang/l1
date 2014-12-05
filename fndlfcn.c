@@ -15,6 +15,8 @@ l1_dlopen(VM *vm, Imm argc, Val *argv, Val *rv)
 	if(argc != 2)
 		vmerr(vm, "wrong number of arguments to dlopen");
 	// a moment with the manpage for dlopen will reveal an error here.
+	// I don't see the error. Please be more explicit in your bug
+	// reports. -ap
 	checkarg(vm, argv, 0, Qstr);
 	names = valstr(argv[0]);
 	name = str2cstr(names);
@@ -25,11 +27,15 @@ l1_dlopen(VM *vm, Imm argc, Val *argv, Val *rv)
 	efree(name);
 	name = 0;
 
-	// a moment on a 32-bit pointer machine will reveal another here.
-        *rv = mkvalcval(litdom,
-                        mkctypeptr(mkctypevoid(),
-                                   typerep(litdom->ns->base[Vptr])),
-                        (uptr)handle);
+	// note: we are intentionally returning 64-bit pointers here
+	// even on a 32 bit architecture because:
+	// - there is no loss of percision on smaller bit-width systems
+	// - litdom does not contain 32-bit pointers
+	// - there is no other domain that can be guaranteed to be available
+	*rv = mkvalcval(litdom,
+	                mkctypeptr(mkctypevoid(),
+	                           typerep(litdom->ns->base[Vptr])),
+	                (uptr)handle);
 
 }
 
@@ -72,10 +78,10 @@ l1_dlsym(VM *vm, Imm argc, Val *argv, Val *rv)
 
 	efree(ftn);
 
-        *rv = mkvalcval(litdom,
-                        mkctypeptr(mkctypevoid(),
-                                   typerep(litdom->ns->base[Vptr])),
-                        (uptr)addr);
+	*rv = mkvalcval(litdom,
+	                mkctypeptr(mkctypevoid(),
+	                           typerep(litdom->ns->base[Vptr])),
+	                (uptr)addr);
 
 }
 
@@ -91,7 +97,7 @@ l1_dlerror(VM *vm, Imm argc, Val *argv, Val *rv)
 
 	*rv = mkvalcval(litdom,
 			mkctypeptr(mkctypebase(Vchar,
-					       typerep(litdom->ns->base[Vptr])),
+					      typerep(litdom->ns->base[Vptr])),
 				   typerep(litdom->ns->base[Vptr])),
 			(uptr)ret);
 }
@@ -190,3 +196,5 @@ fndlfcn(Env env)
 	FN(dlerror);
 	FN(mkdlfcnns);
 }
+
+// vim:ts=8:sw=8:noet
