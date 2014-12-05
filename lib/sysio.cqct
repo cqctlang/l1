@@ -5,20 +5,20 @@
 // _open,_popen,_sockpair,_socket,_tcpopen,_unixopen,_recvfd,_tcpaccept,_ioctl,_close
 
 @global _ioctl;
-@define _ioctl(fd,req,bufp) {
-	sys_ioctl(fd,req,bufp);
+@define _ioctl(fd, req, bufp) {
+	sys_ioctl(fd, req, bufp);
 }
 
 @global _munmap;
 @define _munmap(addr, len) {
-	sys_munmap(addr ,len);
+	sys_munmap(addr, len);
 
 	return nil;
 }
 
 @global _mapfd;
 @define _mapfd(fd, prot) {
-	@local st,p,s,m,f,fdno;
+	@local st, p, s, m, f, fdno;
 
 	if(!isfd(fd))
 		error("fd is not a file descriptor");
@@ -39,7 +39,7 @@
 	if(!isnil(strstr(prot,"w"))) m |= unix`PROT_WRITE;
 	if(!isnil(strstr(prot,"x"))) m |= unix`PROT_EXEC;
 
-	st = (struct unix`stat *)malloc(sizeof(struct unix`stat));
+	st = (struct unix`stat *)malloc(sizeof(struct unix`stat) + 1024);
 	if(!st) {
 		error("couldn't allocate stat buf");
 	}
@@ -67,7 +67,7 @@
 				error("couldn't determine size of block device behind %a", fd);
 			}
 		}
-		s=*sb * 512;
+		s = *sb * 512;
 	} else {
 		s = st->st_size;
 	}
@@ -90,7 +90,7 @@
 		error("could not map fd %a",fd);
 	}
 
-	return [p, s];
+	return [p, {litdom}s];
 }
 
 @global _open;
