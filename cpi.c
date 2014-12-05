@@ -90,10 +90,10 @@ static int
 match(U *ctx, Expr* exp, Expr* pat, Match *m, Cases *cs)
 {
 	Expr *p, *e0, *f0, *k, *v;
-        Match m0;
-        int rv, isvarg, l, i;
-        char *id;
-        Kind op;
+	Match m0;
+	int rv, isvarg, l, i;
+	char *id;
+	Kind op;
 
 	memset(&m0, 0, sizeof(m0));
 	rv = 0;
@@ -101,17 +101,17 @@ match(U *ctx, Expr* exp, Expr* pat, Match *m, Cases *cs)
 	switch(pat->kind){
 	case Eid:
 		id = idsym(pat);
-                if(strcmp(id, "_") != 0){
-                        if(dupbind(m->binds, pat)){
+	if(strcmp(id, "_") != 0) {
+		if(dupbind(m->binds, pat)){
 				freecases(cs);
-                                freebinds(m0.binds);
+				freebinds(m0.binds);
 				freebinds(m->binds);
-                                cerror(ctx, pat,
-                                       "duplicate pattern variable %s", id);
+				cerror(ctx, pat,
+					"duplicate pattern variable %s", id);
 			}
-                        m->binds = mkbind(pat, exp, m->binds);
-                }
-                rv = 1; /* pretend this is a binder even if _ used */
+			m->binds = mkbind(pat, exp, m->binds);
+		}
+		rv = 1; /* pretend this is a binder even if _ used */
 		break;
 	case Estx:
 		m->check = Zand(m->check, Zcall(doid("isstx"), 1, exp));
@@ -171,22 +171,22 @@ match(U *ctx, Expr* exp, Expr* pat, Match *m, Cases *cs)
 	case Elist:
 		m->check = Zand(m->check, Zcall(doid("islist"), 1, exp));
 		p = pat->e1;
-                l = elistlen(p);
-                if(hasvarg(p)){
-                        isvarg = 1;
-                        l -= 2;  /* ignore ellipsis and last variable */
-                        if(l < 0){
+		l = elistlen(p);
+		if(hasvarg(p)){
+			isvarg = 1;
+			l -= 2;  /* ignore ellipsis and last variable */
+			if(l < 0){
 				freecases(cs);
-                                freebinds(m0.binds);
+				freebinds(m0.binds);
 				freebinds(m->binds);
-                                cerror(ctx, pat,
-                                       "ellipsis without adjacent binder");
+				cerror(ctx, pat,
+				       "ellipsis without adjacent binder");
 			}
-                        op = Ege;
-                }
-                else
+			op = Ege;
+		}
+		else
 			op = Eeq;
-                m->check = Zand(m->check, Zbinop(op,
+		m->check = Zand(m->check, Zbinop(op,
                                                  Zcall(doid("length"), 1,
                                                        copyexpr(exp)),
                                                  Zint(l)));
@@ -306,7 +306,7 @@ match(U *ctx, Expr* exp, Expr* pat, Match *m, Cases *cs)
 		m->check = Zand(m->check, Zbinop(Eeq, pat, exp));
 		break;
 	}
-        return rv;
+	return rv;
 }
 
 static unsigned long m = 0;
@@ -333,26 +333,26 @@ bindvars(Bind *binds, Expr **bvars, Expr **inits)
 		i = *inits;
 	else
 		i = nullelist();
-        j = nullelist();
+	j = nullelist();
 	while(binds){
-                j = Zcons(binds->id, j);
+		j = Zcons(binds->id, j);
 		i = Zcons(Zset(binds->id, binds->exp), i);
 		binds = binds->next;
 	}
-        /* XXX check that bvars and j are the same variables 
-           if bvars != nullelist */
-        *bvars = j;
+	/* XXX check that bvars and j are the same variables 
+	  if bvars != nullelist */
+	*bvars = j;
 	*inits = i;
 }
 
 static int containsid(Expr *idlist, Expr *id)
 {
-        while(idlist->kind != Enull){
-                if(idcid(idlist->e1) == idcid(id))
-                        return 1;
-                idlist = idlist->e2;
-        }
-        return 0;
+	while(idlist->kind != Enull){
+		if(idcid(idlist->e1) == idcid(id))
+			return 1;
+		idlist = idlist->e2;
+	}
+	return 0;
 }
 
 static Expr* cases(U *ctx, Expr* e, Cases *cs);
@@ -361,12 +361,12 @@ static Expr*
 addcase(U *ctx, Expr *c, Cases *cs)
 {
 	Expr *se, *e, *b;
-        char *l;
+	char *l;
 
-        if(!cs || c->kind != Ecase)
+	if(!cs || c->kind != Ecase)
 		cerror(ctx, c, "addcase called improperly");
 	e = cases(ctx, c->e1, 0);
-        b = cases(ctx, c->e2, cs);
+	b = cases(ctx, c->e2, cs);
 	if(cs->nc >= cs->max){
 		cs->cases = erealloc(cs->cases,
 				     cs->max*sizeof(Case),
@@ -386,30 +386,30 @@ static Expr*
 addmatch(U *ctx, Expr *c, Cases *cs)
 {
 	Expr *se, *e, *f, *b, *ne, *nl;
-        char *l, *t, *eml = 0;
-        int nc;
+	char *l, *t, *eml = 0;
+	int nc;
 	Match m = {0,0};
-        Expr *bvs, *lastbvs = 0;
+	Expr *bvs, *lastbvs = 0;
 
-        if(!cs || c->kind != Ematch)
+	if(!cs || c->kind != Ematch)
 		bug();
 	e = cases(ctx, c->e1, 0);
-        nc = cs->nc;
+	nc = cs->nc;
 	se = nullelist();
 
-        if(e->kind == Eorpat){
-                /* Assume: e->e1 == (Elist (Epair pat fender) next) */
-                e = e->e1;
-                ne = e->e2;
-                f = e->e1->e2;
-                e = e->e1->e1;
-        }
-        else{
-                ne = nullelist();
-                f = c->e3;
-        }
+	if(e->kind == Eorpat){
+		/* Assume: e->e1 == (Elist (Epair pat fender) next) */
+		e = e->e1;
+		ne = e->e2;
+		f = e->e1->e2;
+		e = e->e1->e1;
+	}
+	else{
+		ne = nullelist();
+		f = c->e3;
+	}
 
-        while(1){
+	while(1){
 		/* Make a copy of the body for each or-pattern clause */
 		b = Zcons(cases(ctx, copyexpr(c->e2), cs), 
 			  nullelist());
@@ -423,14 +423,14 @@ addmatch(U *ctx, Expr *c, Cases *cs)
 		}
 		/* Pattern check and initialization of bound variables */
 		bvs = nullelist();
-                if(match(ctx, doid("$t"), e, &m, cs)){
-                        if(m.binds != 0){
-                                bindvars(m.binds, &bvs, &b);
-                                freebinds(m.binds);
+		if(match(ctx, doid("$t"), e, &m, cs)){
+			if(m.binds != 0){
+				bindvars(m.binds, &bvs, &b);
+				freebinds(m.binds);
 				m.binds = 0;
 			}
-                }
-                else
+		}
+		else
 			m.check = Zbinop(Eeq, e, doid("$t"));
 		/* Handler code for this caluse */
 		if(ne->kind != Enull){
@@ -443,12 +443,12 @@ addmatch(U *ctx, Expr *c, Cases *cs)
 		l = genlabel();
 		se = Zcons(Zlabele(l,b), se);
 		/* Dispatch metadata used in swtch() */
-                if(cs->nc >= cs->max){
-                        cs->cases = erealloc(cs->cases,
-                                             cs->max*sizeof(Case),
-                                             2*cs->max*sizeof(Case));
-                        cs->max *= 2;
-                }
+		if(cs->nc >= cs->max){
+			cs->cases = erealloc(cs->cases,
+					     cs->max*sizeof(Case),
+					     2*cs->max*sizeof(Case));
+			cs->max *= 2;
+		}
 		cs->cases[cs->nc].l = l;
 		cs->cases[cs->nc].e = m.check;
 		if(nl)
@@ -486,20 +486,20 @@ addmatch(U *ctx, Expr *c, Cases *cs)
 			}
 		}
 		/* Next or-pattern clause */
-                if (ne->kind != Enull){
-                        e = ne->e1->e1;
-                        f = ne->e1->e2;
-                        ne = ne->e2;
+		if (ne->kind != Enull){
+			e = ne->e1->e1;
+			f = ne->e1->e2;
+			ne = ne->e2;
 			lastbvs = bvs;
-                }
-                else break;
-        }
+		}
+		else break;
+	}
 
-        if(eml != 0){
-                se = Zcons(Zlabele(eml, Znop()), se);
+	if(eml != 0){
+		se = Zcons(Zlabele(eml, Znop()), se);
 		efree(eml);
 	}
-        se = invert(se);
+	se = invert(se);
 	se = Zblock(nullelist(), 
 		    Zcall(doid("error"), 1, 
 			  Zstr("attempt to fall through to a @match")),
@@ -533,21 +533,21 @@ freecases(Cases *cs)
 static Expr*
 smush(Expr* p, Expr *tail)
 {
-        if(p->kind != Eelist) fatal("bug in smush");
-        switch(p->e1->kind){
-        case Ecase:
-        case Ematch:
-                sete2(p->e1, Zblock(nullelist(), p->e1->e2, p->e2, NULL));
-                sete2(p, tail);
-                break;
-        case Edefault:
-                sete1(p->e1, Zblock(nullelist(), p->e1->e1, p->e2, NULL));
-                sete2(p, tail);
-                break;
-        default:
-                fatal("bug in smush(2)");
-        }
-        return p;
+	if(p->kind != Eelist) fatal("bug in smush");
+	switch(p->e1->kind){
+	case Ecase:
+	case Ematch:
+		sete2(p->e1, Zblock(nullelist(), p->e1->e2, p->e2, NULL));
+		sete2(p, tail);
+		break;
+	case Edefault:
+		sete1(p->e1, Zblock(nullelist(), p->e1->e1, p->e2, NULL));
+		sete2(p, tail);
+		break;
+	default:
+		fatal("bug in smush(2)");
+	}
+	return p;
 }
 
 /* Blocks together statements associated with the same case statement.
@@ -560,43 +560,43 @@ coalesce(U *ctx, Expr* e, Expr* q)
 
 
 	if(e == 0 || (q && e->kind == Enull))
-                return e;
+		return e;
 	switch(e->kind){
-        case Eelist:
+	case Eelist:
 		p = e;
 		while(p->kind == Eelist){
-                        switch(p->e1->kind){
-                        case Ecase:
-                        case Ematch:
-                        case Edefault:
+			switch(p->e1->kind){
+			case Ecase:
+			case Ematch:
+			case Edefault:
 				sete2(p->e1, coalesce(ctx, p->e1->e2, 0));
-                                /* start coalescing */
-                                if(!q){
-                                        p = coalesce(ctx, p->e2, p);
-                                        pp = 0;
-                                        continue;
-                                }
-                                /* finish coalescing */
-                                else if(pp){
-                                        sete2(pp, nullelist());
-                                        smush(q,p);
-                                }
-                                return p;
-                        default:
-                                sete1(p, coalesce(ctx, p->e1, 0));
-                        }
-                        pp = p;
-                        p = p->e2;
+				/* start coalescing */
+				if(!q){
+					p = coalesce(ctx, p->e2, p);
+					pp = 0;
+					continue;
+				}
+				/* finish coalescing */
+				else if(pp){
+					sete2(pp, nullelist());
+					smush(q,p);
+				}
+				return p;
+			default:
+				sete1(p, coalesce(ctx, p->e1, 0));
+			}
+			pp = p;
+			p = p->e2;
 		}
-                if(q){
-                        smush(q, nullelist());
-                        return p;
-                }
-                else
-                        return e;
-        default:
-                if(q)
-                        fatal("bug in coalesce");
+		if(q){
+			smush(q, nullelist());
+			return p;
+		}
+		else
+			return e;
+	default:
+		if(q)
+			fatal("bug in coalesce");
 		sete1(e, coalesce(ctx, e->e1, 0));
 		sete2(e, coalesce(ctx, e->e2, 0));
 		sete3(e, coalesce(ctx, e->e3, 0));
@@ -617,7 +617,7 @@ collapse(U *ctx, Expr* e, Expr* p)
 		sete1(e, collapse(ctx, e->e1, 0));
 		if(p != 0){
 			sete2(p, Zcons(Z2(Epair, e->e1, e->e3), nullelist()));
-                        sete3(e, 0);
+			sete3(e, 0);
 			e = collapse(ctx, e->e2, p->e2);
 			return e;
 		}
@@ -626,8 +626,8 @@ collapse(U *ctx, Expr* e, Expr* p)
 			sete2(e, collapse(ctx, e->e2, p));
 			if(p->e2->kind != Enull){
 				sete1(e, newexpr(Eorpat, p, 0, 0, 0));
-                                sete3(e, 0);
-                        }
+				sete3(e, 0);
+			}
 			return e;
 		}
 	default:
@@ -721,7 +721,7 @@ swtch(U *ctx, Expr *e, char *lb)
 			    Zset(doid("$t"), swtch(ctx, e->e1, lb)),
 			    invert(se),
 			    Zlabele(optl, 
-                                    (cs && cs->dflt) ? Zgoto(cs->dflt) : Zgoto(nlb)),
+				(cs && cs->dflt) ? Zgoto(cs->dflt) : Zgoto(nlb)),
 			    swtch(ctx, e->e2, nlb),
 			    Zlabel(nlb),
 			    Znil(),
@@ -782,7 +782,7 @@ loops(U *ctx, Expr* e, char *lb, char *lc)
 			    Zlabel(h),
 			    (e->e2 ? Zif(Znot(loops(ctx, e->e2, lb, lc)),
 					 Zgoto(nlb))
-			           : nullelist()),
+				: nullelist()),
 			    loops(ctx, e->e4, nlb, nlc),
 			    Zlabel(nlc),
 			    e->e3 ? loops(ctx, e->e3, lb, lc) : nullelist(),
@@ -848,7 +848,7 @@ docompilei(U *ctx, Expr *e)
 {
 	loops(ctx, e, 0, 0);
 	collapse(ctx, e, 0);
-        coalesce(ctx, e, 0);
+	coalesce(ctx, e, 0);
 	cases(ctx, e, 0);
 	swtch(ctx, e, 0);
 	return e;
