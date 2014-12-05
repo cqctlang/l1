@@ -78,6 +78,7 @@
 		@local ng;
 		if(inf)
 			return;
+
 		ng = [];
 		foreach(@lambda(p){
 				@local x;
