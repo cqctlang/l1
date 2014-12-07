@@ -18,8 +18,10 @@ l1_dlopen(VM *vm, Imm argc, Val *argv, Val *rv)
 	// I don't see the error. Please be more explicit in your bug
 	// reports. -ap
 	checkarg(vm, argv, 0, Qstr);
+	checkarg(vm, argv, 1, Qcval);
+
 	names = valstr(argv[0]);
-	name = str2cstr(names);
+	name = str2cstr(valstr(argv[0]));
 	mode = (int)valimm(argv[1]);
 
 	handle = dlopen(name, mode);
