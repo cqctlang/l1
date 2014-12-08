@@ -1,89 +1,26 @@
 
 //XXX needs documentation
 
-
-@define usedom(dom,dstx,stx){
-	@local cmp;
-	if (!isstx(dstx))
-		error("argument 2 must be stx");
-	@defloc walk(e) {
-		@local p, l;
-		if(e == nil)
-			return e;
-		switch(stxkind(e)){
-		case 'stxunquote:
-			error("misplaced unquote");
-		case 'stxsplice:
-			error("misplaced splice");
-		case 'stxquasi:
-			error("quasi not allowed");
-		case 'stxquote:
-			return e;
-		case 'val:
-			if (iscvalue(stxval(e)))
-				return #xcast(dstx,e);
-			return e;
-		case 'typename:
-			if (stxkind(stxref(e,0)) != 'tickt) {
-				return #typename(#tickt(dstx,stxref(e,0)),
-				                 stxref(e,1));
-			}
-			return e;
-		case 'arrow:
-			return #arrow(walk(stxref(e,0)),stxref(e,1));
-		case 'dot:
-			return #dot(walk(stxref(e,0)),stxref(e,1));
-		case 'id:
-			if (dom.looksym(stxid(e)) != nil) {
-				return #ticke(dstx,e);
-			}
-			return e;
-		case 'elist:
-			p = e;
-			l = Znull();
-			while(stxkind(p) == 'elist){
-				l = Zcons(walk(Zcar(p)), l);
-				p = Zcdr(p);
-			}
-			return Zreverse(l);
-		default:
-			return mkstx(stxkind(e),
-				     walk(stxref(e, 0)),
-				     walk(stxref(e, 1)),
-				     walk(stxref(e, 2)),
-				     walk(stxref(e, 3)),
-				     stxsrc(e));
-		}
-	}
-
-	stx = walk(stx);
-
-	cmp = compile(stx);
-
-	if (cmp == nil)
-		error("bad syntax");
-
-	return cmp();
-}
-
 @defstx @expwithdom(dom,bdy) {
 	@local s;
 	s = gensym();
-	return #scope(#block(#[ s ], 
-                      #[ #g(s,dom),
-                         #call(#id('usedom),#[ s, #stxquote(dom), 
-                                               #stxquote(bdy) ])
-                       ]));
+	return #mcall(#id('with_imports), #[ #id('usedom) ],
+	              #scope(#block(#[ s ],
+	                     #[ #g(s,dom),
+	                     #call(#id('usedom),#[ s, #stxquote(bdy) ])
+	                     ]))
+	             );
 }
 
 @defstx @withdom(dom) bdy {
 	@local s;
 	s = gensym();
-	return #scope(#block(#[ s ], 
-                      #[ #g(s,dom),
-                         #call(#id('usedom),#[ s, #stxquote(dom), 
-                                               #stxquote(bdy) ])
-                       ]));
+	return #mcall(#id('with_imports), #[ #id('usedom) ],
+	              #scope(#block(#[ s ],
+	                     #[ #g(s,dom),
+	                        #call(#id('usedom),#[ s, #stxquote(bdy) ])
+	                      ]))
+	             );
 }
 
 //XXX error handling may need to be done better.
@@ -92,7 +29,8 @@
 
 	domsym = gensym();
 
-	return #`{{
+	return #`{
+		@with_imports(usedom) {
 		@global #,domsym;
 		#,domsym = #,dom;
 
@@ -106,7 +44,7 @@
 				currentreturn(nil);
 			}
 			v = parse(s, "(stdin)", 1);
-			v = usedom(#,domsym,#,(#stxquote(domsym)),v);
+			v = usedom(#,domsym,v);
 			if (v != nil)
 				printf("%a\n",v);
 			$loop();
