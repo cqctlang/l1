@@ -6,3 +6,7 @@
 0
 0
 0
+whew: "wrong number of arguments to access (expects 2, passed 0)"
+whew: "access: argument 1 must be a string"
+whew: "access: argument 0 must be a string"
+whew: "wrong number of arguments to access (expects 2, passed 3)"

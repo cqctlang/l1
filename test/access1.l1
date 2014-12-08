@@ -6,3 +6,47 @@ printf("%d\n", access("/etc/whowoulddothattoetc", "r"));
 printf("%d\n", access("/etc/whowoulddothattoetc", "w"));
 printf("%d\n", access("/etc/whowoulddothattoetc", "x"));
 printf("%d\n", access("/etc/whowoulddothattoetc", "f"));
+
+applyk( @lambda() {
+	access();
+	},
+	@lambda(x) {
+		printf("error. succeeded with too few arguments.\n");
+	},
+	@lambda(x) {
+		printf("whew: %a\n", x);
+	},
+	[]);
+
+applyk( @lambda() {
+		access("/etc/passwd", 0);
+	},
+	@lambda(x) {
+		printf("error. succeeded with a bad mode.\n");
+	},
+	@lambda(x) {
+		printf("whew: %a\n", x);
+	},
+	[]);
+
+applyk( @lambda() {
+		access(0, "/etc/passwd");
+	},
+	@lambda(x) {
+		printf("error. succeeded with a bad path.\n");
+	},
+	@lambda(x) {
+		printf("whew: %a\n", x);
+	},
+	[]);
+
+applyk( @lambda() {
+	access("/etc/passwd", "r", 0);
+	},
+	@lambda(x) {
+		printf("error. succeeded with too many arguments.\n");
+	},
+	@lambda(x) {
+		printf("whew: %a\n", x);
+	},
+	[]);

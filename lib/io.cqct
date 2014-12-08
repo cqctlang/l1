@@ -29,7 +29,7 @@
 ;
 
 {
-@local fdrd, isnewfd, mknewfd;
+@local fdrd, mknewfd;
 
 fdrd = mkrd('fd, [
 	'sysfd,
@@ -50,8 +50,6 @@ ions = @names c32le {
 		Fwrite = 8,
 	};
 };
-
-isnewfd = rdis(fdrd);
 
 rdsetfmt(fdrd, @lambda(rec) { "<fd>"; });
 
@@ -159,6 +157,11 @@ mksysfd = @lambda(fd, flags, rest ...) {
 	@local m;
 	@local x;
 
+	if(!isstring(path))
+		error("access: argument 0 must be a string");
+	if(!isstring(mode))
+		error("access: argument 1 must be a string");
+
 	m = 0;
 	for(x = 0 ; x < length(mode) ; x++) {
 		if(mode[x] == 'r') m |= unix`R_OK;
@@ -179,147 +182,68 @@ mksysfd = @lambda(fd, flags, rest ...) {
 
 @global isfd;
 {
-	@local _isfd;
+	@local isnewfd;
 
-	_isfd = isfd;
+	isnewfd = rdis(fdrd);
 
 	isfd = @lambda(v) {
 		if(isnewfd(v))
 			return 1;
-		if(_isfd) {
-			if(_isfd(v))
-				return 1;
-			else
-				return 0;
-		} else {
+		else
 			return 0;
-		}
 	};
-}
+};
 
 @global issysfd;
-{
-	@local _issysfd;
+issysfd = @lambda(fd) {
+	if(!isfd(fd)) {
+		error("issysfd: argument is not a fd");
+	}
 
-	_issysfd = issysfd;
-
-	issysfd = @lambda(fd) {
-		if(!isfd(fd)) {
-			error("issysfd: argument is not a fd");
-		}
-
-		if(isnewfd(fd)) {
-			if(fd.sysfd)
-				return 1;
-			else
-				return 0;
-		} else {
-			if(_issysfd)
-				return _issysfd(fd);
-			//else
-			//	exit(24); // we somehow got a legacy fd
-		}
-	};
-}
+	if(fd.sysfd)
+		return 1;
+	else
+		return 0;
+};
 
 @global sysfdno;
-{
-	@local _sysfdno;
+sysfdno = @lambda(fd) {
+	if(!isfd(fd))
+		error("sysfdno: argument is not a fd");
+	if(!issysfd(fd))
+		error("sysfdno: argument is not a system fd");
 
-	_sysfdno = sysfdno;
-
-	sysfdno = @lambda(fd) {
-		if(!isfd(fd))
-			error("sysfdno: argument is not a fd");
-		if(!issysfd(fd))
-			error("sysfdno: argument is not a system fd");
-
-		if(isnewfd(fd)) {
-			return fd.fd;
-		} else if(_sysfdno) {
-			return _sysfdno(fd);
-		} else {
-			// bad. we were leaked a legacy file descriptor
-			// and we have no access to legacy _sysfdno.
-			error("sysfdno: legacy fd without legacy library");
-		}
-	};
-}
+	return fd.fd;
+};
 
 @global isclosed;
-{
-	@local _isclosed;
+isclosed = @lambda(fd) {
+	if(!isfd(fd))
+		error("isclosed: argument is not a fd");
 
-	_isclosed = isclosed;
-
-	isclosed = @lambda(fd) {
-		if(!isfd(fd))
-			error("isclosed: argument is not a fd");
-
-		if(isnewfd(fd)) {
-			if(fd.closed)
-				return 1;
-			else
-				return 0;
-		} else if(_isclosed) {
-			return _isclosed(fd);
-		} else {
-			// bad. we were leaked a legacy file descriptor
-			// and we have no access to legacy library.
-			error("setclosed: legacy fd without legacy library");
-		}
-
-		nil;
-	};
-}
+	if(fd.closed)
+		return 1;
+	else
+		return 0;
+};
 
 @global setclosed;
-{
-	@local _setclosed;
+setclosed = @lambda(fd) {
+	if(!isfd(fd))
+		error("setclosed: argument is not a fd");
 
-	_setclosed = setclosed;
+	fd.closed = 1;
 
-	setclosed = @lambda(fd) {
-		if(!isfd(fd))
-			error("setclosed: argument is not a fd");
-
-		if(isnewfd(fd)) {
-			fd.closed = 1;
-		} else if(_setclosed) {
-			return _setclosed(fd);
-		} else {
-			// bad. we were leaked a legacy file descriptor
-			// and we have no access to legacy library.
-			error("setclosed: legacy fd without legacy library");
-		}
-
-		nil;
-	};
-}
+	nil;
+};
 
 @global fdname;
-{
-	@local _fdname;
+fdname = @lambda(fd) {
+	if(!isfd(fd))
+		error("fdname: argument is not a fd");
 
-	_fdname = fdname;
-
-	fdname = @lambda(fd) {
-		if(!isfd(fd))
-			error("fdname: argument is not a fd");
-
-		if(isnewfd(fd)) {
-			return fd.name;
-		} else if(_fdname) {
-			return _fdname(fd);
-		} else {
-			// bad. we were leaked a legacy file descriptor
-			// and we have no access to legacy library.
-			error("fdname: legacy fd without legacy library");
-		}
-
-		nil;
-	};
-}
+	return fd.name;
+};
 
 @define read(fd, count)
 {
@@ -340,10 +264,12 @@ mksysfd = @lambda(fd, flags, rest ...) {
 			return buf;
 		else
 			return substr(buf, 0, r);
-	} else {
+	} else if(fd.read) {
 		return fd.read(count);
+	} else {
+		error("read on a fd with no reader");
 	}
-}
+};
 
 @define write(fd, buf)
 {
