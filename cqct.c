@@ -44,20 +44,6 @@ cqctvalcbase(Val v)
 	}
 }
 
-Val
-cqctmkfd(Xfd *xfd, char *name)
-{
-	Fd *fd;
-	Str *n;
-
-	if(name)
-		n = mkstr0(name);
-	else
-		n = mkstr0("");
-	fd = mkfdfn(n, Fread|Fwrite, xfd);
-	return mkvalfd(fd);
-}
-
 char*
 cqctvalcstr(Val v)
 {

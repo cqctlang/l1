@@ -274,7 +274,6 @@ static u8	scanctype(Head*);
 static u8	scancval(Head*);
 static u8	scandom(Head*);
 static u8	scanexpr(Head*);
-static u8	scanfd(Head*);
 static u8	scanlist(Head*);
 static u8	scanns(Head*);
 static u8	scanpair(Head*);
@@ -294,7 +293,6 @@ static u8	loadsavectype(Head*, LSctx *ls);
 static u8	loadsavecval(Head*, LSctx *ls);
 static u8	loadsavedom(Head*, LSctx *ls);
 static u8	loadsaveexpr(Head*, LSctx *ls);
-static u8	loadsavefd(Head*, LSctx *ls);
 static u8	loadsavelist(Head*, LSctx *ls);
 static u8	loadsavens(Head*, LSctx *ls);
 static u8	loadsavepair(Head*, LSctx *ls);
@@ -320,7 +318,6 @@ static Qtype qs[Qnkind] = {
 	[Qcval]  	= { "cval", sizeof(Cval), 0, scancval, loadsavecval },
 	[Qdom]	 	= { "domain", sizeof(Dom), 0, scandom, loadsavedom },
 	[Qexpr]	 	= { "expr", sizeof(Expr), 1, scanexpr, loadsaveexpr },
-	[Qfd]	 	= { "fd", sizeof(Fd), 0, scanfd, loadsavefd },
 	[Qlist]	 	= { "list", sizeof(List), 0, scanlist, loadsavelist },
 	[Qnil]	 	= { "nil", sizeof(Head), 0, 0 },
 	[Qns]	 	= { "ns", sizeof(Ns), 1, scanns, loadsavens },
@@ -566,23 +563,6 @@ scanexpr(Head *hd)
 	gcopy((Val*)&e->aux, &min);
 	gcopy((Val*)&e->skind, &min);
 	gcopy((Val*)&e->src, &min);
-	return min;
-}
-
-static u8
-scanfd(Head *hd)
-{
-	u8 min;
-	Fd *fd;
-
-	min = Clean;
-	fd = (Fd*)hd;
-	gcopy((Val*)&fd->name, &min);
-	if(fd->flags&Ffn)
-		return min;
-	gcopy((Val*)&fd->u.cl.close, &min);
-	gcopy((Val*)&fd->u.cl.read, &min);
-	gcopy((Val*)&fd->u.cl.write, &min);
 	return min;
 }
 
@@ -2800,30 +2780,6 @@ loadsaveexpr(Head *hd, LSctx *ls)
 	loadsaveptr((Val*)&e->aux, ls);
 	loadsaveptr((Val*)&e->skind, ls);
 	loadsaveptr((Val*)&e->src, ls);
-	return 0;
-}
-
-static u8
-loadsavefd(Head *hd, LSctx *ls)
-{
-	Fd *fd;
-	fd = (Fd*)hd;
-	loadsaveptr((Val*)&fd->name, ls);
-	if(fd->flags&Ffn){
-		if(ls->mode == LSsave){
-			savecfn((void**)&fd->u.fn.close);
-			savecfn((void**)&fd->u.fn.read);
-			savecfn((void**)&fd->u.fn.write);
-		}else{
-			fd->u.fn.close = resolveptr((uptr)fd->u.fn.close, ls);
-			fd->u.fn.read = resolveptr((uptr)fd->u.fn.read, ls);
-			fd->u.fn.write = resolveptr((uptr)fd->u.fn.write, ls);
-		}
-	}else{
-		loadsaveptr((Val*)&fd->u.cl.close, ls);
-		loadsaveptr((Val*)&fd->u.cl.read, ls);
-		loadsaveptr((Val*)&fd->u.cl.write, ls);
-	}
 	return 0;
 }
 

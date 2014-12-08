@@ -156,20 +156,15 @@ static void
 l1__tcpaccept(VM *vm, Imm argc, Val *argv, Val *rv)
 {
 	int fd;
-	Fd *fd0;
-	Xfd *xfd0;
 	struct sockaddr_in saddr;
 	socklen_t len;
 
 	if(argc != 1)
 		vmerr(vm, "wrong number of arguments to tcpaccept");
-	checkarg(vm, argv, 0, Qfd);
-	fd0 = valfd(argv[0]);
-	if((fd0->flags&Ffn) == 0)
-		vmerr(vm, "file descriptor is not a listener");
-	xfd0 = &fd0->u.fn;
+	checkarg(vm, argv, 0, Qcval);
+	fd = cvalu(valcval(argv[0]));
 	len = sizeof(saddr);
-	fd = accept(xfd0->fd, (struct sockaddr*)&saddr, &len);
+	fd = accept(cvalu(valcval(argv[0])), (struct sockaddr*)&saddr, &len);
 	if(0 > fd)
 		vmerr(vm, "tcpaccept: %s", strerror(errno));
 	nodelay(fd);
@@ -177,10 +172,8 @@ l1__tcpaccept(VM *vm, Imm argc, Val *argv, Val *rv)
 }
 
 static void
-l1_getpeername(VM *vm, Imm argc, Val *argv, Val *rv)
+l1__getpeername(VM *vm, Imm argc, Val *argv, Val *rv)
 {
-	Fd *fd;
-	Xfd *xfd;
 	struct sockaddr_in sa;
 	int r;
 	socklen_t len;
@@ -188,11 +181,9 @@ l1_getpeername(VM *vm, Imm argc, Val *argv, Val *rv)
 
 	if(argc != 1)
 		vmerr(vm, "wrong number of arguments to getpeername");
-	checkarg(vm, argv, 0, Qfd);
-	fd = valfd(argv[0]);
-	xfd = &fd->u.fn;
+	checkarg(vm, argv, 0, Qcval);
 	len = sizeof(sa);
-	r = getpeername(xfd->fd, (struct sockaddr*)&sa, &len);
+	r = getpeername(cvalu(valcval(argv[0])), (struct sockaddr*)&sa, &len);
 	if(0 > r)
 		vmerr(vm, "getpeername: %s", strerror(errno));
 	sa2str(&sa, buf, sizeof(buf));
@@ -200,10 +191,8 @@ l1_getpeername(VM *vm, Imm argc, Val *argv, Val *rv)
 }
 
 static void
-l1_getsockname(VM *vm, Imm argc, Val *argv, Val *rv)
+l1__getsockname(VM *vm, Imm argc, Val *argv, Val *rv)
 {
-	Fd *fd;
-	Xfd *xfd;
 	struct sockaddr_in sa;
 	int r;
 	socklen_t len;
@@ -211,11 +200,9 @@ l1_getsockname(VM *vm, Imm argc, Val *argv, Val *rv)
 
 	if(argc != 1)
 		vmerr(vm, "wrong number of arguments to getsockname");
-	checkarg(vm, argv, 0, Qfd);
-	fd = valfd(argv[0]);
-	xfd = &fd->u.fn;
+	checkarg(vm, argv, 0, Qcval);
 	len = sizeof(sa);
-	r = getsockname(xfd->fd, (struct sockaddr*)&sa, &len);
+	r = getsockname(cvalu(valcval(argv[0])), (struct sockaddr*)&sa, &len);
 	if(0 > r)
 		vmerr(vm, "getsockname: %s", strerror(errno));
 	sa2str(&sa, buf, sizeof(buf));
@@ -289,8 +276,8 @@ void
 fnnet(Env env)
 {
 	FN(gethostbyname);
-	FN(getpeername);
-	FN(getsockname);
+	FN(_getpeername);
+	FN(_getsockname);
 	FN(_tcpaccept);
 	FN(_tcplisten);
 	FN(_tcpopen);

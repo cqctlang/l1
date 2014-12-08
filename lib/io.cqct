@@ -21,6 +21,8 @@
 	stdout,
 	stderr,
 	tcpaccept,
+	getpeername,
+	getsockname,
 	tcplisten,
 	tcpopen,
 	unixopen
@@ -412,7 +414,13 @@ mksysfd = @lambda(fd, flags, rest ...) {
 @define recvfd(fd)
 {
 	@local rfd;
-	rfd = _recvfd(fd);
+
+	if(!isfd(fd))
+		error("recvfd: argument 0 must be a fd");
+	if(!issysfd(fd))
+		error("recvfd: file descriptor does not support ioctl");
+
+	rfd = _recvfd(sysfdno(fd));
 	if(rfd == nil)
 		return nil;
 	return mksysfdfinal(rfd, ions`Fread|ions`Fwrite);
@@ -430,10 +438,36 @@ mksysfd = @lambda(fd, flags, rest ...) {
 @define tcpaccept(lfd)
 {
 	@local fd;
-	fd = _tcpaccept(lfd);
+
+	if(!isfd(lfd))
+		error("tcpaccept: argument 0 must be a fd");
+	if(!issysfd(fd))
+		error("tcpaccept: argument 0 must be a system fd");
+
+	fd = _tcpaccept(sysfdno(lfd));
 	if(fd == nil)
 		return nil;
 	return mksysfdfinal(fd, ions`Fread|ions`Fwrite);
+}
+
+@define getpeername(fd)
+{
+	if(!isfd(fd))
+		error("getpeername: argument 0 must be a fd");
+	if(!issysfd(fd))
+		error("getpeername: argument 0 must be a system fd");
+
+	return _getpeername(sysfdno(fd));
+}
+
+@define getsockname(fd)
+{
+	if(!isfd(fd))
+		error("getsockname: argument 0 must be a fd");
+	if(!issysfd(fd))
+		error("getsockname: argument 0 must be a system fd");
+
+	return _getsockname(sysfdno(fd));
 }
 
 @define mapfile(file, arg ...)

@@ -13,7 +13,6 @@ enum {
 	Qcval,
 	Qdom,
 	Qexpr,
-	Qfd,
 	Qlist,
 	Qns,
 	Qpair,

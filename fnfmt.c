@@ -494,10 +494,6 @@ fmtval(VM *vm, Fmt *f, Val val)
 				return -1;
 		}
 		return fmtputs0(vm, f, " )");
-	case Qfd:
-		hd = valhead(val);
-		snprint(buf, sizeof(buf), "<%s>", qname[Vkind(hd)]);
-		return fmtputs0(vm, f, buf);
 	case Qctype:
 		str = fmtctype(valctype(val));
 		return fmtputB(vm, f, strdata(str), str->len);

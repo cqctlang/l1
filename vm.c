@@ -14,7 +14,6 @@ char *qname[Qnkind] = {
 	[Qcval]=	"cvalue",
 	[Qdom]=		"domain",
 	[Qexpr]=	"stx",
-	[Qfd]=		"fd",
 	[Qlist]=	"list",
 	[Qns]=		"namespace",
 	[Qpair]=	"pair",
@@ -223,37 +222,6 @@ mkcont(void *base, u32 sz, void *ra, Closure *cl, Cont *link,
 	return k;
 }
 
-Fd*
-mkfdfn(Str *name, int flags, Xfd *xfd)
-{
-	Fd *fd;
-	fd = (Fd*)malq(Qfd, sizeof(Fd));
-	fd->name = name;
-	fd->u.fn = *xfd;
-	fd->flags = flags|Ffn;
-	return fd;
-}
-
-Fd*
-mkfdcl(Str *name, int flags,
-       Closure *read,
-       Closure *write,
-       Closure *close)
-{
-	Fd *fd;
-	if(read == 0)
-		flags &= ~Fread;
-	if(write == 0)
-		flags &= ~Fwrite;
-	fd = (Fd*)malq(Qfd, sizeof(Fd));
-	fd->name = name;
-	fd->u.cl.read = read;
-	fd->u.cl.write = write;
-	fd->u.cl.close = close;
-	fd->flags = flags&~Ffn;
-	return fd;
-}
-
 int
 eqval(Val v1, Val v2)
 {
@@ -267,7 +235,6 @@ eqval(Val v1, Val v2)
 	case Qcid:
 	case Qcl:
 	case Qdom:
-	case Qfd:
 	case Qns:
 	case Qrd:
 	case Qtab:
@@ -300,7 +267,6 @@ hashqval(Val v)
 	case Qcid:
 	case Qcl:
 	case Qdom:
-	case Qfd:
 	case Qns:
 	case Qrd:
 	case Qtab:
@@ -335,7 +301,6 @@ eqvval(Val v1, Val v2)
 	case Qcid:
 	case Qcl:
 	case Qdom:
-	case Qfd:
 	case Qns:
 	case Qrd:
 	case Qtab:
@@ -376,7 +341,6 @@ hashqvval(Val v)
 	case Qcid:
 	case Qcl:
 	case Qdom:
-	case Qfd:
 	case Qns:
 	case Qrd:
 	case Qtab:
@@ -419,7 +383,6 @@ equalval(Val v1, Val v2)
 	case Qcid:
 	case Qcl:
 	case Qdom:
-	case Qfd:
 	case Qns:
 	case Qrd:
 	case Qtab:
@@ -460,7 +423,6 @@ hashval(Val v)
 	case Qcid:
 	case Qcl:
 	case Qdom:
-	case Qfd:
 	case Qns:
 	case Qrd:
 	case Qtab:
@@ -4353,20 +4315,6 @@ vmresetctl(VM *vm)
 	vm->fp[Ora] = (Val)(uptr)codeentry(vabort->code);
 }
 
-#ifdef NEVER
-Fd*
-vmstdout(VM *vm)
-{
-	Val v;
-	v = envlookup(vm->top, "stdout");
-	if(v == 0)
-		vmerr(vm, "stdout is undefined");
-	if(Vkind(v) != Qfd)
-		vmerr(vm, "stdout not bound to a file descriptor");
-	return valfd(v);
-}
-#endif
-
 void
 dogc(VM *vm, u32 g, u32 tg)
 {
@@ -5273,103 +5221,6 @@ l1_put(VM *vm, Imm argc, Val *iargv, Val *rv)
 }
 
 static void
-l1__close(VM *vm, Imm argc, Val *argv, Val *rv)
-{
-	Fd *fd;
-
-	if(argc != 1)
-		vmerr(vm, "wrong number of arguments to close");
-	checkarg(vm, argv, 0, Qfd);
-	fd = valfd(argv[0]);
-	if(fd->flags&Fclosed)
-		return;
-	fd->flags |= Fclosed;
-	if(fd->flags&Ffn) {
-		if(fd->u.fn.close)
-			fd->u.fn.close(&fd->u.fn);
-	}else
-		if(fd->u.cl.close)
-			ccall(vm, fd->u.cl.close, 0, 0);
-	USED(rv);
-}
-
-static void
-l1_isclosed(VM *vm, Imm argc, Val *argv, Val *rv)
-{
-	Fd *fd;
-
-	if(argc != 1)
-		vmerr(vm, "wrong number of arguments to isclosed");
-	checkarg(vm, argv, 0, Qfd);
-	fd = valfd(argv[0]);
-	if(fd->flags&Fclosed)
-		*rv = mkvalcval2(cval1);
-	else
-		*rv = mkvalcval2(cval0);
-}
-
-static void
-l1_setclosed(VM *vm, Imm argc, Val *argv, Val *rv)
-{
-	Fd *fd;
-
-	if(argc != 1)
-		vmerr(vm, "wrong number of arguments to isclosed");
-	checkarg(vm, argv, 0, Qfd);
-	fd = valfd(argv[0]);
-	fd->flags |= Fclosed;
-
-	USED(rv);
-}
-
-static void
-l1_fdname(VM *vm, Imm argc, Val *argv, Val *rv)
-{
-	Fd *fd;
-	if(argc != 1)
-		vmerr(vm, "wrong number of arguments to fdname");
-	checkarg(vm, argv, 0, Qfd);
-	fd = valfd(argv[0]);
-	if(fd->name)
-		*rv = mkvalstr(fd->name);
-	else
-		*rv = mkvalstr(mkstr0(""));
-}
-
-static void
-l1_mkfd(VM *vm, Imm argc, Val *argv, Val *rv)
-{
-	Fd *fd;
-	Closure *r, *w, *c;
-	Str *n;
-
-	if(argc != 3 && argc != 4)
-		vmerr(vm, "wrong number of arguments to mkfd");
-	if(Vkind(argv[0]) != Qcl && Vkind(argv[0]) != Qnil)
-		vmerr(vm, "argument 1 to mkfd must be a function or nil");
-	if(Vkind(argv[1]) != Qcl && Vkind(argv[1]) != Qnil)
-		vmerr(vm, "argument 2 to mkfd must be a function or nil");
-	if(Vkind(argv[2]) != Qcl && Vkind(argv[2]) != Qnil)
-		vmerr(vm, "argument 3 to mkfd must be a function or nil");
-
-	r = w = c = 0;
-	n = 0;
-	if(Vkind(argv[0]) == Qcl)
-		r = valcl(argv[0]);
-	if(Vkind(argv[1]) == Qcl)
-		w = valcl(argv[1]);
-	if(Vkind(argv[2]) == Qcl)
-		c = valcl(argv[2]);
-	if(argc == 4) {
-		checkarg(vm, argv, 3, Qstr);
-		n = valstr(argv[3]);
-	}
-	// the mode is not write if we passed no write handler
-	fd = mkfdcl(n, Fread|Fwrite, r, w, c);
-	*rv = mkvalfd(fd);
-}
-
-static void
 l1_mknas(VM *vm, Imm argc, Val *argv, Val *rv)
 {
 	As *as;
@@ -5587,40 +5438,6 @@ l1_nameof(VM *vm, Imm argc, Val *argv, Val *rv)
 		      " or address space");
 	if(name)
 		*rv = mkvalstr(name);
-}
-
-static void
-l1_setname(VM *vm, Imm argc, Val *argv, Val *rv)
-{
-	Dom *dom;
-	Ns *ns;
-	As *as;
-	Str *name;
-
-	name = 0;
-	if(argc != 2)
-		vmerr(vm, "wrong number of arguments to setname");
-	if(Vkind(argv[1]) != Qnil && Vkind(argv[1]) != Qstr)
-		vmerr(vm, "argument 2 to setname must be a string or nil");
-	if(Vkind(argv[1]) == Qstr)
-		name = valstr(argv[1]);
-	else
-		name = 0;
-	if(Vkind(argv[0]) == Qdom) {
-		dom = valdom(argv[0]);
-		gcwb(mkvaldom(dom));
-		dom->name = name;
-	}else if(Vkind(argv[0]) == Qns) {
-		ns = valns(argv[0]);
-		gcwb(mkvalns(ns));
-		ns->name = name;
-	}else if(Vkind(argv[0]) == Qas) {
-		as = valas(argv[0]);
-		gcwb(mkvalas(as));
-		as->name = name;
-	}else
-		vmerr(vm, "operand 1 to nameof must be a domain, name space"
-		      " or address space");
 }
 
 static void
@@ -6439,12 +6256,6 @@ static void
 l1_isdom(VM *vm, Imm argc, Val *argv, Val *rv)
 {
 	l1_isx(vm, argc, argv, rv, "isdom", Qdom);
-}
-
-static void
-l1_isfd(VM *vm, Imm argc, Val *argv, Val *rv)
-{
-	l1_isx(vm, argc, argv, rv, "isfd", Qfd);
 }
 
 static void
@@ -7487,7 +7298,6 @@ mktopenv(void)
 
 	FN(asof);
 	FN(bsearch);
-	FN(_close);
 	FN(clcode);
 	FN(clref);
 	FN(compact);
@@ -7508,7 +7318,6 @@ mktopenv(void)
 	FN(eqv);
 	FN(error);
 	FN(fault);
-	FN(fdname);
 	FN(fullgc);
 	FN(gc);
 	FN(gcpoll);
@@ -7522,13 +7331,11 @@ mktopenv(void)
 	FN(isas);
 	FN(iscallable);
 	FN(iscid);
-	FN(isclosed);
 	FN(iscode);
 	FN(isctype);
 	FN(iscvalue);
 	FN(isdom);
 	FN(isempty);
-	FN(isfd);
 	FN(islist);
 	FN(ismapped);
 	FN(ismember);
@@ -7556,7 +7363,6 @@ mktopenv(void)
 	FN(mkattr);
 	FN(mkcl);
 	FN(mkdom);
-	FN(mkfd);
 	FN(mkmas);
 	FN(mkmasro);
 	FN(mkmasx);
@@ -7580,8 +7386,6 @@ mktopenv(void)
 	FN(rangelen);
 	FN(resettop);
 	FN(saveheapfd);
-	FN(setclosed);
-	FN(setname);
 	FN(setloadpath);
 	FN(settoplevel);
 	FN(sizeof);		/* cannot be called directly by user code */
