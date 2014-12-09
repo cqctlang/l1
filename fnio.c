@@ -114,7 +114,7 @@ stat2dir(char *name, struct stat *st)
 	d->muid = xstrdup("");
 	d->extension = xstrdup("");
 
-	switch(st->st_mode&S_IFMT){
+	switch(st->st_mode&S_IFMT) {
 	case S_IFSOCK:
 		d->qid.type = QTFILE;
 		d->mode |= DMSOCKET;
@@ -246,7 +246,7 @@ l1_stat(VM *vm, Imm argc, Val *argv, Val *rv)
 	checkarg(vm, argv, 0, Qstr);
 	names = valstr(argv[0]);
 	name = str2cstr(names);
-	if(0 > stat(name, &st)){
+	if(0 > stat(name, &st)) {
 		efree(name);
 		vmerr(vm, "cannot stat %.*s: %s",
 		      (int)names->len, strdata(names),
@@ -282,7 +282,7 @@ l1__recvfd(VM *vm, Imm argc, Val *argv, Val *rv)
 	msg.msg_iovlen = 1;
 	msg.msg_control = buf;
 	msg.msg_controllen = sizeof(buf);
-	if(0 > recvmsg(fd, &msg, 0)){
+	if(0 > recvmsg(fd, &msg, 0)) {
 		setlasterrno(errno);
 		return;
 	}
@@ -310,7 +310,7 @@ l1__popen(VM *vm, Imm argc, Val *argv, Val *rv)
 	if(argc == 0)
 		vmerr(vm, "wrong number of arguments to popen");
 	flags = 0;
-	if(Vkind(argv[argc-1]) == Qcval){
+	if(Vkind(argv[argc-1]) == Qcval) {
 		cv = valcval(argv[argc-1]);
 		flags = cvalu(cv);
 		argc--;

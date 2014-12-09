@@ -25,7 +25,7 @@ disx86(unsigned char *s, unsigned char *e, unsigned inc)
 	ud_set_syntax(&ud, UD_SYN_INTEL);
 
 	if(inc)
-		while(e > 0){
+		while(e > 0) {
 			ud_set_input_buffer(&ud, s, 16);
 			if(!ud_disassemble(&ud))
 				break;
@@ -34,7 +34,7 @@ disx86(unsigned char *s, unsigned char *e, unsigned inc)
 			e--;
 		}
 	else if(e == 0)
-		while(1){
+		while(1) {
 			ud_set_input_buffer(&ud, s, 16);
 			if(!ud_disassemble(&ud))
 				break;
@@ -64,10 +64,10 @@ l1_disx86(VM *vm, Imm argc, Val *argv, Val *rv)
 	Cval *p, *m;
 	if(argc != 1 && argc != 2)
 		vmerr(vm, "wrong number of arguments to disx86");
-	if(argc == 1){
+	if(argc == 1) {
 		checkarg(vm, argv, 0, Qstr);
 		s = valstr(argv[0]);
-	}else if(argc == 2){
+	}else if(argc == 2) {
 		checkarg(vm, argv, 0, Qcval);
 		checkarg(vm, argv, 1, Qcval);
 		p = valcval(argv[0]);

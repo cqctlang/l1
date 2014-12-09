@@ -23,7 +23,19 @@ Braces:
 @lambda(...) {
 }
 
+or 
+
+@lambda(...)
+{
+}
+
 if(...) {
+}
+
+or
+
+if(...)
+{
 }
 
 if(...) {
@@ -39,6 +51,15 @@ Indentation:
 
 Case:
 switch(...) {
+case a:
+	...
+	break;
+}
+
+or
+
+switch(...)
+{
 case a:
 	...
 	break;

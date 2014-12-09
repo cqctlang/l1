@@ -11,7 +11,7 @@ l1_exit(VM *vm, Imm argc, Val *argv, Val *rv)
 	if(argc != 1)
 		vmerr(vm, "wrong number of arguments to exit");
 	code = 0;
-	if(Vkind(argv[0]) == Qcval){
+	if(Vkind(argv[0]) == Qcval) {
 		cv = valcval(argv[0]);
 		code = (int)cvalu(cv);
 	}
@@ -126,7 +126,7 @@ l1_environ(VM *vm, Imm argc, Val *argv, Val *rv)
 	p = environ;
 	l = mklist();
 	if(p)
-		while(*p){
+		while(*p) {
 			_listappend(l, mkvalstr(mkstr0(*p)));
 			p++;
 		}
@@ -196,7 +196,7 @@ l1_glob(VM *vm, Imm argc, Val *argv, Val *rv)
 	flags = GLOB_TILDE|GLOB_BRACE;
 	r = glob(pat, flags, 0, &g);
 	efree(pat);
-	if(r && r != GLOB_NOMATCH){
+	if(r && r != GLOB_NOMATCH) {
 		globfree(&g);
 		vmerr(vm, "glob failed");
 	}
@@ -230,13 +230,13 @@ l1_syscall(VM *vm, Imm argc, Val *argv, Val *rv)
 	checkarg(vm, argv, 0, Qcval);
 	cv = valcval(argv[0]);
 	sysn = (int)cvalu(cv);
-	for(i = 1; i < argc; i++){
+	for(i = 1; i < argc; i++) {
 		checkarg(vm, argv, i, Qcval);
 		cv = valcval(argv[i]);
 		xarg[i-1] = (unsigned long)cvalu(cv);
 	}
 	setlasterrno(0);
-	switch(argc){
+	switch(argc) {
 	case 1:
 		xrv = syscall(sysn);
 		break;

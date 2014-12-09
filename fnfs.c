@@ -26,8 +26,8 @@ l1__readdir(VM *vm, Imm argc, Val *argv, Val *rv)
 	buf = emalloc(lim*sizeof(struct dirent));
 	ndir = 0;
 	p = (struct dirent*)buf;
-	while((d = readdir(dir))){
-		if(ndir >= lim){
+	while((d = readdir(dir))) {
+		if(ndir >= lim) {
 			buf = erealloc(buf, lim*sizeof(struct dirent),
 				       2*lim*sizeof(struct dirent));
 			lim *= 2;

@@ -7499,19 +7499,19 @@ cqctinitxfd(char *memfile, char **loadpath, Xfd *in, Xfd *out, Xfd *err)
 	/* users cannot disable warnings */
 	cqctflags['w'] = 1;
 
-	if(in == 0){
+	if(in == 0) {
 		in = &xfd[0];
 		memset(in, 0, sizeof(Xfd));
 		in->read = xfdread;
 		in->fd = 0;
 	}
-	if(out == 0){
+	if(out == 0) {
 		out = &xfd[1];
 		memset(out, 0, sizeof(Xfd));
 		out->write = xfdwrite;
 		out->fd = 1;
 	}
-	if(err == 0){
+	if(err == 0) {
 		err = &xfd[2];
 		memset(err, 0, sizeof(Xfd));
 		err->write = xfdwrite;

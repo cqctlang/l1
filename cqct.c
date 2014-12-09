@@ -33,7 +33,7 @@ cqctvalcbase(Val v)
 		return (Cbase)-1;
 	cv = valcval(v);
 	t = chasetype(cv->type);
-	switch(t->tkind){
+	switch(t->tkind) {
 	case Tbase:
 		return typecbase(t);
 	case Tptr:
@@ -130,7 +130,7 @@ cqctlength(Val v)
 	Str *str;
 	Tab *tab;
 
-	switch(Vkind(v)){
+	switch(Vkind(v)) {
 	default:
 		return (uint64_t)-1;
 	case Qlist:

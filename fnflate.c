@@ -37,7 +37,7 @@ rfn(void *p)
 	getr = p;
 	if(getr->lim == 0)
 		return -1;
-	if(getr->avail == 0){
+	if(getr->avail == 0) {
 		n = MIN(getr->lim, Unit);
 		is = callget(getr->vm, getr->p->dom->as, getr->off, n);
 		if(is->len == 0)
@@ -64,7 +64,7 @@ wfn(void *p, void *buf, int cnt)
 	wr = p;
 	if(wr->omax && wr->len+cnt >= wr->omax)
 		return 0;
-	if(wr->avail < cnt){
+	if(wr->avail < cnt) {
 		if(wr->omax)
 			vmerr(wr->vm, "incomplete inflate");
 		m = 2*(wr->len+cnt);
@@ -86,7 +86,7 @@ doinflate(VM *vm, struct getr *getr, Cval *omaxcv, int zlib)
 
 	memset(&wr, 0, sizeof(wr));
 	wr.vm = vm;
-	if(omaxcv){
+	if(omaxcv) {
 		wr.omax = cvalu(omaxcv);
 		wr.out = mkstrn(wr.omax);
 		wr.avail = wr.omax;
@@ -163,15 +163,15 @@ _inflate(VM *vm, Imm argc, Val *argv, Val *rv, int zlib)
 	p = 0;
 	ss = 0;
 	omax = 0;
-	if(Vkind(argv[0]) == Qcval){
+	if(Vkind(argv[0]) == Qcval) {
 		p = valcval(argv[0]);
 		if(!isstrcval(p))
 			vmerr(vm, err);
-	}else if(Vkind(argv[0]) == Qstr){
+	}else if(Vkind(argv[0]) == Qstr) {
 		ss = valstr(argv[0]);
 	}else
 		vmerr(vm, err);
-	if(argc == 2){
+	if(argc == 2) {
 		checkarg(vm, argv, 1, Qcval);
 		omax = valcval(argv[1]);
 	}

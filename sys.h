@@ -57,7 +57,7 @@ typedef uintptr_t uptr;
 #define PAGEUP(sz)   (((sz)+PAGESZ-1)&~(PAGESZ-1))
 
 #define	SET(x)	((x)=0)
-#define	USED(x)	if(x){}else{}
+#define	USED(x)	if(x) {} else {}
 
 #define THREADED
 #define NEXTLABEL(i) goto *(i)->go;
