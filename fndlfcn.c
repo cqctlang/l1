@@ -7,27 +7,44 @@
 void
 l1_dlopen(VM *vm, Imm argc, Val *argv, Val *rv)
 {
-	Str *names;
 	char* name;
 	void* handle;
 	int mode;
 
 	if(argc != 2)
 		vmerr(vm, "wrong number of arguments to dlopen");
-	// a moment with the manpage for dlopen will reveal an error here.
-	// I don't see the error. Please be more explicit in your bug
-	// reports. -ap
-	checkarg(vm, argv, 0, Qstr);
+
+	//check argument 2 first in order to avoid potential memory leak
+	//(str2cstr creates memory that needs to be freed, and checkarg
+	//could error out before reaching the free)
 	checkarg(vm, argv, 1, Qcval);
 
-	names = valstr(argv[0]);
-	name = str2cstr(valstr(argv[0]));
+	if(Vkind(argv[0]) == Qstr) {
+
+		name = str2cstr(valstr(argv[0]));
+
+	}else if(Vkind(argv[0]) == Qcval) {
+
+		if(valimm(argv[1]) != 0){
+			vmerr(vm,
+			      "operand 1 to %s must be 0 if it is a cvalue",
+			      vmfnid(vm));
+		}
+		name = NULL;
+
+	}else{
+		vmerr(vm, "operand 1 to %s must be a string or a cvalue",
+		      vmfnid(vm));
+	}
+
 	mode = (int)valimm(argv[1]);
 
 	handle = dlopen(name, mode);
 
-	efree(name);
-	name = 0;
+	if(name != NULL){
+		efree(name);
+		name = 0;
+	}
 
 	// note: we are intentionally returning 64-bit pointers here
 	// even on a 32 bit architecture because:
