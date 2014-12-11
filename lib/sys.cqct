@@ -194,46 +194,64 @@ posix = @names myrootns() {
 
 @global S_ISDIR;
 @define S_ISDIR(statbuf) {
-	return (statbuf->st_mode & posix`S_IFDIR) ? 1 : 0;
+	return ( (statbuf->st_mode & posix`S_IFDIR) == posix`S_IFDIR) ? 1 : 0;
 }
 
 @global S_ISCHR;
 @define S_ISCHR(statbuf) {
-	return (statbuf->st_mode & posix`S_IFCHR) ? 1 : 0;
+	return ( (statbuf->st_mode & posix`S_IFCHR) == posix`S_IFCHR) ? 1 : 0;
 }
 
 @global S_ISBLK;
 @define S_ISBLK(statbuf) {
-	return (statbuf->st_mode & posix`S_IFBLK) ? 1 : 0;
+	return ( (statbuf->st_mode & posix`S_IFBLK) == posix`S_IFBLK) ? 1 : 0;
 }
 
 @global S_ISFIFO;
 @define S_ISFIFO(statbuf) {
-	return (statbuf->st_mode & posix`S_IFIFO) ? 1 : 0;
+	return ( (statbuf->st_mode & posix`S_IFIFO) == posix`S_IFIFO) ? 1 : 0;
 }
 
 @global S_ISLNK;
 @define S_ISLNK(statbuf) {
-	return (statbuf->st_mode & posix`S_ISLNK) ? 1 : 0;
+	return ( (statbuf->st_mode & posix`S_IFLNK) == posix`S_IFLNK) ? 1 : 0;
 }
 
 //S_ISSOC = @lambda(m) {
 //};
 
 {
-@local _fstat;
+@local _fstat, _stat, _lstat;
 
 if (unix.looksym('fstat64) != nil)
 {
-	_fstat = @lambda(fd,m) { syscall(unix`fstat64,fd,m); };
+	_fstat = @lambda(fd, m) { syscall(unix`fstat64, fd, m); };
 } else if (unix.looksym('fstat) != nil) {
-	_fstat = @lambda(fd,m) { syscall(unix`fstat,fd,m); };
+	_fstat = @lambda(fd, m) { syscall(unix`fstat, fd, m); };
 } else {
 	_fstat = @lambda(a...) { error("No fstat system call found!"); };
 }
 
+if (unix.looksym('stat64) != nil)
+{
+	_stat = @lambda(path, m) { syscall(unix`stat64, path, m); };
+} else if (unix.looksym('fstat) != nil) {
+	_stat = @lambda(path, m) { syscall(unix`stat, path, m); };
+} else {
+	_stat = @lambda(a...) { error("No stat system call found!"); };
+}
+
+if (unix.looksym('lstat64) != nil)
+{
+	_lstat = @lambda(path, m) { syscall(unix`lstat64, path, m); };
+} else if (unix.looksym('fstat) != nil) {
+	_lstat = @lambda(path, m) { syscall(unix`lstat, path, m); };
+} else {
+	_lstat = @lambda(a...) { error("No lstat system call found!"); };
+}
+
 @global sys_fstat;
-@define sys_fstat(fd,statbuf) {
+@define sys_fstat(fd, statbuf) {
 	@local m,r,l;
 
 	l=sizeof(struct unix`stat);
@@ -262,6 +280,96 @@ if (unix.looksym('fstat64) != nil)
 	}
 
 	_free(m);
+
+	return r;
+}
+
+@global sys_stat;
+@define sys_stat(path, statbuf) {
+	@local m, r, l, p;
+
+	if(isstring(path)) {
+		p = ___malloc(length(path) + 1);
+		putbytes(p, path);
+	} else {
+		p = ___malloc(strlen(path) + 1);
+		memcpy(p, path, strlen(path));
+	}
+
+	printf("PATH: %s\n", p);
+
+	l=sizeof(struct unix`stat);
+
+	m=___malloc(l);
+	if(0 >= m)
+		error("stat: couldn't allocate stat buf");
+
+	if(isstring(statbuf)) {
+		if(length(statbuf) > l) {
+			putbytes(m,substr(statbuf,0,l));
+		} else {
+			putbytes(m,statbuf);
+		}
+		//if sl < l it will be caught by the below putbytes
+	} else {
+		memcpy(m,statbuf,l);
+	}
+
+	r=_stat(p, m);
+
+	m=(struct unix`stat *)m;
+
+	if(!r) {
+		putbytes(statbuf,getbytes(m,l));
+	}
+
+	_free(m);
+	_free(p);
+
+	return r;
+}
+
+@global sys_lstat;
+@define sys_lstat(path, statbuf) {
+	@local m, r, l, p;
+
+	if(isstring(path)) {
+		p = ___malloc(length(path) + 1);
+		putbytes(p, path);
+	} else {
+		p = ___malloc(strlen(path) + 1);
+		memcpy(p, path, strlen(path));
+	}
+
+	printf("PATH: %s\n", p);
+
+	l=sizeof(struct unix`stat);
+
+	m=___malloc(l);
+	if(0 >= m)
+		error("lstat: couldn't allocate stat buf");
+
+	if(isstring(statbuf)) {
+		if(length(statbuf) > l) {
+			putbytes(m,substr(statbuf,0,l));
+		} else {
+			putbytes(m,statbuf);
+		}
+		//if sl < l it will be caught by the below putbytes
+	} else {
+		memcpy(m,statbuf,l);
+	}
+
+	r=_lstat(p, m);
+
+	m=(struct unix`stat *)m;
+
+	if(!r) {
+		putbytes(statbuf,getbytes(m,l));
+	}
+
+	_free(m);
+	_free(p);
 
 	return r;
 }
@@ -847,6 +955,42 @@ if(looksym(unix,'wait4)) {
 
 	_free(a);
 	_free(e);
+
+	return r;
+}
+
+@global sys_readlink;
+@define sys_readlink(path, buf, buflen) {
+	@local p, b, r;
+
+	if(iscvalue(path) && isptr(@typeof(path))) {
+		@local pl;
+
+		pl = strlen(path);
+		p = ___malloc(pl + 1);
+		putbytes(p, getbytes(path, pl));
+		p[pl] = 0;
+	} else if(isstring(path)) {
+		@local pl;
+
+		pl = length(path);
+		p = ___malloc(pl + 1);
+		putbytes(p, path);
+		p[pl] = 0;
+	} else {
+		error("filename must be a string or a cptr");
+	}
+
+	b = ___malloc(buflen);
+
+	r = syscall(unix`readlink, p, b, buflen);
+
+	if(r > 0) {
+		putbytes(buf, getbytes(b, r));
+	}
+
+	_free(p);
+	_free(b);
 
 	return r;
 }
