@@ -259,3 +259,26 @@ select = @lambda(rfds, wfds, xfds, rest ...) {
 
 	[ rr, rw, rx ];
 };
+
+@global readlink;
+readlink = @lambda(path) {
+	@local buf, bl, r;
+
+	if(!isstring(path))
+		error("path is not a string");
+
+	bl = 1024;
+	buf = malloc(bl);
+
+	r = sys_readlink(path, buf, bl);
+
+	if(r == -1) {
+		error("readlink error!");
+	}
+
+	if(r == bl) {
+		error("readlink error -- link too long");
+	}
+
+	return getbytes(buf, r);
+};
