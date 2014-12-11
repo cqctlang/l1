@@ -6,6 +6,7 @@ u32
 hashrec(Rec *r)
 {
 	u32 i, len, m;
+
 	m = Qrec;
 	len = r->nf;
 	for(i = 0; i < len; i++)
@@ -17,6 +18,7 @@ int
 equalrec(Rec *a, Rec *b)
 {
 	u32 m;
+
 	if(a->rd != b->rd)
 		return 0;
 	if(a->nf != b->nf)
@@ -32,6 +34,7 @@ mkrec(Rd *rd)
 {
 	Imm m;
 	Rec *r;
+
 	r = (Rec*)malv(Qrec, recsize(rd->nf));
 	r->rd = rd;
 	r->nf = rd->nf;
@@ -206,7 +209,7 @@ mkrd(VM *vm, Cid *name, List *fname, Closure *fmt)
 
 	rd->get = mktab();
 	rd->set = mktab();
-	for(n = 0; n < rd->nf; n++){
+	for(n = 0; n < rd->nf; n++) {
 		f = valcid(listref(fname, n));
 		len = name->len+3+f->len+1;
 		buf = emalloc(len);
@@ -278,6 +281,7 @@ static void
 l1_rdname(VM *vm, Imm argc, Val *argv, Val *rv)
 {
 	Rd *rd;
+
 	if(argc != 1)
 		vmerr(vm, "wrong number of arguments to rdname");
 	checkarg(vm, argv, 0, Qrd);
@@ -289,6 +293,7 @@ static void
 l1_rdis(VM *vm, Imm argc, Val *argv, Val *rv)
 {
 	Rd *rd;
+
 	if(argc != 1)
 		vmerr(vm, "wrong number of arguments to rdis");
 	checkarg(vm, argv, 0, Qrd);
@@ -301,6 +306,7 @@ static void
 l1_rdmk(VM *vm, Imm argc, Val *argv, Val *rv)
 {
 	Rd *rd;
+
 	if(argc != 1)
 		vmerr(vm, "wrong number of arguments to rdmk");
 	checkarg(vm, argv, 0, Qrd);
@@ -312,6 +318,7 @@ static void
 l1_rdfmt(VM *vm, Imm argc, Val *argv, Val *rv)
 {
 	Rd *rd;
+
 	if(argc != 1)
 		vmerr(vm, "wrong number of arguments to rdfmt");
 	checkarg(vm, argv, 0, Qrd);
@@ -324,6 +331,7 @@ l1_rdsetfmt(VM *vm, Imm argc, Val *argv, Val *rv)
 {
 	Rd *rd;
 	Closure *cl;
+
 	if(argc != 2)
 		vmerr(vm, "wrong number of arguments to rdsetfmt");
 	checkarg(vm, argv, 0, Qrd);
@@ -339,6 +347,7 @@ static void
 l1_rdfields(VM *vm, Imm argc, Val *argv, Val *rv)
 {
 	Rd *rd;
+
 	if(argc != 1)
 		vmerr(vm, "wrong number of arguments to rdfields");
 	checkarg(vm, argv, 0, Qrd);
@@ -350,10 +359,12 @@ static void
 l1_rdgettab(VM *vm, Imm argc, Val *argv, Val *rv)
 {
 	Rd *rd;
+
 	if(argc != 1)
 		vmerr(vm, "wrong number of arguments to rdgettab");
 	checkarg(vm, argv, 0, Qrd);
 	rd = valrd(argv[0]);
+
 	*rv = mkvaltab(rd->get);
 }
 
@@ -361,6 +372,7 @@ static void
 l1_rdsettab(VM *vm, Imm argc, Val *argv, Val *rv)
 {
 	Rd *rd;
+
 	if(argc != 1)
 		vmerr(vm, "wrong number of arguments to rdsettab");
 	checkarg(vm, argv, 0, Qrd);
