@@ -25,7 +25,10 @@
 	getsockname,
 	tcplisten,
 	tcpopen,
-	unixopen
+	unixopen,
+	stat,
+	fstat,
+	lstat
 ;
 
 {
@@ -493,6 +496,66 @@ fdname = @lambda(fd) {
 		fd.close();
 		setclosed(fd);
 	}
+}
+
+@define stat(path)
+{
+	@local buf, r;
+
+	buf = (struct unix`stat *)malloc(sizeof(struct unix`stat));
+
+	r = sys_stat(path, buf);
+
+	if(!r) {
+		r = [
+			'size: buf->st_size
+		];
+		return r;
+	} else {
+		return nil;
+	}
+}
+
+@define lstat(path)
+{
+	@local buf, r;
+
+	buf = (struct unix`stat *)malloc(sizeof(struct unix`stat));
+
+	r = sys_lstat(path, buf);
+
+	if(!r) {
+		r = [
+			'size: buf->st_size
+		];
+		return r;
+	} else {
+		return nil;
+	}
+}
+
+@define fstat(fd)
+{
+	@local buf, r;
+
+	if(!isfd(fd))
+		error("fstat: argument 0 must be a fd");
+	if(!issysfd(fd))
+		error("fstat: argument 0 must be a sys fd");
+
+	buf = (struct unix`stat *)malloc(sizeof(struct unix`stat));
+
+	r = sys_fstat(sysfdno(fd), buf);
+
+	if(!r) {
+		r = [
+			'size: buf->st_size
+		];
+		return r;
+	} else {
+		return nil;
+	}
+	
 }
 
 }
