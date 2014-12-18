@@ -459,6 +459,21 @@ l1_mktabqv(VM *vm, Imm argc, Val *argv, Val *rv)
 	*rv = mkvaltab(t);
 }
 
+static void                                                                     
+l1_mktabpriv(VM *vm, Imm argc, Val *argv, Val *rv)                                
+{                                                                               
+	Tab *t;
+
+	if(argc != 1)
+		vmerr(vm, "wrong number of arguments to %s", "istable");
+	checkarg(vm, argv, 0, Qtab);
+	t = valtab(argv[0]);
+
+	t->priv = 1;
+
+	*rv = argv[0];
+}                                                                               
+
 static void
 l1_tabdelete(VM *vm, Imm argc, Val *argv, Val *rv)
 {
@@ -496,6 +511,22 @@ l1_tablook(VM *vm, Imm argc, Val *argv, Val *rv)
 }
 
 void
+l1_tabhas(VM *vm, Imm argc, Val *argv, Val *rv)
+{
+	Tab *t;
+	Val vp;
+	if(argc != 2)
+		vmerr(vm, "wrong number of arguments to tabhas");
+	checkarg(vm, argv, 0, Qtab);
+	t = valtab(argv[0]);
+	vp = tabget(t, argv[1]);
+	if(vp)
+		*rv = cval1;
+	else
+		*rv = cval0;
+}
+
+void
 l1_tabinsert(VM *vm, Imm argc, Val *argv, Val *rv)
 {
 	Tab *t;
@@ -515,6 +546,10 @@ l1_tabenum(VM *vm, Imm argc, Val *argv, Val *rv)
 		vmerr(vm, "wrong number of arguments to tabenum");
 	checkarg(vm, argv, 0, Qtab);
 	t = valtab(argv[0]);
+
+	if(valtab(argv[0])->priv)
+		vmerr(vm, "attempt to enumerate a private table");
+
 	*rv = mkvalvec(tabenum(t));
 }
 
@@ -528,6 +563,10 @@ l1_tabkeys(VM *vm, Imm argc, Val *argv, Val *rv)
 	arg0 = argv[0];
 	if(Vkind(arg0) != Qtab)
 		vmerr(vm, "operand 1 to tabkeys must be a table");
+
+	if(valtab(arg0)->priv)
+		vmerr(vm, "attempt to extract keys from private table");
+
 	*rv = mkvalvec(tabenumkeys(valtab(arg0)));
 }
 
@@ -541,6 +580,10 @@ l1_tabvals(VM *vm, Imm argc, Val *argv, Val *rv)
 	arg0 = argv[0];
 	if(Vkind(arg0) != Qtab)
 		vmerr(vm, "operand 1 to tabvals must be a table");
+
+	if(valtab(arg0)->priv)
+		vmerr(vm, "attempt to extract vals from private table");
+
 	*rv = mkvalvec(tabenumvals(valtab(arg0)));
 }
 
@@ -550,8 +593,10 @@ fntab(Env env)
 	FN(mktab);
 	FN(mktabq);
 	FN(mktabqv);
+	FN(mktabpriv);
 	FN(tabdelete);
 	FN(tabenum);
+	FN(tabhas);
 	FN(tabinsert);
 	FN(tabkeys);
 	FN(tablook);

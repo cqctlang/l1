@@ -6315,7 +6315,37 @@ l1_isstx(VM *vm, Imm argc, Val *argv, Val *rv)
 static void
 l1_istable(VM *vm, Imm argc, Val *argv, Val *rv)
 {
-	l1_isx(vm, argc, argv, rv, "istable", Qtab);
+	Tab *t;
+
+	if(argc != 1)
+		vmerr(vm, "wrong number of arguments to %s", "istable");
+	if(Vkind(argv[0]) == Qtab) {
+		t = valtab(argv[0]);
+		if(t->priv) {
+			*rv = mkvalcval2(cval0);
+		} else {
+			*rv = mkvalcval2(cval1);
+		}
+	} else
+		*rv = mkvalcval2(cval0);
+}
+
+static void
+l1_isprivtable(VM *vm, Imm argc, Val *argv, Val *rv)
+{
+	Tab *t;
+
+	if(argc != 1)
+		vmerr(vm, "wrong number of arguments to %s", "isprivtable");
+	if(Vkind(argv[0]) == Qtab) {
+		t = valtab(argv[0]);
+		if(t->priv) {
+			*rv = mkvalcval2(cval1);
+		} else {
+			*rv = mkvalcval2(cval0);
+		}
+	} else
+		*rv = mkvalcval2(cval0);
 }
 
 static void
@@ -7342,6 +7372,7 @@ mktopenv(void)
 	FN(isnil);
 	FN(isns);
 	FN(ispair);
+	FN(isprivtable);
 	FN(isprocedure);
 	FN(isrange);
 	FN(isrec);

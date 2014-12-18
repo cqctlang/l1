@@ -361,6 +361,7 @@ struct Tab {
 	Pair *tg;		/* transport guardian */
 	int (*equal)(Val, Val);
 	u32 (*hash)(Val);
+	u32 priv;
 };
 
 struct List {
