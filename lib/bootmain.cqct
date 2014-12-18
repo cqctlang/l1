@@ -74,6 +74,8 @@
 
 mkcompiler(bootcompilerpasses());
 
+@include <ebe.cqct>
+
 @defloc _eval(str, whence, line)
 {
 	@local fn, in;
