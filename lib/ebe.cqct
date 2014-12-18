@@ -1,0 +1,90 @@
+// empty block elimination -- a late optimization pass
+{
+	@local simple_ebe, ebe, bcp, ebe_pass;
+
+	// late optimization pass                                                       
+	simple_ebe = @lambda(stx) {                                                     
+		if(!stx || !isstx(stx)) {
+			printf("WHOA!!!\n");
+		}
+		return mkstx(
+			stxkind(stx),
+			(stx[0] && isstx(stx[0]))?ebe(stx, stx[0]):nil,
+			(stx[1] && isstx(stx[1]))?ebe(stx, stx[1]):nil,
+			(stx[2] && isstx(stx[2]))?ebe(stx, stx[2]):nil,
+			(stx[3] && isstx(stx[3]))?ebe(stx, stx[3]):nil,
+			stxsrc(stx)
+		);
+	};
+
+	@global ebe_trim_count;
+	ebe_trim_count = 0;
+	@global ebe_visit_count;
+	ebe_visit_count = 0;
+
+	ebe = @lambda(parent, stx) {
+		ebe_visit_count++;
+		if(!stx || !isstx(stx)) {
+			error("ebe takes a stx");
+		}
+		if(stxkind(stx) == 'block) {
+			if(stxkind(stx[0]) != 'null) {                                  
+				return simple_ebe(stx);                                 
+			} else {
+				if(stxkind(stx[1]) == 'null) {                          
+					// a truly empty block
+					return stx;                                     
+				} else {
+					if(stxkind(stx[1]) == 'elist) {
+						if(stxkind(stx[1][1]) == 'null) {    
+							if(stxkind(stx[1][0]) == 'elist)        
+                                                		return simple_ebe(stx);         
+                                        		else {
+								//printf("FOO!\n");
+								if(parent && (stxkind(parent) != 'scope)) {
+									// scopes expect a block
+									ebe_trim_count ++;
+                                                			return stx[1][0];
+								} else {
+                                                			return simple_ebe(stx);         
+								}
+                                        		}
+                                		} else {
+							return simple_ebe(stx);
+						}                                               
+					} else {
+						if(parent && (stxkind(parent) != 'scope)) {
+							ebe_trim_count++;
+							//printf("TRIMMING TO %a\n", stx[1]);
+							return stx[1];
+						} else {
+							return stx;
+						}
+					}
+                        	}                                                       
+                	}                                                               
+        	} else if(stxkind(stx) == 'id) {                                        
+                	return stx;                                                     
+        	} else if(stxkind(stx) == 'val) {                                       
+                	return stx;                                                     
+        	} else {                                                                
+                	return simple_ebe(stx);                                         
+        	}                                                                       
+	};
+
+ebe_pass = @lambda(stx) {
+	@local r;
+
+	r = ebe(nil,stx);
+
+	return r;
+};
+
+bcp = bootcompilerpasses();
+listins(bcp, length(bcp)-1, ebe_pass); 
+bootcompilerpasses = @lambda() {
+	return bcp;
+};
+
+	mkcompiler(bcp);
+}
