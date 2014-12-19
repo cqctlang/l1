@@ -889,6 +889,7 @@ $repllevel = 0;
 		error("saveheap: unable to open %a for writing\n", filename);
 
 	fd = sysfdno(f);
+	fullgc();
 	r = saveheapfd(fd);
 	close(f);
 
