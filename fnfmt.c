@@ -609,8 +609,40 @@ fmtval(VM *vm, Fmt *f, Val val)
 		case Eval:
 			if(fmtputs0(vm, f, "#val("))
 				return -1;
-			if(fmtval(vm, f, e->aux))
-				return -1;
+			if(Vkind(e->aux) == Qcval) {
+				if(fmtval(vm, f, e->aux))
+					return -1;
+			} else if(Vkind(e->aux) == Qcid) {
+				char *s;
+				s = ciddata(valcid(e->aux));
+				// we lack a syntax for unparseable cids.
+				if(strchr(s, '.') || strchr(s, ' ')) {
+					if(fmtputs0(vm, f, "mkcid(\""))
+						return -1;
+					if(fmtval(vm, f, e->aux))
+						return -1;
+					if(fmtputs0(vm, f, "\")"))
+						return -1;
+				} else {
+					if(fmtputs0(vm, f, "'"))
+						return -1;
+					if(fmtval(vm, f, e->aux))
+						return -1;
+				}
+			} else if(Vkind(e->aux) == Qstr) {
+				if(fmtval(vm, f, e->aux))
+					return -1;
+			} else if(Vkind(e->aux) == Qctype) {
+				if(fmtputs0(vm, f, "@typename("))
+					return -1;
+				if(fmtval(vm, f, e->aux))
+					return -1;
+				if(fmtputs0(vm, f, ")"))
+					return -1;
+			} else {
+				if(fmtval(vm, f, e->aux))
+					return -1;
+			}
 			if(fmtputs0(vm, f, ")"))
 				return -1;
 			break;
