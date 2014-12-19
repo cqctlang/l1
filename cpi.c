@@ -244,6 +244,7 @@ match(U *ctx, Expr* exp, Expr* pat, Match *m, Cases *cs)
 			p = p->e2;
 		}
 		break;
+#ifdef FOO
         case Ecall:
 		m->check = Zand(Zand(m->check, Zcall(doid("isrec"), 1, 
 						     copyexpr(exp))),
@@ -302,6 +303,7 @@ match(U *ctx, Expr* exp, Expr* pat, Match *m, Cases *cs)
                 }
 		rv = 1; // do not optimize away this m->check later
 		break;
+#endif
 	default:
 		m->check = Zand(m->check, Zbinop(Eeq, pat, exp));
 		break;

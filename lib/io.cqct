@@ -32,18 +32,8 @@
 ;
 
 {
-@local fdrd, mknewfd;
-
-fdrd = mkrd('fd, [
-	'sysfd,
-	'fd,
-	'flags,
-	'closed,
-	'name,
-	'read,
-	'write,
-	'close
-]);
+@local mknewfd;
+@global isfd;
 
 @global ions;
 ions = @names c32le {
@@ -54,9 +44,26 @@ ions = @names c32le {
 	};
 };
 
-rdsetfmt(fdrd, @lambda(rec) { "<fd>"; });
+mknewfd = @lambda(sysfd, fd, flags, closed, name, read, write, close) {
+	@local t;
 
-mknewfd = rdmk(fdrd);
+	t=[:];
+	t=mktabpriv(t);
+
+	t.sysfd = sysfd;
+	t.fd = fd;
+	t.flags = flags;
+	t.closed = closed;
+	t.name = name;
+	t.read = read;
+	t.write = write;
+	t.close = close;
+
+	return t;
+};
+isfd = @lambda(v) {
+	return isprivtable(v);
+};
 
 @global mksysfd;
 mksysfd = @lambda(fd, flags, rest ...) {
@@ -182,20 +189,6 @@ mksysfd = @lambda(fd, flags, rest ...) {
 	else
 		return 1;
 }
-
-@global isfd;
-{
-	@local isnewfd;
-
-	isnewfd = rdis(fdrd);
-
-	isfd = @lambda(v) {
-		if(isnewfd(v))
-			return 1;
-		else
-			return 0;
-	};
-};
 
 @global issysfd;
 issysfd = @lambda(fd) {

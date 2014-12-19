@@ -4,22 +4,24 @@
 
 	sendsctlmsg,
 	recvsctlmsg,
-	sctlrerror
+	sctlrerror,
+	sctldialectrec
 	;
 
-@record sctldialectrec
-{
-	name,
-	ns,
-	Ctx,
-	Siginfo,
-	Syscall,
-	Signal,
-	decodectx,
-	encodectx,
-	decodesiginfo,
-	encodesiginfo,
-	dumpctx,
+sctldialectrec = @lambda(name, ns, Ctx, Siginfo, Syscall, Signal, decodectx, encodectx, decodesiginfo, encodesiginfo, dumpctx) {
+	return [
+		'name: name,
+		'ns: ns,
+		'Ctx: Ctx,
+		'Siginfo: Siginfo,
+		'Syscall: Syscall,
+		'Signal: Signal,
+		'decodectx: decodectx,
+		'encodectx: encodectx,
+		'decodesiginfo: decodesiginfo,
+		'encodesiginfo: encodesiginfo,
+		'dumpctx: dumpctx
+	];
 };
 {
 @local EINTR, ECONNRESET;

@@ -38,19 +38,12 @@ expandm(Expr *e)
 		o = e->e1->e1;
 		m = e->e1->e2;
 		a = expandm(e->e2);
-		te = Zifelse(Zcall(G("istable"), 1, o),
+		te = Zifelse(Zcall(G("isprimitivetable"), 1, o),
 			     Zapply(Ztabget(copyexpr(o), idsym(m)), copyexpr(a)),
-			     Zifelse(Zcall(G("isrec"), 1, copyexpr(o)),
-				     Zapply(Zcall(Zcall(G("tablook"), 2,
-							Zcall(G("rdgettab"), 1,
-							      Zcall(G("rdof"), 1, copyexpr(o))),
-							Zid2sym(m)),
-						  1, copyexpr(o)),
-					    copyexpr(a)),
-				     Zifelse(Zcall(G("iscallable"), 1, copyexpr(o)),
-					     Zapply(doid("$callmethodx"),
-						    Zcons(o, Zcons(Zstr(idsym(m)), a))),
-					     Zerror("invalid left operand to ."))));
+			     Zifelse(Zcall(G("iscallable"), 1, copyexpr(o)),
+				     Zapply(doid("$callmethodx"),
+					    Zcons(o, Zcons(Zstr(idsym(m)), a))),
+				     Zerror("invalid left operand to .")));
 		putsrc(te, e->src);
 		return te;
 	case Eelist:

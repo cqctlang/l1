@@ -25,13 +25,33 @@ rbtree_defined = 1;
 
 debug = 0;
 
-@record rbnode{key,data,red,left,right,parent};
+//@record rbnode{key,data,red,left,right,parent};
+@global rbnode;
+rbnode = @lambda(key, data, red, left, right, parent) {
+	return [
+		'kind: 'rbnode,
+		'key: key,
+		'data: data,
+		'red: red,
+		'left: left,
+		'right: right,
+		'parent: parent,
+	];
+};
 
 //root.left is the actual root of the tree,
-@record rbtree{compare,root};
+//@record rbtree{compare,root};
+@global rbtree;
+rbtree = @lambda(compare, root) {
+	return [
+		'kind: 'rbtree,
+		'compare: compare,
+		'root: root,
+	];
+};
 
 @define rbtree_create(compare) {
-    return rbtree(compare,rbnode(nil,nil,nil,nil,nil,nil));
+	return rbtree(compare,rbnode(nil,nil,nil,nil,nil,nil));
 }
 
 

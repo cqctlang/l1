@@ -60,7 +60,7 @@ extern char *yytext;
 %type <expr> compound_statement statement_list
 %type <expr> expression_statement define_statement labeled_statement
 %type <expr> selection_statement iteration_statement jump_statement
-%type <expr> global_statement defrec_expression let_expression
+%type <expr> global_statement let_expression
 %type <expr> type_name tn_type_specifier_tick tn_type_qual_specifier
 %type <expr> tn_parameter_type_list tn_parameter_list
 %type <expr> tn_parameter_declaration tn_abstract_declarator
@@ -150,15 +150,6 @@ lambda_expression
 	{ $$ = newexprsrc(&ctx->inp->src, Elambda, invert($3), $5, 0, 0); }
 	| lambda '(' ')' compound_statement
 	{ $$ = newexprsrc(&ctx->inp->src, Elambda, nullelist(), $4, 0, 0); }
-	;
-
-defrec_expression
-	: DEFREC id '{' id_list '}'
-	{ $$ = newexprsrc(&ctx->inp->src, Edefrec, $2, invert($4), 0, 0); }
-	| DEFREC id '{' id_list ',' '}'
-	{ $$ = newexprsrc(&ctx->inp->src, Edefrec, $2, invert($4), 0, 0); }
-	| DEFREC id '{' '}'
-	{ $$ = newexprsrc(&ctx->inp->src, Edefrec, $2, nullelist(), 0, 0); }
 	;
 
 let_expression
@@ -280,7 +271,6 @@ primary_expression
 	{ $$ = newexprsrc(&ctx->inp->src, Etab, invert($2), 0, 0, 0); }
 	| syntax_list
 	| lambda_expression
-	| defrec_expression
 	| let_expression
 	| quote_expression
 	| mcall_expression

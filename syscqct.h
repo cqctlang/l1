@@ -52,7 +52,7 @@ enum{
 	Edefault,
 	Edefine,
 	Edefloc,
-	Edefrec,
+	//Edefrec,
 	Edefstx,
 	Ederef,
 	Ediv,

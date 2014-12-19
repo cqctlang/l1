@@ -54,7 +54,11 @@ pr(&p[1].t);
 pr(&p[1].t[2]);
 pr(&p[1].t[2].x);
 
-@record R { f };
+@global R;
+R = @lambda() {
+	return [:];
+};
+//@record R { f };
 
 a = [ R(), R() ];
 a[1].f = R();

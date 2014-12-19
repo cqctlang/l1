@@ -19,7 +19,7 @@ char *qname[Qnkind] = {
 	[Qpair]=	"pair",
 	[Qprecode]=	"precode",
 	[Qrange]=	"range",
-	[Qrec]=		"record",
+	//[Qrec]=		"record",
 	[Qrd]=		"recorddescriptor",
 	[Qstr]=		"string",
 	[Qtab]=		"table",
@@ -243,7 +243,7 @@ eqval(Val v1, Val v2)
 	case Qlist:
 	case Qpair:
 	case Qrange:
-	case Qrec:
+	//case Qrec:
 	case Qstr:
 	case Qvec:
 	case Qprecode:
@@ -275,7 +275,7 @@ hashqval(Val v)
 	case Qlist:
 	case Qpair:
 	case Qrange:
-	case Qrec:
+	//case Qrec:
 	case Qstr:
 	case Qvec:
 	case Qprecode:
@@ -320,8 +320,8 @@ eqvval(Val v1, Val v2)
 		return equalpair(valpair(v1), valpair(v2));
 	case Qrange:
 		return equalrange(valrange(v1), valrange(v2));
-	case Qrec:
-		return equalrec(valrec(v1), valrec(v2));
+	//case Qrec:
+	//	return equalrec(valrec(v1), valrec(v2));
 	case Qstr:
 		return equalstr(valstr(v1), valstr(v2));
 	case Qvec:
@@ -360,8 +360,10 @@ hashqvval(Val v)
 		return hashpair(valpair(v));
 	case Qrange:
 		return hashrange(valrange(v));
+/*
 	case Qrec:
 		return hashrec(valrec(v));
+*/
 	case Qstr:
 		return hashstr(valstr(v));
 	case Qvec:
@@ -402,8 +404,8 @@ equalval(Val v1, Val v2)
 		return equalpair(valpair(v1), valpair(v2));
 	case Qrange:
 		return equalrange(valrange(v1), valrange(v2));
-	case Qrec:
-		return equalrec(valrec(v1), valrec(v2));
+	//case Qrec:
+	//	return equalrec(valrec(v1), valrec(v2));
 	case Qstr:
 		return equalstr(valstr(v1), valstr(v2));
 	case Qvec:
@@ -442,8 +444,10 @@ hashval(Val v)
 		return hashpair(valpair(v));
 	case Qrange:
 		return hashrange(valrange(v));
+/*
 	case Qrec:
 		return hashrec(valrec(v));
+*/
 	case Qstr:
 		return hashstr(valstr(v));
 	case Qvec:
@@ -6288,6 +6292,7 @@ l1_isrange(VM *vm, Imm argc, Val *argv, Val *rv)
 	l1_isx(vm, argc, argv, rv, "isrange", Qrange);
 }
 
+/*
 static void
 l1_isrec(VM *vm, Imm argc, Val *argv, Val *rv)
 {
@@ -6299,6 +6304,7 @@ l1_isrd(VM *vm, Imm argc, Val *argv, Val *rv)
 {
 	l1_isx(vm, argc, argv, rv, "isrd", Qrd);
 }
+*/
 
 static void
 l1_isstring(VM *vm, Imm argc, Val *argv, Val *rv)
@@ -6310,6 +6316,19 @@ static void
 l1_isstx(VM *vm, Imm argc, Val *argv, Val *rv)
 {
 	l1_isx(vm, argc, argv, rv, "isstx", Qexpr);
+}
+
+static void
+l1_isprimitivetable(VM *vm, Imm argc, Val *argv, Val *rv)
+{
+	Tab *t;
+
+	if(argc != 1)
+		vmerr(vm, "wrong number of arguments to %s", "isprimitivetable");
+	if(Vkind(argv[0]) == Qtab)
+		*rv = mkvalcval2(cval1);
+	else
+		*rv = mkvalcval2(cval0);
 }
 
 static void
@@ -7372,11 +7391,12 @@ mktopenv(void)
 	FN(isnil);
 	FN(isns);
 	FN(ispair);
+	FN(isprimitivetable);
 	FN(isprivtable);
 	FN(isprocedure);
 	FN(isrange);
-	FN(isrec);
-	FN(isrd);
+	//FN(isrec);
+	//FN(isrd);
 	FN(isstring);
 	FN(isstx);
 	FN(istable);
@@ -7437,7 +7457,7 @@ mktopenv(void)
 	fncval(env);
 	fnlist(env);
 	fnpair(env);
-	fnrec(env);
+	//fnrec(env);
 	fnstr(env);
 	fnstx(env);
 	fnsym(env);
@@ -7556,7 +7576,7 @@ cqctinitxfd(char *memfile, char **loadpath, Xfd *in, Xfd *out, Xfd *err)
 	initparse();
 	initcid();
 	inittype();
-	initrec();
+//	initrec();
 	initcg();
 //	initnc();
 	initvm();
@@ -7611,7 +7631,7 @@ cqctfini(VM *vm)
 	efree(cqctloadpath);
 	finivm();
 	finicg();
-	finirec();
+	//finirec();
 	finitype();
 	finicid();
 	finiparse();

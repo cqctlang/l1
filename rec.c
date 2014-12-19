@@ -2,6 +2,8 @@
 #include "util.h"
 #include "syscqct.h"
 
+#ifdef FOO
+
 u32
 hashrec(Rec *r)
 {
@@ -409,3 +411,5 @@ void
 finirec()
 {
 }
+
+#endif

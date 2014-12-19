@@ -29,6 +29,7 @@ newlocal(Expr *s, Expr *id)
 		sete1(b, putsrc(Zcons(id, b->e1), b->e1->src));
 }
 
+#ifdef FOO
 static Expr*
 expandrec(U *ctx, Expr *e, Expr *s)
 {
@@ -78,6 +79,7 @@ expandrec(U *ctx, Expr *e, Expr *s)
 	return p;
 }
 
+#endif
 static Expr*
 record(U *ctx, Expr *e, Expr *s)
 {
@@ -90,8 +92,10 @@ record(U *ctx, Expr *e, Expr *s)
 	case Escope:
 		sete1(e, record(ctx, e->e1, e));
 		return e;
+#ifdef FOO
 	case Edefrec:
 		return expandrec(ctx, e, s);
+#endif
 	case Eelist:
 		p = e;
 		while(p->kind == Eelist){

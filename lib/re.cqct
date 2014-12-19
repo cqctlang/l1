@@ -6,7 +6,18 @@
 
 @global re_defined;
 
-@record regular_expression{ dfa };
+//@record regular_expression{ dfa };
+@global regular_expression;
+regular_expression = @lambda(dfa) {
+	return [ 'dfa: dfa ];
+};
+@global isregular_expression;
+isregular_expression = @lambda(v) {
+	if(istable(v) && v.dfa)
+		return 1;
+	else
+		return 0;
+};
 
 if (re_defined == nil) {
 @local tokenize, node_str;

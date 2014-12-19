@@ -120,18 +120,48 @@
 	@local left, blank, right, linebreak;
 	@local margin;
 	@local ppobj;
-	@local r;
 
-	r = @record B { n };
-	rdsetfmt(r,@lambda(a) { sprintfa("B(%d)",a.n); });
+	@local B, L, R, isB;
+
+	B = @lambda(n) {
+		//return [ 'B, n ];
+		return [
+			'B: 1,
+			'n: n,
+		];
+	};
+	isB = @lambda(v) {
+		//return islist(v) && (length(v) == 2) && (v[0] == 'B);
+		return istable(v) && v.B;
+	};
+
+	L = @lambda(offset, kind, indent) {
+		//return [ 'L, offset, kind, indent ];
+		return [
+			'L: 1,
+			'offset: offset,
+			'kind: kind,
+			'indent: indent
+		];
+	};
+
+	R = @lambda() {
+		//return [ 'R ];
+		return [
+			'R: 1
+		];
+	};
+
+	//r = @record B { n };
+	//rdsetfmt(r,@lambda(a) { sprintfa("B(%d)",a.n); });
 	//kinds:
 	//'nlleft: start the newline indentation from the leftmost column
 	//'nlhere: start the newline indentation from here
 	//'nloff: start at the offset of the last group
-	r = @record L { offset, kind, indent };
-	rdsetfmt(r,
-		@lambda(a) { sprintfa("L(%d,%a,%d)",a.offset,a.kind,a.indent); });
-	@record R { };
+	//r = @record L { offset, kind, indent };
+	//rdsetfmt(r,
+	//	@lambda(a) { sprintfa("L(%d,%a,%d)",a.offset,a.kind,a.indent); });
+	//@record R { };
 
 	margin = ppmargin;
 
@@ -165,11 +195,17 @@
 		@local space;
 		@local didnl;
 
-		rdsetfmt( @record E { offset, kind } ,
-				  @lambda(e) { sprintfa("E(%a,%a)",e.offset,e.kind); });
+		@local E;
+		//rdsetfmt( @record E { offset, kind } ,
+		//		  @lambda(e) { sprintfa("E(%a,%a)",e.offset,e.kind); });
+		E = @lambda(offset, kind) {
+			//return [ 'E, offset, kind ];
+			return [ 'E: 1, 'offset: offset, 'kind: kind ];
+		};
 
 		space = margin;
-		stk = [ E(margin,'horizontal) ];
+		//stk = [ ['E, margin, 'horizontal] ];
+		stk = [ E(margin, 'horizontal) ];
 		didnl = 0;
 
 		@defloc out(x, l)
@@ -177,7 +213,7 @@
 			@local off;
 			//printf("%a %a %a %a %a\n",x,l,space,stk[0],length(stk));
 			switch(x){
-			@match L(o, k, i):
+			@match ['L: _, 'offset: o, 'kind: k, 'indent: i]:
 				switch (k) {
 				case 'nlleft:
 					off = margin-i;
@@ -195,10 +231,10 @@
 				else
 					push(stk, E(off,'vertical));
 				break;
-			@match R():
+			@match ['R: _]:
 				pop(stk);
 				break;
-			@match B(n):
+			@match ['B: _, 'n: n]:
 				if(stk[0].kind == 'vertical) {
 					space = stk[0].offset;
 					if (didnl > -1 && margin - space - didnl > 0) {
@@ -252,7 +288,7 @@
 				return;
 			}
 			switch(x = pop(stream)){
-			@match L(o, k, i): //XXX use i
+			@match ['L:_, 'offset: o, 'kind: k, 'indent: i]: //XXX use i
 				if(isempty(stk)){
 					l = r = 0;
 					rt = 1; /* ? */
@@ -262,7 +298,7 @@
 				len[r] = -rt;
 				push(stk, r);
 				break;
-			@match R():
+			@match ['R:_]:
 				r++;
 				buf[r] = x;
 				len[r] = 0;
@@ -278,7 +314,7 @@
 						l++;
 					}
 				break;
-			@match B(n):
+			@match ['B:_, 'n: n]:
 				r++;
 				if (!isempty(stk)) {
 					i = stk[0];

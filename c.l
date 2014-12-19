@@ -55,7 +55,7 @@ static int chars(YYSTYPE *lvalp, int);
 "@local"		{ count(ctx); return(LOCAL); }
 "@match"		{ count(ctx); return(MATCH); }
 "@names"		{ count(ctx); return(NAMES); }
-"@record"		{ count(ctx); return(DEFREC); }
+"@_record"		{ count(ctx); return(DEFREC); }
 "@typename"		{ count(ctx); return(TYPENAME); }
 "@typeof"		{ count(ctx); return(TYPEOF); }
 @{L}({L}|{D})*		{ count(ctx); return(chars(lvalp, ATIDENTIFIER)); }
