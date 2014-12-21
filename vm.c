@@ -4512,7 +4512,7 @@ dovm(VM *vm)
 			m = getimmrand(&i->op1);
 			if(vm->vc != m)
 				vmerr(vm, "wrong number of arguments to %s"
-				      " (expects %u, passed %u)",
+				      " (expects %llu, passed %llu)",
 				      ciddata(vm->cl->code->id),
 				      m, vm->vc);
 			continue;
@@ -4520,7 +4520,7 @@ dovm(VM *vm)
 			m = getimmrand(&i->op1);
 			if(vm->vc < m)
 				vmerr(vm, "not enough arguments to %s"
-				      " (expects at least %u, passed %u)",
+				      " (expects at least %llu, passed %llu)",
 				      ciddata(vm->cl->code->id),
 				      m, vm->vc);
 			vargs(vm, m);
