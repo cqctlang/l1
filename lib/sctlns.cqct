@@ -688,6 +688,14 @@ nexttag = 0;
 
 	rs = [];
 
+	/* only support DWARF rules */
+	q = (uint8*)q;
+	k = (enum sctl`Unwind_type)(*q++);
+
+	if(sctl`Dwarf_unwind != k) {
+	  error("unsupported decode type %e\n", k);
+	}
+
 	/* CFA rule */
 	q = (uint8*)q;
 	k = *q++;

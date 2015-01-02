@@ -266,5 +266,12 @@ sctl = @names clp64le {
 		@1	uint32 tag;
 		@5;
 	} Msg;
+
+	typedef
+	enum Unwind_type
+	{
+	        Dwarf_unwind = 1,
+	  
+	} Unwind_type;
 };
 }
