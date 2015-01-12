@@ -87,7 +87,7 @@ hashctype(Ctype *t)
 		return x;
 	case Tarr:
 		ta = (Ctypearr*)t;
-		if(Vkind(ta->cnt) == Qcval)
+		if(Viskind(ta->cnt, Qcval))
 			x = hashx(x, hashcval(valcval(ta)));
 		x = hashx(x, hashctype(subtype(t)));
 		return x;
@@ -138,7 +138,7 @@ equalctype(Ctype *a, Ctype *b)
 		bta = (Ctypearr*)b;
 		if(Vkind(ata->cnt) != Vkind(bta->cnt))
 			return 0;
-		if(Vkind(ata->cnt) == Qcval)
+		if(Viskind(ata->cnt, Qcval))
 			if(!equalcval(valcval(ata->cnt), valcval(bta->cnt)))
 				return 0;
 		return equalctype(subtype(a), subtype(b));
@@ -616,13 +616,13 @@ typesize(VM *vm, Ctype *t)
 		if(ts->attr==0)
 			vmerr(vm, "attempt to determine size of incomplete type");
 		v = attroff(ts->attr);
-		if(Vkind(v) == Qnil)
+		if(Viskind(v, Qnil))
 			vmerr(vm, "attempt to determine size of "
 			      "aggregate with no size");
 		return cvalu(valcval(v));
 	case Tarr:
 		ta = (Ctypearr*)t;
-		if(Vkind(ta->cnt) != Qcval)
+		if(!Viskind(ta->cnt, Qcval))
 			vmerr(vm,
 			      "attempt to determine size of unspecified array");
 		cv = valcval(ta->cnt);
@@ -990,13 +990,13 @@ l1_mkctype_ptr(VM *vm, Imm argc, Val *argv, Val *rv)
 	Cval *cv;
 	if(argc != 1 && argc != 2)
 		vmerr(vm, "wrong number of arguments to mkctype_ptr");
-	if(Vkind(argv[0]) != Qctype)
+	if(!Viskind(argv[0], Qctype))
 		vmerr(vm, "operand 1 to mkctype_ptr must be a pointer ctype");
 	t = valctype(argv[0]);
 	if(argc == 1)
 		t = mkctypeptr(t, Rundef);
 	else{
-		if(Vkind(argv[1]) != Qcval)
+		if(!Viskind(argv[1], Qcval))
 			vmerr(vm, "invalid pointer representation");
 		cv = valcval(argv[1]);
 		if(cvalu(cv) <= Rundef || cvalu(cv) >= Rnrep)
@@ -1051,9 +1051,9 @@ domkctype_su(VM *vm, Tkind tkind, Imm argc, Val *argv, Val *rv)
 		/* TAG FIELDS SIZE */
 		checkarg(vm, argv, 0, Qcid);
 		checkarg(vm, argv, 1, Qvec);
-		if(Vkind(argv[2]) != Qcval
-		   && Vkind(argv[2]) != Qtab
-		   && Vkind(argv[2]) != Qnil)
+		if(!Viskind(argv[2], Qcval)
+		   && !Viskind(argv[2], Qtab)
+		   && !Viskind(argv[2], Qnil))
 			vmerr(vm, "operand 3 to %s must be a cvalue, "
 			      "table, or nil", vmfnid(vm));
 		id = valcid(argv[0]);
@@ -1133,7 +1133,7 @@ l1_mkctype_bitfield(VM *vm, Imm argc, Val *argv, Val *rv)
 		vmerr(vm, "wrong number of arguments to mkctype_bitfield");
 	checkarg(vm, argv, 0, Qctype);
 	checkarg(vm, argv, 1, Qcval);
-	if(Vkind(argv[2]) != Qcval && Vkind(argv[2]) != Qnil)
+	if(!Viskind(argv[2], Qcval) && !Viskind(argv[2], Qnil))
 		vmerr(vm, "operand 3 to mkctype_bitfield must be a "
 		      "cvalue or nil");
 	sub = valctype(argv[0]);
@@ -1209,7 +1209,7 @@ dotypepredicate(VM *vm, Imm argc, Val *argv, Val *rv, char *id, unsigned kind)
 
 	if(argc != 1)
 		vmerr(vm, "wrong number of arguments to %s", id);
-	if(Vkind(argv[0]) != Qctype)
+	if(!Viskind(argv[0], Qctype))
 		vmerr(vm, "operand 1 to %s must be a ctype", id);
 	t = valctype(argv[0]);
 	if(t->tkind == kind)
@@ -1254,7 +1254,7 @@ l1_issu(VM *vm, Imm argc, Val *argv, Val *rv)
 	Ctype *t;
 	if(argc != 1)
 		vmerr(vm, "wrong number of arguments to issu");
-	if(Vkind(argv[0]) != Qctype)
+	if(!Viskind(argv[0], Qctype))
 		vmerr(vm, "operand 1 to issu must be a ctype");
 	t = valctype(argv[0]);
 	if(t->tkind == Tstruct || t->tkind == Tunion)
@@ -1312,7 +1312,7 @@ l1_baseid(VM *vm, Imm argc, Val *argv, Val *rv)
 
 	if(argc != 1)
 		vmerr(vm, "wrong number of arguments to baseid");
-	if(Vkind(argv[0]) != Qctype)
+	if(!Viskind(argv[0], Qctype))
 		vmerr(vm, "operand 1 to baseid must be a base ctype");
 	t = valctype(argv[0]);
 	if(t->tkind != Tbase)
@@ -1327,7 +1327,7 @@ l1_basebase(VM *vm, Imm argc, Val *argv, Val *rv)
 
 	if(argc != 1)
 		vmerr(vm, "wrong number of arguments to basebase");
-	if(Vkind(argv[0]) != Qctype)
+	if(!Viskind(argv[0], Qctype))
 		vmerr(vm, "operand 1 to basebase must be a base ctype");
 	t = valctype(argv[0]);
 	if(t->tkind != Tbase && t->tkind != Tptr)
@@ -1342,7 +1342,7 @@ l1_typekind(VM *vm, Imm argc, Val *argv, Val *rv)
 
 	if(argc != 1)
 		vmerr(vm, "wrong number of arguments to typekind");
-	if(Vkind(argv[0]) != Qctype)
+	if(!Viskind(argv[0], Qctype))
 		vmerr(vm, "operand 1 to typekind must be a ctype");
 	t = valctype(argv[0]);
 	*rv = mkvallitcval(Vuchar, t->tkind);
@@ -1356,7 +1356,7 @@ l1_baserep(VM *vm, Imm argc, Val *argv, Val *rv)
 
 	if(argc != 1)
 		vmerr(vm, "wrong number of arguments to baserep");
-	if(Vkind(argv[0]) != Qctype)
+	if(!Viskind(argv[0], Qctype))
 		vmerr(vm, "operand 1 to baserep must be a base ctype");
 	t = valctype(argv[0]);
 	if(t->tkind != Tbase && t->tkind != Tptr)
@@ -1374,7 +1374,7 @@ l1_subtype(VM *vm, Imm argc, Val *argv, Val *rv)
 
 	if(argc != 1)
 		vmerr(vm, "wrong number of arguments to subtype");
-	if(Vkind(argv[0]) != Qctype)
+	if(!Viskind(argv[0], Qctype))
 		vmerr(vm, err);
 
 	t = valctype(argv[0]);
@@ -1404,7 +1404,7 @@ l1_rettype(VM *vm, Imm argc, Val *argv, Val *rv)
 
 	if(argc != 1)
 		vmerr(vm, "wrong number of arguments to rettype");
-	if(Vkind(argv[0]) != Qctype)
+	if(!Viskind(argv[0], Qctype))
 		vmerr(vm, "operand 1 to rettype must be a function ctype");
 	t = valctype(argv[0]);
 	if(t->tkind != Tfun)
@@ -1422,7 +1422,7 @@ l1_suekind(VM *vm, Imm argc, Val *argv, Val *rv)
 
 	if(argc != 1)
 		vmerr(vm, "wrong number of arguments to suekind");
-	if(Vkind(argv[0]) != Qctype)
+	if(!Viskind(argv[0], Qctype))
 		vmerr(vm, "operand 1 to suekind must be a tagged ctype");
 	t = valctype(argv[0]);
 	if(t->tkind != Tstruct && t->tkind != Tunion
@@ -1438,7 +1438,7 @@ l1_suetag(VM *vm, Imm argc, Val *argv, Val *rv)
 
 	if(argc != 1)
 		vmerr(vm, "wrong number of arguments to suetag");
-	if(Vkind(argv[0]) != Qctype)
+	if(!Viskind(argv[0], Qctype))
 		vmerr(vm, "operand 1 to suetag must be a tagged ctype");
 	t = valctype(argv[0]);
 	if(t->tkind != Tstruct && t->tkind != Tunion
@@ -1455,7 +1455,7 @@ l1_susize(VM *vm, Imm argc, Val *argv, Val *rv)
 
 	if(argc != 1)
 		vmerr(vm, "wrong number of arguments to susize");
-	if(Vkind(argv[0]) != Qctype)
+	if(!Viskind(argv[0], Qctype))
 		vmerr(vm,
 		      "operand 1 to susize must be a struct or union ctype");
 	t = valctype(argv[0]);
@@ -1477,7 +1477,7 @@ l1_suattr(VM *vm, Imm argc, Val *argv, Val *rv)
 
 	if(argc != 1)
 		vmerr(vm, "wrong number of arguments to suattr");
-	if(Vkind(argv[0]) != Qctype)
+	if(!Viskind(argv[0], Qctype))
 		vmerr(vm,
 		      "operand 1 to suattr must be a struct or union ctype");
 	t = valctype(argv[0]);
@@ -1499,7 +1499,7 @@ l1_bitfieldwidth(VM *vm, Imm argc, Val *argv, Val *rv)
 
 	if(argc != 1)
 		vmerr(vm, "wrong number of arguments to bitfieldwidth");
-	if(Vkind(argv[0]) != Qctype)
+	if(!Viskind(argv[0], Qctype))
 		vmerr(vm, "operand 1 to bitfieldwidth "
 		      "must be a bitfield ctype");
 
@@ -1518,7 +1518,7 @@ l1_bitfieldcontainer(VM *vm, Imm argc, Val *argv, Val *rv)
 
 	if(argc != 1)
 		vmerr(vm, "wrong number of arguments to bitfieldcontainer");
-	if(Vkind(argv[0]) != Qctype)
+	if(!Viskind(argv[0], Qctype))
 		vmerr(vm, "operand 1 to bitfieldcontainer "
 		      "must be a bitfield ctype");
 
@@ -1541,7 +1541,7 @@ l1_bitfieldpos(VM *vm, Imm argc, Val *argv, Val *rv)
 
 	if(argc != 1)
 		vmerr(vm, "wrong number of arguments to bitfieldpos");
-	if(Vkind(argv[0]) != Qctype)
+	if(!Viskind(argv[0], Qctype))
 		vmerr(vm, "operand 1 to bitfieldpos must be a bitfield ctype");
 
 	t = valctype(argv[0]);
@@ -1559,7 +1559,7 @@ l1_arraynelm(VM *vm, Imm argc, Val *argv, Val *rv)
 
 	if(argc != 1)
 		vmerr(vm, "wrong number of arguments to arraynelm");
-	if(Vkind(argv[0]) != Qctype)
+	if(!Viskind(argv[0], Qctype))
 		vmerr(vm, "operand 1 to arraynelm must be an array ctype");
 
 	t = valctype(argv[0]);
@@ -1576,7 +1576,7 @@ l1_typedefid(VM *vm, Imm argc, Val *argv, Val *rv)
 
 	if(argc != 1)
 		vmerr(vm, "wrong number of arguments to typedefid");
-	if(Vkind(argv[0]) != Qctype)
+	if(!Viskind(argv[0], Qctype))
 		vmerr(vm, "operand 1 to typedefid must be a typedef ctype");
 	t = valctype(argv[0]);
 	if(t->tkind != Ttypedef)
@@ -1591,7 +1591,7 @@ l1_typedeftype(VM *vm, Imm argc, Val *argv, Val *rv)
 
 	if(argc != 1)
 		vmerr(vm, "wrong number of arguments to typedeftype");
-	if(Vkind(argv[0]) != Qctype)
+	if(!Viskind(argv[0], Qctype))
 		vmerr(vm,
 		      "operand 1 to typedeftype must be a typedef ctype");
 	t = valctype(argv[0]);
@@ -1629,7 +1629,7 @@ l1_params(VM *vm, Imm argc, Val *argv, Val *rv)
 
 	if(argc != 1)
 		vmerr(vm, "wrong number of arguments to params");
-	if(Vkind(argv[0]) != Qctype)
+	if(!Viskind(argv[0], Qctype))
 		vmerr(vm, "operand 1 to params must be a function ctype");
 	t = valctype(argv[0]);
 	if(t->tkind != Tfun)
@@ -1646,7 +1646,7 @@ l1_fields(VM *vm, Imm argc, Val *argv, Val *rv)
 
 	if(argc != 1)
 		vmerr(vm, "wrong number of arguments to fields");
-	if(Vkind(argv[0]) != Qctype)
+	if(!Viskind(argv[0], Qctype))
 		vmerr(vm,
 		      "operand 1 to fields must be a struct or union ctype");
 	t = valctype(argv[0]);
@@ -1673,7 +1673,7 @@ rlookfield(VM *vm, Ctype *xsu, Val tag)
 		vp = vecref(su->field, i);
 		f = valvec(vp);
 		id = vecref(f, Idpos);
-		if(Vkind(id) == Qcid){
+		if(Viskind(id, Qcid)){
 			if(tag == id)
 				return vp;
 			else
@@ -1690,7 +1690,7 @@ rlookfield(VM *vm, Ctype *xsu, Val tag)
 		r = valvec(rp);
 		fa = attroff(vecref(f, Attrpos));
 		ra = attroff(vecref(r, Attrpos));
-		if(Vkind(fa) == Qnil || Vkind(ra) == Qnil)
+		if(Viskind(fa, Qnil) || Viskind(ra, Qnil))
 			/* FIXME: are there cases when
 			   this is sensible? */
 			vmerr(vm,
@@ -1715,13 +1715,13 @@ l1_lookfield(VM *vm, Imm argc, Val *argv, Val *rv)
 
 	if(argc != 2)
 		vmerr(vm, "wrong number of arguments to lookfield");
-	if(Vkind(argv[0]) != Qctype)
+	if(!Viskind(argv[0], Qctype))
 		vmerr(vm, err1);
 	t = valctype(argv[0]);
 	t = chasetype(t);
 	if(t->tkind != Tstruct && t->tkind != Tunion)
 		vmerr(vm, err1);
-	if(Vkind(argv[1]) != Qcid)
+	if(!Viskind(argv[1], Qcid))
 		vmerr(vm, err2);
 	vp = rlookfield(vm, t, argv[1]);
 	if(vp)
@@ -1737,7 +1737,7 @@ l1_enumconsts(VM *vm, Imm argc, Val *argv, Val *rv)
 		= "operand 1 to enumconsts must be a defined enum ctype";
 	if(argc != 1)
 		vmerr(vm, err);
-	if(Vkind(argv[0]) != Qctype)
+	if(!Viskind(argv[0], Qctype))
 		vmerr(vm, err);
 	t = valctype(argv[0]);
 	if(t->tkind != Tenum)

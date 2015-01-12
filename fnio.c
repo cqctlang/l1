@@ -493,11 +493,11 @@ l1__ioctl(VM *vm, Imm argc, Val *argv, Val *rv)
 		vmerr(vm, "wrong number of arguments to ioctl");
 	checkarg(vm, argv, 0, Qcval);
 	checkarg(vm, argv, 1, Qcval);
-	if(Vkind(argv[2]) != Qstr && Vkind(argv[2]) != Qcval)
+	if(!Viskind(argv[2], Qstr) && !Viskind(argv[2], Qcval))
 		vmerr(vm, "argument 3 to ioctl must be a cvalue or string");
 	fd = valcval(argv[0]);
 	req = valcval(argv[1]);
-	if(Vkind(argv[2]) == Qstr){
+	if(Viskind(argv[2], Qstr)){
 		bufs = valstr(argv[2]);
 		p = strdata(bufs);
 	}else{
@@ -707,13 +707,13 @@ l1__popen(VM *vm, Imm argc, Val *argv, Val *rv)
 	if(argc == 0)
 		vmerr(vm, "wrong number of arguments to popen");
 	flags = 0;
-	if(Vkind(argv[argc-1]) == Qcval){
+	if(Viskind(argv[argc-1], Qcval)){
 		cv = valcval(argv[argc-1]);
 		flags = cvalu(cv);
 		argc--;
 		if(argc == 0)
 			vmerr(vm, "wrong number of arguments to popen");
-	}else if(Vkind(argv[argc-1]) != Qstr)
+	}else if(!Viskind(argv[argc-1], Qstr))
 		vmerr(vm, "final argument to popen must be a string or cvalue");
 
 	for(m = 0; m < argc; m++)
@@ -752,7 +752,7 @@ setfdsin(VM *vm, List *l, fd_set *f)
 	n = -1;
 	for(i = 0; i < m; i++){
 		v = listref(l, i);
-		if(Vkind(v) != Qfd)
+		if(!Viskind(v, Qfd))
 			vmerr(vm, "select on non file descriptor");
 		fd = valfd(v);
 		if(!issysfd(fd))
@@ -840,12 +840,12 @@ l1_select(VM *vm, Imm argc, Val *argv, Val *rv)
 		if(listlen(t) != 2)
 			vmerr(vm, "bad timeout specifier");
 		v = listref(t, 0);
-		if(Vkind(v) != Qcval)
+		if(!Viskind(v, Qcval))
 			vmerr(vm, "bad timeout specifier");
 		cv = valcval(v);
 		tv.tv_sec = cvalu(cv);
 		v = listref(t, 1);
-		if(Vkind(v) != Qcval)
+		if(!Viskind(v, Qcval))
 			vmerr(vm, "bad timeout specifier");
 		cv = valcval(v);
 		tv.tv_usec = cvalu(cv);

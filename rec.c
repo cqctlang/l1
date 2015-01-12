@@ -52,7 +52,7 @@ recis(VM *vm, Imm argc, Val *argv, Val *disp, Val *rv)
 	if(argc != 1)
 		vmerr(vm, "wrong number of arguments to %.*s",
 		      (int)mn->len, strdata(mn));
-	if(Vkind(argv[0]) != Qrec){
+	if(!Viskind(argv[0], Qrec)){
 		*rv = mkvalcval2(cval0);
 		return;
 	}
@@ -97,7 +97,7 @@ recfmt(VM *vm, Imm argc, Val *argv, Val *disp, Val *rv)
 	if(argc != 1)
 		vmerr(vm, "wrong number of arguments to %.*s",
 		      (int)mn->len, strdata(mn));
-	if(Vkind(argv[0]) != Qrec)
+	if(!Viskind(argv[0], Qrec))
 		vmerr(vm, "operand 1 to %.*s must be a %s record",
 		      (int)mn->len, strdata(mn), ciddata(rd->name));
 	r = valrec(argv[0]);
@@ -124,7 +124,7 @@ recget(VM *vm, Imm argc, Val *argv, Val *disp, Val *rv)
 	if(argc != 1)
 		vmerr(vm, "wrong number of arguments to %.*s",
 		      (int)mn->len, strdata(mn));
-	if(Vkind(argv[0]) != Qrec)
+	if(!Viskind(argv[0], Qrec))
 		vmerr(vm, "operand 1 to %.*s must be a %s record",
 		      (int)mn->len, strdata(mn), ciddata(rd->name));
 	r = valrec(argv[0]);
@@ -155,7 +155,7 @@ recset(VM *vm, Imm argc, Val *argv, Val *disp, Val *rv)
 	if(argc != 2)
 		vmerr(vm, "wrong number of arguments to %.*s",
 		      (int)mn->len, strdata(mn));
-	if(Vkind(argv[0]) != Qrec)
+	if(!Viskind(argv[0], Qrec))
 		vmerr(vm, "operand 1 to %.*s must be a %s record",
 		      (int)mn->len, strdata(mn), ciddata(rd->name));
 	r = valrec(argv[0]);
@@ -267,7 +267,7 @@ l1_mkrd(VM *vm, Imm argc, Val *argv, Val *rv)
 	nf = listlen(lst);
 	for(n = 0; n < nf; n++){
 		v = listref(lst, n);
-		if(Vkind(v) != Qcid)
+		if(!Viskind(v, Qcid))
 			vmerr(vm, "operand 2 to mkrd must be a "
 			      "list of field names");
 	}

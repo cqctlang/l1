@@ -126,7 +126,7 @@ Imm
 valimm(Val v)
 {
 	Cval *cv;
-	if(Vkind(v) != Qcval)
+	if(!Viskind(v, Qcval))
 		fatal("valimm on non-cval");
 	cv = (Cval*)v;
 	return cvalu(cv);
@@ -136,7 +136,7 @@ Val
 valboxed(Val v)
 {
 	Box *b;
-	if(Vkind(v) != Qbox)
+	if(!Viskind(v, Qbox))
 		fatal("valboxed on non-box");
 	b = (Box*)v;
 	return b->v;
@@ -832,13 +832,13 @@ vmint(VM *vm)
 	v = envlookup(vm->top, "$raiseinterrupt");
 	if(v == 0)
 		bug();
-	if(Vkind(v) != Qcl)
+	if(!Viskind(v, Qcl))
 		bug();
 	cl = valcl(v);
 	v = envlookup(vm->top, "interrupthandler");
 	if(v == 0)
 		vmerr(vm, "no default interrupt handler");
-	if(Vkind(v) != Qcl)
+	if(!Viskind(v, Qcl))
 		vmerr(vm, "default interrupt handler is not a function");
 
 	/* $raiseinterrupt expects the following stack:
@@ -1831,9 +1831,9 @@ vapply(VM *vm)
 	fp = vm->fp;
 	fn = fp[Oarg0];
 	lv = fp[Oarg0+oarg-1];
-	if(Vkind(fn) != Qcl)
+	if(!Viskind(fn, Qcl))
 		vmerr(vm, "first argument to apply must be a procedure");
-	if(Vkind(lv) != Qlist)
+	if(!Viskind(lv, Qlist))
 		vmerr(vm, "final argument to apply must be a list");
 	l = vallist(lv);
 	m = listlen(l);
@@ -2025,15 +2025,15 @@ xunop(VM *vm, ikind op, Val v)
 	Cbase cb;
 
 	if(op == Inot) {
-		if(Vkind(v) == Qcval)
+		if(Viskind(v, Qcval))
 			goto cval;
-		else if(Vkind(v) == Qnil)
+		else if(Viskind(v, Qnil))
 			cvr = cval1;
 		else
 			cvr = cval0;
 		goto out;
 	}
-	if(Vkind(v) != Qcval)
+	if(!Viskind(v, Qcval))
 		vmerr(vm, "incompatible operand for unary %s", opstr[op]);
 cval:
 	cv = intpromote(vm, valcval(v));
@@ -2499,7 +2499,7 @@ xbinop(VM *vm, ikind op, Val v1, Val v2)
 	Str *s1, *s2;
 	Imm nv;
 
-	if(Vkind(v1) == Qcval && Vkind(v2) == Qcval) {
+	if(Viskind(v1, Qcval) && Viskind(v2, Qcval)) {
 		cv1 = valcval(v1);
 		cv2 = valcval(v2);
 		switch(op) {
@@ -2531,7 +2531,7 @@ xbinop(VM *vm, ikind op, Val v1, Val v2)
 		return mkvalcval2(cvr);
 	}
 
-	if(Vkind(v1) == Qstr && Vkind(v2) == Qstr) {
+	if(Viskind(v1, Qstr) && Viskind(v2, Qstr)) {
 		s1 = valstr(v1);
 		s2 = valstr(v2);
 dostr:
@@ -2546,7 +2546,7 @@ dostr:
 		}
 	}
 
-	if(Vkind(v1) == Qstr && Vkind(v2) == Qcval) {
+	if(Viskind(v1, Qstr) && Viskind(v2, Qcval)) {
 		cv2 = valcval(v2);
 		if(ischarcval(cv2)) {
 			char v = cvalu(cv2);
@@ -2562,7 +2562,7 @@ dostr:
 		/* fall through */
 	}
 
-	if(Vkind(v2) == Qstr && Vkind(v1) == Qcval) {
+	if(Viskind(v2, Qstr) && Viskind(v1, Qcval)) {
 		cv1 = valcval(v1);
 		if(ischarcval(cv1)) {
 			char v = cvalu(cv1);
@@ -2617,7 +2617,7 @@ vkcapture(VM *vm)
 
 	if(vm->vc != 1)
 		vmerr(vm, "wrong number of arguments to kcapture");
-	if(Vkind(vm->fp[Oarg0]) != Qcl)
+	if(!Viskind(vm->fp[Oarg0], Qcl))
 		vmerr(vm, "argument 1 to kcapture must be a procedure");
 	c = kcapture(vm);
 	vm->cl = valcl(vm->fp[Oarg0]);
@@ -2739,7 +2739,7 @@ vkresume(VM *vm)
 {
 	Val k;
 	k = cldisp(vm->cl)[0];
-	if(Vkind(k) != Qcont)
+	if(!Viskind(k, Qcont))
 		bug();
 	vm->klink = valcont(k);
 //	vm->ac = vm->fp[Oarg0];
@@ -2794,7 +2794,7 @@ l1_cref(VM *vm, Imm argc, Val *argv, Val *rv)
 
 	if(argc != 3)
 		vmerr(vm, "wrong number of arguments to cref");
-	if(Vkind(argv[0]) != Qdom)
+	if(!Viskind(argv[0], Qdom))
 		vmerr(vm, "attempt to derive location from non-domain");
 	checkarg(vm, argv, 1, Qctype);
 	checkarg(vm, argv, 2, Qcval);
@@ -2840,7 +2840,7 @@ dobitfieldgeom(Ctype *t, BFgeom *bfg)
 	Ctypebitfield *b;
 
 	b = (Ctypebitfield*)t;
-	if(Vkind(b->bit0) != Qcval)
+	if(!Viskind(b->bit0, Qcval))
 		return -1;
 	bit0 = valcval(b->bit0);
 	bs = valcval(b->cnt);
@@ -2861,7 +2861,7 @@ _callget(VM *vm, As *as, Imm off, Imm len)
 	argv[1] = mkvalrange2(mkcval(litdom, litdom->ns->base[Vptr], off),
 			      mkcval(litdom, litdom->ns->base[Vptr], len));
 	rv = ccall(vm, as->get, 2, argv);
-	if(Vkind(rv) != Qstr)
+	if(!Viskind(rv, Qstr))
 		vmerr(vm, "get method returned non-string");
 	s = valstr(rv);
 	if(s->len != len)
@@ -2882,7 +2882,7 @@ l1_cval(VM *vm, Imm argc, Val *argv, Val *rv)
 
 	if(argc != 3)
 		vmerr(vm, "wrong number of arguments to cval");
-	if(Vkind(argv[0]) != Qdom && Vkind(argv[0]) != Qns)
+	if(!Viskind(argv[0], Qdom) && !Viskind(argv[0], Qns))
 		vmerr(vm, "operand 1 to cval must be a domain or namespace");
 	checkarg(vm, argv, 1, Qctype);
 	checkarg(vm, argv, 2, Qcval);
@@ -2908,7 +2908,7 @@ l1_cval(VM *vm, Imm argc, Val *argv, Val *rv)
 		return;
 	}
 
-	if(Vkind(argv[0]) != Qdom)
+	if(!Viskind(argv[0], Qdom))
 		vmerr(vm, "attempt to access address space through non-domain");
 	d = valdom(argv[0]);
 	switch(b->tkind) {
@@ -3019,27 +3019,27 @@ xxcast(VM *vm, Val tv, Val ov)
 	Ctype *t;
 
 	rv = 0;
-	if(Vkind(ov) != Qcval && Vkind(ov) != Qstr)
+	if(!Viskind(ov, Qcval) && !Viskind(ov, Qstr))
 		vmerr(vm, "operand 2 to extended cast operator must be a"
 		      " cvalue or string");
-	if(Vkind(ov) == Qstr)
+	if(Viskind(ov, Qstr))
 		cv = str2voidstar(litdom->ns, valstr(ov));
 	else
 		cv = valcval(ov);
-	if(Vkind(tv) != Qctype && Vkind(ov) == Qstr)
+	if(!Viskind(tv, Qctype) && Viskind(ov, Qstr))
 		vmerr(vm, "illegal conversion");
-	if(Vkind(tv) == Qctype) {
+	if(Viskind(tv, Qctype)) {
 		t = valctype(tv);
 		if(!iscvaltype(t))
 			vmerr(vm, "bad type conversion");
 		rv = mkvalcval2(typecast(vm, t, cv));
-	}else if(Vkind(tv) == Qdom) {
+	}else if(Viskind(tv, Qdom)) {
 		d = valdom(tv);
 		rv = mkvalcval2(domcast(vm, d, cv));
-	}else if(Vkind(tv) == Qns) {
+	}else if(Viskind(tv, Qns)) {
 		d = mkdom(valns(tv), cv->dom->as, 0);
 		rv = mkvalcval2(domcast(vm, d, cv));
-	}else if(Vkind(tv) == Qas) {
+	}else if(Viskind(tv, Qas)) {
 		d = mkdom(cv->dom->ns, valas(tv), 0);
 		rv = mkvalcval2(domcast(vm, d, cv));
 	}else
@@ -3409,7 +3409,7 @@ _dolooktype(VM *vm, Ctype *t, Ns *ns)
 		if(ns->looktype == 0)
 			return 0;
 		rv = ccall(vm, ns->looktype, 2, argv);
-		if(Vkind(rv) == Qnil)
+		if(Viskind(rv, Qnil))
 			return 0;
 		return valctype(rv);
 	case Tptr:
@@ -3476,7 +3476,7 @@ nscache1base(VM *vm, Ns *ns, Cbase cb)
 	argv[0] = mkvalns(ns);
 	argv[1] = mkvalctype(mkctypebase(cb, Rundef));
 	rv = ccall(vm, ns->looktype, 2, argv);
-	if(Vkind(rv) == Qnil)
+	if(Viskind(rv, Qnil))
 		vmerr(vm, "name space does not define %s", cbasename[cb]);
 	ns->base[cb] = valctype(rv);
 }
@@ -3494,11 +3494,11 @@ nscachebase(VM *vm, Ns *ns)
 	argv[0] = mkvalns(ns);
 	argv[1] = mkvalctype(mkctypeptr(mkctypevoid(), Rundef));
 	rv = ccall(vm, ns->looktype, 2, argv);
-	if(Vkind(rv) == Qnil) {
+	if(Viskind(rv, Qnil)) {
 		argv[1] = mkvalctype(mkctypebase(Vptr, Rundef));
 		rv = ccall(vm, ns->looktype, 2, argv);
 	}
-	if(Vkind(rv) == Qnil)
+	if(Viskind(rv, Qnil))
 		vmerr(vm, "name space does not define void*");
 	ns->base[Vptr] = mkctypebase(Vptr, typerep(valctype(rv)));
 }
@@ -3629,7 +3629,7 @@ resolvetid(VM *vm, Val tv, NSctx *ctx)
 	/* do we have an unprocessed definition for the type? */
 	rv = tabget(ctx->rawtype, tv);
 	if(rv) {
-		if(Vkind(rv) != Qctype)
+		if(!Viskind(rv, Qctype))
 			vmerr(vm, "invalid raw type table");
 		t = valctype(tv);
 		new = mkctypedef(typetid(t), 0);
@@ -3715,7 +3715,7 @@ resolvetag(VM *vm, Val tv, NSctx *ctx)
 	/* do we have an unprocessed definition for the type? */
 	rv = tabget(ctx->rawtype, tv);
 	if(rv) {
-		if(Vkind(rv) != Qctype)
+		if(!Viskind(rv, Qctype))
 			vmerr(vm, "invalid raw type table");
 		t = valctype(rv);
 		switch(t->tkind) {
@@ -3724,7 +3724,7 @@ resolvetag(VM *vm, Val tv, NSctx *ctx)
 			ts = (Ctypesu*)t;
 			fld = ts->field;
 			attr = ts->attr;
-			if(fld == 0 || Vkind(attr) == Qnil)
+			if(fld == 0 || Viskind(attr, Qnil))
 				goto error;
 			nfld = mkvec(fld->len);
 			new = mkctypesu(t->tkind, ts->tag, nfld, attr);
@@ -4048,7 +4048,7 @@ mknstypesym(VM *vm, Tab *type, Tab *sym, Str *name)
 		vp = vecref(vec, len+m);	/* symbol #m */
 		s = valvec(vp);
 		op = vecref(s, Attrpos);
-		if(Vkind(op) == Qnil)
+		if(Viskind(op, Qnil))
 			continue;
 		_listappend(ls, vp);
 	}
@@ -4108,7 +4108,7 @@ mknsraw(VM *vm, Ns *ons, Tab *rawtype, Tab *rawsym, Str *name)
 			lnk = (Pair*)x;
 			v = linkkey(lnk);
 			x = linknext(lnk);
-			if(Vkind(v) != Qctype)
+			if(!Viskind(v, Qctype))
 				vmerr(vm, "invalid raw type table");
 			resolvetypename(vm, valctype(v), &ctx);
 		}
@@ -4123,9 +4123,9 @@ mknsraw(VM *vm, Ns *ons, Tab *rawtype, Tab *rawsym, Str *name)
 			idv = linkkey(lnk);
 			vecv = linkval(lnk);
 			x = linknext(lnk);
-			if(Vkind(idv) != Qcid)
+			if(!Viskind(idv, Qcid))
 				vmerr(vm, "invalid raw symbol table");
-			if(Vkind(vecv) != Qvec)
+			if(!Viskind(vecv, Qvec))
 				vmerr(vm, "invalid raw symbol table");
 			vec = valvec(vecv);
 			if(!issym(vec))
@@ -4359,7 +4359,7 @@ vmstdout(VM *vm)
 	v = envlookup(vm->top, "stdout");
 	if(v == 0)
 		vmerr(vm, "stdout is undefined");
-	if(Vkind(v) != Qfd)
+	if(!Viskind(v, Qfd))
 		vmerr(vm, "stdout not bound to a file descriptor");
 	return valfd(v);
 }
@@ -4375,7 +4375,7 @@ dogc(VM *vm, u32 g, u32 tg)
 	vm->gctime += usec()-b;
 	b = usec();
 	v = cqctenvlook(vm, "callpostgc");
-	if(v && Vkind(v) == Qcl)
+	if(v && Viskind(v, Qcl))
 		/* we need to preserve the current
 		   value of AC.  this dance does so
 		   without requiring a special gc-safe
@@ -4489,7 +4489,7 @@ dovm(VM *vm)
 			continue;
 		LABEL Ichkcl:
 			val = getvalrand(vm, &i->op1);
-			if(Vkind(val) != Qcl)
+			if(!Viskind(val, Qcl))
 				vmerr(vm, "attempt to call non-procedure");
 			continue;
 		LABEL Ichkint:
@@ -4606,7 +4606,7 @@ vmfnid(VM *vm)
 void
 checkarg(VM *vm, Val *argv, unsigned arg, Qkind qkind)
 {
-	if(Vkind(argv[arg]) != qkind)
+	if(!Viskind(argv[arg], qkind))
 		vmerr(vm, "operand %d to %s must be a %s",
 		      arg+1, vmfnid(vm), qname[qkind]);
 }
@@ -4666,7 +4666,7 @@ docmp(VM *vm, Val a, Val b, Closure *cmp)
 	argv[0] = a;
 	argv[1] = b;
 	rv = ccall(vm, cmp, 2, argv);
-	if(Vkind(rv) != Qcval)
+	if(!Viskind(rv, Qcval))
 		vmerr(vm, "comparison function must return an integer cvalue");
 	cv = valcval(rv);
 	if(!isbasecval(cv))
@@ -4727,7 +4727,7 @@ l1_sort(VM *vm, Imm argc, Val *argv, Val *rv)
 
 	if(argc != 2)
 		vmerr(vm, "wrong number of arguments to sort");
-	if(Vkind(argv[0]) != Qlist && Vkind(argv[0]) != Qvec)
+	if(!Viskind(argv[0], Qlist) && !Viskind(argv[0], Qvec))
 		vmerr(vm, "operand 1 to sort must a list or vector");
 	checkarg(vm, argv, 1, Qcl);
 	cmp = valcl(argv[1]);
@@ -4790,7 +4790,7 @@ l1_bsearch(VM *vm, Imm argc, Val *argv, Val *rv)
 
 	if(argc != 3)
 		vmerr(vm, "wrong number of arguments to bsearch");
-	if(Vkind(argv[1]) != Qlist && Vkind(argv[1]) != Qvec)
+	if(!Viskind(argv[1], Qlist) && !Viskind(argv[1], Qvec))
 		vmerr(vm, "operand 2 to bsearch must a list or vector");
 	checkarg(vm, argv, 2, Qcl);
 	cmp = valcl(argv[2]);
@@ -4822,16 +4822,16 @@ l1_looktype(VM *vm, Imm argc, Val *argv, Val *rv)
 		vmerr(vm, "wrong number of arguments to looktype");
 
 	ns = 0;
-	if(Vkind(argv[0]) == Qns)
+	if(Viskind(argv[0], Qns))
 		ns = valns(argv[0]);
-	else if(Vkind(argv[0]) == Qdom) {
+	else if(Viskind(argv[0], Qdom)) {
 		dom = valdom(argv[0]);
 		ns = dom->ns;
 	}else
 		vmerr(vm,
 		      "operand 1 to looktype must be a namespace or domain");
 
-	if(Vkind(argv[1]) != Qctype)
+	if(!Viskind(argv[1], Qctype))
 		vmerr(vm, "operand 2 to looktype must be a typename");
 	t = valctype(argv[1]);
 	t = dolooktype(vm, t, ns);
@@ -4849,16 +4849,16 @@ l1_looksym(VM *vm, Imm argc, Val *argv, Val *rv)
 		vmerr(vm, "wrong number of arguments to looksym");
 
 	ns = 0;
-	if(Vkind(argv[0]) == Qns)
+	if(Viskind(argv[0], Qns))
 		ns = valns(argv[0]);
-	else if(Vkind(argv[0]) == Qdom) {
+	else if(Viskind(argv[0], Qdom)) {
 		dom = valdom(argv[0]);
 		ns = dom->ns;
 	}else
 		vmerr(vm,
 		      "operand 1 to looksym must be a namespace or domain");
 
-	if(Vkind(argv[1]) != Qcid)
+	if(!Viskind(argv[1], Qcid))
 		vmerr(vm, "operand 2 to looksym must be an identifier");
 	*rv = ccall(vm, ns->looksym, argc, argv);
 }
@@ -4872,10 +4872,10 @@ l1_domof(VM *vm, Imm argc, Val *argv, Val *rv)
 	if(argc != 1)
 		vmerr(vm, "wrong number of arguments to domof");
 	arg0 = argv[0];
-	if(Vkind(arg0) == Qcval) {
+	if(Viskind(arg0, Qcval)) {
 		cv = valcval(arg0);
 		*rv = mkvaldom(cv->dom);
-	}else if(Vkind(arg0) == Qstr)
+	}else if(Viskind(arg0, Qstr))
 		*rv = mkvaldom(litdom);
 	else
 		vmerr(vm,
@@ -4913,9 +4913,9 @@ Str*
 valstrorcval(VM *vm, char *fn, Val *argv, unsigned arg)
 {
 	Cval *cv;
-	if(Vkind(argv[arg]) == Qstr)
+	if(Viskind(argv[arg], Qstr))
 		return valstr(argv[arg]);
-	else if(Vkind(argv[arg]) == Qcval) {
+	else if(Viskind(argv[arg], Qcval)) {
 		cv = valcval(argv[arg]);
 		if(isstrcval(cv))
 			return stringof(vm, cv);
@@ -4930,13 +4930,13 @@ static Str*
 valstrorcvalornil(VM *vm, char *fn, Val *argv, unsigned arg)
 {
 	Cval *cv;
-	if(Vkind(argv[arg]) == Qstr)
+	if(Viskind(argv[arg], Qstr))
 		return valstr(argv[arg]);
-	else if(Vkind(argv[arg]) == Qcval) {
+	else if(Viskind(argv[arg], Qcval)) {
 		cv = valcval(argv[arg]);
 		if(isstrcval(cv))
 			return stringof(vm, cv);
-	}else if(Vkind(argv[arg]) == Qnil)
+	}else if(Viskind(argv[arg], Qnil))
 		return 0;
 	vmerr(vm, "operand %d to %s must be a string, char* cvalue, "
 	      "uchar* cvalue, or nil",
@@ -4968,7 +4968,7 @@ callget(VM *vm, As *as, Imm off, Imm len)
 	argv[1] = mkvalrange2(mkcval(litdom, litdom->ns->base[Vptr], off),
 			      mkcval(litdom, litdom->ns->base[Vptr], len));
 	rv = ccall(vm, as->get, 2, argv);
-	if(Vkind(rv) != Qstr)
+	if(!Viskind(rv, Qstr))
 		vmerr(vm, "get method returned non-string");
 	s = valstr(rv);
 	if(s->len != len)
@@ -4988,7 +4988,7 @@ callmap(VM *vm, As *as)
 	Val argv[1], rv;
 	argv[0] = mkvalas(as);
 	rv = ccall(vm, as->map, 1, argv);
-	if(Vkind(rv) != Qvec)
+	if(!Viskind(rv, Qvec))
 		vmerr(vm, "map method returned invalid value");
 	return valvec(rv);
 }
@@ -5001,7 +5001,7 @@ callismapped(VM *vm, As *as, Imm off, Imm len)
 	argv[1] = mkvalrange2(mkcval(litdom, litdom->ns->base[Vptr], off),
 			      mkcval(litdom, litdom->ns->base[Vptr], len));
 	rv = ccall(vm, as->ismapped, 2, argv);
-	if(Vkind(rv) != Qcval)
+	if(!Viskind(rv, Qcval))
 		vmerr(vm, "ismapped method returned invalid value");
 	return valcval(rv);
 }
@@ -5015,7 +5015,7 @@ mapstab(VM *vm, Vec *map, Imm addr, Imm len)
 
 	for(m = 0; m < map->len; m++) {
 		rp = vecref(map, m);
-		if(Vkind(rp) != Qrange)
+		if(!Viskind(rp, Qrange))
 			vmerr(vm, "address space map returned invalid value");
 		r = valrange(rp);
 		if(cvalu(r->beg) > addr)
@@ -5159,10 +5159,10 @@ l1_typeof(VM *vm, Imm argc, Val *argv, Val *rv)
 	if(argc != 1)
 		vmerr(vm, "wrong number of arguments to $typeof");
 	t = 0;
-	if(Vkind(argv[0]) == Qcval) {
+	if(Viskind(argv[0], Qcval)) {
 		cv = valcval(argv[0]);
 		t = cv->type;
-	}else if(Vkind(argv[0]) == Qctype)
+	}else if(Viskind(argv[0], Qctype))
 		t = valctype(argv[0]);
 	else
 		vmerr(vm, "operand 1 to $typeof must be a cvalue or type");
@@ -5174,7 +5174,7 @@ l1_isnil(VM *vm, Imm argc, Val *argv, Val *rv)
 {
 	if(argc != 1)
 		vmerr(vm, "wrong number of arguments to isnil");
-	if(Vkind(argv[0]) == Qnil)
+	if(Viskind(argv[0], Qnil))
 		*rv = mkvalcval2(cval1);
 	else
 		*rv = mkvalcval2(cval0);
@@ -5343,20 +5343,20 @@ l1_mkfd(VM *vm, Imm argc, Val *argv, Val *rv)
 
 	if(argc != 3 && argc != 4)
 		vmerr(vm, "wrong number of arguments to mkfd");
-	if(Vkind(argv[0]) != Qcl && Vkind(argv[0]) != Qnil)
+	if(!Viskind(argv[0], Qcl) && !Viskind(argv[0], Qnil))
 		vmerr(vm, "argument 1 to mkfd must be a function or nil");
-	if(Vkind(argv[1]) != Qcl && Vkind(argv[1]) != Qnil)
+	if(!Viskind(argv[1], Qcl) && !Viskind(argv[1], Qnil))
 		vmerr(vm, "argument 2 to mkfd must be a function or nil");
-	if(Vkind(argv[2]) != Qcl && Vkind(argv[2]) != Qnil)
+	if(!Viskind(argv[2], Qcl) && !Viskind(argv[2], Qnil))
 		vmerr(vm, "argument 3 to mkfd must be a function or nil");
 
 	r = w = c = 0;
 	n = 0;
-	if(Vkind(argv[0]) == Qcl)
+	if(Viskind(argv[0], Qcl))
 		r = valcl(argv[0]);
-	if(Vkind(argv[1]) == Qcl)
+	if(Viskind(argv[1], Qcl))
 		w = valcl(argv[1]);
-	if(Vkind(argv[2]) == Qcl)
+	if(Viskind(argv[2], Qcl))
 		c = valcl(argv[2]);
 	if(argc == 4) {
 		checkarg(vm, argv, 3, Qstr);
@@ -5506,9 +5506,9 @@ l1_mkattr(VM *vm, Imm argc, Val *argv, Val *rv)
 {
 	if(argc != 1)
 		vmerr(vm, "wrong number of arguments to mkattr");
-	if(Vkind(argv[0]) != Qcval
-	   && Vkind(argv[0]) != Qtab
-	   && Vkind(argv[0]) != Qnil)
+	if(!Viskind(argv[0], Qcval)
+	   && !Viskind(argv[0], Qtab)
+	   && !Viskind(argv[0], Qnil))
 		vmerr(vm, "argument 1 to mkattr must be a table, cvalue, "
 		      "or nil");
 	*rv = mkattr(argv[0]);
@@ -5571,13 +5571,13 @@ l1_nameof(VM *vm, Imm argc, Val *argv, Val *rv)
 	name = 0;
 	if(argc != 1)
 		vmerr(vm, "wrong number of arguments to nameof");
-	if(Vkind(argv[0]) == Qdom) {
+	if(Viskind(argv[0], Qdom)) {
 		dom = valdom(argv[0]);
 		name = dom->name;
-	}else if(Vkind(argv[0]) == Qns) {
+	}else if(Viskind(argv[0], Qns)) {
 		ns = valns(argv[0]);
 		name = ns->name;
-	}else if(Vkind(argv[0]) == Qas) {
+	}else if(Viskind(argv[0], Qas)) {
 		as = valas(argv[0]);
 		name = as->name;
 	}else
@@ -5598,21 +5598,21 @@ l1_setname(VM *vm, Imm argc, Val *argv, Val *rv)
 	name = 0;
 	if(argc != 2)
 		vmerr(vm, "wrong number of arguments to setname");
-	if(Vkind(argv[1]) != Qnil && Vkind(argv[1]) != Qstr)
+	if(!Viskind(argv[1], Qnil) && !Viskind(argv[1], Qstr))
 		vmerr(vm, "argument 2 to setname must be a string or nil");
-	if(Vkind(argv[1]) == Qstr)
+	if(Viskind(argv[1], Qstr))
 		name = valstr(argv[1]);
 	else
 		name = 0;
-	if(Vkind(argv[0]) == Qdom) {
+	if(Viskind(argv[0], Qdom)) {
 		dom = valdom(argv[0]);
 		gcwb(mkvaldom(dom));
 		dom->name = name;
-	}else if(Vkind(argv[0]) == Qns) {
+	}else if(Viskind(argv[0], Qns)) {
 		ns = valns(argv[0]);
 		gcwb(mkvalns(ns));
 		ns->name = name;
-	}else if(Vkind(argv[0]) == Qas) {
+	}else if(Viskind(argv[0], Qas)) {
 		as = valas(argv[0]);
 		gcwb(mkvalas(as));
 		as->name = name;
@@ -5630,9 +5630,9 @@ l1_asof(VM *vm, Imm argc, Val *argv, Val *rv)
 	if(argc != 1)
 		vmerr(vm, "wrong number of arguments to asof");
 	dom = 0;
-	if(Vkind(argv[0]) == Qdom)
+	if(Viskind(argv[0], Qdom))
 		dom = valdom(argv[0]);
-	else if(Vkind(argv[0]) == Qcval) {
+	else if(Viskind(argv[0], Qcval)) {
 		cv = valcval(argv[0]);
 		dom = cv->dom;
 	}else
@@ -5649,9 +5649,9 @@ l1_nsof(VM *vm, Imm argc, Val *argv, Val *rv)
 	dom = 0;
 	if(argc != 1)
 		vmerr(vm, "wrong number of arguments to nsof");
-	if(Vkind(argv[0]) == Qdom)
+	if(Viskind(argv[0], Qdom))
 		dom = valdom(argv[0]);
-	else if(Vkind(argv[0]) == Qcval) {
+	else if(Viskind(argv[0], Qcval)) {
 		cv = valcval(argv[0]);
 		dom = cv->dom;
 	}else
@@ -5667,10 +5667,10 @@ l1_dispatchtab(VM *vm, Imm argc, Val *argv, Val *rv)
 
 	if(argc != 1)
 		vmerr(vm, "wrong number of arguments to dispatchtab");
-	if(Vkind(argv[0]) == Qns) {
+	if(Viskind(argv[0], Qns)) {
 		ns = valns(argv[0]);
 		*rv = mkvaltab(ns->mtab);
-	}else if(Vkind(argv[0]) == Qas) {
+	}else if(Viskind(argv[0], Qas)) {
 		as = valas(argv[0]);
 		*rv = mkvaltab(as->mtab);
 	}else
@@ -5690,9 +5690,9 @@ l1_nsreptype(VM *vm, Imm argc, Val *argv, Val *rv)
 	if(argc != 2)
 		vmerr(vm, "wrong number of arguments to nsreptype");
 	checkarg(vm, argv, 1, Qcval);
-	if(Vkind(argv[0]) == Qns)
+	if(Viskind(argv[0], Qns))
 		ns = valns(argv[0]);
-	else if(Vkind(argv[0]) == Qdom) {
+	else if(Viskind(argv[0], Qdom)) {
 		dom = valdom(argv[0]);
 		ns = dom->ns;
 	}else
@@ -5719,10 +5719,10 @@ l1_nsptr(VM *vm, Imm argc, Val *argv, Val *rv)
 	if(argc != 1)
 		vmerr(vm, "wrong number of arguments to nsptr");
 	arg0 = argv[0];
-	if(Vkind(arg0) != Qns && Vkind(arg0) != Qdom)
+	if(!Viskind(arg0, Qns) && !Viskind(arg0, Qdom))
 		vmerr(vm,
 		      "operand 1 to nsptr must be a namespace or domain");
-	if(Vkind(arg0) == Qns)
+	if(Viskind(arg0, Qns))
 		ns = valns(arg0);
 	else{
 		dom = valdom(arg0);
@@ -5957,11 +5957,11 @@ cntrlen(VM *vm, char *name, Val v)
 		break;
 	case Qpair:
 		len = 0;
-		while(Vkind(v) == Qpair) {
+		while(Viskind(v, Qpair)) {
 			len++;
 			p = valpair(v);
 			v = p->cdr;
-			if(Vkind(v) != Qpair && Vkind(v) != Qnil)
+			if(!Viskind(v, Qpair) && !Viskind(v, Qnil))
 				vmerr(vm, "attempt to determine length "
 				      "of improper list");
 		}
@@ -6027,7 +6027,7 @@ l1_count(VM *vm, Imm argc, Val *argv, Val *rv)
 				m++;
 		break;
 	case Qstr:
-		if(Vkind(v) != Qcval)
+		if(!Viskind(v, Qcval))
 			vmerr(vm, "operand 2 to count must a character when"
 			      " operand 1 is a string");
 		cv = valcval(v);
@@ -6075,7 +6075,7 @@ l1_index(VM *vm, Imm argc, Val *argv, Val *rv)
 				goto gotit;
 		break;
 	case Qstr:
-		if(Vkind(v) != Qcval)
+		if(!Viskind(v, Qcval))
 			vmerr(vm, "operand 2 to index must a character when"
 			      " operand 1 is a string");
 		cv = valcval(v);
@@ -6127,7 +6127,7 @@ l1_ismember(VM *vm, Imm argc, Val *argv, Val *rv)
 				goto gotit;
 		break;
 	case Qstr:
-		if(Vkind(v) != Qcval)
+		if(!Viskind(v, Qcval))
 			vmerr(vm, "operand 2 to ismember must a character when"
 			      " operand 1 is a string");
 		cv = valcval(v);
@@ -6220,9 +6220,9 @@ l1_pop(VM *vm, Imm argc, Val *argv, Val *rv)
 	if(argc != 1)
 		vmerr(vm, "wrong number of arguments to pop");
 	arg = argv[0];
-	if(Vkind(arg) == Qlist)
+	if(Viskind(arg, Qlist))
 		listpop(vallist(argv[0]), rv);
-	else if(Vkind(arg) == Qtab)
+	else if(Viskind(arg, Qtab))
 		tabpop(valtab(argv[0]), rv);
 	else
 		vmerr(vm, "operand 1 to pop must be a list or table");
@@ -6233,13 +6233,13 @@ l1_copy(VM *vm, Imm argc, Val *argv, Val *rv)
 {
 	if(argc != 1)
 		vmerr(vm, "wrong number of arguments to append");
-	if(Vkind(argv[0]) == Qlist)
+	if(Viskind(argv[0], Qlist))
 		*rv = mkvallist(listcopy(vallist(argv[0])));
-	else if(Vkind(argv[0]) == Qvec)
+	else if(Viskind(argv[0], Qvec))
 		*rv = mkvalvec(veccopy(valvec(argv[0])));
-	else if(Vkind(argv[0]) == Qtab)
+	else if(Viskind(argv[0], Qtab))
 		*rv = mkvaltab(tabcopy(valtab(argv[0])));
-	else if(Vkind(argv[0]) == Qstr)
+	else if(Viskind(argv[0], Qstr))
 		*rv = mkvalstr(strcopy(valstr(argv[0])));
 	else
 		vmerr(vm, "operand 1 to copy must be a container");
@@ -6252,10 +6252,10 @@ l1_concat(VM *vm, Imm argc, Val *argv, Val *rv)
 	Str *str;
 	if(argc != 2)
 		vmerr(vm, "wrong number of arguments to concat");
-	if(Vkind(argv[0]) == Qlist && Vkind(argv[1]) == Qlist) {
+	if(Viskind(argv[0], Qlist) && Viskind(argv[1], Qlist)) {
 		lst = listconcat(vm, vallist(argv[0]), vallist(argv[1]));
 		*rv = mkvallist(lst);
-	}else if(Vkind(argv[0]) == Qstr && Vkind(argv[1]) == Qstr) {
+	}else if(Viskind(argv[0], Qstr) && Viskind(argv[1], Qstr)) {
 		str = strconcat(valstr(argv[0]), valstr(argv[1]));
 		*rv = mkvalstr(str);
 	}else
@@ -6303,7 +6303,7 @@ l1_cntrput(VM *vm, Imm argc, Val *argv, Val *rv)
 		break;
 	case Qstr:
 		l1_strput(vm, argc, argv, rv);
-		if(Vkind(argv[2]) == Qcval) {
+		if(Viskind(argv[2], Qcval)) {
 			cv = valcval(argv[2]);
 			cv = typecast(vm, cv->dom->ns->base[Vchar], cv);
 			*rv = mkvalcval2(cv);
@@ -6397,7 +6397,7 @@ l1_isx(VM *vm, Imm argc, Val *argv, Val *rv, char *name, Qkind kind)
 {
 	if(argc != 1)
 		vmerr(vm, "wrong number of arguments to %s", name);
-	if(Vkind(argv[0]) == kind)
+	if(Viskind(argv[0], kind))
 		*rv = mkvalcval2(cval1);
 	else
 		*rv = mkvalcval2(cval0);
@@ -6516,10 +6516,10 @@ l1_iscallable(VM *vm, Imm argc, Val *argv, Val *rv)
 {
 	if(argc != 1)
 		vmerr(vm, "wrong number of arguments to iscallable");
-	if(Vkind(argv[0]) == Qcl
-	   || Vkind(argv[0]) == Qas
-	   || Vkind(argv[0]) == Qns
-	   || Vkind(argv[0]) == Qdom)
+	if(Viskind(argv[0], Qcl)
+	   || Viskind(argv[0], Qas)
+	   || Viskind(argv[0], Qns)
+	   || Viskind(argv[0], Qdom))
 		*rv = mkvalcval2(cval1);
 	else
 		*rv = mkvalcval2(cval0);
@@ -6667,7 +6667,7 @@ l1_setloadpath(VM *vm, Imm argc, Val *argv, Val *rv)
 	m = listlen(l);
 	for(i = 0; i < m; i++) {
 		v = listref(l, i);
-		if(Vkind(v) != Qstr)
+		if(!Viskind(v, Qstr))
 			vmerr(vm, "argument 1 to setloadpath "
 			      "must be a list of strings");
 	}
@@ -6877,9 +6877,9 @@ l1_add(VM *vm, Imm argc, Val *argv, Val *rv)
 {
 	if(argc != 2)
 		vmerr(vm, "wrong number of arguments to add");
-	if(Vkind(argv[0]) != Qcval && Vkind(argv[0]) != Qstr)
+	if(!Viskind(argv[0], Qcval) && !Viskind(argv[0], Qstr))
 		vmerr(vm, "operand 1 to add must be a cvalue or string");
-	if(Vkind(argv[1]) != Qcval && Vkind(argv[1]) != Qstr)
+	if(!Viskind(argv[1], Qcval) && !Viskind(argv[1], Qstr))
 		vmerr(vm, "operand 2 to add must be a cvalue or string");
 	*rv = xbinop(vm, Iadd, argv[0], argv[1]);
 }
@@ -6995,9 +6995,9 @@ l1_cmple(VM *vm, Imm argc, Val *argv, Val *rv)
 {
 	if(argc != 2)
 		vmerr(vm, "wrong number of arguments to cmple");
-	if(Vkind(argv[0]) != Qcval && Vkind(argv[0]) != Qstr)
+	if(!Viskind(argv[0], Qcval) && Viskind(argv[0], Qstr))
 		vmerr(vm, "operand 1 to cmple must be a cvalue or string");
-	if(Vkind(argv[1]) != Qcval && Vkind(argv[1]) != Qstr)
+	if(!Viskind(argv[1], Qcval) && !Viskind(argv[1], Qstr))
 		vmerr(vm, "operand 2 to cmple must be a cvalue or string");
 	*rv = xbinop(vm, Icmple, argv[0], argv[1]);
 }
@@ -7007,9 +7007,9 @@ l1_cmplt(VM *vm, Imm argc, Val *argv, Val *rv)
 {
 	if(argc != 2)
 		vmerr(vm, "wrong number of arguments to cmplt");
-	if(Vkind(argv[0]) != Qcval && Vkind(argv[0]) != Qstr)
+	if(!Viskind(argv[0], Qcval) && !Viskind(argv[0], Qstr))
 		vmerr(vm, "operand 1 to cmplt must be a cvalue or string");
-	if(Vkind(argv[1]) != Qcval && Vkind(argv[1]) != Qstr)
+	if(!Viskind(argv[1], Qcval) && !Viskind(argv[1], Qstr))
 		vmerr(vm, "operand 2 to cmplt must be a cvalue or string");
 	*rv = xbinop(vm, Icmplt, argv[0], argv[1]);
 }
@@ -7019,9 +7019,9 @@ l1_cmpge(VM *vm, Imm argc, Val *argv, Val *rv)
 {
 	if(argc != 2)
 		vmerr(vm, "wrong number of arguments to cmpge");
-	if(Vkind(argv[0]) != Qcval && Vkind(argv[0]) != Qstr)
+	if(!Viskind(argv[0], Qcval) && !Viskind(argv[0], Qstr))
 		vmerr(vm, "operand 1 to cmpge must be a cvalue or string");
-	if(Vkind(argv[1]) != Qcval && Vkind(argv[1]) != Qstr)
+	if(!Viskind(argv[1], Qcval) && !Viskind(argv[1], Qstr))
 		vmerr(vm, "operand 2 to cmpge must be a cvalue or string");
 	*rv = xbinop(vm, Icmpge, argv[0], argv[1]);
 }
@@ -7031,9 +7031,9 @@ l1_cmpgt(VM *vm, Imm argc, Val *argv, Val *rv)
 {
 	if(argc != 2)
 		vmerr(vm, "wrong number of arguments to cmpgt");
-	if(Vkind(argv[0]) != Qcval && Vkind(argv[0]) != Qstr)
+	if(!Viskind(argv[0], Qcval) && !Viskind(argv[0], Qstr))
 		vmerr(vm, "operand 1 to cmpgt must be a cvalue or string");
-	if(Vkind(argv[1]) != Qcval && Vkind(argv[1]) != Qstr)
+	if(!Viskind(argv[1], Qcval) && !Viskind(argv[1], Qstr))
 		vmerr(vm, "operand 2 to cmpgt must be a cvalue or string");
 	*rv = xbinop(vm, Icmpgt, argv[0], argv[1]);
 }
@@ -7680,7 +7680,7 @@ procincr(Env env) {
 	Cid *cid;
 
 	pg = envlookup(env, "$procgen");
-	if((pg != 0) && (Vkind(pg) == Qcval)) {
+	if((pg != 0) && (Viskind(pg, Qcval))) {
 		procgen = cvalu(valcval(pg));
 		procgen++;
 		cid = mkcid0("$procgen");
@@ -7869,7 +7869,7 @@ cqctvalint8(Val v)
 	Cval *cv, *rv;
 	Ctype *t;
 
-	if(Vkind(v) != Qcval)
+	if(!Viskind(v, Qcval))
 		return -1;
 	cv = valcval(v);
 	t = litdom->ns->base[clp64le.xint8];
@@ -7883,7 +7883,7 @@ cqctvalint16(Val v)
 	Cval *cv, *rv;
 	Ctype *t;
 
-	if(Vkind(v) != Qcval)
+	if(!Viskind(v, Qcval))
 		return -1;
 	cv = valcval(v);
 	t = litdom->ns->base[clp64le.xint16];
@@ -7897,7 +7897,7 @@ cqctvalint32(Val v)
 	Cval *cv, *rv;
 	Ctype *t;
 
-	if(Vkind(v) != Qcval)
+	if(!Viskind(v, Qcval))
 		return -1;
 	cv = valcval(v);
 	t = litdom->ns->base[clp64le.xint32];
@@ -7911,7 +7911,7 @@ cqctvalint64(Val v)
 	Cval *cv, *rv;
 	Ctype *t;
 
-	if(Vkind(v) != Qcval)
+	if(!Viskind(v, Qcval))
 		return -1;
 	cv = valcval(v);
 	t = litdom->ns->base[clp64le.xint64];
@@ -7925,7 +7925,7 @@ cqctvaluint8(Val v)
 	Cval *cv, *rv;
 	Ctype *t;
 
-	if(Vkind(v) != Qcval)
+	if(!Viskind(v, Qcval))
 		return -1;
 	cv = valcval(v);
 	t = litdom->ns->base[clp64le.xuint8];
@@ -7939,7 +7939,7 @@ cqctvaluint16(Val v)
 	Cval *cv, *rv;
 	Ctype *t;
 
-	if(Vkind(v) != Qcval)
+	if(!Viskind(v, Qcval))
 		return -1;
 	cv = valcval(v);
 	t = litdom->ns->base[clp64le.xint16];
@@ -7953,7 +7953,7 @@ cqctvaluint32(Val v)
 	Cval *cv, *rv;
 	Ctype *t;
 
-	if(Vkind(v) != Qcval)
+	if(!Viskind(v, Qcval))
 		return -1;
 	cv = valcval(v);
 	t = litdom->ns->base[clp64le.xuint32];
@@ -7967,7 +7967,7 @@ cqctvaluint64(Val v)
 	Cval *cv, *rv;
 	Ctype *t;
 
-	if(Vkind(v) != Qcval)
+	if(!Viskind(v, Qcval))
 		return -1;
 	cv = valcval(v);
 	t = litdom->ns->base[clp64le.xuint64];

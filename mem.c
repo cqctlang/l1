@@ -1635,7 +1635,7 @@ pop1tguard(Pair *g)
 		m = pop1guard(g);
 		if(m == 0)
 			return 0;
-		if(Vkind(car(m)) != Qnil){
+		if(!Viskind(car(m), Qnil)){
 			guard(m, g);
 			return car(m);
 		}
@@ -3040,7 +3040,7 @@ rehash(void *p)
 	e = s->a;
 	while(p < e){
 		h = p;
-		if(Vkind(h) == Qtab)
+		if(Viskind(h, Qtab))
 			tabrehash(valtab(h));
 		p += qsz(h);
 	}

@@ -206,7 +206,7 @@ l1_mkaliencode(VM *vm, Imm argc, Val *argv, Val *rv)
 	Code *code;
 	if(argc != 1)
 		vmerr(vm, "wrong number of arguments to mkaliencode");
-	if(Vkind(argv[0]) != Qstr && Vkind(argv[0]) != Qcval)
+	if(!Viskind(argv[0], Qstr) && !Viskind(argv[0], Qcval))
 		vmerr(vm, "operand 1 to mkaliencode must be a string or cvalue");
 	code = mkcode(Calien, 0);
 	code->id = mkcid0("*alien*");

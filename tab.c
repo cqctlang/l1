@@ -108,7 +108,7 @@ linknext(Pair *lnk)
 int
 islink(Val v)
 {
-	return Vkind(v) == Qpair;
+	return Viskind(v, Qpair);
 }
 
 
@@ -486,7 +486,7 @@ l1_tablook(VM *vm, Imm argc, Val *argv, Val *rv)
 	else if(t->def == Xnil)
 		*rv = Xnil;
 	else{
-		if(Vkind(t->def) == Qcl)
+		if(Viskind(t->def, Qcl))
 			vp = ccall(vm, valcl(t->def), 0, 0);
 		else
 			vp = t->def;
@@ -526,7 +526,7 @@ l1_tabkeys(VM *vm, Imm argc, Val *argv, Val *rv)
 	if(argc != 1)
 		vmerr(vm, "wrong number of arguments to tabkeys");
 	arg0 = argv[0];
-	if(Vkind(arg0) != Qtab)
+	if(!Viskind(arg0, Qtab))
 		vmerr(vm, "operand 1 to tabkeys must be a table");
 	*rv = mkvalvec(tabenumkeys(valtab(arg0)));
 }
@@ -539,7 +539,7 @@ l1_tabvals(VM *vm, Imm argc, Val *argv, Val *rv)
 	if(argc != 1)
 		vmerr(vm, "wrong number of arguments to tabvals");
 	arg0 = argv[0];
-	if(Vkind(arg0) != Qtab)
+	if(!Viskind(arg0, Qtab))
 		vmerr(vm, "operand 1 to tabvals must be a table");
 	*rv = mkvalvec(tabenumvals(valtab(arg0)));
 }

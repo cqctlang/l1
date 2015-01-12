@@ -353,7 +353,7 @@ main(int argc, char *argv[])
 	rv = 0;
 	cqctcallfn(vm, fn, argc, xargv, &v);
 	free(xargv);
-	if(Vkind(v) == Qcval)
+	if(Viskind(v, Qcval))
 		rv = cqctvalint32(v);
 	cqctfini(vm);
 	return rv;

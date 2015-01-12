@@ -7,11 +7,11 @@ mkattr(Val o)
 {
 	Tab *tab;
 
-	if(Vkind(o) != Qtab && Vkind(o) != Qcval && Vkind(o) != Qnil)
+	if(!Viskind(o, Qtab) && !Viskind(o, Qcval) && !Viskind(o, Qnil))
 		fatal("bug");
-	if(Vkind(o) == Qtab)
+	if(Viskind(o, Qtab))
 		tab = tabcopy(valtab(o));
-	else if(Vkind(o) == Qnil)
+	else if(Viskind(o, Qnil))
 		tab = mktab();
 	else{
 		tab = mktab();
@@ -26,9 +26,9 @@ attroff(Val o)
 	Tab *tab;
 	Val vp;
 
-	if(Vkind(o) == Qcval)
+	if(Viskind(o, Qcval))
 		return o;
-	if(Vkind(o) != Qtab)
+	if(!Viskind(o, Qtab))
 		fatal("bug");
 	tab = valtab(o);
 	vp = tabget(tab, mkvalstr(mkstr0("offset")));
@@ -43,7 +43,7 @@ copyattr(Val attr, Val newoff)
 	Tab *t;
 	Val off;
 	Val key;
-	if(Vkind(attr) != Qtab)
+	if(!Viskind(attr, Qtab))
 		fatal("bug");
 	t = tabcopy(valtab(attr));
 	key = mkvalstr(mkstr0("offset"));
@@ -60,7 +60,7 @@ fieldtype(Vec *s)
 {
 	Val v;
 	v = vecref(s, Typepos);
-	if(Vkind(v) != Qctype)
+	if(!Viskind(v, Qctype))
 		bug();
 	return valctype(v);
 }
@@ -70,7 +70,7 @@ paramtype(Vec *s)
 {
 	Val v;
 	v = vecref(s, Typepos);
-	if(Vkind(v) != Qctype)
+	if(!Viskind(v, Qctype))
 		bug();
 	return valctype(v);
 }
@@ -80,7 +80,7 @@ symtype(Vec *s)
 {
 	Val v;
 	v = vecref(s, Typepos);
-	if(Vkind(v) != Qctype)
+	if(!Viskind(v, Qctype))
 		bug();
 	return valctype(v);
 }
@@ -93,15 +93,15 @@ issym(Vec *sym)
 	if(sym->len != 2 && sym->len != 3)
 		return 0;
 	x = vecref(sym, Typepos);
-	if(Vkind(x) != Qctype)
+	if(!Viskind(x, Qctype))
 		return 0;
 	x = vecref(sym, Idpos);
-	if(Vkind(x) != Qcid && Vkind(x) != Qnil)
+	if(!Viskind(x, Qcid) && !Viskind(x, Qnil))
 		return 0;
 	if(sym->len < 3)
 		return 1;
 	x = vecref(sym, Attrpos);
-	if(Vkind(x) != Qtab && Vkind(x) != Qnil)
+	if(!Viskind(x, Qtab) && !Viskind(x, Qnil))
 		return 0;
 	return 1;
 }
@@ -114,7 +114,7 @@ issymvec(Vec *v)
 	Vec *sym;
 	for(m = 0; m < v->len; m++){
 		e = vecref(v, m);
-		if(Vkind(e) != Qvec)
+		if(!Viskind(e, Qvec))
 			return 0;
 		sym = valvec(e);
 		if(!issym(sym))
@@ -131,14 +131,14 @@ mksymorfieldorparam(char *what, VM *vm, Imm argc, Val *argv, Val *rv)
 
 	checkarg(vm, argv, 0, Qctype);
 	if(argc > 1)
-		if(Vkind(argv[1]) != Qcid && Vkind(argv[1]) != Qnil)
+		if(!Viskind(argv[1], Qcid) && !Viskind(argv[1], Qnil))
 			vmerr(vm, "operand 2 to %s must be "
 			      "an identifier or nil",
 			      what);
 	if(argc == 3)
-		if(Vkind(argv[2]) != Qcval
-		   && Vkind(argv[2]) != Qtab
-		   && Vkind(argv[2]) != Qnil)
+		if(!Viskind(argv[2], Qcval)
+		   && !Viskind(argv[2], Qtab)
+		   && !Viskind(argv[2], Qnil))
 			vmerr(vm,
 			      "operand 3 to %s must be a table, cvalue, or nil",
 			      what);
@@ -148,7 +148,7 @@ mksymorfieldorparam(char *what, VM *vm, Imm argc, Val *argv, Val *rv)
 		_vecset(vec, Idpos, argv[1]);
 	else
 		_vecset(vec, Idpos, Xnil);
-	if(argc > 2 && Vkind(argv[2]) == Qcval)
+	if(argc > 2 && Viskind(argv[2], Qcval))
 		attr = mkattr(argv[2]);
 	else if(argc > 2)
 		attr = argv[2];
@@ -192,13 +192,13 @@ l1_paramtype(VM *vm, Imm argc, Val *argv, Val *rv)
 
 	if(argc != 1)
 		vmerr(vm, "wrong number of arguments to paramtype");
-	if(Vkind(argv[0]) != Qvec)
+	if(!Viskind(argv[0], Qvec))
 		vmerr(vm, err);
 	v = valvec(argv[0]);
 	if(v->len < 2)
 		vmerr(vm, err);
 	vp = vecdata(v)[Typepos];
-	if(Vkind(vp) != Qctype)
+	if(!Viskind(vp, Qctype))
 		vmerr(vm, err);
 	*rv = vp;
 }
@@ -213,13 +213,13 @@ l1_paramid(VM *vm, Imm argc, Val *argv, Val *rv)
 
 	if(argc != 1)
 		vmerr(vm, "wrong number of arguments to paramid");
-	if(Vkind(argv[0]) != Qvec)
+	if(!Viskind(argv[0], Qvec))
 		vmerr(vm, err);
 	v = valvec(argv[0]);
 	if(v->len < 2)
 		vmerr(vm, err);
 	vp = vecdata(v)[Idpos];
-	if(Vkind(vp) != Qcid && Vkind(vp) != Qnil)
+	if(!Viskind(vp, Qcid) && !Viskind(vp, Qnil))
 		vmerr(vm, err);
 	*rv = vp;
 }
@@ -233,7 +233,7 @@ l1_paramattr(VM *vm, Imm argc, Val *argv, Val *rv)
 
 	if(argc != 1)
 		vmerr(vm, "wrong number of arguments to paramattr");
-	if(Vkind(argv[0]) != Qvec)
+	if(!Viskind(argv[0], Qvec))
 		vmerr(vm, err);
 	v = valvec(argv[0]);
 	if(v->len < 3)
@@ -251,13 +251,13 @@ l1_fieldtype(VM *vm, Imm argc, Val *argv, Val *rv)
 
 	if(argc != 1)
 		vmerr(vm, "wrong number of arguments to fieldtype");
-	if(Vkind(argv[0]) != Qvec)
+	if(!Viskind(argv[0], Qvec))
 		vmerr(vm, err);
 	v = valvec(argv[0]);
 	if(v->len < 3)
 		vmerr(vm, err);
 	vp = vecdata(v)[Typepos];
-	if(Vkind(vp) != Qctype)
+	if(!Viskind(vp, Qctype))
 		vmerr(vm, err);
 	*rv = vp;
 }
@@ -272,13 +272,13 @@ l1_fieldid(VM *vm, Imm argc, Val *argv, Val *rv)
 
 	if(argc != 1)
 		vmerr(vm, "wrong number of arguments to fieldid");
-	if(Vkind(argv[0]) != Qvec)
+	if(!Viskind(argv[0], Qvec))
 		vmerr(vm, err);
 	v = valvec(argv[0]);
 	if(v->len < 3)
 		vmerr(vm, err);
 	vp = vecdata(v)[Idpos];
-	if(Vkind(vp) != Qcid && Vkind(vp) != Qnil)
+	if(!Viskind(vp, Qcid) && !Viskind(vp, Qnil))
 		vmerr(vm, err);
 	*rv = vp;
 }
@@ -292,7 +292,7 @@ l1_fieldattr(VM *vm, Imm argc, Val *argv, Val *rv)
 
 	if(argc != 1)
 		vmerr(vm, "wrong number of arguments to fieldattr");
-	if(Vkind(argv[0]) != Qvec)
+	if(!Viskind(argv[0], Qvec))
 		vmerr(vm, err);
 	v = valvec(argv[0]);
 	if(v->len < 3)
@@ -310,13 +310,13 @@ l1_fieldoff(VM *vm, Imm argc, Val *argv, Val *rv)
 
 	if(argc != 1)
 		vmerr(vm, "wrong number of arguments to fieldoff");
-	if(Vkind(argv[0]) != Qvec)
+	if(!Viskind(argv[0], Qvec))
 		vmerr(vm, err);
 	v = valvec(argv[0]);
 	if(v->len < 3)
 		vmerr(vm, err);
 	vp = vecref(v, Attrpos);
-	if(Vkind(vp) == Qnil)
+	if(Viskind(vp, Qnil))
 		return;		/* nil */
 	vp = attroff(vp);
 	*rv  = vp;
@@ -332,13 +332,13 @@ l1_symtype(VM *vm, Imm argc, Val *argv, Val *rv)
 
 	if(argc != 1)
 		vmerr(vm, "wrong number of arguments to symtype");
-	if(Vkind(argv[0]) != Qvec)
+	if(!Viskind(argv[0], Qvec))
 		vmerr(vm, err);
 	v = valvec(argv[0]);
 	if(v->len < 3)
 		vmerr(vm, err);
 	vp = vecdata(v)[Typepos];
-	if(Vkind(vp) != Qctype)
+	if(!Viskind(vp, Qctype))
 		vmerr(vm, err);
 	*rv = vp;
 }
@@ -353,13 +353,13 @@ l1_symid(VM *vm, Imm argc, Val *argv, Val *rv)
 
 	if(argc != 1)
 		vmerr(vm, "wrong number of arguments to symid");
-	if(Vkind(argv[0]) != Qvec)
+	if(!Viskind(argv[0], Qvec))
 		vmerr(vm, err);
 	v = valvec(argv[0]);
 	if(v->len < 3)
 		vmerr(vm, err);
 	vp = vecdata(v)[Idpos];
-	if(Vkind(vp) != Qcid && Vkind(vp) != Qnil)
+	if(!Viskind(vp, Qcid) && !Viskind(vp, Qnil))
 		vmerr(vm, err);
 	*rv = vp;
 }
@@ -373,7 +373,7 @@ l1_symattr(VM *vm, Imm argc, Val *argv, Val *rv)
 
 	if(argc != 1)
 		vmerr(vm, "wrong number of arguments to symattr");
-	if(Vkind(argv[0]) != Qvec)
+	if(!Viskind(argv[0], Qvec))
 		vmerr(vm, err);
 	v = valvec(argv[0]);
 	if(v->len < 3)
@@ -391,13 +391,13 @@ l1_symoff(VM *vm, Imm argc, Val *argv, Val *rv)
 
 	if(argc != 1)
 		vmerr(vm, "wrong number of arguments to symoff");
-	if(Vkind(argv[0]) != Qvec)
+	if(!Viskind(argv[0], Qvec))
 		vmerr(vm, err);
 	v = valvec(argv[0]);
 	if(v->len < 3)
 		vmerr(vm, err);
 	vp = vecref(v, Attrpos);
-	if(Vkind(vp) == Qnil)
+	if(Viskind(vp, Qnil))
 		return;		/* nil */
 	*rv = attroff(vp);
 }

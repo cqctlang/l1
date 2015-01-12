@@ -485,7 +485,7 @@ l1_reverse(VM *vm, Imm argc, Val *argv, Val *rv)
 {
 	if(argc != 1)
 		vmerr(vm, "wrong number of arguments to reverse");
-	if(Vkind(argv[0]) == Qlist)
+	if(Viskind(argv[0], Qlist))
 		*rv = mkvallist(listreverse(vallist(argv[0])));
 	else
 		vmerr(vm, "operand 1 to reverse must be a list");

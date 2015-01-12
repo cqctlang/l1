@@ -11,7 +11,7 @@ l1_exit(VM *vm, Imm argc, Val *argv, Val *rv)
 	if(argc != 1)
 		vmerr(vm, "wrong number of arguments to exit");
 	code = 0;
-	if(Vkind(argv[0]) == Qcval){
+	if(Viskind(argv[0], Qcval)){
 		cv = valcval(argv[0]);
 		code = (int)cvalu(cv);
 	}
@@ -69,11 +69,11 @@ l1_execve(VM *vm, Imm argc, Val *argv, Val *rv)
 	if(argc != 3)
 		vmerr(vm, "wrong number of arguments to execve");
 
-	if(Vkind(argv[0]) != Qstr)
+	if(!Viskind(argv[0], Qstr))
 		vmerr(vm, "argument 1 to execve must be a string");
-	if(Vkind(argv[1]) != Qlist)
+	if(!Viskind(argv[1], Qlist))
 		vmerr(vm, "argument 2 to execve must be a list");
-	if( (Vkind(argv[2]) != Qlist) && (Vkind(argv[2]) != Qnil))
+	if( !Viskind(argv[2], Qlist) && !Viskind(argv[2], Qnil) )
 		vmerr(vm, "argument 3 to execve must be a list or nil");
 
 	av = vallist(argv[1]);
@@ -81,14 +81,14 @@ l1_execve(VM *vm, Imm argc, Val *argv, Val *rv)
 	xargv = emalloc((xargc+1)*sizeof(char*)); /* null terminated */
 	for(x = 0; x < xargc ; x++) {
 		cv = listref(av, x);
-		if(Vkind(cv) != Qstr) {
+		if(!Viskind(cv, Qstr)) {
 			free(xargv);
 			vmerr(vm, "argument 1 to execve must be a list of strings");
 		}
 		xargv[x] = str2cstr(valstr(cv));
 	}
 
-	if(Vkind(argv[2]) == Qnil) {
+	if(Viskind(argv[2], Qnil)) {
 		xenviron = NULL;
 	} else {
 		ev = vallist(argv[2]);
@@ -97,7 +97,7 @@ l1_execve(VM *vm, Imm argc, Val *argv, Val *rv)
 	
 		for(x = 0; x < xec ; x++) {
 			cv = listref(ev, x);
-			if(Vkind(cv) != Qstr) {
+			if(!Viskind(cv, Qstr)) {
 				free(xargv);
 				free(xenviron);
 				vmerr(vm, "argument 2 to execve must be a list of strings");

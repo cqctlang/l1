@@ -127,7 +127,7 @@ l1_stxliftval(VM *vm, Imm argc, Val *argv, Val *rv)
 {
 	if(argc != 1)
 		vmerr(vm, "wrong number of arguments to stxliftval");
-	if(Vkind(argv[0]) == Qexpr)
+	if(Viskind(argv[0], Qexpr))
 		*rv = argv[0];
 	else
 		l1_mkstxval(vm, argc, argv, rv);
@@ -153,7 +153,7 @@ l1_mkstx(VM *vm, Imm argc, Val *argv, Val *rv)
 	memset(earg, 0, sizeof(earg));
 	argv++;
 	argc--;
-	if(Vkind(argv[argc-1]) == Qvec){
+	if(Viskind(argv[argc-1], Qvec)){
 		src = valvec(argv[argc-1]);
 		argc--;
 	}else
@@ -183,7 +183,7 @@ l1_stxkind(VM *vm, Imm argc, Val *argv, Val *rv)
 	e = valexpr(argv[0]);
 	if(e->skind == 0)
 		bug();
-	if(Vkind(mkvalcid(e->skind)) != Qcid)
+	if(!Viskind(mkvalcid(e->skind), Qcid))
 		bug();
 	*rv = mkvalcid(e->skind);
 }
