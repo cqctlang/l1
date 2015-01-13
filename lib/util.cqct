@@ -22,6 +22,25 @@
 	return 0;
 }
 
+/* like isrinr but finds range an address is in */
+@define findrange(a, rs)
+{
+	@local n, i, x, xb, xe;
+
+	n = length(rs);
+	for(i = 0; i < n; i++) {
+		x = rs[i];
+		xb = rangebeg(x);
+		if(xb > a)
+			return nil;
+		xe = xb+rangelen(x);
+		if(a >= xb && a <= xe) {
+			return x;
+		}
+	}
+	return nil;
+}
+
 @define time(fn)
 {
 	@local s, e;
@@ -29,7 +48,7 @@
 	s = gettimeofday();
 	fn();
 	e = gettimeofday();
-	
+
 	printf("%d seconds %d useconds\n", (e-s)/1000000, (e-s)%1000000);
 
 	return e-s;
