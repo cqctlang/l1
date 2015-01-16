@@ -359,7 +359,19 @@ fmtputs0(VM *vm, Fmt *f, char *p)
 }
 
 static int
-fmtval(VM *vm, Fmt *f, Val val)
+listmember(List* lst, Val v)
+{
+	Imm len, i;
+
+	len = listlen(lst);
+	for(i = 0; i < len; i++)
+		if(eqval(v, listref(lst, i)))
+			return 1;
+	return 0;
+}
+
+static int
+fmtval(VM *vm, Fmt *f, Val val, List* seen)
 {
 	char buf[256];
 	Cval *cv;
@@ -385,6 +397,10 @@ fmtval(VM *vm, Fmt *f, Val val)
 	double dv;
 	Cbase cb;
 	Expr *e;
+	Val x;
+
+	if(listmember(seen, val))
+		return fmtputs0(vm, f, "<recursive data>");
 
 	switch(Vkind(val)){
 	case Qcval:
@@ -446,8 +462,10 @@ fmtval(VM *vm, Fmt *f, Val val)
 		if(fmtputs0(vm, f, "<box "))
 			return -1;
 		bv = valboxed(val);
-		if(fmtval(vm, f, bv))
+		listins(vm, seen, 0, val);
+		if(fmtval(vm, f, bv, seen))
 			return -1;
+		listpop(seen, &x);
 		return fmtputs0(vm, f, ">");
 	case Qns:
 		ns = valns(val);
@@ -478,6 +496,7 @@ fmtval(VM *vm, Fmt *f, Val val)
 		n = v->len/2;
 		if(fmtputs0(vm, f, "table("))
 			return -1;
+		listins(vm, seen, 0, val);
 		for(m = 0; m < n; m++){
 			if(m > 0){
 				if(fmtputs0(vm, f, ", "))
@@ -486,13 +505,14 @@ fmtval(VM *vm, Fmt *f, Val val)
 				if(fmtputs0(vm, f, " "))
 					return -1;
 			}
-			if(fmtval(vm, f, vecdata(v)[m]))
+			if(fmtval(vm, f, vecdata(v)[m], seen))
 				return -1;
 			if(fmtputs0(vm, f, " : "))
 				return -1;
-			if(fmtval(vm, f, vecdata(v)[m+v->len/2]))
+			if(fmtval(vm, f, vecdata(v)[m+v->len/2], seen))
 				return -1;
 		}
+		listpop(seen, &x);
 		return fmtputs0(vm, f, " )");
 	case Qfd:
 		hd = valhead(val);
@@ -505,6 +525,7 @@ fmtval(VM *vm, Fmt *f, Val val)
 		v = valvec(val);
 		if(fmtputs0(vm, f, "vector("))
 			return -1;
+		listins(vm, seen, 0, val);
 		for(m = 0; m < v->len; m++){
 			if(m > 0){
 				if(fmtputs0(vm, f, ", "))
@@ -513,9 +534,10 @@ fmtval(VM *vm, Fmt *f, Val val)
 				if(fmtputs0(vm, f, " "))
 					return -1;
 			}
-			if(fmtval(vm, f, vecdata(v)[m]))
+			if(fmtval(vm, f, vecdata(v)[m], seen))
 				return -1;
 		}
+		listpop(seen, &x);
 		return fmtputs0(vm, f, " )");
 	case Qlist:
 		l = vallist(val);
@@ -524,6 +546,7 @@ fmtval(VM *vm, Fmt *f, Val val)
 			n = 20;
 		if(fmtputs0(vm, f, "["))
 			return -1;
+		listins(vm, seen, 0, val);
 		for(m = 0; m < n; m++){
 			if(m > 0){
 				if(fmtputs0(vm, f, ", "))
@@ -532,9 +555,10 @@ fmtval(VM *vm, Fmt *f, Val val)
 				if(fmtputs0(vm, f, " "))
 					return -1;
 			}
-			if(fmtval(vm, f, listref(l, m)))
+			if(fmtval(vm, f, listref(l, m), seen))
 				return -1;
 		}
+		listpop(seen, &x);
 		if(n < listlen(l)){
 			snprint(buf, sizeof(buf), ", ... (%" PRId64 " more)", (int64_t)listlen(l)-n);
 			if(fmtputs0(vm, f, buf))
@@ -551,12 +575,14 @@ fmtval(VM *vm, Fmt *f, Val val)
 			if(fmtputs0(vm, f, "cons("))
 				return -1;
 		}
-		if(fmtval(vm, f, p->car))
+		listins(vm, seen, 0, val);
+		if(fmtval(vm, f, p->car, seen))
 			return -1;
 		if(fmtputs0(vm, f, ", "))
 			return -1;
-		if(fmtval(vm, f, p->cdr))
+		if(fmtval(vm, f, p->cdr, seen))
 			return -1;
+		listpop(seen, &x);
 		return fmtputs0(vm, f, ")");
 	case Qrange:
 		r = valrange(val);
@@ -613,8 +639,10 @@ fmtval(VM *vm, Fmt *f, Val val)
 		case Eval:
 			if(fmtputs0(vm, f, "#val("))
 				return -1;
-			if(fmtval(vm, f, e->aux))
+			listins(vm, seen, 0, val);
+			if(fmtval(vm, f, e->aux, seen))
 				return -1;
+			listpop(seen, &x);
 			if(fmtputs0(vm, f, ")"))
 				return -1;
 			break;
@@ -625,6 +653,7 @@ fmtval(VM *vm, Fmt *f, Val val)
 			if(fmtputs0(vm, f, "#["))
 				return -1;
 			n = elistlen(e);
+			listins(vm, seen, 0, val);
 			for(m = 0; m < n; m++, e = e->e2){
 				if(m > 0){
 					if(fmtputs0(vm, f, ", "))
@@ -633,11 +662,13 @@ fmtval(VM *vm, Fmt *f, Val val)
 					if(fmtputs0(vm, f, " "))
 						return -1;
 				}
-				if(fmtval(vm, f, e->e1 ? mkvalexpr(e->e1) : Xnil))
+				if(fmtval(vm, f, e->e1 ? mkvalexpr(e->e1) : Xnil, seen))
 					return -1;
 			}
+			listpop(seen, &x);
 			return fmtputs0(vm, f, " ]");
 		default:
+			listins(vm, seen, 0, val);
 			if(fmtputs0(vm, f, "#"))
 				return -1;
 			if(fmtputs0(vm, f, ciddata(e->skind)))
@@ -647,30 +678,31 @@ fmtval(VM *vm, Fmt *f, Val val)
 
 			if(e->e1 == 0)
 				goto endexpr;
-			if(fmtval(vm, f, mkvalexpr(e->e1)))
+			if(fmtval(vm, f, mkvalexpr(e->e1), seen))
 				return -1;
 
 			if(e->e2 == 0)
 				goto endexpr;
 			if(fmtputs0(vm, f, ", "))
 				return -1;
-			if(fmtval(vm, f, mkvalexpr(e->e2)))
+			if(fmtval(vm, f, mkvalexpr(e->e2), seen))
 				return -1;
 
 			if(e->e3 == 0)
 				goto endexpr;
 			if(fmtputs0(vm, f, ", "))
 				return -1;
-			if(fmtval(vm, f, mkvalexpr(e->e3)))
+			if(fmtval(vm, f, mkvalexpr(e->e3), seen))
 				return -1;
 
 			if(e->e4 == 0)
 				goto endexpr;
 			if(fmtputs0(vm, f, ", "))
 				return -1;
-			if(fmtval(vm, f, mkvalexpr(e->e4)))
+			if(fmtval(vm, f, mkvalexpr(e->e4), seen))
 				return -1;
 		endexpr:
+			listpop(seen, &x);
 			if(fmtputs0(vm, f, ")"))
 				return -1;
 			break;
@@ -980,7 +1012,7 @@ dofmt(VM *vm, Fmt *f, char *fmt, Imm fmtlen, Imm argc, Val *argv)
 			/* ignore length modifier */
 			goto morespec;
 		case 'a':
-			if(fmtval(vm, f, vp))
+			if(fmtval(vm, f, vp, mklistn(4)))
 				return;
 			break;
 		case 'c':

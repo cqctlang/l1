@@ -1,0 +1,43 @@
+
+
+tab = [:];
+tab[1] = tab;
+printf("%a\n", tab);
+
+tab2 = [:];
+tab2[tab2] = 1;
+printf("%a\n", tab2);
+
+lst = mklist();
+append(lst, lst);
+printf("%a\n", lst);
+
+vec = mkvec(1);
+vec[0] = vec;
+printf("%a\n", vec);
+
+c = [ ];
+v = [ 1 : vector([ 2:3, 4:5, 6:c]) ];
+append(c, v);
+printf("%a\n", v);
+
+c = [];
+p = cons(c, nil);
+append(c, p);
+printf("%a\n", c);
+
+c = [];
+v = #val(c);
+append(c, v);
+printf("%a\n", v);
+
+c = [];
+v = #[ #x(#val(c),#val(c),#val(c),#val(c)) ];
+append(c, v);
+printf("%a\n", v);
+
+c = [ ];
+v = [ 1 : vector([ 2:3, 4:5, 6:c]), c:c, 4:[[[[[c]]]], vector(c)] ];
+append(c, v);
+printf("%a\n", v);
+
