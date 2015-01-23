@@ -1,0 +1,186 @@
+=====================
+L1's Bytecode Machine
+=====================
+
+This file provides some technical documentation of machl1, the instruction set
+implemented in L1. machl1 is a continuation-enabled stack based machine with a
+single register.
+
+Last edited: 2015-01-23
+
+Registers
+---------
+
+L1's bytecode uses the following registers:
+
++-------------+-------------------+----------------+
+|  register   |  purpose          |  type          |
++-------------+-------------------+----------------+
+|  %fp        |  Frame pointer    |  Val           |
+|  %cl        |  Current closure  |  Closure       |
+|  %pc        |  Program counter  |  Instruction   |
+|  %vc        |  Argument count   |  Immediate     |
+|  %ac        |  General purpose  |  Val           |
++-------------+-------------------+----------------+
+
+
+Opcodes
+-------
+
+Each L1 instruction can have two operands, op1 and op2, and a destination dst.
+Generally, operations are done on op1 and op2 and the result is stored in dst.
+Each L1 instruction can also have either an unsigned 32 bit dstidx or a signed
+64-bit scnt value. In the below descriptions, only the mentioned values need
+to be included for the opcode to be correct. Some opcodes also use arguments
+off of the stack. These start at fp+2 and are referred to as arg0,arg1,...
+
+Each operand may be one of several types. When not explicitly stated, the
+operand may be anything except an immediate. Operands that must be immediates
+are stated as (immediate)op.
+
++------------+----------------------------------------------------------------+
+|  Opcode    |  description                                                   |
+|------------+----------------------------------------------------------------+
+|  abort     |  Halts execution                                               |
+|  add       |  Stores op1 + op2 in dst                                       |
+|  addfp     |  Adds scnt to fp (note: scnt may be negative)                  |
+|  and       |  Stores op1 & op2 in dst                                       |
+|  apply     |  Run function arg0 with paramters arg1,...,argn                |
+|  argc      |  Check that %vc equals (immediate)op1, throw an error if not   |
+|  box       |  Box the operand in op1                                        |
+|  box0      |  Box nil and put it in op1                                     |
+|  call      |  Call the function in op1: %fp[0]=%pc, %cl=op1, %pc=entry(%cl) |
+|  call2     |  Run an call instruction after incrementing stack by scnt      |
+|  callt     |  Call the function in op1 without recording the return address |
+|  chkcl     |  Throw an error if op1 is not a closure                        |
+|  chkint    |  Check if an interrupt has occurred, handle it if so           |
+|  chksp     |  Ensure the stack can handle (immediate)op1 more bytes         |
+|  cmpeq     |  Stores op1 == op2 in dst                                      |
+|  cmpgt     |  Stores op1 > op2 in dst                                       |
+|  cmpge     |  Stores op1 >= op2 in dst                                      |
+|  cmplt     |  Stores op1 < op2 in dst                                       |
+|  cmple     |  Stores op1 <= op2 in dst                                      |
+|  cmpneq    |  Stores op1 != op2 in dst                                      |
+|  div       |  Stores op1 / op2 in dst                                       |
+|  gcpoll    |  Run the garbage collector if necessary                        |
+|  halt      |  Sets %cl=%fp[1], %pc=%fp[0], and returns from the interpreter |
+|  inv       |  Stores ~op1 in dst                                            |
+|  iret      |  Return and decrement %fp: %cl=%fp[1], %pc=%fp[0], %fp-=arg0   |
+|  jmp       |  Adds scnt to pc (note: scnt may be negative)                  |
+|  jnz       |  If op1 is not false (nil or zero), increment pc by scnt       |
+|  jz        |  If op1 is false (nil or zero), increment pc by scnt           |
+|  kg        |  Calls %fp[2] (arg0) with the current continuation as arg0     |
+|  kp        |  Resumes the closure in the %cl register                       |
+|  mod       |  Stores op1 % op2 in dst                                       |
+|  mov       |  Stores op1 in dst                                             |
+|  movvc     |  Stores (immediate)op1 in %vc                                  |
+|  mul       |  Stores op1 * op2 in dst                                       |
+|  neg       |  Stores -op1 in dst                                            |
+|  not       |  Stores !op1 in dst                                            |
+|  nop       |  No-op. Does nothing                                           |
+|  or        |  Stores op1 | op2 in dst                                       |
+|  ret       |  Returns from a function: %cl=%fp[1], %pc=%fp[0]               |
+|  shl       |  Stores op1 << op2 in dst                                      |
+|  shr       |  Stores op1 >> op2 in dst                                      |
+|  sub       |  Stores op1 - op2 in dst                                       |
+|  underflow |  Resumes continuation in klink                                 |
+|  vargc     |  Sets stack[(imm)op1+1] to be a list of arguments (imm)op1 to  |
+|            |  %vc on the stack                                              |
+|  xcast     |  Casts op2 to op1, storing the result in dst                   |
+|  xor       |  Stores op1 ^ op2 in dst                                       |
++------------+----------------------------------------------------------------+
+
+
+Operands
+--------
+
+Instructions use operands, which reference data in registers, in the frame,
+or from the toplevel. In the below, idx is a 16-bit unsigned integer encoded
+in the operand. The operand types are:
+
++-------------------+--------------------------------------------------------+
+|  Type             |  Contents                                              |
++-------------------+--------------------------------------------------------+
+|  reg              |  Reference to %ac, %fp, or %cl                         |
+|  frame            |  Reference to %fp[idx]                                 |
+|  disp             |  Reference to data at offset idx in closure %cl        |
+|  topl             |  Reference to named variable from the toplevel         |
+|  topr             |  A pair whose cdr is the stored Val                    |
+|  val              |  A Val stored in the operand                           |
+|  nil              |  The value nil                                         |
+|  imm              |  An immediate value                                    |
++-------------------+--------------------------------------------------------+
+
+Note that many of these operand types do not make sense for certain
+operations: for instance, one cannot store anything in an imm type operand, so
+they are invalid dst operands for the various binary operations (xor, sub,
+shr, shl, etc).
+
+Frame Layout
+------------
+
+The frame is stored in %fp, which points into the stack. During normal
+operation, the frame's layout is as follows:
+
++-----------+----------------------+
+| %fp[off]  |  value               |
++-----------+----------------------+
+| %fp[0]    |  return address      |
+| %fp[1]    |  return closure      |
+| %fp[2]    |  arg0                |
+| %fp[3]    |  arg1                |
+| ...       |  ...                 |
+| %fp[2+n]  |  argn*               |
+| %fp[3+n]  |  locals              |
+| ...       |  ...                 |
++-----------+----------------------+
+
+* The number of arguments is stored in %vc (in the above example, %vc=n+1).
+
+Normal code is expected to modify only the arguments and locals in its frame.
+Cleaning up the frame by decrementing %fp is the responsibility of the calling
+function, who will know the size of its own frame and therefore the correct
+amount to decrement %fp.
+
+
+Standard Call Idiom
+-------------------
+
+Note that the call instructions will set the return address but not the
+closure. As such, it is the caller's responsibility to set the closure before
+running any call instructions.
+
+The standard sequence of instructions leading to a call is the following:
+
+mov %cl ($nfp+1)(%fp)
+mov arg0 ($nfp+2)(%fp)
+mov arg1 ($nfp+3)(%fp)
+...
+mov <fn> %ac
+chkcl %ac
+movvc $narg
+addfp $nfp
+call %ac
+addfp -$nfp
+chksp $max
+
+Where $nfp is the size of the frame at that point, and $max is the maximum
+frame size for the current function, and $narg is the number of arguments.
+
+
+Non-vm Calls
+------------
+
+There are functions that are not implemented in machl1, but instead using the
+machine code of the underlying processor. These functions look just like VM
+functions, except that during their execution, the VM is paused. These non-vm
+function can re-enter the VM by using ccall to call functions defined via l1
+bytecode.
+
+
+TODO
+----
+
+The following topics have not been addressed, but should be:
+
+Continuations, garbage collection, interrupts, locals, boxed vals
