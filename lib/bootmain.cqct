@@ -697,15 +697,15 @@ $repllevel = 0;
 	fprintf(stderr, "\t   format 'heap' saves a binary version of the l1 heap. This heap\n\t   can be loaded into a subsequent session with '-m'.\n");
 	fprintf(stderr, "\t   format 'relink' saves a new executable based on the current l1. Any\n\t   pre-linked heap image is removed and the new heap image is added.\n\t   Relinking is only supported on some platforms.\n");
 
-	fprintf(stderr, "\nFlags -l, -L, -x, and -r may be each specified multiple times and in any order.\n");
+	fprintf(stderr, "\n  Flags -l, -L, -x, and -r may be specified multiple times and in any order.\n");
 	fprintf(stderr, "  They are processed together in the order supplied. Each -L or -x option\n");
 	fprintf(stderr, "  is processed as a new compilation unit.\n");
 
-	fprintf(stderr, "\nIf <script> is present, it names a file which will be loaded directly, not\n");
+	fprintf(stderr, "\n  If <script> is present, it names a file which will be loaded directly, not\n");
 	fprintf(stderr, "  through the load path. It will be compiled and run after every other\n");
 	fprintf(stderr, "  expression indicated on the command line.\n");
 
-	fprintf(stderr, "\nThe exit status of l1 is typically the result of the first call to exit().\n");
+	fprintf(stderr, "\n  The exit status of l1 is typically the result of the first call to exit().\n");
 	fprintf(stderr, "  If l1 encounters an error in processing command line arguments then the\n");
 	fprintf(stderr, "  exit status will be non-zero. If exit() is not called, l1 will examine\n");
 	fprintf(stderr, "  the result of the last computation indicated by -l, -s, -r, or <script>.\n");
