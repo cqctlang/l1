@@ -713,5 +713,26 @@ if(looksym(unix,'wait4)) {
 	return syscall(unix`execve,f,a,e);
 }
 
+@global sys_readlink;
+@define sys_readlink(path, buf, bufsize) {
+	@local pathlen, thepath, thebuf, ret;
+
+	pathlen = strlen(path);
+	thepath = (char*)__malloc(pathlen+1);
+	memcpy(thepath, (char*)path, pathlen);
+	thepath[pathlen] = 0;
+
+	thebuf = (char*)__malloc(bufsize);
+	memcpy(thebuf, (char*)buf, bufsize);
+
+	ret = syscall(unix`readlink, thepath, thebuf, bufsize);
+
+	memcpy((char*)buf, thebuf, bufsize);
+
+	return ret;
+}
+
 };
 
+
+// vim: ts=8 noet sw=8
