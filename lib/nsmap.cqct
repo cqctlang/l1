@@ -55,10 +55,14 @@
 		ns = mkns(path);
 		if(ns == nil)
 			error("cannot construct name space for %s", path);
-		if(vbase == nil && base != 0)
-			ns = mknsoff(ns, base);
-		else if(vbase != nil && base != vbase)
+
+		if(vbase == nil) {
+		        vbase = ns.nsinfo().vaddr;
+		}
+
+		if(base != vbase)
 			ns = mknsoff(ns, base-vbase);
+
 		r = nsrec({litdom}base, path, ns);
 		append(rs, r);
 		resort();
