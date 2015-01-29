@@ -1,0 +1,53 @@
+#!/bin/sh
+
+if [ "$1" == "-h" ]
+then
+    echo "usage: $0 [arg1 [,arg2 ...]]"
+    echo "   Runs l1 with the given arguments and prints cqct function calls"
+    echo "   that occur. A l1 dissassembly for those functions is included"
+    echo "   the first time any function is called"
+    exit 0
+fi
+
+# save ourselves some time by making a precompiled version
+# note that if the libraries change, this logic will *not* update the
+# saved heap.
+if [ $0 -nt $0.l1h ]
+then
+    l1 -d "$0.l1h" "$0"
+fi
+
+#exec l1 "$0" "$@"
+exec l1 -m "$0.l1h" "$@"
+
+exit(255); # just in case
+!#
+
+@include <debug.cqct> //mksctlmux, ctllaunch, brk
+@include <syslib.cqct> //readsymlink
+
+l1 = @import_object(l1);
+
+l1exe = readsymlink("/proc/self/exe");
+
+mux = mksctlmux();
+ctlargs = copy(args);
+ctlargs[0] = l1exe;
+
+ctl = ctllaunch(mux, ctlargs);
+exe = ctl.exe();
+
+seen = [:];
+
+brk(ctl, &exe`vcall, @lambda(ctl, vm) {
+    @local d, nm;
+    nm = l1.ciddata(vm->cl->code->id);
+    printf("%s (%s)\n", nm, l1.codesrcstr(vm->cl->code));
+    if (seen[nm]) return;
+    seen[nm] = 1;
+    d = l1.disasmstr(vm->cl->code);
+    if (d != "")
+        printf("%s\n", l1.disasmstr(vm->cl->code));
+});
+
+mux.run();
