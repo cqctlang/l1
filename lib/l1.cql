@@ -177,10 +177,6 @@ l1ns = mkl1ns();
     return d;
 }
 
-@defloc codinsn(code) {
-    return (void*)(((Code*)code)+1);
-}
-
 @define ra2size(ra, code) {
     @local off, d, dom;
 
@@ -196,7 +192,7 @@ l1ns = mkl1ns();
                 error("bad return address: 0x%x 0x%x 0x%x",
                         ra, codeinsn(code), codeend(code));
             }
-            off = ra-(uintptr)codinsn(code);
+            off = ra-(uintptr)codeinsn(code);
             d = lookdbg(code, off);
             return d->fsz;
         case dom`Ccfn:
