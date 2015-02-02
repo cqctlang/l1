@@ -23,6 +23,10 @@ L1's bytecode uses the following registers:
 |  %ac        |  General purpose  |  Val           |
 +-------------+-------------------+----------------+
 
+l1 also contains a table called toplevel. This table maps names of global
+variables to their values. The global variable toplevel is generally bound to
+this table during execution.
+
 
 Opcodes
 -------
@@ -45,7 +49,7 @@ are stated as (immediate)op.
 |  add       |  Stores op1 + op2 in dst                                       |
 |  addfp     |  Adds scnt to fp (note: scnt may be negative)                  |
 |  and       |  Stores op1 & op2 in dst                                       |
-|  apply     |  Run function arg0 with paramters arg1,...,argn                |
+|  apply     |  Run function arg0 with parameters arg1,...,argn                |
 |  argc      |  Check that %vc equals (immediate)op1, throw an error if not   |
 |  box       |  Box the operand in op1                                        |
 |  box0      |  Box nil and put it in op1                                     |
@@ -174,8 +178,73 @@ Non-vm Calls
 There are functions that are not implemented in machl1, but instead using the
 machine code of the underlying processor. These functions look just like VM
 functions, except that during their execution, the VM is paused. These non-vm
-function can re-enter the VM by using ccall to call functions defined via l1
-bytecode.
+functions can re-enter the VM by using ccall to call functions defined via l1
+bytecode. However, when re-entered, garbage collection is disabled.
+
+
+Closures
+--------
+
+To support lexical scoping, l1 uses closures. A closure is a code object and
+an array of values associated with the current context. Each element of the
+array of values maps to a variable and may be referenced via a disp type
+opcode operand (when the closure is in %cl). The code inside of the closure
+can assume constant disp offsets (i.e. the same offset references the same
+value). l1 exports the mkcl function for creating closures from code objects.
+
+
+The Heap
+--------
+
+l1 maintains a single global heap of memory. The heap consists of segments
+sized Segsize, aligned on Segsize boundaries. Each segment is labelled with
+a number, a generation, a metatype, and some information for the garbage
+collector. The information is stored in the global segmap. The metatypes that
+a segment may be are:
+
++-------------+------------------------------------------+
+|  Type       |  Meaning                                 |
++-------------+------------------------------------------+
+|  MThole     |  An unmapped segment                     |
+|  MTnix      |  A segment that will be freed            |
+|  MTfree     |  An unused segment                       |
+|  MTweak     |  A segment containing only weak pairs    |
+|  MTbox      |  A segment containing only boxed values  |
+|  MTmutable  |  A segment containing mutable values     |
+|             |  (i.e. ctypes, vecs, lists and tabs)     |
+|  MTdata     |  A segment containing other objects      |
+|  MTbigdata  |  A segment containing large objects      |
+|  MTstack    |  A segment containing a VM stack         |
+|  MTcode     |  A segment containing code objects       |
+|  MTbigcode  |  A segment containing big code objects   |
++-------------+------------------------------------------+
+
+All types except the MThole, MTnix, MTfree and MTweak are considered during
+garbage collection.
+
+
+Garbage Collection
+------------------
+
+Garbage collection occurs during a gcpoll instruction or via the l1 builtin
+function gc. l1 uses a generational collector with three generations. This
+variation of copying garbage collection maintains a generation number for each
+heap segment. New allocations are from a segment with generation 0. Each time
+an object survives a garbage collection, it is promoted to a higher generation
+heap segment. Objects to be promoted are found via a reachability analysis
+that has deep knowledge of which elements are pointers within each object
+type. The reachability analysis starts with values in the current stack
+(including any linked underflow stacks), the closure in %cl, the value in %ac,
+and the values stored in the toplevel.
+
+In order to ensure that pointers from older to newer generations are updated
+properly, a card table is used. Each segment is divided into Ncard chunks, and
+each chunk is represented by an entry in a card table. The card table entry
+records if any pointer in the corresponding segment chunk has been updated
+since the last garbage collection. The existence of this facility implies that
+when one is modifying an object directly, one must update the corresponding
+card table to let the garbage collector know of the change. The function gcwb
+has been provided for this purpose.
 
 
 TODO
@@ -183,4 +252,4 @@ TODO
 
 The following topics have not been addressed, but should be:
 
-Continuations, garbage collection, interrupts, locals, boxed vals
+Continuations, interrupts, locals, boxed vals
