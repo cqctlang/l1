@@ -12,7 +12,7 @@ fi
 # save ourselves some time by making a precompiled version
 # note that if the libraries change, this logic will *not* update the
 # saved heap.
-if [ $0 -nt $0.l1h ]
+if [ "$0" -nt "$0.l1h" ]
 then
     l1 -d "$0.l1h" "$0"
 fi
