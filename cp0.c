@@ -708,6 +708,7 @@ checkctl(U *ctx, Expr *e, unsigned inloop, unsigned inswitch)
 	case Edefault:
 		if(inswitch == 0)
 			cerror(ctx, e, "default label not within switch");
+		checkctl(ctx, e->e1, inloop, 1);
 		break;
 	case Eelist:
 		p = e;
