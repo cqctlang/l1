@@ -264,13 +264,15 @@ if(looksym(unix,'AF_UNIX)) {
 }
 
 //XXX not documented, maybe belongs in a different library
+//XXX perhaps should be called readlink?
+@global readsymlink;
 @define readsymlink(buf) {
 	@local b, sz, res;
 
-	sz = 0x80;
+	sz = 0x80; 
 
 	while(1) {
-		b = mkstr(sz);
+		b = malloc(sz);
 		res = sys_readlink(buf, b, sz);
 		if(res < sz)
 			break;
