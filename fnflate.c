@@ -163,11 +163,11 @@ _inflate(VM *vm, Imm argc, Val *argv, Val *rv, int zlib)
 	p = 0;
 	ss = 0;
 	omax = 0;
-	if(Vkind(argv[0]) == Qcval) {
+	if(Viskind(argv[0], Qcval)){
 		p = valcval(argv[0]);
 		if(!isstrcval(p))
 			vmerr(vm, err);
-	}else if(Vkind(argv[0]) == Qstr) {
+	}else if(Viskind(argv[0], Qstr)){
 		ss = valstr(argv[0]);
 	}else
 		vmerr(vm, err);

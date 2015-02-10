@@ -1,0 +1,27 @@
+
+
+@include <json.cqct>
+
+
+printf("%s\n", val2json("\n"));
+printf("%s\n", val2json("\v\n\f\r"));
+printf("%s\n", val2json(mkcid("\v\n\f\r\\")));
+
+printf("%s\n", val2json(
+    "aaaaaa\vbbbbbbbbbb\nccccccccc\fdddddddddd\r"
+    "aaaaaa\vbbbbbbbbbb\nccccccccc\fdddddddddd\r"
+    "aaaaaa\vbbbbbbbbbb\nccccccccc\fdddddddddd\r"
+    "aaaaaa\vbbbbbbbbbb\nccccccccc\fdddddddddd\r"
+    "aaaaaa\vbbbbbbbbbb\nccccccccc\fdddddddddd\r"
+    "aaaaaa\vbbbbbbbbbb\nccccccccc\fdddddddddd\r"
+    "aaaaaa\vbbbbbbbbbb\nccccccccc\fdddddddddd\r"
+));
+
+s = mkstr(256);
+v = (unsigned char*)s;
+for(i=0; i<256; ++i) {
+    v[i] = i;
+}
+
+printf("%s\n", val2json(s));
+

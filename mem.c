@@ -672,6 +672,8 @@ scantab(Head *hd)
 	gcopy((Val*)&t->ht, &min);
 	gcopy((Val*)&t->tg, &min);
 	gcopy((Val*)&t->def, &min);
+	if(&t->priv)
+		gcopy((Val*)&t->name, &min);
 	return min;
 }
 
@@ -1616,7 +1618,7 @@ pop1tguard(Pair *g)
 		m = pop1guard(g);
 		if(m == 0)
 			return 0;
-		if(Vkind(car(m)) != Qnil){
+		if(!Viskind(car(m), Qnil)){
 			guard(m, g);
 			return car(m);
 		}
@@ -2866,6 +2868,7 @@ loadsavetab(Head *hd, LSctx *ls)
 	loadsaveptr((Val*)&t->ht, ls);
 	loadsaveptr((Val*)&t->tg, ls);
 	loadsaveptr((Val*)&t->def, ls);
+	loadsaveptr((Val*)&t->name, ls);
 	if(ls->mode == LSsave){
 		savecfn((void**)&t->equal);
 		savecfn((void**)&t->hash);
@@ -2997,7 +3000,7 @@ rehash(void *p)
 	e = s->a;
 	while(p < e){
 		h = p;
-		if(Vkind(h) == Qtab)
+		if(Viskind(h, Qtab))
 			tabrehash(valtab(h));
 		p += qsz(h);
 	}

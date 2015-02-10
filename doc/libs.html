@@ -24,7 +24,7 @@
 <a href="#lib:nsutil.cqct">nsutil</a><br />
 <a href="#lib:re.cqct">Regular Expression Library</a><br />
 <a href="#lib:rbtree.cqct">Red Black Tree</a><br />
-<a href="#lib:snames.cqct">snames</a><br />
+<a href="#lib:rangeset.cqct">Range Sets</a><br />
 <a href="#lib:strings.cqct">strings</a><br />
 <a href="#lib:gdb.cqct">gdb</a><br />
 </div>
@@ -1738,79 +1738,6 @@ querying.
     strictly less than <em>upper</em>. 
 </div>
 </div>
-
-<h5 id="lib:snames.cqct">snames.cqct</h5>
-
-<p>
-<span class="id">snames.cqct</span> is a server
-intended to serve Cinquecento name spaces across a
-network using the sctl protocol.  It supports two modes
-of operation: in <span class="id">names</span> mode,
-name spaces are drawn from a "names files" stored in
-the local file system; in <span class="id">sctl</span> mode,
-name spaces are drawn from new invocations of the sctl server
-(which must be in the path).
-</p>
-
-<p>
-The usage is:
-</p>
-
-<div id="inset">
-<p>
-snames.cqct <span class="arg">port</span> <span class="arg">rootns</span> <span class="arg">mode</span> <span class="arg">prefix</span> [<span class="arg">var</span> ...]
-</p>
-</div>
-
-<p>
-<span class="arg">Port</span> is the port on which the
-server accepts connections (from any available network
-interface).
-</p>
-
-<p>
-<span class="arg">Rootns</span> is the name of the root name
-space (e.g., <span class="val">c32le</span>) from which all served name spaces are extended.  It is meaningful only in <span class="id">names</span> mode.
-</p>
-
-<p>
-<span class="arg">Mode</span> is either <span class="id">names</span> or <span class="id">sctl</span>.
-</p>
-
-<p>
-<span class="arg">Prefix</span> is the path to the
-directory tree in which the served names files are
-accessed.  To resolve a name space name,
-the <span class="arg">path</span> argument provided by
-the client <span class="val">snamesns</span> operation
-is appended to <span class="arg">prefix</span>.
-(If <span class="arg">Prefix</span> does not end with
-the character <span class="val">"/"</span>,
-it is added.)  <span class="arg">Prefix</span>
-is meaningful only in <span class="id">names</span> mode.
-</p>
-
-<p>
-The remaining optional arguments <span class="arg">var
-...</span>  are each the name of a variable that will
-be bound, with value <span class="val">0</span>, in the
-scope of the <span class="val">@names</span> evaluation
-that is performed for each served name space.  This
-allows the serving of names files that contain
-references to variables, but it does not offer any
-control over their values.  These arguments are meaningful
-only in <span class="id">names</span> mode.
-</p>
-
-<p>
-In the event of an error, the snames server automatically restarts.
-Some diagnostics are printed to standard output.
-</p>
-
-<p>
-This command-line synopsis should be revised to not require
-meaningless arguments in <span class="id">sctl</span> mode.
-</p>
 
 <h5 id="lib:strings.cqct">strings.cqct</h5>
 

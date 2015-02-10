@@ -108,7 +108,7 @@ linknext(Pair *lnk)
 int
 islink(Val v)
 {
-	return Vkind(v) == Qpair;
+	return Viskind(v, Qpair);
 }
 
 
@@ -463,13 +463,18 @@ static void
 l1_mktabpriv(VM *vm, Imm argc, Val *argv, Val *rv)                                
 {                                                                               
 	Tab *t;
+	Str *s;
 
-	if(argc != 1)
-		vmerr(vm, "wrong number of arguments to %s", "istable");
+	if(argc != 2)
+		vmerr(vm, "wrong number of arguments to %s", "mktabpriv");
 	checkarg(vm, argv, 0, Qtab);
+	checkarg(vm, argv, 1, Qstr);
+
 	t = valtab(argv[0]);
+	s = valstr(argv[1]);
 
 	t->priv = 1;
+	t->name = s;
 
 	*rv = argv[0];
 }                                                                               
@@ -501,7 +506,7 @@ l1_tablook(VM *vm, Imm argc, Val *argv, Val *rv)
 	else if(t->def == Xnil)
 		*rv = Xnil;
 	else{
-		if(Vkind(t->def) == Qcl)
+		if(Viskind(t->def, Qcl))
 			vp = ccall(vm, valcl(t->def), 0, 0);
 		else
 			vp = t->def;
@@ -521,9 +526,9 @@ l1_tabhas(VM *vm, Imm argc, Val *argv, Val *rv)
 	t = valtab(argv[0]);
 	vp = tabget(t, argv[1]);
 	if(vp)
-		*rv = cval1;
+		*rv = mkvalcval2(cval1);
 	else
-		*rv = cval0;
+		*rv = mkvalcval2(cval0);
 }
 
 void
@@ -561,7 +566,7 @@ l1_tabkeys(VM *vm, Imm argc, Val *argv, Val *rv)
 	if(argc != 1)
 		vmerr(vm, "wrong number of arguments to tabkeys");
 	arg0 = argv[0];
-	if(Vkind(arg0) != Qtab)
+	if(!Viskind(arg0, Qtab))
 		vmerr(vm, "operand 1 to tabkeys must be a table");
 
 	if(valtab(arg0)->priv)
@@ -578,7 +583,7 @@ l1_tabvals(VM *vm, Imm argc, Val *argv, Val *rv)
 	if(argc != 1)
 		vmerr(vm, "wrong number of arguments to tabvals");
 	arg0 = argv[0];
-	if(Vkind(arg0) != Qtab)
+	if(!Viskind(arg0, Qtab))
 		vmerr(vm, "operand 1 to tabvals must be a table");
 
 	if(valtab(arg0)->priv)

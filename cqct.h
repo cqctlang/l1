@@ -108,6 +108,7 @@ typedef struct Tab* Env;
 #define Vfwdaddr(p)	  ((void*)((p)->bits & ~(Vfwdmask<<Vfwdoff)))
 
 #define Vkind(p)          ((((p)->bits)>>Vkindoff)&Vkindmask)
+#define Viskind(p, k)     ((((p)->bits)&(Vkindmask<<Vkindoff))==((k)<<Vkindoff))
 #define Vsetkind(p, v)	  ((p)->bits = ((p)->bits&~(Vkindmask<<Vkindoff))|(((v)&Vkindmask)<<Vkindoff))
 
 struct Head

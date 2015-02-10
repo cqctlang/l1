@@ -52,13 +52,13 @@ l1__popen(VM *vm, Imm argc, Val *argv, Val *rv)
 	if(argc == 0)
 		vmerr(vm, "wrong number of arguments to popen");
 	flags = 0;
-	if(Vkind(argv[argc-1]) == Qcval) {
+	if(Viskind(argv[argc-1], Qcval)){
 		cv = valcval(argv[argc-1]);
 		flags = cvalu(cv);
 		argc--;
 		if(argc == 0)
 			vmerr(vm, "wrong number of arguments to popen");
-	}else if(Vkind(argv[argc-1]) != Qstr)
+	}else if(!Viskind(argv[argc-1], Qstr))
 		vmerr(vm, "final argument to popen must be a string or cvalue");
 
 	for(m = 0; m < argc; m++)

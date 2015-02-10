@@ -362,6 +362,7 @@ struct Tab {
 	int (*equal)(Val, Val);
 	u32 (*hash)(Val);
 	u32 priv;
+	Str *name;
 };
 
 struct List {

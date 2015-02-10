@@ -19,11 +19,11 @@ l1_dlopen(VM *vm, Imm argc, Val *argv, Val *rv)
 	//could error out before reaching the free)
 	checkarg(vm, argv, 1, Qcval);
 
-	if(Vkind(argv[0]) == Qstr) {
+	if(Viskind(argv[0], Qstr)) {
 
 		name = str2cstr(valstr(argv[0]));
 
-	}else if(Vkind(argv[0]) == Qcval) {
+	}else if(Viskind(argv[0], Qcval)) {
 
 		if(valimm(argv[1]) != 0){
 			vmerr(vm,

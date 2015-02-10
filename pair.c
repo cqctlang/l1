@@ -120,7 +120,7 @@ l1_isweakpair(VM *vm, Imm argc, Val *argv, Val *rv)
 {
 	if(argc != 1)
 		vmerr(vm, "wrong number of arguments to isweakpair");
-	if(Vkind(argv[0]) == Qpair && isweak(argv[0]))
+	if(Viskind(argv[0], Qpair) && isweak(argv[0]))
 		*rv = mkvalcval2(cval1);
 	else
 		*rv = mkvalcval2(cval0);

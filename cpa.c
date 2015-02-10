@@ -27,7 +27,7 @@ attreq(Expr *e, char *id)
 		bug();
 	if(e->e2->kind != Eval)
 		bug();
-	if(Vkind(e->e2->aux) != Qcid)
+	if(!Viskind(e->e2->aux, Qcid))
 		bug();
 	return !strcmp(ciddata(valcid(e->e2->aux)), id);
 }
@@ -258,7 +258,7 @@ iscntrkey(Expr *e)
 	Val v;
 	if(e->kind == Eval){
 		v = e->aux;
-		return Vkind(v) != Qcval;
+		return !Viskind(v, Qcval);
 	}
 	return 0;
 }

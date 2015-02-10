@@ -48,7 +48,7 @@ mknewfd = @lambda(sysfd, fd, flags, closed, name, read, write, close) {
 	@local t;
 
 	t=[:];
-	t=mktabpriv(t);
+	t=mktabpriv(t, "fd");
 
 	t.sysfd = sysfd;
 	t.fd = fd;

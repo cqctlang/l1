@@ -181,9 +181,9 @@ l1_memset(VM *vm, Imm argc, Val *argv, Val *rv)
 		lim = cvalu(lcv);
 	}else
 		lim = s->len;
-	if(Vkind(argv[0]) == Qstr)
+	if(Viskind(argv[0], Qstr))
 		memset(strdata(s), b, lim);
-	else if(Vkind(argv[0]) == Qcval){
+	else if(Viskind(argv[0], Qcval)){
 		/* FIXME: we shouldn't call valstrorcval just
 		   to get lim in 2-arg case */
 		s = mkstrn(lim);
@@ -314,7 +314,7 @@ l1_strstr(VM *vm, Imm argc, Val *argv, Val *rv)
 	s1 = str2cstr(str1);
 	str2 = valstrorcval(vm, "strstr", argv, 1);
 	s2 = str2cstr(str2);
-	if(Vkind(argv[0]) == Qcval && Vkind(argv[1]) == Qcval)
+	if(Viskind(argv[0], Qcval) && Viskind(argv[1], Qcval))
 		p = strstr(s1, s2);
 	else
 		p = xmemmem(s1, str1->len, s2, str2->len);
@@ -401,16 +401,16 @@ l1_strput(VM *vm, Imm argc, Val *argv, Val *rv)
 
 	if(argc != 3)
 		vmerr(vm, "wrong number of arguments to strput");
-	if(Vkind(argv[0]) != Qstr)
+	if(!Viskind(argv[0], Qstr))
 		vmerr(vm, "operand 1 to strput must be a string");
-	if(Vkind(argv[1]) != Qcval)
+	if(!Viskind(argv[1], Qcval))
 		vmerr(vm, "operand 2 to strput must be an offset");
-	if(Vkind(argv[2]) != Qstr && Vkind(argv[2]) != Qcval)
+	if(!Viskind(argv[2], Qstr) && !Viskind(argv[2], Qcval))
 		vmerr(vm, "operand 3 to strput must be a string or character");
 	s = valstr(argv[0]);
 	off = valcval(argv[1]);
 	o = cvalu(off);		/* FIXME: use type */
-	if(Vkind(argv[2]) == Qstr){
+	if(Viskind(argv[2], Qstr)){
 		t = valstr(argv[2]);
 		if(t->len == 0)
 			return;

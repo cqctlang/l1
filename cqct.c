@@ -29,7 +29,7 @@ cqctvalcbase(Val v)
 {
 	Cval *cv;
 	Ctype *t;
-	if(Vkind(v) != Qcval)
+	if(!Viskind(v, Qcval))
 		return (Cbase)-1;
 	cv = valcval(v);
 	t = chasetype(cv->type);
@@ -47,9 +47,9 @@ cqctvalcbase(Val v)
 char*
 cqctvalcstr(Val v)
 {
-	if(Vkind(v) == Qstr)
+	if(Viskind(v, Qstr))
 		return str2cstr(valstr(v));
-	if(Vkind(v) == Qcid)
+	if(Viskind(v, Qcid))
 		return str2cstr(cid2str(valcid(v)));
 	return 0;
 }
@@ -57,9 +57,9 @@ cqctvalcstr(Val v)
 char*
 cqctvalcstrshared(Val v)
 {
-	if(Vkind(v) == Qstr)
+	if(Viskind(v, Qstr))
 		return strdata(valstr(v));
-	if(Vkind(v) == Qcid)
+	if(Viskind(v, Qcid))
 		return ciddata(valcid(v));
 	return 0;
 }
@@ -68,7 +68,7 @@ uint64_t
 cqctvalcstrlen(Val v)
 {
 	Str *s;
-	if(Vkind(v) != Qstr)
+	if(!Viskind(v, Qstr))
 		return 0;
 	s = valstr(v);
 	return (uint64_t)s->len;
@@ -158,7 +158,7 @@ Val
 cqctlistref(Val l, uint64_t idx)
 {
 	List *lst;
-	if(Vkind(l) != Qlist)
+	if(!Viskind(l, Qlist))
 		return 0;
 	lst = vallist(l);
 	if(idx >= listlen(lst))
@@ -170,7 +170,7 @@ Val
 cqctlistset(Val l, uint64_t idx, Val v)
 {
 	List *lst;
-	if(Vkind(l) != Qlist)
+	if(!Viskind(l, Qlist))
 		return 0;
 	lst = vallist(l);
 	if(idx >= listlen(lst))
@@ -183,7 +183,7 @@ Val*
 cqctlistvals(Val v)
 {
 	List *l;
-	if(Vkind(v) != Qlist)
+	if(!Viskind(v, Qlist))
 		return 0;
 	l = vallist(v);
 	return &listdata(l)[l->h];
@@ -192,7 +192,7 @@ cqctlistvals(Val v)
 Val
 cqctlistappend(Val l, Val v)
 {
-	if(Vkind(l) != Qlist)
+	if(!Viskind(l, Qlist))
 		return 0;
 	_listappend(vallist(l), v);
 	return l;
@@ -201,7 +201,7 @@ cqctlistappend(Val l, Val v)
 Val
 cqcttabget(Val l, Val k) {
 	 Tab *tab;
-	 if (Vkind(l) != Qtab)
+	 if (!Viskind(l, Qtab))
 		   return 0;
 	 tab = valtab(l);
 	 return tabget(tab, k);
@@ -217,7 +217,7 @@ Val
 cqctvecref(Val o, uint64_t idx)
 {
 	Vec *vec;
-	if(Vkind(o) != Qvec)
+	if(!Viskind(o, Qvec))
 		return 0;
 	vec = valvec(o);
 	if(idx >= veclen(vec))
@@ -229,7 +229,7 @@ Val
 cqctvecset(Val o, uint64_t idx, Val v)
 {
 	Vec *vec;
-	if(Vkind(o) != Qvec)
+	if(!Viskind(o, Qvec))
 		return 0;
 	vec = valvec(o);
 	if(idx >= veclen(vec))
@@ -242,7 +242,7 @@ Val*
 cqctvecvals(Val v)
 {
 	Vec *vec;
-	if(Vkind(v) != Qvec)
+	if(!Viskind(v, Qvec))
 		return 0;
 	vec = valvec(v);
 	return vecdata(vec);
@@ -251,7 +251,7 @@ cqctvecvals(Val v)
 Val
 cqctmkrange(Val b, Val l)
 {
-	if(Vkind(b) != Qcval || Vkind(l) != Qcval)
+	if(!Viskind(b, Qcval) || !Viskind(l, Qcval))
 		return 0;
 	return mkvalrange(mkrange(valcval(b), valcval(l)));
 }
@@ -260,7 +260,7 @@ Val
 cqctrangebeg(Val o)
 {
 	Range *r;
-	if(Vkind(o) != Qrange)
+	if(!Viskind(o, Qrange))
 		return 0;
 	r = valrange(o);
 	return mkvalcval2(r->beg);
@@ -270,7 +270,7 @@ Val
 cqctrangelen(Val o)
 {
 	Range *r;
-	if(Vkind(o) != Qrange)
+	if(!Viskind(o, Qrange))
 		return 0;
 	r = valrange(o);
 	return mkvalcval2(r->len);
