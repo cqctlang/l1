@@ -1,4 +1,4 @@
-Copyright (C) 2006-2013 Institute for Defense Analyses. All rights reserved.
+Copyright (C) 2006-2015 Institute for Defense Analyses. All rights reserved.
 
 Portions Copyright (C) 1998-2009 Lucent Technologies.  All Rights Reserved.
 Portions Copyright (C) 2001-2008 Russ Cox
@@ -9,12 +9,10 @@ Portions Copyright (C) Vivek Thampi
 --------------------------------------------------------
 
 This software may be used and distributed according to
-the terms of the GNU General Public License (GPL),
-incorporated herein by reference, as modified below:
+the terms of version 2 of the GNU General Public License
+(GPL), incorporated herein by reference, as modified below:
 
-Portions of this work are licensed to you under the terms
-of the Lucent Public License (LPL), Version 1.02. In every
-case where the LPL is incompatible with the GPL, the terms
-of the Lucent Public License shall take precedence.
-
-
+Marked portions of this work are licensed to you under the
+terms of the Lucent Public License (LPL), Version 1.02. In
+every case where the LPL is incompatible with the GPL, the
+terms of the Lucent Public License shall take precedence.
