@@ -963,6 +963,14 @@ if(looksym(unix,'wait4)) {
 @define sys_readlink(path, buf, buflen) {
 	@local p, b, r;
 
+	if(iscvalue(buf) && isptr(@typeof(buf))) {
+	} else if(isstring(buf)) {
+		if(buflen > length(buf))
+			error("buflen exceeds length of string buf");
+	} else {
+		error("path must be a string or a cptr");
+	}
+
 	if(iscvalue(path) && isptr(@typeof(path))) {
 		@local pl;
 
@@ -978,7 +986,7 @@ if(looksym(unix,'wait4)) {
 		putbytes(p, path);
 		p[pl] = 0;
 	} else {
-		error("filename must be a string or a cptr");
+		error("path must be a string or a cptr");
 	}
 
 	b = ___malloc(buflen);
@@ -986,7 +994,11 @@ if(looksym(unix,'wait4)) {
 	r = syscall(unix`readlink, p, b, buflen);
 
 	if(r > 0) {
-		putbytes(buf, getbytes(b, r));
+		if(isstring(buf)) {
+			strput(buf, 0, getbytes(b, r));
+		} else {
+			putbytes(buf, getbytes(b, r));
+		}
 	}
 
 	_free(p);
