@@ -1,0 +1,5 @@
+switch(1){
+    default:
+        printf("or this\n");
+        continue;
+}

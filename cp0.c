@@ -674,7 +674,7 @@ checkctl(U *ctx, Expr *e, unsigned inloop, unsigned inswitch)
 	switch(e->kind){
 	case Eswitch:
 		checkctl(ctx, e->e1, inloop, inswitch);
-		checkctl(ctx, e->e3, inloop, 1);
+		checkctl(ctx, e->e2, inloop, 1);
 		break;
 	case Efor:
 		checkctl(ctx, e->e1, inloop, inswitch);
@@ -708,6 +708,7 @@ checkctl(U *ctx, Expr *e, unsigned inloop, unsigned inswitch)
 	case Edefault:
 		if(inswitch == 0)
 			cerror(ctx, e, "default label not within switch");
+		checkctl(ctx, e->e1, inloop, 1);
 		break;
 	case Eelist:
 		p = e;

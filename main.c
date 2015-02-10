@@ -318,7 +318,7 @@ main(int argc, char *argv[])
 			opt['s'] = 1;
 			memmove(argv+i, argv+i+1, (argc-i-1)*sizeof(char*));
 			argc--;
-		} else if(strcmp("--Xl1", argv[i]) == 0) {
+		} else if(strcmp("-Xl1", argv[i]) == 0) {
 			if(argc <= i+1)
 				usage();
 			if(argv[i+1][0] != '-' || strlen(argv[i+1]) != 2)

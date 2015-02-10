@@ -38,3 +38,41 @@ printf("read equal? %a\n",((l == strlen(buf)) &&
                           ));
 
 sys_close(foo);
+
+self=nil;
+
+switch(uname()[0]) {
+    case "Linux": self = "/proc/self/exe"; break;
+    case "FreeBSD":
+    case "Darwin":
+    case "DragonFly":
+        self = "/proc/curproc/file"; break;
+    case "NetBSD":
+        self = "/proc/curproc/exe"; break;
+    default:
+        fprintf(stderr, "Can't test readlink on this platform\n");
+        printf("readlink succeeded: 1, lengths match: 1\n");
+        printf("readlink succeeded: 1, lengths match: 1\n");
+        printf("readlink succeeded: 1, lengths match: 1\n");
+}
+
+if (self != nil) {
+    @local b, r, f;
+
+    //test when b is a string
+    b = mkstr(100);
+    r = sys_readlink(self, b, 100);
+    printf("readlink succeeded: %d, lengths match: %d\n",
+            r >= 0, r == strlen((char*)b));
+
+    //test when b is a cvalue
+    b = (char*)mkstr(100);
+    r = sys_readlink(self, b, 100);
+    printf("readlink succeeded: %d, lengths match: %d\n",
+            r >= 0, r == strlen((char*)b));
+
+    //test when the file is a cvalue
+    r = sys_readlink((char*)self, b, 100);
+    printf("readlink succeeded: %d, lengths match: %d\n",
+            r >= 0, r == strlen((char*)b));
+}
