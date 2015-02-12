@@ -279,8 +279,10 @@ static u8	scanns(Head*);
 static u8	scanpair(Head*);
 static u8	scanprecode(Head*);
 static u8	scanrange(Head*);
+#ifdef FOO
 static u8	scanrd(Head*);
 static u8	scanrec(Head*);
+#endif
 static u8	scantab(Head*);
 static u8	scanvec(Head*);
 
@@ -298,8 +300,10 @@ static u8	loadsavens(Head*, LSctx *ls);
 static u8	loadsavepair(Head*, LSctx *ls);
 static u8	loadsaveprecode(Head*, LSctx *ls);
 static u8	loadsaverange(Head*, LSctx *ls);
+#ifdef FOO
 static u8	loadsaverd(Head*, LSctx *ls);
 static u8	loadsaverec(Head*, LSctx *ls);
+#endif
 static u8	loadsavetab(Head*, LSctx *ls);
 static u8	loadsavevec(Head*, LSctx *ls);
 
@@ -324,7 +328,7 @@ static Qtype qs[Qnkind] = {
 	[Qpair]	 	= { "pair", sizeof(Pair), 0, scanpair, loadsavepair },
 	[Qprecode]	= { "precode", sizeof(Precode), 1, scanprecode, loadsaveprecode },
 	[Qrange] 	= { "range", sizeof(Range), 0, scanrange, loadsaverange },
-	[Qrd]    	= { "rd", sizeof(Rd), 0, scanrd, loadsaverd },
+	//[Qrd]    	= { "rd", sizeof(Rd), 0, scanrd, loadsaverd },
 	//[Qrec]	 	= { "record", sizeof(Rec), 0, scanrec, loadsaverec },
 	[Qstr]	 	= { "string", sizeof(Str), 1, 0 },
 	[Qtab]	 	= { "table",  sizeof(Tab), 1, scantab, loadsavetab },
@@ -628,6 +632,7 @@ scanrange(Head *hd)
 	return min;
 }
 
+#ifdef FOO
 static u8
 scanrd(Head *hd)
 {
@@ -660,6 +665,7 @@ scanrec(Head *hd)
 		gcopy((Val*)&recdata(r)[i], &min);
 	return min;
 }
+#endif
 
 static u8
 scantab(Head *hd)
@@ -1356,7 +1362,9 @@ qsz(Head *h)
 	Cid *id;
 	Closure *cl;
 	Code *c;
+#ifdef FOO
 	Rec *r;
+#endif
 	Str *s;
 	Ctype *t;
 	Vec *v;
@@ -2839,6 +2847,7 @@ loadsaverange(Head *hd, LSctx *ls)
 	return 0;
 }
 
+#ifdef FOO
 static u8
 loadsaverd(Head *hd, LSctx *ls)
 {
@@ -2865,6 +2874,7 @@ loadsaverec(Head *hd, LSctx *ls)
 		loadsaveptr((Val*)&recdata(r)[i], ls);
 	return 0;
 }
+#endif
 
 static u8
 loadsavetab(Head *hd, LSctx *ls)

@@ -381,9 +381,9 @@ fmtval(VM *vm, Fmt *f, Val val, List* seen)
 	Pair *p;
 	Vec *v;
 	Range *r;
-	Rd *rd;
+	//Rd *rd;
 	Cid *id;
-	Rec *rec;
+	//Rec *rec;
 	Str *str;
 	Val bv, rv;
 	u32 m;
@@ -615,6 +615,7 @@ fmtval(VM *vm, Fmt *f, Val val, List* seen)
 		if(fmtputB(vm, f, strdata(str), str->len))
 			return -1;
 		return fmtputs0(vm, f, "\"");
+#ifdef FOO
 	case Qrd:
 		rd = valrd(val);
 		if(fmtputs0(vm, f, "<rd "))
@@ -622,6 +623,7 @@ fmtval(VM *vm, Fmt *f, Val val, List* seen)
 		if(fmtputs(vm, f, ciddata(rd->name), rd->name->len-1))
 			return -1;
 		return fmtputs0(vm, f, ">");
+#endif
 	case Qcode:
 		cd = valcode(val);
 		if(fmtputs0(vm, f, "<code "))

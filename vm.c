@@ -20,7 +20,7 @@ char *qname[Qnkind] = {
 	[Qprecode]=	"precode",
 	[Qrange]=	"range",
 	//[Qrec]=		"record",
-	[Qrd]=		"recorddescriptor",
+	//[Qrd]=		"recorddescriptor",
 	[Qstr]=		"string",
 	[Qtab]=		"table",
 	[Qvec]=		"vector",
@@ -236,7 +236,7 @@ eqval(Val v1, Val v2)
 	case Qcl:
 	case Qdom:
 	case Qns:
-	case Qrd:
+	//case Qrd:
 	case Qtab:
 	case Qexpr:
 	case Qctype:
@@ -268,7 +268,7 @@ hashqval(Val v)
 	case Qcl:
 	case Qdom:
 	case Qns:
-	case Qrd:
+	//case Qrd:
 	case Qtab:
 	case Qexpr:
 	case Qctype:
@@ -302,7 +302,7 @@ eqvval(Val v1, Val v2)
 	case Qcl:
 	case Qdom:
 	case Qns:
-	case Qrd:
+	//case Qrd:
 	case Qtab:
 	case Qprecode:
 	case Qcode:
@@ -342,7 +342,7 @@ hashqvval(Val v)
 	case Qcl:
 	case Qdom:
 	case Qns:
-	case Qrd:
+	//case Qrd:
 	case Qtab:
 	case Qprecode:
 	case Qcode:
@@ -386,7 +386,7 @@ equalval(Val v1, Val v2)
 	case Qcl:
 	case Qdom:
 	case Qns:
-	case Qrd:
+	//case Qrd:
 	case Qtab:
 	case Qprecode:
 	case Qcode:
@@ -426,7 +426,7 @@ hashval(Val v)
 	case Qcl:
 	case Qdom:
 	case Qns:
-	case Qrd:
+	//case Qrd:
 	case Qtab:
 	case Qprecode:
 	case Qcode:
@@ -6321,8 +6321,6 @@ l1_isstx(VM *vm, Imm argc, Val *argv, Val *rv)
 static void
 l1_isprimitivetable(VM *vm, Imm argc, Val *argv, Val *rv)
 {
-	Tab *t;
-
 	if(argc != 1)
 		vmerr(vm, "wrong number of arguments to %s", "isprimitivetable");
 	if(Vkind(argv[0]) == Qtab)

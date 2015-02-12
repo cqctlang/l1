@@ -253,7 +253,7 @@ typedef struct Ns Ns;
 typedef struct Pair Pair;
 typedef struct Range Range;
 typedef struct Rd Rd;
-typedef struct Rec Rec;
+//typedef struct Rec Rec;
 typedef struct Str Str;
 typedef struct Tab Tab;
 typedef struct Vec Vec;
@@ -454,6 +454,7 @@ struct Range {
 	Cval *len;
 };
 
+#ifdef FOO
 struct Rec {
 	Head hd;
 	u32 nf;
@@ -474,6 +475,7 @@ struct Rd {
 	Tab *get;		/* field get */
 	Tab *set;		/* field set */
 };
+#endif
 
 typedef
 enum {
@@ -1482,11 +1484,11 @@ Pair*		mkpair(Val a, Val d);
 Pair*		mkweakpair(Val a, Val d);
 
 /* rec.c */
-int		equalrec(Rec *a, Rec *b);
-void		finirec();
-u32		hashrec(Rec *r);
-void		initrec();
-void		fnrec(Env env);
+//int		equalrec(Rec *a, Rec *b);
+//void		finirec();
+//u32		hashrec(Rec *r);
+//void		initrec();
+//void		fnrec(Env env);
 
 /* str.c */
 int		equalstr(Str *a, Str *b);
