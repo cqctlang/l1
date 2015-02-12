@@ -1,0 +1,55 @@
+/* this is a compatibility shim to bring record-bearing
+ * forward easily.
+ */
+
+@global record_formatters;
+record_formatters = [:];
+
+@defstx @rec(recname, fields ...) {
+	@local foo, x, c;
+
+	if(stxkind(fields) == 'null)
+		error("record has no fields");
+
+	foo = #[];
+	c = fields;
+	x = 0;
+	while(c[1]) {
+		foo = stxsplice(foo, #`{ t.#,(c[0]) = (l <= #,x)?nil:vals[#,x];});
+
+		c = c[1];
+		x++;
+	}
+
+	return #`{
+		#,recname = @lambda() { @local rd; rd=@lambda(vals ...) {
+			@local t, l;
+
+			l = length(vals);
+			if(l > #,x) {
+				error("too many values for record type");
+			}
+
+			t = mktab(@lambda() {
+				error("record has no such field");
+			});
+
+			#,foo;
+
+			mktabpriv(t, "record");
+
+			tabsetfmt(t, @lambda(v) {
+				@local f;
+				f = record_formatters[rd];
+				if(f)
+					return f(v);
+				else return f;	
+			});
+			return t;
+		}; return rd; }();
+	};
+}
+
+rdsetfmt = @lambda(rd, fmt) {
+	record_formatters[rd] = fmt;
+};
