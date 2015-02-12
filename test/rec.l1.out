@@ -1,9 +1,9 @@
-table( 1 : <recursive data> )
-table( <recursive data> : 1 )
+table([ 1 : <recursive data> ])
+table([ <recursive data> : 1 ])
 [ <recursive data> ]
 vector( <recursive data> )
-table( 1 : vector( table( 2 : 3, 6 : [ <recursive data> ], 4 : 5 ) ) )
+table([ 1 : vector( table([ 2 : 3, 6 : [ <recursive data> ], 4 : 5 ]) ) ])
 [ cons(<recursive data>, <nil>) ]
 #val([ <recursive data> ])
 #[ #x(#val([ <recursive data> ]), #val([ <recursive data> ]), #val([ <recursive data> ]), #val([ <recursive data> ])) ]
-table( 1 : vector( table( 2 : 3, 6 : [ <recursive data> ], 4 : 5 ) ), [ <recursive data> ] : [ <recursive data> ], 4 : [ [ [ [ [ [ <recursive data> ] ] ] ] ], vector( [ <recursive data> ] ) ] )
+table([ 1 : vector( table([ 2 : 3, 6 : [ <recursive data> ], 4 : 5 ]) ), 4 : [ [ [ [ [ [ <recursive data> ] ] ] ] ], vector( [ <recursive data> ] ) ], [ <recursive data> ] : [ <recursive data> ] ])

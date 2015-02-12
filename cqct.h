@@ -19,7 +19,7 @@ enum {
 	Qprecode,
 	Qrange,
 	Qrd,
-	Qrec,
+	//Qrec,
 	Qstr,
 	Qtab,
 	Qvec,

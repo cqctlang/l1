@@ -1,4 +1,4 @@
-rd = @record r { f1, f2};
+rd = @rec(r, f1, f2);
 
 rec = r(1,2);
 

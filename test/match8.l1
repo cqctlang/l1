@@ -1,4 +1,4 @@
-@record myrec { field1, field2 };
+@rec(myrec, field1, field2);
 
 x = myrec(1,2);
 
@@ -9,14 +9,14 @@ x = myrec(1,2);
 y = 1;
 
 switch (x) {
-  @match myrec(2,1): printf("failed (no match)\n"); break;
-  @match myrecf(1,2): printf("failed (not fun call)\n"); break;
+  @match ['field1: 2, 'field2: 1]: printf("failed (no match)\n"); break;
+  //@match myrecf(1,2): printf("failed (not fun call)\n"); break;
   case myrecf(y,2): printf("ok\n"); break;
   default: printf("failed (default)!\n"); break;
 }
 
 switch (x) {
    case myrec(1,y): printf("failed\n"); break;
-   @match myrec(1,y): printf("ok; y=%d\n", y); break;
+   @match ['field1: 1, 'field2: y ]: printf("ok; y=%d\n", y); break;
    default: printf("failed!\n"); break;
 }

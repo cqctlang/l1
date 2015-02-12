@@ -79,6 +79,17 @@ Zand(Expr *e1, Expr *e2)
 }
 
 static Expr *
+Zor(Expr *e1, Expr *e2)
+{
+	if(!e1)
+		return e2;
+	if(!e2)
+		return e1;
+	return Zifelse(e1, Zint(1), Zifelse(e2, Zint(1), Zint(0)));
+}
+
+
+static Expr *
 Zlabele(char *l, Expr *b) 
 {
 	if(!l)
@@ -213,7 +224,9 @@ match(U *ctx, Expr* exp, Expr* pat, Match *m, Cases *cs)
 		}
 		break;
         case Etab:
-                m->check = Zand(m->check, Zcall(doid("istable"), 1, exp));
+                m->check = Zand(m->check, Zor(
+			Zcall(doid("istable"), 1, exp),
+			Zcall(doid("isprivtable"), 1, exp)));
                 p = pat->e1;
 		/* FIXME: I think I can delete this check; handled by
 		   making N calls to tablook below. */

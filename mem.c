@@ -325,7 +325,7 @@ static Qtype qs[Qnkind] = {
 	[Qprecode]	= { "precode", sizeof(Precode), 1, scanprecode, loadsaveprecode },
 	[Qrange] 	= { "range", sizeof(Range), 0, scanrange, loadsaverange },
 	[Qrd]    	= { "rd", sizeof(Rd), 0, scanrd, loadsaverd },
-	[Qrec]	 	= { "record", sizeof(Rec), 0, scanrec, loadsaverec },
+	//[Qrec]	 	= { "record", sizeof(Rec), 0, scanrec, loadsaverec },
 	[Qstr]	 	= { "string", sizeof(Str), 1, 0 },
 	[Qtab]	 	= { "table",  sizeof(Tab), 1, scantab, loadsavetab },
 	[Qvec]	 	= { "vector", sizeof(Vec), 0, scanvec, loadsavevec },
@@ -672,8 +672,10 @@ scantab(Head *hd)
 	gcopy((Val*)&t->ht, &min);
 	gcopy((Val*)&t->tg, &min);
 	gcopy((Val*)&t->def, &min);
-	if(&t->priv)
+	if(&t->priv) {
 		gcopy((Val*)&t->name, &min);
+		gcopy((Val*)&t->fmt, &min);
+	}
 	return min;
 }
 
@@ -1381,9 +1383,11 @@ qsz(Head *h)
 	case Qvec:
 		v = (Vec*)h;
 		return roundup(vecsize(v->len), Align);
+/*
 	case Qrec:
 		r = (Rec*)h;
 		return roundup(recsize(r->nf), Align);
+*/
 	case Qctype:
 		t = (Ctype*)h;
 		switch(t->tkind){
@@ -1480,9 +1484,11 @@ copy(Val *v)
 	case Qctype:
 	case Qstr:
 	case Qvec:
+/*
 	case Qrec:
 		nh = malv(Vkind(h), sz);
 		break;
+*/
 	default:
 		nh = malq(Vkind(h), sz);
 		break;
@@ -2869,6 +2875,7 @@ loadsavetab(Head *hd, LSctx *ls)
 	loadsaveptr((Val*)&t->tg, ls);
 	loadsaveptr((Val*)&t->def, ls);
 	loadsaveptr((Val*)&t->name, ls);
+	loadsaveptr((Val*)&t->fmt, ls);
 	if(ls->mode == LSsave){
 		savecfn((void**)&t->equal);
 		savecfn((void**)&t->hash);

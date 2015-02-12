@@ -363,6 +363,7 @@ struct Tab {
 	u32 (*hash)(Val);
 	u32 priv;
 	Str *name;
+	Closure *fmt;           /* printer */
 };
 
 struct List {

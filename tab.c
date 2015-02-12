@@ -18,6 +18,9 @@ _mktab(u32 sz, Val def)
 	for(i = 0; i < sz; i++)
 		_vecset(t->ht, i, mkvalcval(0, 0, i));
 	t->tg = mkguard();
+	t->priv = 0;
+	t->fmt = 0;
+	
 	return t;
 }
 
@@ -476,6 +479,8 @@ l1_mktabpriv(VM *vm, Imm argc, Val *argv, Val *rv)
 	t->priv = 1;
 	t->name = s;
 
+	gcwb(argv[0]);
+
 	*rv = argv[0];
 }                                                                               
 
@@ -592,6 +597,42 @@ l1_tabvals(VM *vm, Imm argc, Val *argv, Val *rv)
 	*rv = mkvalvec(tabenumvals(valtab(arg0)));
 }
 
+static void
+l1_tabfmt(VM *vm, Imm argc, Val *argv, Val *rv)
+{
+        Tab *t;
+        if(argc != 1)
+                vmerr(vm, "wrong number of arguments to tabfmt");
+        checkarg(vm, argv, 0, Qtab);
+        t = valtab(argv[0]);
+
+	if(!t->priv)
+		vmerr(vm, "formatter cannot be retrieved on a non-private table");
+
+        *rv = mkvalcl(t->fmt);
+}
+
+static void
+l1_tabsetfmt(VM *vm, Imm argc, Val *argv, Val *rv)
+{
+        Tab *t;
+        Closure *cl;
+        if(argc != 2)
+                vmerr(vm, "wrong number of arguments to rdsetfmt");
+        checkarg(vm, argv, 0, Qtab);
+        checkarg(vm, argv, 1, Qcl);
+
+        t = valtab(argv[0]);
+
+	if(!t->priv)
+		vmerr(vm, "formatter be set on a non-private table");
+
+        cl = valcl(argv[1]);
+        gcwb(mkvaltab(t));
+        t->fmt = cl;
+        USED(rv);
+}
+
 void
 fntab(Env env)
 {
@@ -601,9 +642,11 @@ fntab(Env env)
 	FN(mktabpriv);
 	FN(tabdelete);
 	FN(tabenum);
+	FN(tabfmt);
 	FN(tabhas);
 	FN(tabinsert);
 	FN(tabkeys);
 	FN(tablook);
+	FN(tabsetfmt);
 	FN(tabvals);
 }

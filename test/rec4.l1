@@ -1,4 +1,4 @@
-@record r {a};
+@rec(r, a);
 tr = r();
 applyk(	@lambda() {
 	tr.b;

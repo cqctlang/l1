@@ -43,6 +43,7 @@
 
 {
 @local nexttag;
+@local lexprrec, locrec, uwrulerec, srcrec, nsinfo;
 
 nexttag = 0;
 
@@ -51,42 +52,42 @@ nexttag = 0;
 	return nexttag++;
 }
 
-@record lexprrec {
+@rec(lexprrec,
 	kind,
 	no,
 	v,	
-	op1, op2,
-};
+	op1, op2
+);
 
-@record locrec {
+@rec(locrec,
 	id,
 	sz,
 	ltype,
 	loc,
-	type,
-};
+	type
+);
 
-@record uwrulerec {
+@rec(uwrulerec,
 	kind,
 	c,
 	r,
-	n,
-};
+	n
+);
 
-@record srcrec {
+@rec(srcrec,
 	file,
 	line,
-	col,
-};
+	col
+);
 
-@record nsinfo {
+@rec(nsinfo,
 	path,
 	size,
 	enc,
 	abi,
 	arch,
-	vaddr,
-};
+	vaddr
+);
 
 @defloc encodeattrs(p, attrs)
 {

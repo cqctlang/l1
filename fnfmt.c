@@ -492,9 +492,15 @@ fmtval(VM *vm, Fmt *f, Val val, List* seen)
 		return fmtputs0(vm, f, buf);
 	case Qtab:
 		if(valtab(val)->priv) {
-			if(!valtab(val)->name)
+			if(valtab(val)->fmt) {
+                		rv = ccall(vm, valtab(val)->fmt, 1, &val);
+              			if(!Viskind(rv, Qstr))
+                        	vmerr(vm, "formatter for table must return a string");
+                		str = valstr(rv);
+                		return fmtputs(vm, f, strdata(str), str->len);
+			} else if(!valtab(val)->name) {
 				return fmtputs0(vm, f, "<table>");
-			else {
+			} else {
 				if(fmtputs0(vm, f, "<"))
 					return -1;
 				if(fmtputB(vm, f, strdata(valtab(val)->name), valtab(val)->name->len))
@@ -625,6 +631,7 @@ fmtval(VM *vm, Fmt *f, Val val, List* seen)
 		return fmtputs0(vm, f, ">");
 	case Qcont:
 		return fmtputs0(vm, f, "<stack>");
+/*
 	case Qrec:
 		rec = valrec(val);
 		rv = ccall(vm, rec->rd->fmt, 1, &val);
@@ -634,6 +641,7 @@ fmtval(VM *vm, Fmt *f, Val val, List* seen)
 			      ciddata(rec->rd->name));
 		str = valstr(rv);
 		return fmtputs(vm, f, strdata(str), str->len);
+*/
 	case Qexpr:
 		e = valexpr(val);
 		switch(e->kind){

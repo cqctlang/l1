@@ -6,8 +6,10 @@
 
 {
 
-@record nsrec    { base, path, ns };
-@record nsmaprec { add, del, exe, setexe, setexebyname, byaddr, byname, nspath, nsbase, each, copy, rebind };
+@local nsrec, nsmaprec;
+
+@rec(nsrec, base, path, ns);
+@rec(nsmaprec, add, del, exe, setexe, setexebyname, byaddr, byname, nspath, nsbase, each, copy, rebind);
 
 @defloc _mknsmap(mkns, rs, x)
 {

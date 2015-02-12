@@ -1,4 +1,4 @@
-@record r {a, b};
+@rec(r, a, b);
 tr = r();
 printf("%a\n", tr.a);
 printf("%a\n", tr.b);
