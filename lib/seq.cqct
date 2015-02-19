@@ -1,0 +1,18 @@
+
+// inside-out Fisher-Yates shuffle
+// http://en.wikipedia.org/wiki/Fisher%E2%80%93Yates_shuffle
+
+mksequence = @lambda(n, rand) {
+	@local a,i,j;
+
+	a = mklist(n);
+
+	a[0] = 0;
+	for(i = 1; i < n; i++) {
+		j = rand(i+1);
+		a[i] = a[j];
+		a[j] = i;
+	}
+
+	return a;
+};
