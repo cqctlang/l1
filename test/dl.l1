@@ -1,0 +1,44 @@
+
+@define safe(fn) {
+    applyk(fn,
+            @lambda(r) { r; },
+            @lambda(m) { printf("error: %s\n", m); },
+            []);
+}
+
+
+printf("%s\n", @dl 5aaaaa);
+printf("%s\n", @dl 10aaaaabbbbb);
+printf("%s\n", @dl 10aaaaa
+bbbb);
+printf("%s\n", @dl 21][{}\\-=+)(*&6%$3@1!`);
+
+safe(@lambda() { parse("@dl 0   "); });
+safe(@lambda() { parse("@dl 4294967295   "); });
+safe(@lambda() { parse("@dl 1"); });
+safe(@lambda() { parse("@dl"); });
+safe(@lambda() { parse("@dl5aaaaa"); });
+safe(@lambda() { parse("@dl\n5aaaaa"); });
+printf("---%s---\n", @dl 10
+
+
+
+
+
+
+
+
+x
+);
+
+printf("---%s---\n", @dl
+10aaaaaaaaaa);
+printf("---%s---\n", @dl
+						    	 	  
+									  
+									  10aaaaaaaaaa);
+
+//check that the line number is right
+safe(@lambda() { parse("1+2;\n@dl\n5aaa"); });
+safe(@lambda() { parse("1+2;\n@dl\n5aaaaa;\n1"); });
+safe(@lambda() { parse("1+2;\n@dl\n5a\naaa;\n1"); });
