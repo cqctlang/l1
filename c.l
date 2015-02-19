@@ -365,11 +365,13 @@ datadelim(U *ctx, YYSTYPE *lvalp) {
 	slen = 0;
 
 	k = 0;
+
 	while ( ( c = input() ) != EOF ) {
 		updateln(ctx, (char)c);
 		if (d[k] == c) {
 			if (++k == dlen) break;
-		} else k = 0;
+		} else if (d[0] == c) k = 1;
+		else k = 0;
 		addtostr(&s, &ssz, slen++, (char)c);
 	}
 	efree(d);
@@ -460,6 +462,8 @@ databracket(U *ctx, YYSTYPE *lvalp) {
 		addtostr(&s, &ssz, slen++, (char)c);
 	}
 	efree(d);
+	efree(lmatched);
+	efree(matched);
 
 	if (EOF == c) {
 		efree(s);
