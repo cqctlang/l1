@@ -5,6 +5,19 @@
 char **cqctloadpath;
 char cqctflags[256];
 
+int
+cqcteval(VM *vm, char *s, char *src, Val *rv)
+{
+	Val cl;
+	Val codeval = cqctcstrval(s);
+	cl = cqctenvlook(vm, (char *)"eval");
+	if(cl == 0)
+		return -1;
+	if (cqctcallfn(vm, cl, 1, &codeval, rv))
+		return -1;
+	return 0;
+}
+
 void
 cqctinterrupt(VM *vm)
 {
