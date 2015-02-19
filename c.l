@@ -24,6 +24,7 @@ struct YYstate {
 static void count(U *ctx);
 static void comment(U *ctx, char *end);
 static int chars(YYSTYPE *lvalp, int);
+static int datalen(U *ctx, YYSTYPE *lvalp);
 
 %}
 
@@ -46,6 +47,7 @@ static int chars(YYSTYPE *lvalp, int);
 "@define"		{ count(ctx); return(DEFINE); }
 "@defloc"		{ count(ctx); return(DEFLOC); }
 "@defstx"		{ count(ctx); return(DEFSTX); }
+"@dl"			{ return(datalen(ctx, lvalp)); }
 "@file"			{ count(ctx); return(ATFILE); }
 "@global"		{ count(ctx); return(GLOBAL); }
 "@lambda"		{ count(ctx); return(LAMBDA); }
@@ -205,16 +207,21 @@ loop:
 }
 
 static void
+updateln(U *ctx, char c) {
+	if(c == '\n'){
+		ctx->inp->src.col = 0;
+		ctx->inp->src.line++;
+	}else
+		ctx->inp->src.col++;
+}
+
+static void
 count(U *ctx)
 {
 	int i;
 
 	for(i = 0; yytext[i] != '\0'; i++)
-		if(yytext[i] == '\n'){
-			ctx->inp->src.col = 0;
-			ctx->inp->src.line++;
-		}else
-			ctx->inp->src.col++;
+		updateln(ctx, yytext[i]);
 }
 
 static int
@@ -255,3 +262,59 @@ setyystate(YYstate *yy)
 {
 	yy_switch_to_buffer(yy->yy);
 }
+
+static int datalen(U *ctx, YYSTYPE *lvalp) {
+	int c, i, len;
+	char *s, *err;
+
+	err = "";
+
+	while ( (c = input()) != EOF && isspace(c) )
+		updateln(ctx, (char)c);
+	if (EOF == c)
+		parseerror(ctx, "unexpected EOF");
+
+	if (!isdigit(c))
+		parseerror(ctx, "unexpected a digit");
+
+	len = c-'0';
+	while ( (c = input()) != EOF && isdigit(c)) {
+		updateln(ctx, (char)c);
+		len = len*10 + (c-'0');
+	}
+	if (EOF == c)
+		parseerror(ctx, "unexpected EOF");
+
+	if (len <= 0)
+		parseerror(ctx, "bad length");
+
+	s = (char*)emalloc(len);
+	if (0 == s)
+		parseerror(ctx, "out of memory");
+
+	s[0] = (char)c;
+
+	for(i=1; i<len; ++i) {
+		c = input();
+		if (c == EOF) {
+			err = "unexpected EOF";
+			goto error;
+		}
+		updateln(ctx, (char)c);
+		s[i] = (char)c;
+	}
+
+	lvalp->chars.p = s;
+	lvalp->chars.len = len;
+
+	return DATA;
+
+error:
+	efree(s);
+	parseerror(ctx, err);
+
+	//shouldn't get here
+	return -1;
+}
+
+// vim:noet:ts=8:sw=8
