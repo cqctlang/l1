@@ -84,49 +84,6 @@ dopasses(U *ctx, Expr *e, Pass *ps, unsigned np)
 	return e;
 }
 
-#if 0
-static Expr*
-doexpand(VM *vm, Expr *e)
-{
-	U ctx;
-	Imm bt, et;
-	Val argv[1], rv, v;
-
-	/* we need to fix Src handling to pass tests */
-	v = cqctenvlook(vm, "expand");
-	if(v && Vkind(v) == Qcl){
-		argv[0] = mkvalexpr(e);
-		if(0 > cqctcallfn(vm, v, 1, argv, &rv))
-			return 0;
-		if(Vkind(rv) != Qexpr)
-			/* should call vmerr, but there is
-			   no error context, like that
-			   set by cqctcallfn */
-			bug();
-		return valexpr(rv);
-	}
-
-	memset(&ctx, 0, sizeof(ctx));
-	ctx.out = &l1stderr;
-	/* the other ctx fields are not used */
-
-	if(cqctflags['p']){
-		xprintf("\n*** post-expand ***\n");
-		printexpr(e);
-		xprintf("\n");
-	}
-	bt = et = 0;
-	if(cqctflags['T'])
-		bt = usec();
-	e = docompilee(&ctx, e);
-	if(cqctflags['T']){
-		et = usec();
-		printT("expand", et-bt);
-	}
-	return e;
-}
-#endif
-
 #define CP(id)      { "cp"#id, docompile##id }
 #define NPASS(ps)   (sizeof(ps)/sizeof((ps)[0]))
 #define MKCP(id)    (mkvalcl(cqctmkcfn(#id, l1_##id)))
