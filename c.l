@@ -25,6 +25,8 @@ static void count(U *ctx);
 static void comment(U *ctx, char *end);
 static int chars(YYSTYPE *lvalp, int);
 static int datalen(U *ctx, YYSTYPE *lvalp);
+static int datadelim(U *ctx, YYSTYPE *lvalp);
+static int databracket(U *ctx, YYSTYPE *lvalp);
 
 %}
 
@@ -47,6 +49,8 @@ static int datalen(U *ctx, YYSTYPE *lvalp);
 "@define"		{ count(ctx); return(DEFINE); }
 "@defloc"		{ count(ctx); return(DEFLOC); }
 "@defstx"		{ count(ctx); return(DEFSTX); }
+"@db"			{ return(databracket(ctx, lvalp)); }
+"@dd"			{ return(datadelim(ctx, lvalp)); }
 "@dl"			{ return(datalen(ctx, lvalp)); }
 "@file"			{ count(ctx); return(ATFILE); }
 "@global"		{ count(ctx); return(GLOBAL); }
@@ -315,6 +319,158 @@ error:
 
 	//shouldn't get here
 	return -1;
+}
+
+static void
+addtostr(char **p_s, int *p_len, int off, char c) {
+	char *s;
+	if (off >= *p_len) {
+		s = emalloc(2*(*p_len));
+		memcpy(s, *p_s, *p_len);
+		*p_len = 2 * (*p_len);
+		efree(*p_s);
+		*p_s = s;
+	}
+	(*p_s)[off] = c;
+}
+
+static int
+datadelim(U *ctx, YYSTYPE *lvalp) {
+	char *s, *d;
+	int c, k, dsz, dlen, ssz, slen;
+
+	while ( (c = input()) != EOF && isspace(c) )
+		updateln(ctx, (char)c);
+	if (EOF == c)
+		parseerror(ctx, "unexpected EOF");
+
+	dsz = 0x20;
+	d = emalloc(dsz);
+	dlen = 0;
+
+	addtostr(&d, &dsz, dlen++, '\n');
+	addtostr(&d, &dsz, dlen++, (char)c);
+
+	while ( ( c = input() ) != EOF && !isspace(c) ) {
+		updateln(ctx, (char)c);
+		addtostr(&d, &dsz, dlen++, (char)c);
+	}
+	if (EOF == c) {
+		efree(d);
+		parseerror(ctx, "unexpected EOF");
+	}
+
+	ssz = 0x20;
+	s = emalloc(ssz);
+	slen = 0;
+
+	k = 0;
+	while ( ( c = input() ) != EOF ) {
+		updateln(ctx, (char)c);
+		if (d[k] == c) {
+			if (++k == dlen) break;
+		} else k = 0;
+		addtostr(&s, &ssz, slen++, (char)c);
+	}
+	efree(d);
+
+	if (EOF == c) {
+		efree(s);
+		parseerror(ctx, "unexpected EOF");
+	}
+
+	lvalp->chars.p = s;
+	lvalp->chars.len = slen - dlen + 1;
+
+	return DATA;
+}
+
+static int
+databracket(U *ctx, YYSTYPE *lvalp) {
+	char *s, *d;
+	char *matched, *lmatched, *tmp;
+	//sz is the size of the buffer, len is the nubmer of elements in it
+	int dsz, dlen, ssz, slen;
+	int k, c;
+
+	//maps '(' -> ')', '[' -> ']', '{' -> '}', and '<' -> '>'
+	static char matching_bracket[] = {
+		0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,
+		0,0,0,0,0,0,0,0,0,')',0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,
+		'>',0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,
+		0,']',0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,
+		0,0,0,'}',0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,
+		0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,
+		0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,
+		0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,
+		0,0,0,0,0,0,0,0,0,0,0,0,0
+	};
+
+	while( (c = input()) != EOF && isspace(c) )
+		updateln(ctx, (char)c);
+	if(EOF == c)
+		parseerror(ctx, "unexpected EOF");
+
+	dsz = 0x20;
+	d = emalloc(dsz);
+	dlen = 0;
+
+
+	if(!matching_bracket[c]) {
+
+		addtostr(&d, &dsz, dlen++, (char)c);
+
+		while ( ( c = input() ) != EOF && !matching_bracket[c] ) {
+			updateln(ctx, (char)c);
+			addtostr(&d, &dsz, dlen++, (char)c);
+		}
+
+		if (EOF == c) {
+			efree(d);
+			parseerror(ctx, "unexpected EOF");
+		}
+	}
+
+	addtostr(&d, &dsz, dlen++, matching_bracket[c]);
+
+	matched = (char*)emalloc(dlen);
+	memset(matched, 0, dlen);
+	lmatched = (char*)emalloc(dlen);
+	memset(lmatched, 0, dlen);
+
+	ssz = 0x20;
+	s = emalloc(ssz);
+	slen = 0;
+
+	while ( ( c = input() ) != EOF ) {
+		updateln(ctx, (char)c);
+
+		tmp = matched;
+		matched = lmatched;
+		lmatched = tmp;
+
+		matched[0] = (d[0] == c) ? 1 : 0;
+		for(k=0; k<dlen-1; ++k) {
+			matched[k+1] = (lmatched[k] && d[k+1] == c) ? 1 : 0;
+		}
+
+		//k == dlen-1
+		if(matched[k]) break;
+
+		addtostr(&s, &ssz, slen++, (char)c);
+	}
+	efree(d);
+
+	if (EOF == c) {
+		efree(s);
+		parseerror(ctx, "could not find close of @db");
+	}
+
+	lvalp->chars.p = s;
+	lvalp->chars.len = slen - dlen + 1;
+
+	return DATA;
+
 }
 
 // vim:noet:ts=8:sw=8
