@@ -6,7 +6,7 @@ This file provides some technical documentation of machl1, the instruction set
 implemented in L1. machl1 is a continuation-enabled stack based machine with a
 single register.
 
-Last edited: 2015-01-23
+Last edited: 2015-02-18
 
 Registers
 ---------
@@ -191,6 +191,24 @@ array of values maps to a variable and may be referenced via a disp type
 opcode operand (when the closure is in %cl). The code inside of the closure
 can assume constant disp offsets (i.e. the same offset references the same
 value). l1 exports the mkcl function for creating closures from code objects.
+
+
+Vals
+----
+
+Except for the stack, all objects in l1 are stored as a Val. The memory for
+each Val starts with a pointer-sized field called bits that is either a
+forwarding pointer or the kind of Val stored at that location. When bit zero
+of that field is not set, it is to be treated as the kind of object stored at
+that location. Otherwise, the field  is to be treated as a forwarding pointer.
+The forwarding pointer is used by the garbage collector to update object
+references to the location of that object after a given garbage collection
+phase.
+
+The proper functioning of this mechanism depends upon the least significant
+bit of all forwarding pointers being 0, which is guaranteed by the malv
+allocator.  However, one must for this reason be careful to not use non-even
+sizes in the malq allocator.
 
 
 The Heap
