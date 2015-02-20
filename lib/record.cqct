@@ -2,11 +2,18 @@
  * forward easily.
  */
 
-@global record_formatters;
-record_formatters = [:];
+@global rds;
+rds = [:];
+
+@global rdsym;
+@global _tmprd;
 
 @defstx @rec(recname, fields ...) {
 	@local foo, x, c;
+
+	@global rdsym;
+	if(!rdsym)
+		rdsym = gensym();
 
 	if(stxkind(fields) == 'null)
 		error("record has no fields");
@@ -22,34 +29,70 @@ record_formatters = [:];
 	}
 
 	return #`{
-		#,recname = @lambda() { @local rd; rd=@lambda(vals ...) {
-			@local t, l;
+		_tmprd = @lambda() {
+			@local constructor, rd;
 
-			l = length(vals);
-			if(l > #,x) {
-				error("too many values for record type");
-			}
+			rd = [:];
 
-			t = mktab(@lambda() {
-				error("record has no such field");
-			});
+			constructor = @lambda(vals ...) {
+				@local t, l;
 
-			#,foo;
+				l = length(vals);
+				if(l > #,x) {
+					error("too many values for record type");
+				}
 
-			mktabpriv(t, "record");
+				t = mktab(@lambda() {
+					error("record has no such field");
+				});
 
-			tabsetfmt(t, @lambda(v) {
-				@local f;
-				f = record_formatters[rd];
-				if(f)
-					return f(v);
-				else return f;	
-			});
-			return t;
-		}; return rd; }();
+				#,foo;
+
+				mktabpriv(t, "record");
+				t.#,rdsym = rd;
+
+				tabsetfmt(t, @lambda(v) {
+					@local f;
+
+					f = rd.fmt;
+					if(f)
+						return f(v);
+					else
+						return f;
+				});
+				return t;
+			};
+
+			rds[constructor] = rd;
+
+			rd.constructor = constructor;
+			mktabpriv(rd, "rd");
+
+			return rd;
+		}(), #,recname = rdmk(_tmprd), _tmprd;
 	};
 }
 
 rdsetfmt = @lambda(rd, fmt) {
-	record_formatters[rd] = fmt;
+	rd.fmt = fmt;
+};
+
+rdof = @lambda(rec) {
+	return rec[stxid(rdsym)];
+};
+
+rdgettab = @lambda(rd) {
+	printf("GETTING THE TAB FROM AN RD!\n");
+};
+
+rdsettab = @lambda(rd) {
+	printf("SETTING THE TAB FROM AN RD!\n");
+};
+
+rdmk = @lambda(rd) {
+	printf("GETTING THE CONSTRUCTOR FROM THE RECORD DESCRIPTOR! %a\n", rd);
+	if(!rd || !rd.constructor) {
+		error("THIS ISN'T A RECORD DESCRIPTOR!\n");
+	}
+	return rd.constructor;
 };

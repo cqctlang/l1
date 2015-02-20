@@ -1,5 +1,7 @@
 //rd = mkrd("foo", [ "f1", "f2" ]);
-@record foo { f1, f2 };
+@include <record.cqct>
+
+@rec(foo, f1, f2 );
 
 xx = foo(1,2);
 rd = rdof(xx);
