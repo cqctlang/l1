@@ -529,7 +529,9 @@ main(int argc,char **argv) {
 #endif
 #ifdef PT_TRACE_ME // true on Darwin
 		{ "PT_TRACE_ME", PT_TRACE_ME },
+#ifdef PT_DENY_ATTACH
 		{ "PT_DENY_ATTACH", PT_DENY_ATTACH },
+#endif
 		{ "PT_CONTINUE", PT_CONTINUE },
 		{ "PT_STEP", PT_STEP },
 		{ "PT_KILL", PT_KILL },

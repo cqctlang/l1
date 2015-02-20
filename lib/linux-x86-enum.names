@@ -5,9 +5,25 @@ enum oflags {
 	O_WRONLY	= 0x1,
 	O_RDWR	= 0x2,
 	O_CREAT	= 0x40,
+	O_NOCTTY	= 0x100,
 	O_TRUNC	= 0x200,
 	O_APPEND	= 0x400,
 	O_NONBLOCK	= 0x800,
+	O_ASYNC	= 0x2000,
+	O_SYNC	= 0x101000,
+	O_EXCL	= 0x80,
+	O_CLOEXEC	= 0x80000,
+};
+enum aflags {
+	R_OK	= 0x4,
+	W_OK	= 0x2,
+	X_OK	= 0x1,
+	F_OK	= 0x0,
+};
+enum seekflags {
+	SEEK_SET	= 0x0,
+	SEEK_CUR	= 0x1,
+	SEEK_END	= 0x2,
 };
 enum mmap_consts {
 	PROT_READ	= 0x1,
@@ -246,6 +262,15 @@ enum mount_nr {
 	MS_SILENT	= 0x8000,
 	MS_STRICTATIME	= 0x1000000,
 	MS_SYNCHRONOUS	= 0x10,
+};
+enum ptrace {
+	PT_TRACE_ME	= 0x0,
+	PT_TRACE_ME	= 0x0,
+	PT_CONTINUE	= 0x7,
+	PT_STEP	= 0x9,
+	PT_KILL	= 0x8,
+	PT_ATTACH	= 0x10,
+	PT_DETACH	= 0x11,
 };
 enum syscall_nr {
 	read	= 0x3,
