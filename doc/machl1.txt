@@ -36,7 +36,7 @@ Generally, operations are done on op1 and op2 and the result is stored in dst.
 Each L1 instruction can also have either an unsigned 32 bit dstidx or a signed
 64-bit scnt value. In the below descriptions, only the mentioned values need
 to be included for the opcode to be correct. Some opcodes also use arguments
-off of the stack. These start at fp+2 and are referred to as arg0,arg1,...
+off of the stack. These start at %fp+2 and are referred to as arg0,arg1,...
 
 Each operand may be one of several types. When not explicitly stated, the
 operand may be anything except an immediate. Operands that must be immediates
@@ -49,7 +49,7 @@ are stated as (immediate)op.
 |  add       |  Stores op1 + op2 in dst                                       |
 |  addfp     |  Adds scnt to fp (note: scnt may be negative)                  |
 |  and       |  Stores op1 & op2 in dst                                       |
-|  apply     |  Run function arg0 with parameters arg1,...,argn                |
+|  apply     |  Run function arg0 with parameters arg1,...,argn               |
 |  argc      |  Check that %vc equals (immediate)op1, throw an error if not   |
 |  box       |  Box the operand in op1                                        |
 |  box0      |  Box nil and put it in op1                                     |
@@ -141,10 +141,10 @@ operation, the frame's layout is as follows:
 
 * The number of arguments is stored in %vc (in the above example, %vc=n+1).
 
-Normal code is expected to modify only the arguments and locals in its frame.
-Cleaning up the frame by decrementing %fp is the responsibility of the calling
-function, who will know the size of its own frame and therefore the correct
-amount to decrement %fp.
+Normal code is expected to modify only the arguments and locals in its frame,
+and to leave values in other frames untouched. Cleaning up the frame by
+decrementing %fp is the responsibility of the calling function, who will know
+the size of its own frame and therefore the correct amount to decrement %fp.
 
 
 Standard Call Idiom
