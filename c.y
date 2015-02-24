@@ -21,7 +21,7 @@ extern char *yytext;
 	int kind;
 }
 
-%token <chars> IDENTIFIER SYMBOL CONSTANT STRING_LITERAL CONST VOLATILE
+%token <chars> IDENTIFIER SYMBOL CONSTANT STRING_LITERAL CONST VOLATILE DATA
 %token <chars> ATIDENTIFIER SYNTAXID
 %token SIZEOF TYPENAME TYPEOF TYPEDEF DEFINE DEFLOC DEFREC DEFSTX CONTAINEROF
 %token PTR_OP INC_OP DEC_OP LEFT_OP RIGHT_OP LE_OP GE_OP EQ_OP NE_OP
@@ -248,6 +248,8 @@ primary_expression
 	{ $$ = doconst(ctx, $1.p, $1.len); }
 	| STRING_LITERAL
 	{ $$ = dostr($1.p, $1.len); }
+	| DATA
+	{ $$ = Zstrn($1.p, $1.len); efree($1.p); }
 	| '(' expression ')'
 	{ $$ = $2; }
         | LPAIR root_expression ',' root_expression RPAIR

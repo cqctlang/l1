@@ -1,0 +1,44 @@
+
+@define safe(fn) {
+    applyk(fn,
+            @lambda(r) { r; },
+            @lambda(m) { printf("error: %s\n", m); },
+            []);
+}
+
+printf("%s\n", @db{a});
+printf("%s\n", @db {b});
+printf("%s\n", @db {c
+});
+printf("%s\n", @db {
+    d });
+printf("%s\n", @db%{e%});
+printf("%s\n", @db%{f%%%%%%%%%%%});
+printf("%s\n", @db%%%%%%{g%%%%%%%%%%%});
+printf("%s\n", @db abcde{abcdeabcde!abcde});
+
+printf("%s\n", @db<a>);
+printf("%s\n", @db[a]);
+printf("%s\n", @db{a});
+printf("%s\n", @db(a));
+printf("%s\n", @db((a));
+printf("%s\n", @db([<{(a));
+printf("%s\n", @db([<{(}>]a));
+printf("%s\n", @db%(a%));
+printf("%s\n", @db%[b%]);
+printf("%s\n", @db%{c%});
+printf("%s\n", @db%<d%>);
+printf("%s\n", @db%(a)%));
+printf("%s\n", @db%[b]%]);
+printf("%s\n", @db%{c}%});
+printf("%s\n", @db%<d>%>);
+
+safe(@lambda() { parse("@db"); });
+safe(@lambda() { parse("@db{"); });
+safe(@lambda() { parse("@db{ "); });
+safe(@lambda() { parse("@db%%%%%%%%%%%{ "); });
+safe(@lambda() { parse("@db%%%%%%%%%%%{ }"); });
+//line numbers
+safe(@lambda() { parse("@db%%%%%%%%%%%{\n\n}"); });
+safe(@lambda() { parse("@db\n\n"); });
+safe(@lambda() { parse("@db\n\n\n{"); });

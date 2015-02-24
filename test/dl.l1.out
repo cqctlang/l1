@@ -1,0 +1,26 @@
+aaaaa
+aaaaabbbbb
+aaaaa
+bbbb
+][{}\\-=+)(*&6%$3@1!`
+error: (stdin):1:1: bad length
+error: (stdin):1:10: bad length
+error: (stdin):1:1: unexpected EOF
+error: (stdin):1:0: unexpected EOF
+error: (stdin):1:9: syntax error
+error: (stdin):2:4: syntax error
+---
+
+
+
+
+
+
+
+
+x---
+---aaaaaaaaaa---
+---aaaaaaaaaa---
+error: (stdin):3:2: unexpected EOF
+error: (stdin):4:1: syntax error
+error: (stdin):5:1: syntax error

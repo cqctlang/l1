@@ -1,0 +1,33 @@
+a
+b
+c
+
+
+    d 
+e
+f%%%%%%%%%%
+g%%%%%
+abcdeabcde!
+a
+a
+a
+a
+(a
+[<{(a
+[<{(}>]a
+a
+b
+c
+d
+a)
+b]
+c}
+d>
+error: (stdin):1:0: unexpected EOF
+error: (stdin):1:0: could not find close of @db
+error: (stdin):1:1: could not find close of @db
+error: (stdin):1:11: could not find close of @db
+error: (stdin):1:12: could not find close of @db
+error: (stdin):3:1: could not find close of @db
+error: (stdin):3:0: unexpected EOF
+error: (stdin):4:0: could not find close of @db

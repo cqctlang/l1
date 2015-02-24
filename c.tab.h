@@ -1,8 +1,9 @@
-/* A Bison parser, made by GNU Bison 2.5.  */
+
+/* A Bison parser, made by GNU Bison 2.4.1.  */
 
 /* Skeleton interface for Bison GLR parsers in C
    
-      Copyright (C) 2002-2011 Free Software Foundation, Inc.
+      Copyright (C) 2002, 2003, 2004, 2005, 2006 Free Software Foundation, Inc.
    
    This program is free software: you can redistribute it and/or modify
    it under the terms of the GNU General Public License as published by
@@ -43,83 +44,84 @@
      STRING_LITERAL = 261,
      CONST = 262,
      VOLATILE = 263,
-     ATIDENTIFIER = 264,
-     SYNTAXID = 265,
-     SIZEOF = 266,
-     TYPENAME = 267,
-     TYPEOF = 268,
-     TYPEDEF = 269,
-     DEFINE = 270,
-     DEFLOC = 271,
-     DEFREC = 272,
-     DEFSTX = 273,
-     CONTAINEROF = 274,
-     PTR_OP = 275,
-     INC_OP = 276,
-     DEC_OP = 277,
-     LEFT_OP = 278,
-     RIGHT_OP = 279,
-     LE_OP = 280,
-     GE_OP = 281,
-     EQ_OP = 282,
-     NE_OP = 283,
-     AND_OP = 284,
-     OR_OP = 285,
-     MUL_ASSIGN = 286,
-     DIV_ASSIGN = 287,
-     MOD_ASSIGN = 288,
-     ADD_ASSIGN = 289,
-     SUB_ASSIGN = 290,
-     LEFT_ASSIGN = 291,
-     RIGHT_ASSIGN = 292,
-     AND_ASSIGN = 293,
-     XOR_ASSIGN = 294,
-     OR_ASSIGN = 295,
-     CAST_ASSIGN = 296,
-     XCAST_ASSIGN = 297,
-     GOTO = 298,
-     GLOBAL = 299,
-     LOCAL = 300,
-     LAMBDA = 301,
-     NAMES = 302,
-     LET = 303,
-     LAPPLY = 304,
-     BOOL = 305,
-     CHAR = 306,
-     SHORT = 307,
-     INT = 308,
-     LONG = 309,
-     SIGNED = 310,
-     UNSIGNED = 311,
-     FLOAT = 312,
-     DOUBLE = 313,
-     VOID = 314,
-     STRUCT = 315,
-     UNION = 316,
-     ENUM = 317,
-     ELLIPSIS = 318,
-     IF = 319,
-     ELSE = 320,
-     SWITCH = 321,
-     WHILE = 322,
-     DO = 323,
-     FOR = 324,
-     CONTINUE = 325,
-     BREAK = 326,
-     RETURN = 327,
-     CASE = 328,
-     DEFAULT = 329,
-     SYNTAXQUOTE = 330,
-     SYNTAXQUASI = 331,
-     SYNTAXUNQUOTE = 332,
-     SYNTAXSPLICE = 333,
-     SYNTAXLIST = 334,
-     LPAIR = 335,
-     RPAIR = 336,
-     NOBIND_PRE = 337,
-     MATCH = 338,
-     ATFILE = 339,
-     ATLINE = 340
+     DATA = 264,
+     ATIDENTIFIER = 265,
+     SYNTAXID = 266,
+     SIZEOF = 267,
+     TYPENAME = 268,
+     TYPEOF = 269,
+     TYPEDEF = 270,
+     DEFINE = 271,
+     DEFLOC = 272,
+     DEFREC = 273,
+     DEFSTX = 274,
+     CONTAINEROF = 275,
+     PTR_OP = 276,
+     INC_OP = 277,
+     DEC_OP = 278,
+     LEFT_OP = 279,
+     RIGHT_OP = 280,
+     LE_OP = 281,
+     GE_OP = 282,
+     EQ_OP = 283,
+     NE_OP = 284,
+     AND_OP = 285,
+     OR_OP = 286,
+     MUL_ASSIGN = 287,
+     DIV_ASSIGN = 288,
+     MOD_ASSIGN = 289,
+     ADD_ASSIGN = 290,
+     SUB_ASSIGN = 291,
+     LEFT_ASSIGN = 292,
+     RIGHT_ASSIGN = 293,
+     AND_ASSIGN = 294,
+     XOR_ASSIGN = 295,
+     OR_ASSIGN = 296,
+     CAST_ASSIGN = 297,
+     XCAST_ASSIGN = 298,
+     GOTO = 299,
+     GLOBAL = 300,
+     LOCAL = 301,
+     LAMBDA = 302,
+     NAMES = 303,
+     LET = 304,
+     LAPPLY = 305,
+     BOOL = 306,
+     CHAR = 307,
+     SHORT = 308,
+     INT = 309,
+     LONG = 310,
+     SIGNED = 311,
+     UNSIGNED = 312,
+     FLOAT = 313,
+     DOUBLE = 314,
+     VOID = 315,
+     STRUCT = 316,
+     UNION = 317,
+     ENUM = 318,
+     ELLIPSIS = 319,
+     IF = 320,
+     ELSE = 321,
+     SWITCH = 322,
+     WHILE = 323,
+     DO = 324,
+     FOR = 325,
+     CONTINUE = 326,
+     BREAK = 327,
+     RETURN = 328,
+     CASE = 329,
+     DEFAULT = 330,
+     SYNTAXQUOTE = 331,
+     SYNTAXQUASI = 332,
+     SYNTAXUNQUOTE = 333,
+     SYNTAXSPLICE = 334,
+     SYNTAXLIST = 335,
+     LPAIR = 336,
+     RPAIR = 337,
+     NOBIND_PRE = 338,
+     MATCH = 339,
+     ATFILE = 340,
+     ATLINE = 341
    };
 #endif
 
@@ -128,7 +130,7 @@
 typedef union YYSTYPE
 {
 
-/* Line 2663 of glr.c  */
+/* Line 2638 of glr.c  */
 #line 11 "c.y"
 
 	Expr *expr;
@@ -144,8 +146,8 @@ typedef union YYSTYPE
 
 
 
-/* Line 2663 of glr.c  */
-#line 149 "c.tab.h"
+/* Line 2638 of glr.c  */
+#line 151 "c.tab.h"
 } YYSTYPE;
 # define YYSTYPE_IS_TRIVIAL 1
 #endif
