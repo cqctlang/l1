@@ -7,9 +7,16 @@ rds = [:];
 
 @global rdsym;
 @global _tmprd;
+@global super_secret_record_key;
+
+super_secret_record_key = nil;
 
 @defstx @rec(recname, fields ...) {
-	@local foo, x, c;
+	@local foo, x, c, bar;
+
+	@global super_secret_record_key;
+	if(!super_secret_record_key)	
+		super_secret_record_key = gensym();
 
 	@global rdsym;
 	if(!rdsym)
@@ -19,20 +26,22 @@ rds = [:];
 		error("record has no fields");
 
 	foo = #[];
+	bar = [];
 	c = fields;
 	x = 0;
 	while(c[1]) {
 		foo = stxsplice(foo, #`{ t.#,(c[0]) = (l <= #,x)?nil:vals[#,x];});
-
+		append(bar, stxid(c[0]));
 		c = c[1];
 		x++;
 	}
 
 	return #`{
 		_tmprd = @lambda() {
-			@local constructor, rd;
+			@local constructor, rd, fieldnames;
 
 			rd = [:];
+			fieldnames = #,bar;
 
 			constructor = @lambda(vals ...) {
 				@local t, l;
@@ -50,6 +59,7 @@ rds = [:];
 
 				mktabpriv(t, "record");
 				t.#,rdsym = rd;
+				t.#,super_secret_record_key = 1;
 
 				tabsetfmt(t, @lambda(v) {
 					@local f;
@@ -66,6 +76,7 @@ rds = [:];
 			rds[constructor] = rd;
 
 			rd.constructor = constructor;
+			rd.fields = fieldnames;
 			mktabpriv(rd, "rd");
 
 			return rd;
@@ -82,17 +93,50 @@ rdof = @lambda(rec) {
 };
 
 rdgettab = @lambda(rd) {
-	printf("GETTING THE TAB FROM AN RD!\n");
+	@local t;
+
+	t = [:];
+	//printf("GETTING THE GETTER TAB FROM AN RD. THE FIELDS ARE %a\n", rd.fields);
+	foreach(@lambda(v) {
+		//printf("BUILDING GETTER FOR %a\n", v);
+		t[v] = @lambda(rec) {
+			return rec[v];
+		};
+	}, rd.fields);
+
+	return t;
 };
 
 rdsettab = @lambda(rd) {
-	printf("SETTING THE TAB FROM AN RD!\n");
+	@local t;
+
+	t = [:];
+	//printf("GETTING THE SETTER TAB FROM AN RD. THE FIELDS ARE %a\n", rd.fields);
+	foreach(@lambda(v) {
+		//printf("BUILDING SETTER FOR %a\n", v);
+		t[v] = @lambda(rec, val) {
+			rec[v] = val;
+			;
+		};
+	}, rd.fields);
+
+	return t;
 };
 
 rdmk = @lambda(rd) {
-	printf("GETTING THE CONSTRUCTOR FROM THE RECORD DESCRIPTOR! %a\n", rd);
+	//printf("GETTING THE CONSTRUCTOR FROM THE RECORD DESCRIPTOR! %a\n", rd);
 	if(!rd || !rd.constructor) {
 		error("THIS ISN'T A RECORD DESCRIPTOR!\n");
 	}
 	return rd.constructor;
+};
+
+isrec = @lambda(val) {
+	if(!isprivtable(val))
+		return 0;
+
+	if(tabhas(val,'super_secret_record_key))
+		return 1;
+
+	return 0;
 };
