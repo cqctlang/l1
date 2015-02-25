@@ -625,7 +625,7 @@ l1_tabsetfmt(VM *vm, Imm argc, Val *argv, Val *rv)
         t = valtab(argv[0]);
 
 	if(!t->priv)
-		vmerr(vm, "formatter be set on a non-private table");
+		vmerr(vm, "formatter cannot be set on a non-private table");
 
         cl = valcl(argv[1]);
         gcwb(mkvaltab(t));

@@ -9,10 +9,9 @@ rds = [:];
 @global _tmprd;
 @global super_secret_record_key;
 
-super_secret_record_key = nil;
-
 @defstx @rec(recname, fields ...) {
 	@local foo, x, c, bar;
+	@local this_record_key;
 
 	@global super_secret_record_key;
 	if(!super_secret_record_key)	
@@ -24,6 +23,8 @@ super_secret_record_key = nil;
 
 	if(stxkind(fields) == 'null)
 		error("record has no fields");
+
+	this_record_key = gensym();
 
 	foo = #[];
 	bar = [];
@@ -60,6 +61,7 @@ super_secret_record_key = nil;
 				mktabpriv(t, "record");
 				t.#,rdsym = rd;
 				t.#,super_secret_record_key = 1;
+				t.#,this_record_key = 1;
 
 				tabsetfmt(t, @lambda(v) {
 					@local f;
@@ -68,8 +70,9 @@ super_secret_record_key = nil;
 					if(f)
 						return f(v);
 					else
-						return f;
+						return "<record>";
 				});
+
 				return t;
 			};
 
@@ -80,7 +83,15 @@ super_secret_record_key = nil;
 			mktabpriv(rd, "rd");
 
 			return rd;
-		}(), #,recname = rdmk(_tmprd), _tmprd;
+		}(), #,recname = rdmk(_tmprd), #,(mkstxid(mkcid("is" + cid2str(stxid(recname))))) = @lambda(val) {
+			if(!isprivtable(val))
+				return 0;
+
+			if(tabhas(val, #,(stxid(this_record_key))))
+				return 1;
+
+			return 0;
+		}, _tmprd;
 	};
 }
 
@@ -113,7 +124,6 @@ rdsettab = @lambda(rd) {
 	t = [:];
 	//printf("GETTING THE SETTER TAB FROM AN RD. THE FIELDS ARE %a\n", rd.fields);
 	foreach(@lambda(v) {
-		//printf("BUILDING SETTER FOR %a\n", v);
 		t[v] = @lambda(rec, val) {
 			rec[v] = val;
 			;
@@ -135,8 +145,9 @@ isrec = @lambda(val) {
 	if(!isprivtable(val))
 		return 0;
 
-	if(tabhas(val,'super_secret_record_key))
+	if(tabhas(val, stxid(super_secret_record_key)))
 		return 1;
+
 
 	return 0;
 };
