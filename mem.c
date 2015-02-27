@@ -1492,11 +1492,9 @@ copy(Val *v)
 	case Qctype:
 	case Qstr:
 	case Qvec:
-/*
-	case Qrec:
+	//case Qrec:
 		nh = malv(Vkind(h), sz);
 		break;
-*/
 	default:
 		nh = malq(Vkind(h), sz);
 		break;
