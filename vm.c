@@ -211,7 +211,7 @@ mkcont(void *base, u32 sz, void *ra, Closure *cl, Cont *link,
        u32 level, u64 gen)
 {
 	Cont *k;
-	k = (Cont*)malq(Qcont, sizeof(Cont));
+	k = (Cont*)malv(Qcont, sizeof(Cont));
 	k->base = base;
 	k->sz = sz;
 	k->ra = ra;
@@ -484,7 +484,7 @@ static As*
 mkas(void)
 {
 	As *as;
-	as = (As*)malq(Qas, sizeof(As));
+	as = (As*)malv(Qas, sizeof(As));
 	return as;
 }
 
@@ -492,7 +492,7 @@ Dom*
 mkdom(Ns *ns, As *as, Str *name)
 {
 	Dom *dom;
-	dom = (Dom*)malq(Qdom, sizeof(Dom));
+	dom = (Dom*)malv(Qdom, sizeof(Dom));
 	dom->ns = ns;
 	dom->as = as;
 	dom->name = name;
@@ -503,7 +503,7 @@ static Ns*
 mkns(void)
 {
 	Ns *ns;
-	ns = (Ns*)malq(Qns, sizeof(Ns));
+	ns = (Ns*)malv(Qns, sizeof(Ns));
 	return ns;
 }
 
@@ -582,7 +582,7 @@ Cval*
 mkcval(Dom *dom, Ctype *type, Imm val)
 {
 	Cval *cv;
-	cv = (Cval*)malq(Qcval, sizeof(Cval));
+	cv = (Cval*)malv(Qcval, sizeof(Cval));
 	cv->dom = dom;
 	cv->type = type;
 	cvalu(cv) = val;
@@ -593,7 +593,7 @@ Cval*
 mkcvalenc(Dom *dom, Ctype *type, Enc v)
 {
 	Cval *cv;
-	cv = (Cval*)malq(Qcval, sizeof(Cval));
+	cv = (Cval*)malv(Qcval, sizeof(Cval));
 	cv->dom = dom;
 	cv->type = type;
 	cv->v = v;
@@ -643,7 +643,7 @@ Range*
 mkrange(Cval *beg, Cval *len)
 {
 	Range *r;
-	r = (Range*)malq(Qrange, sizeof(Range));
+	r = (Range*)malv(Qrange, sizeof(Range));
 	r->beg = beg;
 	r->len = len;
 	return r;

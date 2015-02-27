@@ -23,7 +23,7 @@ Pair*
 mkpair(Val a, Val d)
 {
 	Pair *p;
-	p = (Pair*)malq(Qpair, sizeof(Pair));
+	p = (Pair*)malv(Qpair, sizeof(Pair));
 	// setc*r would invoke write barrier
 	if(a == 0)
 		bug();

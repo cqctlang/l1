@@ -117,7 +117,7 @@ static Precode*
 mkprecode(char *id)
 {
 	Precode *code;
-	code = (Precode*)malq(Qprecode, sizeof(Precode));
+	code = (Precode*)malv(Qprecode, sizeof(Precode));
 	code->id = mkcid0(id);
 	code->ninsn = 0;
 	code->maxinsn = InsnAlloc;

@@ -1317,22 +1317,14 @@ Head*
 malv(Qkind kind, Imm len)
 {
 	Head *h;
+	len = roundup(len, Align);
 	if(len > Seguse){
 		if(kind == Qcode)
-			h = _malbig(MTbigcode, roundup(len, Align));
+			h = _malbig(MTbigcode, len);
 		else
-			h = _malbig(MTbigdata, roundup(len, Align));
+			h = _malbig(MTbigdata, len);
 	}else
-		h = _mal(kind, roundup(len, Align));
-	Vsetkind(h, kind);
-	return h;
-}
-
-Head*
-malq(Qkind kind, u32 sz)
-{
-	Head *h;
-	h = _mal(kind, sz);
+		h = _mal(kind, len);
 	Vsetkind(h, kind);
 	return h;
 }
@@ -1357,7 +1349,7 @@ curaddr(Val v)
 }
 
 static u32
-qsz(Head *h)
+_qsz(Head *h)
 {
 	Cid *id;
 	Closure *cl;
@@ -1372,56 +1364,56 @@ qsz(Head *h)
 	switch(Vkind(h)){
 	case Qcid:
 		id = (Cid*)h;
-		return roundup(cidsize(id->len), Align);
+		return cidsize(id->len);
 	case Qcl:
 		cl = (Closure*)h;
-		return roundup(clsize(cl->dlen), Align);
+		return clsize(cl->dlen);
 	case Qstr:
 		s = (Str*)h;
 		switch(s->skind){
 		case Sheap:
-			return roundup(strsize(s->len), Align);
+			return strsize(s->len);
 		case Sperm:
-			return sizeof(Strperm); /* FIXME: align? */
+			return sizeof(Strperm);
 		}
 		fatal("bug");
 	case Qcode:
 		c = (Code*)h;
-		return roundup(c->sz, Align);
+		return c->sz;
 	case Qvec:
 		v = (Vec*)h;
-		return roundup(vecsize(v->len), Align);
+		return vecsize(v->len);
 /*
 	case Qrec:
 		r = (Rec*)h;
-		return roundup(recsize(r->nf), Align);
+		return recsize(r->nf);
 */
 	case Qctype:
 		t = (Ctype*)h;
 		switch(t->tkind){
 		case Tvoid:
-			return align(sizeof(Ctype));
+			return sizeof(Ctype);
 		case Tbase:
-			return align(sizeof(Ctypebase));
+			return sizeof(Ctypebase);
 		case Tstruct:
 		case Tunion:
-			return align(sizeof(Ctypesu));
+			return sizeof(Ctypesu);
 		case Tenum:
-			return align(sizeof(Ctypeenum));
+			return sizeof(Ctypeenum);
 		case Ttypedef:
-			return align(sizeof(Ctypedef));
+			return sizeof(Ctypedef);
 		case Tptr:
-			return align(sizeof(Ctypeptr));
+			return sizeof(Ctypeptr);
 		case Tarr:
-			return align(sizeof(Ctypearr));
+			return sizeof(Ctypearr);
 		case Tfun:
-			return align(sizeof(Ctypefunc));
+			return sizeof(Ctypefunc);
 		case Tundef:
-			return align(sizeof(Ctypeundef));
+			return sizeof(Ctypeundef);
 		case Tbitfield:
-			return align(sizeof(Ctypebitfield));
+			return sizeof(Ctypebitfield);
 		case Tconst:
-			return align(sizeof(Ctypeconst));
+			return sizeof(Ctypeconst);
 		default:
 			bug();
 		}
@@ -1429,6 +1421,12 @@ qsz(Head *h)
 		return qs[Vkind(h)].sz;
 	}
 	fatal("bug");
+}
+
+static u32
+qsz(Head *h)
+{
+	return align(_qsz(h));
 }
 
 static u8
@@ -1484,7 +1482,7 @@ copy(Val *v)
 		if(isweak(h))
 			nh = malweak();
 		else
-			nh = malq(Qpair, sizeof(Pair));
+			nh = malv(Qpair, sizeof(Pair));
 		break;
 	case Qcid:
 	case Qcl:
@@ -1493,10 +1491,8 @@ copy(Val *v)
 	case Qstr:
 	case Qvec:
 	//case Qrec:
-		nh = malv(Vkind(h), sz);
-		break;
 	default:
-		nh = malq(Vkind(h), sz);
+		nh = malv(Vkind(h), sz);
 		break;
 	}
 	memcpy(nh, h, sz);

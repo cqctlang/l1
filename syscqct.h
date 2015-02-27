@@ -1358,7 +1358,6 @@ void		initmem();
 void		instguard(Pair *p);
 int		ismanagedrange(void *p, Imm len);
 int		isweak(Head *h);
-Head*		malq(Qkind kind, u32 sz);
 Head*		malv(Qkind kind, Imm len);
 Head*		malbox();
 void*		malstack(u32 sz);

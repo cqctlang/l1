@@ -189,7 +189,7 @@ mkrd(VM *vm, Cid *name, List *fname, Closure *fmt)
 	Val mn;
 	char *buf;
 
-	rd = (Rd*)malq(Qrd, sizeof(Rd));
+	rd = (Rd*)malv(Qrd, sizeof(Rd));
 	rd->nf = listlen(fname);
 	rd->name = name;
 	rd->fname = fname;

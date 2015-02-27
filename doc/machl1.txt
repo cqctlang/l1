@@ -207,8 +207,7 @@ phase.
 
 The proper functioning of this mechanism depends upon the least significant
 bit of all forwarding pointers being 0, which is guaranteed by the malv
-allocator.  However, one must for this reason be careful to not use non-even
-sizes in the malq allocator.
+memory allocation function.
 
 
 The Heap

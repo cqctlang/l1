@@ -90,7 +90,7 @@ Expr*
 mkexpr()
 {
 	Val v;
-	v = malq(Qexpr, sizeof(Expr));
+	v = malv(Qexpr, sizeof(Expr));
 	return (Expr*)v;
 }
 
