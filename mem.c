@@ -1492,7 +1492,8 @@ copy(Val *v)
 	case Qvec:
 	//case Qrec:
 	default:
-		nh = malv(Vkind(h), sz);
+		nh = _mal(Vkind(h), sz);
+		Vsetkind(nh, Vkind(h));
 		break;
 	}
 	memcpy(nh, h, sz);
