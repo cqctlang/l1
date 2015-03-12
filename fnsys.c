@@ -235,6 +235,7 @@ l1_syscall(VM *vm, Imm argc, Val *argv, Val *rv)
 		cv = valcval(argv[i]);
 		xarg[i-1] = (unsigned long)cvalu(cv);
 	}
+	errno = 0;
 	setlasterrno(0);
 	switch(argc) {
 	case 1:
@@ -329,6 +330,15 @@ l1_errno(VM *vm, Imm argc, Val *argv, Val *rv)
 }
 
 static void
+l1_seterrno(VM *vm, Imm argc, Val *argv, Val *rv)
+{
+	if(argc != 1)
+		vmerr(vm, "wrong number of arguments to seterrno");
+	checkarg(vm, argv, 0, Qcval);
+	setlasterrno(cvalu(valcval(argv[0])));
+}
+
+static void
 l1_usleep(VM *vm, Imm argc, Val *argv, Val *rv)
 {
 	if(argc != 1)
@@ -351,6 +361,7 @@ fnsys(Env env)
 	FN(getpid);
 	FN(gettimeofday);
 	FN(setenv);
+	FN(seterrno);
 	FN(syscall);
 	FN(uname);
 	FN(usleep);
