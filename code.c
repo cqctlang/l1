@@ -47,7 +47,7 @@ ra2mask(void *ra, Code *code)
 		fsz = (Imm)(uptr)ra;
 		if(fsz >= mwbits-1)
 			bug(); /* need to implement this case */
-		lm = (1UL<<fsz)-1;
+		lm = (1ULL<<fsz)-1;
 		lm &= ~(1ULL<<Ora); /* assume everything else is live */
 		return lm;
 	case Calien:

@@ -1093,7 +1093,7 @@ femit(Frame *f, Precode *c)
 		dbg->lex = c->nlex-1;
 	if(f->fsz < mwbits-1)
 		/* live mask fits in debug record */
-		dbg->lm = (*f->l)&((1UL<<f->fsz)-1);
+		dbg->lm = (*f->l)&((1ULL<<f->fsz)-1);
 	else{
 		/* live mask goes in live mask buffer */
 		nw = roundup(f->fsz, mwbits)/mwbits;
