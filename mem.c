@@ -88,7 +88,7 @@ static char *MTname[] = {
 #define MTold(mt)        (((mt) >> Fold) & 1)
 #define MTbig(mt)        (((mt) >> Fbig) & 1)
 #define MTbigcont(mt)    (((mt) >> Fbigcont) & 1)
-#define MTsettag(mt, t)   ((mt) = ((t) << Ftag) | ((mt) & ~(Ftag - 1)))
+#define MTsettag(mt, t)   ((mt) = ((t) << Ftag) | ((mt) & ((1<<Ftag) - 1)))
 #define MTsetold(mt)     ((mt) |= 1 << Fold)
 #define MTsetbig(mt)     ((mt) |= 1 << Fbig)
 #define MTsetbigcont(mt) ((mt) |= 1 << Fbigcont)
