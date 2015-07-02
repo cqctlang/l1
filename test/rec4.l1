@@ -1,9 +1,5 @@
-@rec(r, a);
-tr = r();
-applyk(	@lambda() {
-	tr.b;
-	}, @lambda(x) {
-		printf("that should not have succeeded\n");
-	}, @lambda(x) {
-		exit(6);
-	}, []);
+@rec(R, f1, f2, f3, f4, f5);
+r = R(1,2,3,4,5);
+for(i=0; i<10; i++)
+    gc();
+printf("%a\n", r.f1);

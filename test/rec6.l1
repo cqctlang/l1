@@ -1,0 +1,6 @@
+@rec(r, a);
+tr = r();
+applyk(@lambda() { tr.b; },
+       @lambda(x) { printf("that should not have succeeded\n"); },
+       @lambda(x) { },
+       []);
