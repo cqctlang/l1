@@ -7,8 +7,9 @@
 @defloc mkmux(fd)
 {
 	@local ctls, taghandler, nexttag, freetags, aborted, verbose;
+	@local muxrec, ismuxrec;
 
-	@record muxrec {
+	@rec(muxrec,
 		/* user interface */
 		abort,
 		run,
@@ -17,8 +18,8 @@
 		bindctl,
 		unbindctl,
 		msgsync,  /* msgsync(op, body) */
-		msgasync, /* msgasync(op, body, handler) */
-	};
+		msgasync /* msgasync(op, body, handler) */
+	);
 
 	verbose = 0;
 	nexttag = 0;

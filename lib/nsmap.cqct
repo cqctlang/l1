@@ -6,7 +6,7 @@
 
 {
 
-@local nsrec, nsmaprec;
+@local nsrec, isnsrec, nsmaprec, isnsmaprec;
 
 @rec(nsrec, base, path, ns);
 @rec(nsmaprec, add, del, exe, setexe, setexebyname, byaddr, byname, nspath, nsbase, each, copy, rebind);

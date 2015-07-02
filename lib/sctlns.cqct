@@ -43,7 +43,8 @@
 
 {
 @local nexttag;
-@local lexprrec, locrec, uwrulerec, srcrec, nsinfo;
+@local lexprrec, islexprrec, locrec, islocrec, uwrulerec, isuwrulerec,
+       srcrec, issrcrec, nsinfo, isnsinfo;
 
 nexttag = 0;
 

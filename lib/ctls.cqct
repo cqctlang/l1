@@ -12,8 +12,10 @@
 
 {
 @local evidx, idxev;
+@local ctlrec, isctlrec;
+@local ctlstate, isctlstate;
 
-@record ctlrec {
+@rec(ctlrec,
 	/* identity */
 	id,
 
@@ -52,18 +54,18 @@
 
 	/* debugging methods */
 	ldom,
-	unwind,	
-	looksrc,	
+	unwind,
+	looksrc,
 	lookpc,
 
 	/* mux interface */
 	event,
 
 	/* private */
-	scan, 
-};
+	scan
+);
 
-@record ctlstate { mux, ctlid, dlct, ctx, mmap, nsmap, events, traps, straps };
+@rec(ctlstate, mux, ctlid, dlct, ctx, mmap, nsmap, events, traps, straps );
 
 
 evidx = [
@@ -91,8 +93,9 @@ idxev = [
 @defloc _mkctl(cs)
 {
 	@local this, nexttid;
+	@local istraprec, traprec, isregion, region, isdll, dll;
 
-	@record traprec { tid, sid, kind, args, fn };
+	@rec(traprec, tid, sid, kind, args, fn );
 
 	@defloc id()
 	{
@@ -206,19 +209,19 @@ idxev = [
 		return nil;
 	}
 
-	@record region {
+	@rec(region,
 		file,
 		addr,
 		len,
-		flags,
-	};
+		flags
+	);
 
-	@record dll {
+	@rec(dll,
 		id,
 		path,
 		base,
-		mode,
-	};
+		mode
+	);
 
 	@defloc pstat()
 	{
