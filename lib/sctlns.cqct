@@ -798,7 +798,7 @@ nexttag = 0;
 {
 	@local m, p, rep, dat, version, os, s;
 
-	version = "sctl-2013:x86-linux-2012,x86-win-2012";
+	version = "sctl-2015:x86-linux-2012,x86-win-2012";
 
 	m = p = mkxs();
 	p = (sctl`Msg*)p;
