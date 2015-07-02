@@ -11,7 +11,7 @@ rds = [:];
 
 @defstx @rec(recname, fields ...) {
 	@local foo, x, c, bar;
-	@local this_record_key;
+	@local this_record_key, isrecsym;
 
 	@global super_secret_record_key;
 	if(!super_secret_record_key)	
@@ -36,6 +36,8 @@ rds = [:];
 		c = c[1];
 		x++;
 	}
+
+	isrecsym = mkstxid(mkcid("is" + cid2str(stxid(recname))));
 
 	return #`{
 		_tmprd = @lambda() {
@@ -83,7 +85,7 @@ rds = [:];
 			mktabpriv(rd, "rd");
 
 			return rd;
-		}(), #,recname = rdmk(_tmprd), #,(mkstxid(mkcid("is" + cid2str(stxid(recname))))) = @lambda(val) {
+		}(), #,recname = rdmk(_tmprd), #,isrecsym = @lambda(val) {
 			if(!isprivtable(val))
 				return 0;
 
@@ -91,7 +93,9 @@ rds = [:];
 				return 1;
 
 			return 0;
-		}, _tmprd;
+		},
+		#,isrecsym = #,isrecsym, //eliminate unused warnings
+		_tmprd;
 	};
 }
 
