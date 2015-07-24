@@ -28,7 +28,7 @@
 
 
 	json_escape_tab = 
-		[ "\v" : "\\v", "\n" : "\\n", "\f" : "\\f", "\r" : "\\r" ];
+	        [ "\v" : "\\v", "\n" : "\\n", "\f" : "\\f", "\r" : "\\r", "\t" : "\\t" ];
 	//make the keys into a string, which funcitons as a set in split
 	json_escape_chars = join(foldl(append,[],tabkeys(json_escape_tab)));
 
