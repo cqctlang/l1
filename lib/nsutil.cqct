@@ -508,8 +508,10 @@ nsutil_defined = 1;
 	@define inc_sym(sym) {
 		@local ret;
 		@local attr, new_attr;
-		if(isenumconst(symtype(sym)))
+		if(isenumconst(symtype(sym))) {
+			sym_cache[symid(sym)] = sym;		    
 			return sym;
+		}
 		attr = symattr(sym);
 		new_attr = mktab();
 		foreach(@lambda(k,v) {
