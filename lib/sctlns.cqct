@@ -16,6 +16,7 @@
 	sctlenumsym,
 	sctlmatchsyms,
 	sctllookaddr, 
+	sctllookaddrs,
 	sctlunwind1,
 	sctllooksrc,
 	sctllookpc,
@@ -800,7 +801,7 @@ nexttag = 0;
 {
 	@local m, p, rep, dat, version, os, s;
 
-	version = "sctl-2015:x86-linux-2012,x86-win-2012";
+	version = "sctl-2015-08:x86-linux-2012,x86-win-2012";
 
 	m = p = mkxs();
 	p = (sctl`Msg*)p;
@@ -990,6 +991,32 @@ nexttag = 0;
 		return nil;
 	[sym, _] = decodesym(dat);
 	return sym;
+}
+
+@define sctllookaddrs(fd, nsid, addr)
+{
+	@local p, m, q, rep, dat, i, ss, sym;
+
+	p = m = mkxs();
+	p = (sctl`Msg*)p;
+	p->op = sctl`Tlookaddrs;
+	p->tag = freshtag();
+	p++;
+	p = (uint64*)p;
+	*p++ = nsid;
+	*p++ = addr;
+	sendsctlmsg(fd, m, (char*)p-m);
+	
+	[rep, _, dat] = recvsctlmsg(fd);
+	checkreply(rep, dat, sctl`Rlookaddrs);
+	ss = [:];
+	q = (uint64*)dat;
+	m = *q++;
+	for(i = 0; i < m; i++){
+		[sym, q] = decodesym(q);
+		ss[symid(sym)] = sym;
+	}
+	return ss;
 }
 
 @define sctlunwind1(fd, nsid, pc)
@@ -1284,6 +1311,21 @@ nexttag = 0;
 		return s;
 	}
 
+	@defloc la2(this, addr)
+	{
+  	        @local ss, s, sym;
+
+		sym = [:];
+
+		ss = sctllookaddrs(fd, nsid, addr);
+		foreach(@lambda(id, psym){
+				s = psym2sym(psym);
+				if(s != nil)
+					sym[id] = s;
+			}, ss);
+		return sym;
+	}
+
 	@defloc uw1(this, pc)
 	{
 		return sctlunwind1(fd, nsid, pc);
@@ -1325,6 +1367,7 @@ nexttag = 0;
 		    "enumsym"  : es,
 		    "matchsyms"  : ms,
 		    "lookaddr" : la,
+		    "lookaddrs" : la2,
 		    "unwind1"  : uw1,
 		    "enumloc"  : el,
 		    "looksrc"  : lsrc,

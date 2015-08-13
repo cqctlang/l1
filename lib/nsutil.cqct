@@ -500,7 +500,7 @@ nsutil_defined = 1;
 
 /* FIXME: clean up the casting ... carefully. */
 @define mknsoff(ns,off) {
-	@local  _ls, _es, _ms, _la, inc_sym, sym_cache, _addsym;
+	@local  _ls, _es, _ms, _la, _la2, inc_sym, sym_cache, _addsym;
 
 	sym_cache = mktab();
 	off = (ns`uintptr)off;
@@ -582,6 +582,17 @@ nsutil_defined = 1;
 		} //else return sym1
 		return sym1;
 	}
+	//lookaddrs
+	@define _la2(this, addr) {
+		@local tab, inctab;
+		tab = ns.lookaddrs((ns`uintptr)((ns`uintptr)addr-off));
+		inctab = [:];
+		foreach(@lambda(k,sym) {
+			if (sym_cache[k] == nil) inc_sym(sym);
+			inctab[k] = sym_cache[k];
+		}, tab);
+		return inctab;
+	}
 
 	@defloc uw1(this, pc)
 	{
@@ -627,6 +638,7 @@ nsutil_defined = 1;
 		"enumsym" : _es,
 		"matchsyms" : _ms,
 		"lookaddr" : _la,
+		"lookaddrs" : _la2,
 		"looktype" : @lambda(this,t) { return ns.looktype(t); },
 		"enumtype" : @lambda(this) { return ns.enumtype(); },
 		"unwind1"  : uw1,

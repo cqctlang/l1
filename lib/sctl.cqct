@@ -77,6 +77,8 @@ sctl = @names clp64le {
 		Rnsinfo,
 		Tmatchsyms,
 		Rmatchsyms,
+		Tlookaddrs,
+		Rlookaddrs,
 		Tsrv=254,
 		Rsrv,
 	} Mkind;
