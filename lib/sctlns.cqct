@@ -14,6 +14,7 @@
 	sctlenumtype,
 	sctllooksym,
 	sctlenumsym,
+	sctlmatchsyms,
 	sctllookaddr, 
 	sctlunwind1,
 	sctllooksrc,
@@ -27,6 +28,7 @@
 	decodetname,
 	decodeuwrules,
 	decodetdef,
+	decodesym,
 	encodelexpr,
 	encodectx,
 	encodensinfo,
@@ -218,7 +220,7 @@ nexttag = 0;
 	return p;
 }
 
-@defloc decodesym(p)
+@define decodesym(p)
 {
 	@local id, f, v, sz, t, at;
 
@@ -940,6 +942,33 @@ nexttag = 0;
 	return ss;
 }
 
+@define sctlmatchsyms(fd, nsid, pattern)
+{
+	@local p, m, q, rep, dat, i, ss, sym;
+
+	p = m = mkxs();
+	p = (sctl`Msg*)p;
+	p->op = sctl`Tmatchsyms;
+	p->tag = freshtag();
+	p++;
+	p = (uint64*)p;
+	*p++ = nsid;
+	p = encodes(p, pattern);
+	p = (char*)p;
+	sendsctlmsg(fd, m, p-m);
+
+	[rep, _, dat] = recvsctlmsg(fd);
+	checkreply(rep, dat, sctl`Rmatchsyms);
+	ss = [:];
+	q = (uint64*)dat;
+	m = *q++;
+	for(i = 0; i < m; i++){
+		[sym, q] = decodesym(q);
+		ss[symid(sym)] = sym;
+	}
+	return ss;
+}
+
 @define sctllookaddr(fd, nsid, addr)
 {
 	@local p, m, rep, dat, sym;
@@ -1225,6 +1254,21 @@ nexttag = 0;
 		return sym;
 	}
 
+	@defloc ms(this, pattern)
+	{
+  	        @local ss, s, sym;
+
+		sym = [:];
+
+		ss = sctlmatchsyms(fd, nsid, pattern);
+		foreach(@lambda(id, psym){
+				s = psym2sym(psym);
+				if(s != nil)
+					sym[id] = s;
+			}, ss);
+		return sym;
+	}
+
 	@defloc la(this, a)
 	{
 		@local psym, s;
@@ -1279,6 +1323,7 @@ nexttag = 0;
 		    "enumtype" : et,
 		    "looksym"  : ls,
 		    "enumsym"  : es,
+		    "matchsyms"  : ms,
 		    "lookaddr" : la,
 		    "unwind1"  : uw1,
 		    "enumloc"  : el,
