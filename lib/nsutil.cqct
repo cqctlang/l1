@@ -500,7 +500,7 @@ nsutil_defined = 1;
 
 /* FIXME: clean up the casting ... carefully. */
 @define mknsoff(ns,off) {
-	@local  _ls, _es, _la, inc_sym, sym_cache, _addsym;
+	@local  _ls, _es, _ms, _la, inc_sym, sym_cache, _addsym;
 
 	sym_cache = mktab();
 	off = (ns`uintptr)off;
@@ -539,6 +539,17 @@ nsutil_defined = 1;
 			if (sym_cache[k] == nil) inc_sym(sym);
 		}, tab);
 		return sym_cache;
+	}
+	//matchsyms
+	@define _ms(this, regexp) {
+		@local tab, inctab;
+		tab = ns.matchsyms(regexp);
+		inctab = [:];
+		foreach(@lambda(k,sym) {
+			if (sym_cache[k] == nil) inc_sym(sym);
+			inctab[k] = sym_cache[k];
+		}, tab);
+		return inctab;
 	}
 	//lookaddr
 	@define _la(this,addr) {
@@ -612,6 +623,7 @@ nsutil_defined = 1;
 	return mkns([
 		"looksym" : _ls,
 		"enumsym" : _es,
+		"matchsyms" : _ms,
 		"lookaddr" : _la,
 		"looktype" : @lambda(this,t) { return ns.looktype(t); },
 		"enumtype" : @lambda(this) { return ns.enumtype(); },
