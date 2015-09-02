@@ -238,3 +238,46 @@ unsigned int 0
 int at 0x40 = 0
 nothing to see here
 [intc] [intb] nothing to see here
+struct _baz at 0x20 (size 0x8) {
+   bar1: ...
+   bar2: ...
+}
+char * at 0xc8 = "AAAAAAAAAA..."
+char * at 0xc8 = "..."
+char * at 0xc8 = "A..."
+char * at 0xc8 = "AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAB"
+struct _rec at 0x30 (size 0x4) {
+   n: ...
+}
+struct _rec at 0x30 (size 0x4) {
+   n: struct _rec at 0x30 (size 0x4) {
+         n: ...
+      }
+}
+struct _rec at 0x30 (size 0x4) {
+   n: struct _rec at 0x30 (size 0x4) {
+         n: struct _rec at 0x30 (size 0x4) {
+               n: ...
+            }
+      }
+}
+struct _rec at 0x30 (size 0x4) {
+   n: struct _rec at 0x30 (size 0x4) {
+         n: struct _rec at 0x30 (size 0x4) {
+               n: struct _rec at 0x30 (size 0x4) {
+                     n: ...
+                  }
+            }
+      }
+}
+struct _rec at 0x30 (size 0x4) {
+   n: struct _rec at 0x30 (size 0x4) {
+         n: struct _rec at 0x30 (size 0x4) {
+               n: struct _rec at 0x30 (size 0x4) {
+                     n: struct _rec at 0x30 (size 0x4) {
+                           n: ...
+                        }
+                  }
+            }
+      }
+}

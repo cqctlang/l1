@@ -169,3 +169,27 @@ handlers[@typeof(dom`intc)] =
     };
 
 printf("%s\n",cptrstr(&dom`anintc,handlers));
+
+setmaxindent(8);
+printf("%s\n",cptrstr(&dom`z));
+
+setmaxstring(10);
+printf("%s\n", cptrstr(lstr));
+
+setmaxstring(0);
+printf("%s\n", cptrstr(lstr));
+
+setmaxstring(1);
+printf("%s\n", cptrstr(lstr));
+
+setmaxstring(-1);
+printf("%s\n", cptrstr(lstr));
+
+
+setmaxindent(40);
+setmaxstring(50);
+printf("%s\n", cptrstr(&dom`r, 1));
+printf("%s\n", cptrstr(&dom`r, 2));
+printf("%s\n", cptrstr(&dom`r, 3));
+printf("%s\n", cptrstr(&dom`r, 4));
+printf("%s\n", cptrstr(&dom`r, 5));
