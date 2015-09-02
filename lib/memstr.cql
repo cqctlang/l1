@@ -51,15 +51,17 @@ For no limit, use -1
 * handlers: handlers table
 * returns: a string representation of x and its content
 *
-* The handlers table maps ctypes to function that produce output for that
+* The handlers table maps ctypes to functions that produce output for that
 * ctype. The handles are called with the signature:
 *   handler(p, i, cps)
 * where p is a pointer to an object of the associated ctype, i is the current
-* indentation level, and cps is a recursion-free instance of cptrstr. The
+* indentation string, and cps is a recursion-free instance of cptrstr. The
 * hander is expected to return an un-indented string representation of p.
 * The handler may use cps to get a string representation of memory -- calls
-* to cps will *not* use the given handler for it's type but will use all other
-* handlers provided to the original call to cptrstr.
+* to cps will *not* use the given handler for its type but will use all other
+* handlers provided to the original call to cptrstr. Any newlines in the
+* returned string should be followed by the indent string i -- this excepts any
+* newlines from the output of cps, which handles indentation correctly.
 *
 * depth is -1 by default. handlers is [:] (the empty table) by default.
 * max_indent takes priority over the depth parameter.
