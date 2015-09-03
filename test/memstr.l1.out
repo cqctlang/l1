@@ -249,17 +249,17 @@ char * at 0xc8 = "..."
 char * at 0xc8 = "A..."
 char * at 0xc8 = "AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAB"
 struct _rec at 0x30 (size 0x4) {
-   n: ...
+   n: (rec *) at 0x30 = ...
 }
 struct _rec at 0x30 (size 0x4) {
    n: struct _rec at 0x30 (size 0x4) {
-         n: ...
+         n: (rec *) at 0x30 = ...
       }
 }
 struct _rec at 0x30 (size 0x4) {
    n: struct _rec at 0x30 (size 0x4) {
          n: struct _rec at 0x30 (size 0x4) {
-               n: ...
+               n: (rec *) at 0x30 = ...
             }
       }
 }
@@ -267,7 +267,7 @@ struct _rec at 0x30 (size 0x4) {
    n: struct _rec at 0x30 (size 0x4) {
          n: struct _rec at 0x30 (size 0x4) {
                n: struct _rec at 0x30 (size 0x4) {
-                     n: ...
+                     n: (rec *) at 0x30 = ...
                   }
             }
       }
@@ -277,7 +277,7 @@ struct _rec at 0x30 (size 0x4) {
          n: struct _rec at 0x30 (size 0x4) {
                n: struct _rec at 0x30 (size 0x4) {
                      n: struct _rec at 0x30 (size 0x4) {
-                           n: ...
+                           n: (rec *) at 0x30 = ...
                         }
                   }
             }

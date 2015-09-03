@@ -167,7 +167,7 @@ For no limit, use -1
             @local t2, newdepth;
 
             if (depth == 0) {
-                return "...";
+                return sprintfa("(%t) at 0x%x = ...", t, p);
             }
             if (depth == -1) {
                 newdepth = -1;
