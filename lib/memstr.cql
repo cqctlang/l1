@@ -6,14 +6,31 @@
 
 @export( cptrstr, setmaxindent, setmaxstring );
 
-@defloc cvalstr(t,v) {
+@defloc cvalstr(t, v) {
     if (isenum(t) || isenumconst(t)) {
-        return sprintfa("%e (%d)",{t}v,v);
+        return sprintfa("%e (%d)", {t}v, v);
     }
-    return sprintfa("%a",v);
+    switch(basebase(t)) {
+    case cqct`Vbool:
+        return sprintfa("%a", v);
+    case cqct`Vchar:
+    case cqct`Vuchar:
+        return sprintfa("%d '%c' [0x%x]", v, v, v);
+    case cqct`Vshort:
+    case cqct`Vint:
+    case cqct`Vlong:
+    case cqct`Vvlong:
+    case cqct`Vushort:
+    case cqct`Vuint:
+    case cqct`Vulong:
+    case cqct`Vuvlong:
+        return sprintfa("%lld [0x%llx]", v, v);
+    default:
+        return sprintfa("%a", v);
+    }
 }
 
-max_indent = 40;
+max_indent = 30;
 max_string = 50;
 
 /*
@@ -166,8 +183,46 @@ For no limit, use -1
         if (isptr(t)) {
             @local t2, newdepth;
 
+            t2 = subtype(t);
+
+            if (handlers[t2] != nil) {
+                return dohandler(t2, p, depth, indent);
+            }
+
+            while(istypedef(t2)) {
+                t2 = typedeftype(t2);
+                if (handlers[t2] != nil) {
+                    return dohandler(t2, p, depth, indent);
+                }
+            }
+
+            //first, handle all types without a recursive call
+            if (isvoid(t2)) {
+                return sprintfa("void* at 0x%x",p);
+            }
+            if (isfunc(t2)) {
+                return sprintfa("0x%x",p);
+            }
+            if (isbitfield(t2)) {
+                @local str;
+                if (!ismapped((char*)p, sizeof(bitfieldcontainer(t2)))) {
+                    str = "UNMAPPED";
+                } else {
+                    str = sprintfa("%lld [0x%llx]", *p, *p);
+                }
+                return sprintfa("bitfield at 0x%x:[0x%x:0x%x] = %s",
+                                p, bitfieldpos(t2), bitfieldwidth(t2),
+                                str);
+            }
+            if (isundeftype(t2)) {
+                return sprintfa("%t <UNDEFINED TYPE> at 0x%x", t2, p);
+            }
+            if (isbase(t2)) {
+                return sprintfa("%t at 0x%x = %s", t2, p, cvalstr(t2,*p));
+            }
+
             if (depth == 0) {
-                return sprintfa("(%t) at 0x%x = ...", t, p);
+                return sprintfa("%t at 0x%x = ...", t2, p);
             }
             if (depth == -1) {
                 newdepth = -1;
@@ -175,31 +230,12 @@ For no limit, use -1
                 newdepth = depth - 1;
             }
 
-            t2 = subtype(t);
-
-            if (handlers[t2] != nil) {
-                return dohandler(t2, p, newdepth, indent);
-            }
-
-            while(istypedef(t2)) {
-                t2 = typedeftype(t2);
-                if (handlers[t2] != nil) {
-                    return dohandler(t2, p, newdepth, indent);
-                }
-            }
-
-            if (isvoid(t2)) {
-                return sprintfa("void* at 0x%x",p);
-            }
-
+            //now, do all types with a recursive call
             if (issu(t2)) {
                 @local flds, i, nxt_indent, ret, size;
 
                 if (!ismapped(p)) return "UNMAPPED";
 
-                if (max_indent != -1 && strlen(indent)>max_indent) {
-                    return sprintfa("...", p);
-                }
                 flds = fields(t2);
                 if (isstruct(t2)) ret = "struct ";
                 else if (isunion(t2)) ret = "union ";
@@ -210,6 +246,9 @@ For no limit, use -1
                 } else size = "";
 
                 ret += sprintfa("%s at 0x%x %s{", suetag(t2), p, size);
+                if (max_indent != -1 && strlen(indent)>max_indent) {
+                    return sprintfa("%s ... }", ret);
+                }
                 for(i=0; i<length(flds); ++i)
                 {
                     @local buf;
@@ -223,16 +262,18 @@ For no limit, use -1
                             {mkctype_ptr(fieldtype(flds[i]),
                                             nsptr(domof(p).ns))}
                                 ((uintptr)p + {domof(p)}fieldoff(flds[i])),
-                            depth, /* use depth not newdepth here b/c we
-                                      are adding an artificial ptr above */
-                            nxt_indent);
+                            newdepth, nxt_indent);
                 }
                 ret += sprintfa("\n%s}",indent);
                 return ret;
-            } else if (isarray(t2)) {
-                @local len, i, nxt_indent, ret, t3;
+            }
+            if (isarray(t2)) {
+                @local len, i, nxt_indent, ret, t3, pt3;
 
                 nxt_indent = indent+" ";
+                if (max_indent != -1 && strlen(nxt_indent)>max_indent) {
+                    return sprintfa("[ ... ]", ret);
+                }
                 len = arraynelm(t2);
                 if (len == nil) return sprintfa("[] // unknown size");
 
@@ -241,34 +282,24 @@ For no limit, use -1
                 t3 = subtype(t2);
                 while(istypedef(t3)) t3 = typedeftype(t3);
 
+                //this is a bit of a hack...
                 if (isbase(t3) && baseid(t3) == "char") {
-                    return sprintfa("%a",getbytes(p,len));
+                    return sprintfa("%a", getbytes(p,len));
                 }
+
+                pt3 =  mkctype_ptr(subtype(t2), nsptr(domof(p).ns));
 
                 ret = "[";
                 for(i=0; i<len; ++i) {
                     if (i != 0) ret += ",\n"+nxt_indent;
-                    ret += cptrstr_rec(&(*p)[i], newdepth, nxt_indent);
+                    ret += cptrstr_rec({pt3}&(*p)[i], newdepth, nxt_indent);
                 }
                 ret += "]";
                 return ret;
-            } else if (isptr(t2)) {
+            }
+            if (isptr(t2)) {
                 if (!ismapped(p)) return "UNMAPPED";
                 return cptrstr_rec(*p, newdepth, indent);
-            } else if (isfunc(t2)) {
-                return sprintfa("0x%x",p);
-            } else if (isbitfield(t2)) {
-                @local str;
-                if (!ismapped((char*)p, sizeof(bitfieldcontainer(t2)))) {
-                    str = "UNMAPPED";
-                } else {
-                    str = cvalstr(t2, *p);
-                }
-                return sprintfa("bitfield at 0x%x:[0x%x:0x%x] = %s",
-                                p, bitfieldpos(t2), bitfieldwidth(t2),
-                                str);
-            } else if (isundeftype(t2)) {
-                return sprintfa("%t <UNDEFINED TYPE> at 0x%x", t2, p);
             }
             return sprintfa("%t at 0x%x = %s", t2, p, cvalstr(t2,*p));
         }

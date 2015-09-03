@@ -73,7 +73,9 @@ ns = @names c32le {
 
     typedef struct _rec {
         @0 rec* n;
-        @4;
+        @4 baz b;
+        @0xc int i;
+        @0x10;
     } rec;
 
     @0x30 rec r;
@@ -85,7 +87,11 @@ ns = @names c32le {
     @0x40 intc anintc;
 
     typedef struct NOTATYPE NOTATYPE;
+
+    @0x0 int dimary[3][3][2][1];
 };
+
+printf("*** should have seen a warning that struct NOTATYPE is not defined\n");
 
 as = mkzas(300);
 
@@ -97,6 +103,7 @@ dom`x.pthebar = &dom`y;
 putbytes(&dom`x.hi,"hi!\0");
 putbytes(dom`x.str,"012345678\0");
 putbytes(dom`x.a,"test string\0");
+dom`x.xp = -1;
 
 dom`x.next = &dom`x;
 
@@ -187,13 +194,17 @@ setmaxstring(-1);
 printf("%s\n", cptrstr(lstr));
 
 
-setmaxindent(40);
+setmaxindent(30);
 setmaxstring(50);
-printf("%s\n", cptrstr(&dom`r, 1));
 printf("%s\n", cptrstr(&dom`r, 2));
 printf("%s\n", cptrstr(&dom`r, 3));
 printf("%s\n", cptrstr(&dom`r, 4));
 printf("%s\n", cptrstr(&dom`r, 5));
 
 printf("%s\n", cptrstr((NOTATYPE*){dom}0, 5));
+
+printf("%s\n", cptrstr(&dom`r, 1));
+
+//XXX the top level of dimary isn't printed properly...
+printf("%s\n", cptrstr(dom`dimary));
 

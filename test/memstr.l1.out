@@ -1,40 +1,41 @@
 warning: name space references undefined type:
 	struct NOTATYPE
+*** should have seen a warning that struct NOTATYPE is not defined
 struct _bar at 0x0 (size 0x4) {
-   size: int at 0x0 = 0
+   size: int at 0x0 = 0 [0x0]
    indeterminate_ary: [] // unknown size
 }
 struct _foo at 0x10 (size 0x76) {
-   x: int at 0x10 = 0
+   x: int at 0x10 = 0 [0x0]
    y: double at 0x14 = 0.000000
    z: float at 0x1c = 0.000000
-   xp: long long at 0x20 = 0
+   xp: long long at 0x20 = -1 [0xffffffffffffffff]
    foo: 0x0
    str: "012345678\000"
    a: char * at 0x86 = "test string"
    thenum: enum et at 0x40 = anenum (0)
    vd: void * at 0x0
    thebar: struct _bar at 0x48 (size 0x4) {
-              size: int at 0x48 = 0
-              indeterminate_ary: [] // unknown size
+              size: int at 0x48 = 0 [0x0]
+              indeterminate_ary: [ ... ]
            }
    pthebar: struct _bar at 0x0 (size 0x4) {
-               size: int at 0x0 = 0
-               indeterminate_ary: [] // unknown size
+               size: int at 0x0 = 0 [0x0]
+               indeterminate_ary: [ ... ]
             }
    lalal: enum et at 0x50 = anenum (0)
    hi: char * at 0x54 = "hi!"
    bars: [struct _bar at 0x55 (size 0x4) {
-             size: int at 0x55 = 8553
-             indeterminate_ary: [] // unknown size
+             size: int at 0x55 = 8553 [0x2169]
+             indeterminate_ary: [ ... ]
           },
           struct _bar at 0x59 (size 0x4) {
-             size: int at 0x59 = 0
-             indeterminate_ary: [] // unknown size
+             size: int at 0x59 = 0 [0x0]
+             indeterminate_ary: [ ... ]
           },
           struct _bar at 0x5d (size 0x4) {
-             size: int at 0x5d = 0
-             indeterminate_ary: [] // unknown size
+             size: int at 0x5d = 0 [0x0]
+             indeterminate_ary: [ ... ]
           }]
    dbls: [double at 0x61 = 0.000000,
           double at 0x69 = 0.000000]
@@ -43,36 +44,36 @@ struct _foo at 0x10 (size 0x76) {
            enum et at 0x79 = anenum (0),
            enum et at 0x7d = anenum (0)]
    next: struct _foo at 0x10 (size 0x76) {
-            x: int at 0x10 = 0
+            x: int at 0x10 = 0 [0x0]
             y: double at 0x14 = 0.000000
             z: float at 0x1c = 0.000000
-            xp: long long at 0x20 = 0
+            xp: long long at 0x20 = -1 [0xffffffffffffffff]
             foo: 0x0
             str: "012345678\000"
             a: char * at 0x86 = "test string"
             thenum: enum et at 0x40 = anenum (0)
             vd: void * at 0x0
             thebar: struct _bar at 0x48 (size 0x4) {
-                       size: int at 0x48 = 0
-                       indeterminate_ary: [] // unknown size
+                       size: int at 0x48 = 0 [0x0]
+                       indeterminate_ary: [ ... ]
                     }
             pthebar: struct _bar at 0x0 (size 0x4) {
-                        size: int at 0x0 = 0
-                        indeterminate_ary: [] // unknown size
+                        size: int at 0x0 = 0 [0x0]
+                        indeterminate_ary: [ ... ]
                      }
             lalal: enum et at 0x50 = anenum (0)
             hi: char * at 0x54 = "hi!"
             bars: [struct _bar at 0x55 (size 0x4) {
-                      size: int at 0x55 = 8553
-                      indeterminate_ary: [] // unknown size
+                      size: int at 0x55 = 8553 [0x2169]
+                      indeterminate_ary: [ ... ]
                    },
                    struct _bar at 0x59 (size 0x4) {
-                      size: int at 0x59 = 0
-                      indeterminate_ary: [] // unknown size
+                      size: int at 0x59 = 0 [0x0]
+                      indeterminate_ary: [ ... ]
                    },
                    struct _bar at 0x5d (size 0x4) {
-                      size: int at 0x5d = 0
-                      indeterminate_ary: [] // unknown size
+                      size: int at 0x5d = 0 [0x0]
+                      indeterminate_ary: [ ... ]
                    }]
             dbls: [double at 0x61 = 0.000000,
                    double at 0x69 = 0.000000]
@@ -81,36 +82,36 @@ struct _foo at 0x10 (size 0x76) {
                     enum et at 0x79 = anenum (0),
                     enum et at 0x7d = anenum (0)]
             next: struct _foo at 0x10 (size 0x76) {
-                     x: int at 0x10 = 0
+                     x: int at 0x10 = 0 [0x0]
                      y: double at 0x14 = 0.000000
                      z: float at 0x1c = 0.000000
-                     xp: long long at 0x20 = 0
+                     xp: long long at 0x20 = -1 [0xffffffffffffffff]
                      foo: 0x0
                      str: "012345678\000"
                      a: char * at 0x86 = "test string"
                      thenum: enum et at 0x40 = anenum (0)
                      vd: void * at 0x0
                      thebar: struct _bar at 0x48 (size 0x4) {
-                                size: int at 0x48 = 0
-                                indeterminate_ary: [] // unknown size
+                                size: int at 0x48 = 0 [0x0]
+                                indeterminate_ary: [ ... ]
                              }
                      pthebar: struct _bar at 0x0 (size 0x4) {
-                                 size: int at 0x0 = 0
-                                 indeterminate_ary: [] // unknown size
+                                 size: int at 0x0 = 0 [0x0]
+                                 indeterminate_ary: [ ... ]
                               }
                      lalal: enum et at 0x50 = anenum (0)
                      hi: char * at 0x54 = "hi!"
                      bars: [struct _bar at 0x55 (size 0x4) {
-                               size: int at 0x55 = 8553
-                               indeterminate_ary: [] // unknown size
+                               size: int at 0x55 = 8553 [0x2169]
+                               indeterminate_ary: [ ... ]
                             },
                             struct _bar at 0x59 (size 0x4) {
-                               size: int at 0x59 = 0
-                               indeterminate_ary: [] // unknown size
+                               size: int at 0x59 = 0 [0x0]
+                               indeterminate_ary: [ ... ]
                             },
                             struct _bar at 0x5d (size 0x4) {
-                               size: int at 0x5d = 0
-                               indeterminate_ary: [] // unknown size
+                               size: int at 0x5d = 0 [0x0]
+                               indeterminate_ary: [ ... ]
                             }]
                      dbls: [double at 0x61 = 0.000000,
                             double at 0x69 = 0.000000]
@@ -119,111 +120,108 @@ struct _foo at 0x10 (size 0x76) {
                              enum et at 0x79 = anenum (0),
                              enum et at 0x7d = anenum (0)]
                      next: struct _foo at 0x10 (size 0x76) {
-                              x: int at 0x10 = 0
+                              x: int at 0x10 = 0 [0x0]
                               y: double at 0x14 = 0.000000
                               z: float at 0x1c = 0.000000
-                              xp: long long at 0x20 = 0
+                              xp: long long at 0x20 = -1 [0xffffffffffffffff]
                               foo: 0x0
-                              str: "012345678\000"
+                              str: [ ... ]
                               a: char * at 0x86 = "test string"
                               thenum: enum et at 0x40 = anenum (0)
                               vd: void * at 0x0
-                              thebar: struct _bar at 0x48 (size 0x4) {
-                                         size: int at 0x48 = 0
-                                         indeterminate_ary: [] // unknown size
-                                      }
-                              pthebar: struct _bar at 0x0 (size 0x4) {
-                                          size: int at 0x0 = 0
-                                          indeterminate_ary: [] // unknown size
-                                       }
+                              thebar: struct _bar at 0x48 (size 0x4) { ... }
+                              pthebar: struct _bar at 0x0 (size 0x4) { ... }
                               lalal: enum et at 0x50 = anenum (0)
                               hi: char * at 0x54 = "hi!"
-                              bars: [struct _bar at 0x55 (size 0x4) {
-                                        size: int at 0x55 = 8553
-                                        indeterminate_ary: [] // unknown size
-                                     },
-                                     struct _bar at 0x59 (size 0x4) {
-                                        size: int at 0x59 = 0
-                                        indeterminate_ary: [] // unknown size
-                                     },
-                                     struct _bar at 0x5d (size 0x4) {
-                                        size: int at 0x5d = 0
-                                        indeterminate_ary: [] // unknown size
-                                     }]
-                              dbls: [double at 0x61 = 0.000000,
-                                     double at 0x69 = 0.000000]
-                              enums: [enum et at 0x71 = anenum (0),
-                                      enum et at 0x75 = anenum (0),
-                                      enum et at 0x79 = anenum (0),
-                                      enum et at 0x7d = anenum (0)]
-                              next: struct _foo at 0x10 (size 0x76) {
-                                       x: int at 0x10 = 0
-                                       y: double at 0x14 = 0.000000
-                                       z: float at 0x1c = 0.000000
-                                       xp: long long at 0x20 = 0
-                                       foo: 0x0
-                                       str: "012345678\000"
-                                       a: char * at 0x86 = "test string"
-                                       thenum: enum et at 0x40 = anenum (0)
-                                       vd: void * at 0x0
-                                       thebar: ...
-                                       pthebar: ...
-                                       lalal: enum et at 0x50 = anenum (0)
-                                       hi: char * at 0x54 = "hi!"
-                                       bars: [...,
-                                              ...,
-                                              ...]
-                                       dbls: [double at 0x61 = 0.000000,
-                                              double at 0x69 = 0.000000]
-                                       enums: [enum et at 0x71 = anenum (0),
-                                               enum et at 0x75 = anenum (0),
-                                               enum et at 0x79 = anenum (0),
-                                               enum et at 0x7d = anenum (0)]
-                                       next: ...
-                                       aaaa: unsigned char at 0x85 = 0
-                                    }
-                              aaaa: unsigned char at 0x85 = 0
+                              bars: [ ... ]
+                              dbls: [ ... ]
+                              enums: [ ... ]
+                              next: struct _foo at 0x10 (size 0x76) { ... }
+                              aaaa: unsigned char at 0x85 = 0 '\000' [0x0]
                            }
-                     aaaa: unsigned char at 0x85 = 0
+                     aaaa: unsigned char at 0x85 = 0 '\000' [0x0]
                   }
-            aaaa: unsigned char at 0x85 = 0
+            aaaa: unsigned char at 0x85 = 0 '\000' [0x0]
          }
-   aaaa: unsigned char at 0x85 = 0
+   aaaa: unsigned char at 0x85 = 0 '\000' [0x0]
 }
 struct _baz at 0x20 (size 0x8) {
    bar1: struct _bar at 0x20 (size 0x4) {
-            size: int at 0x20 = 0
-            indeterminate_ary: [] // unknown size
+            size: int at 0x20 = -1 [0xffffffff]
+            indeterminate_ary: [ ... ]
          }
    bar2: struct _bar at 0x24 (size 0x4) {
-            size: int at 0x24 = 0
-            indeterminate_ary: [] // unknown size
+            size: int at 0x24 = -1 [0xffffffff]
+            indeterminate_ary: [ ... ]
          }
 }
 char * at 0x86 = "test string"
 struct _bon at 0x28 (size 0x9) {
-   a: bitfield at 0x28:[0x0:0x4] = 15
-   b: bitfield at 0x28:[0x4:0x3] = 5
-   c: bitfield at 0x28:[0x7:0x2] = 1
-   d: bitfield at 0x28:[0x9:0x1] = 1
-   e: bitfield at 0x28:[0xa:0x6] = 47
-   f: int at 0x2c = 0
-   g: bitfield at 0x30:[0x0:0x1] = 1
+   a: bitfield at 0x28:[0x0:0x4] = 15 [0xf]
+   b: bitfield at 0x28:[0x4:0x3] = 5 [0x5]
+   c: bitfield at 0x28:[0x7:0x2] = 1 [0x1]
+   d: bitfield at 0x28:[0x9:0x1] = 1 [0x1]
+   e: bitfield at 0x28:[0xa:0x6] = 47 [0x2f]
+   f: int at 0x2c = 0 [0x0]
+   g: bitfield at 0x30:[0x0:0x1] = 1 [0x1]
 }
-struct _rec at 0x30 (size 0x4) {
-   n: struct _rec at 0x30 (size 0x4) {
-         n: struct _rec at 0x30 (size 0x4) {
-               n: struct _rec at 0x30 (size 0x4) {
-                     n: struct _rec at 0x30 (size 0x4) {
-                           n: struct _rec at 0x30 (size 0x4) {
-                                 n: struct _rec at 0x30 (size 0x4) {
-                                       n: ...
-                                    }
+struct _rec at 0x30 (size 0x10) {
+   n: struct _rec at 0x30 (size 0x10) {
+         n: struct _rec at 0x30 (size 0x10) {
+               n: struct _rec at 0x30 (size 0x10) {
+                     n: struct _rec at 0x30 (size 0x10) {
+                           n: struct _rec at 0x30 (size 0x10) {
+                                 n: struct _rec at 0x30 (size 0x10) { ... }
+                                 b: struct _baz at 0x34 (size 0x8) { ... }
+                                 i: int at 0x3c = 134 [0x86]
                               }
+                           b: struct _baz at 0x34 (size 0x8) {
+                                 bar1: struct _bar at 0x34 (size 0x4) { ... }
+                                 bar2: struct _bar at 0x38 (size 0x4) { ... }
+                              }
+                           i: int at 0x3c = 134 [0x86]
                         }
+                     b: struct _baz at 0x34 (size 0x8) {
+                           bar1: struct _bar at 0x34 (size 0x4) { ... }
+                           bar2: struct _bar at 0x38 (size 0x4) { ... }
+                        }
+                     i: int at 0x3c = 134 [0x86]
                   }
+               b: struct _baz at 0x34 (size 0x8) {
+                     bar1: struct _bar at 0x34 (size 0x4) {
+                              size: int at 0x34 = 56 [0x38]
+                              indeterminate_ary: [ ... ]
+                           }
+                     bar2: struct _bar at 0x38 (size 0x4) {
+                              size: int at 0x38 = 0 [0x0]
+                              indeterminate_ary: [ ... ]
+                           }
+                  }
+               i: int at 0x3c = 134 [0x86]
             }
+         b: struct _baz at 0x34 (size 0x8) {
+               bar1: struct _bar at 0x34 (size 0x4) {
+                        size: int at 0x34 = 56 [0x38]
+                        indeterminate_ary: [ ... ]
+                     }
+               bar2: struct _bar at 0x38 (size 0x4) {
+                        size: int at 0x38 = 0 [0x0]
+                        indeterminate_ary: [ ... ]
+                     }
+            }
+         i: int at 0x3c = 134 [0x86]
       }
+   b: struct _baz at 0x34 (size 0x8) {
+         bar1: struct _bar at 0x34 (size 0x4) {
+                  size: int at 0x34 = 56 [0x38]
+                  indeterminate_ary: [ ... ]
+               }
+         bar2: struct _bar at 0x38 (size 0x4) {
+                  size: int at 0x38 = 0 [0x0]
+                  indeterminate_ary: [ ... ]
+               }
+      }
+   i: int at 0x3c = 134 [0x86]
 }
 char * at 0xc8 = "AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA..."
 char * at 0xc8 = "AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA..."
@@ -235,52 +233,106 @@ struct _baz at 0x20 (size 0x8) {
    bar1: bar type at 0x20
    bar2: bar type at 0x24
 }
-unsigned int at 0x24 = 0
-unsigned int 0
-int at 0x40 = 0
+unsigned int at 0x24 = -1 [0xffffffff]
+unsigned int -1 [0xffffffff]
+int at 0x40 = 0 [0x0]
 nothing to see here
 [intc] [intb] nothing to see here
 struct _baz at 0x20 (size 0x8) {
-   bar1: ...
-   bar2: ...
+   bar1: struct _bar at 0x20 (size 0x4) { ... }
+   bar2: struct _bar at 0x24 (size 0x4) { ... }
 }
 char * at 0xc8 = "AAAAAAAAAA..."
 char * at 0xc8 = "..."
 char * at 0xc8 = "A..."
 char * at 0xc8 = "AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAB"
-struct _rec at 0x30 (size 0x4) {
-   n: (rec *) at 0x30 = ...
-}
-struct _rec at 0x30 (size 0x4) {
-   n: struct _rec at 0x30 (size 0x4) {
-         n: (rec *) at 0x30 = ...
+struct _rec at 0x30 (size 0x10) {
+   n: struct _rec at 0x30 = ...
+   b: struct _baz at 0x34 (size 0x8) {
+         bar1: struct _bar at 0x34 = ...
+         bar2: struct _bar at 0x38 = ...
       }
+   i: int at 0x3c = 134 [0x86]
 }
-struct _rec at 0x30 (size 0x4) {
-   n: struct _rec at 0x30 (size 0x4) {
-         n: struct _rec at 0x30 (size 0x4) {
-               n: (rec *) at 0x30 = ...
+struct _rec at 0x30 (size 0x10) {
+   n: struct _rec at 0x30 (size 0x10) {
+         n: rec * at 0x30 = ...
+         b: struct _baz at 0x34 = ...
+         i: int at 0x3c = 134 [0x86]
+      }
+   b: struct _baz at 0x34 (size 0x8) {
+         bar1: struct _bar at 0x34 (size 0x4) {
+                  size: int at 0x34 = 56 [0x38]
+                  indeterminate_ary: int [] at 0x38 = ...
+               }
+         bar2: struct _bar at 0x38 (size 0x4) {
+                  size: int at 0x38 = 0 [0x0]
+                  indeterminate_ary: int [] at 0x3c = ...
+               }
+      }
+   i: int at 0x3c = 134 [0x86]
+}
+struct _rec at 0x30 (size 0x10) {
+   n: struct _rec at 0x30 (size 0x10) {
+         n: struct _rec at 0x30 = ...
+         b: struct _baz at 0x34 (size 0x8) {
+               bar1: struct _bar at 0x34 = ...
+               bar2: struct _bar at 0x38 = ...
             }
+         i: int at 0x3c = 134 [0x86]
       }
+   b: struct _baz at 0x34 (size 0x8) {
+         bar1: struct _bar at 0x34 (size 0x4) {
+                  size: int at 0x34 = 56 [0x38]
+                  indeterminate_ary: [ ... ]
+               }
+         bar2: struct _bar at 0x38 (size 0x4) {
+                  size: int at 0x38 = 0 [0x0]
+                  indeterminate_ary: [ ... ]
+               }
+      }
+   i: int at 0x3c = 134 [0x86]
 }
-struct _rec at 0x30 (size 0x4) {
-   n: struct _rec at 0x30 (size 0x4) {
-         n: struct _rec at 0x30 (size 0x4) {
-               n: struct _rec at 0x30 (size 0x4) {
-                     n: (rec *) at 0x30 = ...
-                  }
+struct _rec at 0x30 (size 0x10) {
+   n: struct _rec at 0x30 (size 0x10) {
+         n: struct _rec at 0x30 (size 0x10) {
+               n: rec * at 0x30 = ...
+               b: struct _baz at 0x34 = ...
+               i: int at 0x3c = 134 [0x86]
             }
-      }
-}
-struct _rec at 0x30 (size 0x4) {
-   n: struct _rec at 0x30 (size 0x4) {
-         n: struct _rec at 0x30 (size 0x4) {
-               n: struct _rec at 0x30 (size 0x4) {
-                     n: struct _rec at 0x30 (size 0x4) {
-                           n: (rec *) at 0x30 = ...
-                        }
-                  }
+         b: struct _baz at 0x34 (size 0x8) {
+               bar1: struct _bar at 0x34 (size 0x4) {
+                        size: int at 0x34 = 56 [0x38]
+                        indeterminate_ary: int [] at 0x38 = ...
+                     }
+               bar2: struct _bar at 0x38 (size 0x4) {
+                        size: int at 0x38 = 0 [0x0]
+                        indeterminate_ary: int [] at 0x3c = ...
+                     }
             }
+         i: int at 0x3c = 134 [0x86]
       }
+   b: struct _baz at 0x34 (size 0x8) {
+         bar1: struct _bar at 0x34 (size 0x4) {
+                  size: int at 0x34 = 56 [0x38]
+                  indeterminate_ary: [ ... ]
+               }
+         bar2: struct _bar at 0x38 (size 0x4) {
+                  size: int at 0x38 = 0 [0x0]
+                  indeterminate_ary: [ ... ]
+               }
+      }
+   i: int at 0x3c = 134 [0x86]
 }
 struct NOTATYPE <UNDEFINED TYPE> at 0x0
+struct _rec at 0x30 (size 0x10) {
+   n: rec * at 0x30 = ...
+   b: struct _baz at 0x34 = ...
+   i: int at 0x3c = 134 [0x86]
+}
+[[[int at 0x0 = 0 [0x0]],
+  [int at 0x4 = 0 [0x0]]],
+ [[int at 0x8 = 0 [0x0]],
+  [int at 0xc = 0 [0x0]]],
+ [[int at 0x10 = 0 [0x0]],
+  [int at 0x14 = 0 [0x0]]]]
