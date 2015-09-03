@@ -84,6 +84,7 @@ ns = @names c32le {
 
     @0x40 intc anintc;
 
+    typedef struct NOTATYPE NOTATYPE;
 };
 
 as = mkzas(300);
@@ -193,3 +194,6 @@ printf("%s\n", cptrstr(&dom`r, 2));
 printf("%s\n", cptrstr(&dom`r, 3));
 printf("%s\n", cptrstr(&dom`r, 4));
 printf("%s\n", cptrstr(&dom`r, 5));
+
+printf("%s\n", cptrstr((NOTATYPE*){dom}0, 5));
+

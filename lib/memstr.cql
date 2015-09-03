@@ -267,8 +267,10 @@ For no limit, use -1
                 return sprintfa("bitfield at 0x%x:[0x%x:0x%x] = %s",
                                 p, bitfieldpos(t2), bitfieldwidth(t2),
                                 str);
+            } else if (isundeftype(t2)) {
+                return sprintfa("%t <UNDEFINED TYPE> at 0x%x", t2, p);
             }
-            return sprintfa("%t at 0x%x = %s",t2,p,cvalstr(t2,*p));
+            return sprintfa("%t at 0x%x = %s", t2, p, cvalstr(t2,*p));
         }
         return sprintfa("%t %s",t,cvalstr(t,p));
     }

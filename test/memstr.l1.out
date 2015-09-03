@@ -1,3 +1,5 @@
+warning: name space references undefined type:
+	struct NOTATYPE
 struct _bar at 0x0 (size 0x4) {
    size: int at 0x0 = 0
    indeterminate_ary: [] // unknown size
@@ -281,3 +283,4 @@ struct _rec at 0x30 (size 0x4) {
             }
       }
 }
+struct NOTATYPE <UNDEFINED TYPE> at 0x0
