@@ -1,6 +1,7 @@
 
 
 @import_globals(memstr);
+@include <nsutil.cqct>
 
 ns = @names c32le {
     enum et {
@@ -194,16 +195,22 @@ setmaxstring(-1);
 printf("%s\n", cptrstr(lstr));
 
 
-setmaxindent(30);
+setmaxindent(-1);
 setmaxstring(50);
+printf("%s\n", cptrstr(&dom`r, 0));
+printf("%s\n", cptrstr(&dom`r, 1));
 printf("%s\n", cptrstr(&dom`r, 2));
 printf("%s\n", cptrstr(&dom`r, 3));
 printf("%s\n", cptrstr(&dom`r, 4));
 printf("%s\n", cptrstr(&dom`r, 5));
 
+setmaxindent(30);
 printf("%s\n", cptrstr((NOTATYPE*){dom}0, 5));
 
 printf("%s\n", cptrstr(&dom`r, 1));
+
+printtype(@typeof(struct dom`_rec));
+printf("\n");
 
 //XXX the top level of dimary isn't printed properly...
 printf("%s\n", cptrstr(dom`dimary));

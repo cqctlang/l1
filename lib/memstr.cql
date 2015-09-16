@@ -15,7 +15,7 @@
         return sprintfa("%a", v);
     case cqct`Vchar:
     case cqct`Vuchar:
-        return sprintfa("%d '%c' [0x%x]", v, v, v);
+        return sprintfa("%d '%c' (0x%x)", v, v, v);
     case cqct`Vshort:
     case cqct`Vint:
     case cqct`Vlong:
@@ -24,14 +24,14 @@
     case cqct`Vuint:
     case cqct`Vulong:
     case cqct`Vuvlong:
-        return sprintfa("%lld [0x%llx]", v, v);
+        return sprintfa("%lld (0x%llx)", v, v);
     default:
         return sprintfa("%a", v);
     }
 }
 
 max_indent = 30;
-max_string = 50;
+max_string = 40;
 
 /*
 Sets the maximum amount of indentation that will be allowed. -1 for infinite.
@@ -120,7 +120,7 @@ For no limit, use -1
 
     dom = domof(x);
 
-    @defloc handler_char(p,i,cs) {
+    @defloc handler_char(p, i, cs) {
         @local str;
         if (!ismapped(p)) {
             str = "UNMAPPED";
@@ -130,7 +130,7 @@ For no limit, use -1
         if (max_string != -1 && length(str) > max_string) {
             str = substr(str, 0, max_string) + "...";
         }
-        return sprintfa("%t at 0x%x = %a",@typeof(p),p,str);
+        return sprintfa("@0x%x %t = %a", p, @typeof(p), str);
     }
 
     //default handlers
@@ -138,8 +138,8 @@ For no limit, use -1
         handlers[@typeof(dom`char)] = handler_char;
     }
 
-    @defloc handler_void(p,i,cs) {
-        return sprintfa("%t at 0x%x",@typeof(p),p);
+    @defloc handler_void(p, i, cs) {
+        return sprintfa("@0x%x %t", p, @typeof(p));
     }
     if (handlers[@typeof(dom`void)] == nil) {
         handlers[@typeof(dom`void)] = handler_void;
@@ -198,10 +198,10 @@ For no limit, use -1
 
             //first, handle all types without a recursive call
             if (isvoid(t2)) {
-                return sprintfa("void* at 0x%x",p);
+                return sprintfa("@0x%x void*", p);
             }
             if (isfunc(t2)) {
-                return sprintfa("0x%x",p);
+                return sprintfa("@0x%x <code>", p);
             }
             if (isbitfield(t2)) {
                 @local str;
@@ -210,19 +210,18 @@ For no limit, use -1
                 } else {
                     str = sprintfa("%lld [0x%llx]", *p, *p);
                 }
-                return sprintfa("bitfield at 0x%x:[0x%x:0x%x] = %s",
-                                p, bitfieldpos(t2), bitfieldwidth(t2),
-                                str);
+                return sprintfa("@0x%x bitfield:[0x%x:0x%x] = %s",
+                                p, bitfieldpos(t2), bitfieldwidth(t2), str);
             }
             if (isundeftype(t2)) {
-                return sprintfa("%t <UNDEFINED TYPE> at 0x%x", t2, p);
+                return sprintfa("@0x%x %t <UNDEFINED TYPE>", p, t2);
             }
             if (isbase(t2)) {
-                return sprintfa("%t at 0x%x = %s", t2, p, cvalstr(t2,*p));
+                return sprintfa("@0x%x %t = %s", p, t2, cvalstr(t2,*p));
             }
 
             if (depth == 0) {
-                return sprintfa("%t at 0x%x = ...", t2, p);
+                return sprintfa("*0x%x -> ...", p, t2);
             }
             if (depth == -1) {
                 newdepth = -1;
@@ -232,20 +231,16 @@ For no limit, use -1
 
             //now, do all types with a recursive call
             if (issu(t2)) {
-                @local flds, i, nxt_indent, ret, size;
+                @local flds, i, nxt_indent, ret;
 
                 if (!ismapped(p)) return "UNMAPPED";
 
                 flds = fields(t2);
-                if (isstruct(t2)) ret = "struct ";
-                else if (isunion(t2)) ret = "union ";
-                else ret = "aggregate "; //XXX maybe an error?
+                if (isstruct(t2)) ret = "struct";
+                else if (isunion(t2)) ret = "union";
+                else ret = "aggregate"; //XXX maybe an error?
 
-                if (susize(t2) != nil) {
-                    size = sprintfa("(size 0x%x) ", susize(t2));
-                } else size = "";
-
-                ret += sprintfa("%s at 0x%x %s{", suetag(t2), p, size);
+                ret = sprintfa("@0x%x %s %s {", p, ret, suetag(t2));
                 if (max_indent != -1 && strlen(indent)>max_indent) {
                     return sprintfa("%s ... }", ret);
                 }
@@ -253,8 +248,10 @@ For no limit, use -1
                 {
                     @local buf;
 
-                    buf = sprintfa("\n%s%s: ",
+                    buf = sprintfa("\n%s@0x%x %t %s => ",
                             indent + "   ",
+                            fieldoff(flds[i]),
+                            fieldtype(flds[i]),
                             fieldid(flds[i]));
                     nxt_indent = mkstr(strlen(buf)-1);
                     memset((char*)nxt_indent,' ',length(nxt_indent));
@@ -263,6 +260,12 @@ For no limit, use -1
                                             nsptr(domof(p).ns))}
                                 ((uintptr)p + {domof(p)}fieldoff(flds[i])),
                             newdepth, nxt_indent);
+                    ret += ";";
+                }
+                if (susize(t2) != nil) {
+                    ret += sprintfa("\n%s@0x%x;", indent + "   ", susize(t2));
+                    ret += sprintfa(" // ends at 0x%x",
+                                    (uintptr)p + susize(t2));
                 }
                 ret += sprintfa("\n%s}",indent);
                 return ret;
@@ -272,7 +275,7 @@ For no limit, use -1
 
                 nxt_indent = indent+" ";
                 if (max_indent != -1 && strlen(nxt_indent)>max_indent) {
-                    return sprintfa("[ ... ]", ret);
+                    return sprintfa("[ ... ]");
                 }
                 len = arraynelm(t2);
                 if (len == nil) return sprintfa("[] // unknown size");
@@ -299,11 +302,12 @@ For no limit, use -1
             }
             if (isptr(t2)) {
                 if (!ismapped(p)) return "UNMAPPED";
-                return cptrstr_rec(*p, newdepth, indent);
+                return sprintfa("*0x%x -> %s", p,
+                                cptrstr_rec(*p, newdepth, indent));
             }
-            return sprintfa("%t at 0x%x = %s", t2, p, cvalstr(t2,*p));
+            return sprintfa("@0x%x %t = %s", p, t2, cvalstr(t2,*p));
         }
-        return sprintfa("%t %s",t,cvalstr(t,p));
+        return sprintfa("%t %s", t, cvalstr(t,p));
     }
 
     cptrstr_rec(x, depth, "");
