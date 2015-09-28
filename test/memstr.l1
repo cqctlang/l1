@@ -4,6 +4,12 @@
 @include <nsutil.cqct>
 
 ns = @names c32le {
+
+    @0x10 int anint0;
+    @0x10 unsigned int anint1;
+    @0x10 unsigned short anint2;
+    @0x10 long long anint3;
+
     enum et {
         anenum = 0,
         a = 1,
@@ -100,6 +106,12 @@ dom = mkdom(ns,as);
 
 dom`x.a = (char*) ( (&dom`x) + 1 );
 dom`x.pthebar = &dom`y;
+
+dom`anint0 = 0x12345678;
+printf("%s\n", cptrstr(&dom`anint0));
+printf("%s\n", cptrstr(&dom`anint1));
+printf("%s\n", cptrstr(&dom`anint2));
+printf("%s\n", cptrstr(&dom`anint3));
 
 putbytes(&dom`x.hi,"hi!\0");
 putbytes(dom`x.str,"012345678\0");

@@ -4,6 +4,9 @@
 //also want to look at the test code, which provides example usage.
 //see <l1>/test/memstr.l1
 
+//XXX there are still some newline issues that should be worked out. The
+//logic for determining when to end a line is not clean enough.
+
 @export( cptrstr, setmaxindent, setmaxstring );
 
 @defloc cvalstr(t, v) {
@@ -30,7 +33,7 @@
     }
 }
 
-max_indent = 30;
+max_indent = 60;
 max_string = 40;
 
 /*
@@ -221,7 +224,7 @@ For no limit, use -1
             }
 
             if (depth == 0) {
-                return sprintfa("*0x%x -> ...", p, t2);
+                return sprintfa("@0x%x %t ...", p, t2);
             }
             if (depth == -1) {
                 newdepth = -1;
@@ -229,54 +232,139 @@ For no limit, use -1
                 newdepth = depth - 1;
             }
 
+            if (max_indent != -1 && length(indent) >= max_indent) {
+                return sprintfa("@0x%x %t ...", p, t2);
+            }
+
             //now, do all types with a recursive call
             if (issu(t2)) {
-                @local flds, i, nxt_indent, ret;
+                @local flds, i, nxt_indent, ret, fldstrs;
+                @local mxoff, mxtype, mxid;
 
                 if (!ismapped(p)) return "UNMAPPED";
 
+                ret = [];
                 flds = fields(t2);
-                if (isstruct(t2)) ret = "struct";
-                else if (isunion(t2)) ret = "union";
-                else ret = "aggregate"; //XXX maybe an error?
 
-                ret = sprintfa("@0x%x %s %s {", p, ret, suetag(t2));
-                if (max_indent != -1 && strlen(indent)>max_indent) {
-                    return sprintfa("%s ... }", ret);
-                }
+                append(ret, sprintfa("@0x%x ", p));
+
+                if (isstruct(t2)) append(ret, "struct");
+                else if (isunion(t2)) append(ret, "union");
+                else append(ret, "aggregate"); //XXX maybe an error?
+
+                append(ret, sprintfa(" %s {", suetag(t2)));
+
+                nxt_indent = indent + "  ";
+
+                //an array whose elements are tables
+                fldstrs = [];
+
                 for(i=0; i<length(flds); ++i)
                 {
-                    @local buf;
+                    @local cfld;
 
-                    buf = sprintfa("\n%s@0x%x %t %s => ",
-                            indent + "   ",
-                            fieldoff(flds[i]),
-                            fieldtype(flds[i]),
-                            fieldid(flds[i]));
-                    nxt_indent = mkstr(strlen(buf)-1);
-                    memset((char*)nxt_indent,' ',length(nxt_indent));
-                    ret += buf + cptrstr_rec(
+                    cfld = [:];
+                    append(fldstrs, cfld);
+
+                    cfld.offstr = sprintfa("@0x%x", fieldoff(flds[i]));
+                    cfld.typestr = sprintfa("%t", fieldtype(flds[i]));
+                    cfld.idstr = sprintfa("%s", fieldid(flds[i]));
+
+                }
+                mxoff = apply(max,
+                              map(@lambda(c) { length(c.offstr); }, fldstrs));
+                mxtype = apply(max,
+                               map(@lambda(c) { length(c.typestr); },
+                                   fldstrs));
+                mxid = apply(max,
+                             map(@lambda(c) { length(c.idstr); }, fldstrs));
+
+                for(i=0; i<length(flds); ++i)
+                {
+                    @local nindent, j, buf, fls;
+                    fls = [];
+
+                    append(fls, "\n");
+                    nindent = 0;
+                    append(fls, nxt_indent);
+                    nindent += length(nxt_indent);
+
+                    append(fls, fldstrs[i].offstr);
+                    for (j=length(fldstrs[i].offstr); j < mxoff; ++j) {
+                        append(fls, " ");
+                    }
+                    nindent += mxoff;
+                    append(fls, "  ");
+                    nindent += 2;
+
+                    append(fls, fldstrs[i].typestr);
+                    for (j=length(fldstrs[i].typestr); j < mxtype; ++j) {
+                        append(fls, " ");
+                    }
+                    nindent += mxtype;
+                    append(fls, " ");
+                    nindent += 1;
+
+                    append(fls, fldstrs[i].idstr);
+                    for (j=length(fldstrs[i].idstr); j < mxid; ++j) {
+                        append(fls, " ");
+                    }
+                    nindent += mxid;
+                    append(fls, " => ");
+                    nindent += 4;
+
+                    nindent = mkstr(nindent);
+                    memset((char*)nindent,' ',length(nindent));
+
+                    buf = cptrstr_rec(
                             {mkctype_ptr(fieldtype(flds[i]),
                                             nsptr(domof(p).ns))}
                                 ((uintptr)p + {domof(p)}fieldoff(flds[i])),
-                            newdepth, nxt_indent);
-                    ret += ";";
+                            newdepth, nindent);
+
+                    if ((strstr(buf, "\n") == nil &&
+                         strstr(buf, "...") != nil)
+                        || (max_indent != -1 &&
+                            length(nindent)+length(split(buf, "\n")[0])
+                               > max_indent))
+                    {
+                        @local bo;
+                        nindent = substr(nindent, 0,
+                                         length(nindent)-5-mxid-mxtype);
+                        bo = buf;
+                        buf = cptrstr_rec(
+                                {mkctype_ptr(fieldtype(flds[i]),
+                                                nsptr(domof(p).ns))}
+                                    ((uintptr)p + {domof(p)}fieldoff(flds[i])),
+                                newdepth, nindent);
+                        if (strstr(buf, "\n") == nil &&
+                            strstr(buf, "...") != nil)
+                        {
+                            buf = bo;
+                        } else {
+                            append(fls, "\n");
+                            append(fls, nindent);
+                        }
+                    }
+                    append(fls, buf);
+                    append(fls, ";");
+                    ret = concat(ret, fls);
                 }
                 if (susize(t2) != nil) {
-                    ret += sprintfa("\n%s@0x%x;", indent + "   ", susize(t2));
-                    ret += sprintfa(" // ends at 0x%x",
-                                    (uintptr)p + susize(t2));
+                    append(ret, sprintfa("\n%s@0x%x;", nxt_indent,
+                                         susize(t2)));
+                    append(ret, sprintfa(" // ends at 0x%x",
+                                         (uintptr)p + susize(t2)));
                 }
-                ret += sprintfa("\n%s}",indent);
-                return ret;
+                append(ret, "\n");
+                append(ret, indent);
+                append(ret, "}");
+                return join(ret);
             }
             if (isarray(t2)) {
                 @local len, i, nxt_indent, ret, t3, pt3;
 
                 nxt_indent = indent+" ";
-                if (max_indent != -1 && strlen(nxt_indent)>max_indent) {
-                    return sprintfa("[ ... ]");
-                }
                 len = arraynelm(t2);
                 if (len == nil) return sprintfa("[] // unknown size");
 
@@ -302,7 +390,7 @@ For no limit, use -1
             }
             if (isptr(t2)) {
                 if (!ismapped(p)) return "UNMAPPED";
-                return sprintfa("*0x%x -> %s", p,
+                return sprintfa("@0x%x -> %s", p,
                                 cptrstr_rec(*p, newdepth, indent));
             }
             return sprintfa("@0x%x %t = %s", p, t2, cvalstr(t2,*p));
