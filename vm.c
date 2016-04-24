@@ -4198,9 +4198,11 @@ myroot(void)
 	static char *root[] = {
 		[0] 		= "c32le",
 		[lw]		= "c64le",
+		[lp]		= "cllp64le",
 		[lp|lw]		= "clp64le",
 		[be] 		= "c32be",
 		[be|lw]		= "c64be",
+		[be|lp]		= "cllp64be",
 		[be|lp|lw]	= "clp64be",
 	};
 	char *r;
@@ -7236,6 +7238,71 @@ static NSroot clp64be = {
 .name = "clp64be",
 };
 
+static NSroot cllp64le = {
+.base = {
+	[Vbool]=		Ru08le,
+	[Vchar]=		Rs08le,
+	[Vshort]=		Rs16le,
+	[Vint]=			Rs32le,
+	[Vlong]=		Rs32le,
+	[Vvlong]=		Rs64le,
+	[Vuchar]=		Ru08le,
+	[Vushort]=		Ru16le,
+	[Vuint]=		Ru32le,
+	[Vulong]=		Ru32le,
+	[Vuvlong]=		Ru64le,
+	[Vfloat]=		Rf32,
+	[Vdouble]=		Rf64,
+	[Vlongdouble]=		Rundef,
+	[Vcomplex]=		Rundef,
+	[Vdoublex]=		Rundef,
+	[Vlongdoublex]=		Rundef,
+	},
+.ptr = Vuvlong,
+.xint8 = Vchar,
+.xint16 = Vshort,
+.xint32 = Vint,
+.xint64 = Vlong,
+.xuint8 = Vuchar,
+.xuint16 = Vushort,
+.xuint32 = Vuint,
+.xuint64 = Vulong,
+.name = "cllp64le",
+};
+
+static NSroot cllp64be = {
+.base = {
+	[Vbool]=		Ru08le,
+	[Vchar]=		Rs08be,
+	[Vshort]=		Rs16be,
+	[Vint]=			Rs32be,
+	[Vlong]=		Rs32be,
+	[Vvlong]=		Rs64be,
+	[Vuchar]=		Ru08be,
+	[Vushort]=		Ru16be,
+	[Vuint]=		Ru32be,
+	[Vulong]=		Ru32be,
+	[Vuvlong]=		Ru64be,
+	[Vfloat]=		Rf32,
+	[Vdouble]=		Rf64,
+	[Vlongdouble]=		Rundef,
+	[Vcomplex]=		Rundef,
+	[Vdoublex]=		Rundef,
+	[Vlongdoublex]=		Rundef,
+	},
+.ptr = Vuvlong,
+.xint8 = Vchar,
+.xint16 = Vshort,
+.xint32 = Vint,
+.xint64 = Vlong,
+.xuint8 = Vuchar,
+.xuint16 = Vushort,
+.xuint32 = Vuint,
+.xuint64 = Vulong,
+.name = "cllp64be",
+};
+
+
 static Imm procgen = 0;
 
 static Tab*
@@ -7472,6 +7539,8 @@ mktopenv(void)
 	builtinns(env, "c64be", mkrootns(&c64be));
 	builtinns(env, "clp64le", mkrootns(&clp64le));
 	builtinns(env, "clp64be", mkrootns(&clp64be));
+	builtinns(env, "cllp64le", mkrootns(&cllp64le));
+	builtinns(env, "cllp64be", mkrootns(&cllp64be));
 	builtincval(env, "NULL", cvalnull);
 	builtinnil(env, "$$"); /* FIXME: get rid of this */
 	builtincode(env, "kresumecode", kresumecode());

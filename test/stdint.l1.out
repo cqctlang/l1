@@ -75,3 +75,25 @@ uint16:		unsigned short		2
 uint32:		unsigned int		4
 uint64:		unsigned long		8
 
+cllp64le
+uintptr:		unsigned long long		8
+int8:		char		1
+int16:		short		2
+int32:		int		4
+int64:		long		4
+uint8:		unsigned char		1
+uint16:		unsigned short		2
+uint32:		unsigned int		4
+uint64:		unsigned long		4
+
+cllp64be
+uintptr:		unsigned long long		8
+int8:		char		1
+int16:		short		2
+int32:		int		4
+int64:		long		4
+uint8:		unsigned char		1
+uint16:		unsigned short		2
+uint32:		unsigned int		4
+uint64:		unsigned long		4
+

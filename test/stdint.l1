@@ -23,3 +23,5 @@ do1dom("c64le", mkdom(c64le, mknas()));
 do1dom("c64be", mkdom(c64be, mknas()));
 do1dom("clp64le", mkdom(clp64le, mknas()));
 do1dom("clp64be", mkdom(clp64be, mknas()));
+do1dom("cllp64le", mkdom(cllp64le, mknas()));
+do1dom("cllp64be", mkdom(cllp64be, mknas()));
