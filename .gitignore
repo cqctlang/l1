@@ -3,7 +3,7 @@ depend
 l1
 mkelf
 tl1
-heap.l1
+l1.heap
 .DS_Store
 fns.*.c
 */*/*.a
