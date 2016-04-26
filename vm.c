@@ -81,6 +81,8 @@ Cval *cvalnull, *cval0, *cval1, *cvalminus1;
 VM *vms[1];			/* active VMs (at most one) */
 u32 nvm;			/* number of active VMs */
 
+int gInsnProfiling[Iopmax + 1]; /* Profiling instruction counts */
+
 static int lasterrno;
 
 static char *opstr[Iopmax+1] = {
@@ -3037,6 +3039,23 @@ l1_sizeof(VM *vm, Imm argc, Val *argv, Val *rv)
 	*rv = mkvalcval(litdom, litdom->ns->base[Vuint], imm);
 }
 
+static void
+l1_get_profile(VM *vm, Imm argc, Val *argv, Val *rv)
+{
+  Tab *profile;
+  if (argc != 0)
+    vmerr(vm, "wrong number of arguments to get_profile");
+
+  profile = mktab();
+  ikind i;
+  for (i = 0; i <= Iopmax; ++i) {
+    tabput(profile, mkvalstr(mkstr0(itos(i))),
+           mkvallitcval(Vuvlong, gInsnProfiling[i]));
+  }
+
+  *rv = mkvaltab(profile);
+}
+
 /* function from any arguments to nil */
 static void
 nilfn(VM *vm, Imm argc, Val *argv, Val *rv)
@@ -4339,6 +4358,15 @@ dogc(VM *vm, u32 g, u32 tg)
 		vm->ac = ccall(vm, valcl(v), 1, &vm->ac);
 	vm->postgctime += usec()-b;
 }
+
+#ifdef CQCT_INSN_PROFILING
+inline struct Insn* record_insn(struct Insn* i) {
+  ++gInsnProfiling[i->kind];
+  return i;
+}
+#else
+inline struct Insn* record_insn(struct Insn* i) { return i; }
+#endif
 
 Val
 __attribute__ ((noclone))
@@ -7550,6 +7578,9 @@ mktopenv(void)
 	builtinfn(env, "$put", mkcfn("$put", l1_put));
 	builtinfn(env, "$typeof", mkcfn("$typeof", l1_typeof));
 
+	/* google instruction profiling */
+	builtinfn(env, "$getprof", mkcfn("$getprof", l1_get_profile));
+
 	return env;
 }
 
@@ -7710,6 +7741,7 @@ cqctfini(VM *vm)
 void
 initvm()
 {
+	memset(gInsnProfiling, 0, sizeof(gInsnProfiling));
 	dovm(0); /* initialize gotab */
 	litdom = mklitdom();
 	cvalnull = mkcval(litdom, litdom->ns->base[Vptr], 0);
@@ -7724,6 +7756,7 @@ initvm()
 	REGFN(equalval);
 	REGFN(eqval);
 	REGFN(eqvval);
+	REGFN(l1_get_profile);
 	REGFN(l1_put);
 	REGFN(l1_typeof);
 	REGFN(hashqval);

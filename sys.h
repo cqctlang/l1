@@ -52,6 +52,9 @@ typedef double		f64;
 typedef u64 Imm;
 typedef uintptr_t uptr;
 
+struct Insn* record_insn(struct Insn* i);
+extern int gInsnProfiling[];
+
 #define NORETURN	__attribute__((noreturn))
 #define PAGESZ 4096
 #define PAGEUP(sz)   (((sz)+PAGESZ-1)&~(PAGESZ-1))
@@ -60,7 +63,7 @@ typedef uintptr_t uptr;
 #define	USED(x)	if(x) {} else {}
 
 #define THREADED
-#define NEXTLABEL(i) goto *(i)->go;
+#define NEXTLABEL(i) goto *(record_insn(i))->go;
 #define LABEL
 
 #endif /* _BISONFLAW_SYS_H_ */
@@ -104,7 +107,7 @@ struct timeval
 char *dirname(char *path);
 typedef void FILE;
 
-#define NEXTLABEL(i) switch((i)->kind)
+#define NEXTLABEL(i) switch(record_insn(i)->kind)
 #define LABEL case
 
 #define PRIu64 "llud"

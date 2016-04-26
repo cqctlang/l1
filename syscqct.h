@@ -1091,6 +1091,7 @@ void		printinsn(Insn *i);
 void		printval(Val v);
 void		resetlabels();
 Closure*	stkunderflowthunk(void);
+char*		itos(ikind kind);
 
 /* xenv.c */
 void		freexenv(Xenv *xe);
