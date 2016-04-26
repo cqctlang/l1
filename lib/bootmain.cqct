@@ -945,6 +945,11 @@ $repllevel = 0;
 				}
 			}
 			callcc(@lambda(done) {
+				@local olderr, oldint;
+
+				olderr = errorhandler;
+				oldint = interrupthandler;
+
 				currentreturn = done;
 				errorhandler = batcherror;
 				interrupthandler = batchinterrupt;
@@ -1008,6 +1013,10 @@ $repllevel = 0;
 									rv = v();
 								}, thunks);
 
+								// Restore error handlers
+								errorhandler = olderr;
+								interrupthandler = oldint;
+
 								rv;
 							});
 						};
@@ -1033,6 +1042,7 @@ $repllevel = 0;
 					if(flags['dump]) {
 						$l1start = @lambda(arg ...) {
 							callcc(@lambda(done) {
+								@local ret;
 								currentreturn = done;
 
 								foreach(@lambda(v) {
@@ -1040,7 +1050,13 @@ $repllevel = 0;
 								}, thunks);
 
 								args = arg;
-								rv();
+								ret = rv();
+
+								// Restore error handlers
+								errorhandler = olderr;
+								interrupthandler = oldint;
+
+								ret;
 							});
 						};
 						if(flags['type] == "heap")
@@ -1076,6 +1092,7 @@ $repllevel = 0;
 					if(flags['dump]) {
 						$l1start = @lambda(arg ...) {
 							callcc(@lambda(done) {
+								@local ret;
 								currentreturn = done;
 
 								foreach(@lambda(v) {
@@ -1083,7 +1100,13 @@ $repllevel = 0;
 								}, thunks);
 
 								rv();
-								return doentry(arg);
+								ret = doentry(arg);
+
+								// Restore error handlers
+								errorhandler = olderr;
+								interrupthandler = oldint;
+
+								return ret;
 							});
 						};
 						if(flags['type] == "heap")
