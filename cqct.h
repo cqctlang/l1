@@ -182,10 +182,10 @@ Val*		cqctvecvals(Val v);
 void		cqctvmerr(VM *vm, char *fmt, ...);
 
 /* mem.c */
-Env		restoreheap(char *file);
+Env		restoreheap(const char *file);
 
 /* vm.c */
-VM*		cqctinit(char *memfile, char **loadpath);
-VM*		cqctinitxfd(char *memfile, char **loadpath, Xfd *in, Xfd *out, Xfd *err);
+VM*		cqctinit(const char *memfile, char **loadpath);
+VM*		cqctinitxfd(const char *memfile, char **loadpath, Xfd *in, Xfd *out, Xfd *err);
 void		cqctfini(VM *vm);
 

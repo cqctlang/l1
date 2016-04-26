@@ -3303,7 +3303,7 @@ struct Scanptr
 } Scanptr;
 
 Tab*
-restoreheap(char *file)
+restoreheap(const char *file)
 {
 	int fd;
 	u64 len;

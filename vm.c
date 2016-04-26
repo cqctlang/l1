@@ -7607,7 +7607,7 @@ procincr(Env env) {
 }
 
 VM*
-cqctinitxfd(char *memfile, char **loadpath, Xfd *in, Xfd *out, Xfd *err)
+cqctinitxfd(const char *memfile, char **loadpath, Xfd *in, Xfd *out, Xfd *err)
 {
 	Env top, tmp;
 	VM *vm;
@@ -7681,7 +7681,7 @@ cqctinitxfd(char *memfile, char **loadpath, Xfd *in, Xfd *out, Xfd *err)
 }
 
 VM*
-cqctinit(char *memfile, char **loadpath)
+cqctinit(const char *memfile, char **loadpath)
 {
 	return cqctinitxfd(memfile, loadpath, 0, 0, 0);
 }
