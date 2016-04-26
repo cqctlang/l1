@@ -1,14 +1,5 @@
 venti_host = "localhost";
 
-@define chomp(s)
-{
-	@local m;
-	m = length(s);
-	if(s[m-1] == '\n')
-		return substr(s, 0, m-1);
-	return s;
-}
-
 @define newvac(name)
 {
 	@local fd, vac;

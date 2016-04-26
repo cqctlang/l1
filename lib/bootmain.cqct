@@ -21,8 +21,18 @@
 	$lasterror,
 	printstack,
 	mkcompiler,
-	saveheap
+	saveheap,
+	chomp
 	;
+
+@define chomp(s)
+{
+	@local m;
+	m = length(s);
+	if(s[m-1] == '\n')
+		return substr(s, 0, m-1);
+	return s;
+}
 
 @defloc topwrap(e)
 {
@@ -642,6 +652,20 @@ $repllevel = 0;
 			prompt += ";";
 	}
 
+	@defloc maybeaddsemi(s)
+	{
+		@local len;
+
+		len = length(s);
+		if (!len) {
+			return s;
+		}
+		if (s[len - 1] == ';') {
+			return s;
+		}
+		return s + ';';
+	}
+
 	@defloc $loop()
 	{
 		@local s, v;
@@ -654,7 +678,7 @@ $repllevel = 0;
 			currentreturn(nil);
 			error("unexpected return from return\n");
 		}
-		v = _eval(s, "(stdin)", 1);
+		v = _eval(maybeaddsemi(chomp(s)), "(stdin)", 1);
 		if(v != nil)
 			printf("%a\n", v);
 		$loop();
