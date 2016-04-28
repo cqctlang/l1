@@ -185,12 +185,11 @@ cqctmkcfn(char *id, Cfn *cfn)
 	return mkcfn(id, cfn);
 }
 
-Closure*
-mkccl(char *id, Ccl *ccl, unsigned dlen, ...)
+static Closure*
+mkcclx(char *id, Ccl *ccl, unsigned dlen, va_list args)
 {
 	Code *code;
 	Closure *cl;
-	va_list args;
 	Val vp;
 	unsigned m;
 
@@ -199,11 +198,19 @@ mkccl(char *id, Ccl *ccl, unsigned dlen, ...)
 	code->ccl = ccl;
 	code->id = mkcid0(id);
 	cl = mkcl(code, dlen);
-	va_start(args, dlen);
 	for(m = 0; m < dlen; m++) {
 		vp = va_arg(args, Val);
 		cldisp(cl)[m] = vp;
 	}
+	return cl;
+}
+
+Closure*
+cqctmkccl(char *id, Ccl *ccl, unsigned dlen, ...) {
+	Closure *cl;
+	va_list args;
+	va_start(args, dlen);
+	cl = mkcclx(id, ccl, dlen, args);
 	va_end(args);
 	return cl;
 }

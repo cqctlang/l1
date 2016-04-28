@@ -152,6 +152,36 @@ Val*		cqctlistvals(Val v);
 Val		cqctlooktop(VM *vm, char *name);
 Closure*	cqctmkcfn(char *id,
 			  void (fn)(VM *vm, uint64_t argc, Val *argv, Val *rv));
+/**
+ * Create a closure with a C function body.
+ *
+ * The closure consists of a C function body with the following signature,
+ * and zero or more bound Val arguments:
+ *
+ *   void closure(VM* vm, uint64_t argc, Val *argv, Val *disp, Val *rv)
+ *
+ * The bound arguments are the free variables that are "captured" by the
+ * closure, and are available to the callback in the disp[placement] parameter,
+ * in the order that they were provided to cqctmkccl. For example,
+ *
+ *     cqctmkccl("foo", &foo_impl, 2, cqctuint64val(0xf00), cqctuint64val(11));
+ *
+ * Creates an identifier 'foo' in the top-level environment that when invoked
+ * within cqct execution will invoke foo_impl with
+ *
+ *     disp[] = { Val(0xf00), Val(11) }
+ *
+ * As with C functions registered with cqctmkcfn, it is up to the closure
+ * implementation to verify that the expected _bound_ parameters are passed
+ * in argv.
+ *
+ * @param id the identifier for the new closure
+ * @param cl the C callback
+ * @param dlen the number bound parameters
+ */
+Closure*	cqctmkccl(char *id,
+			  void (cl)(VM *vm, uint64_t argc, Val *argv, Val *disp, Val *rv),
+			  unsigned dlen, ...);
 Val		cqctmkfd(Xfd *xfd, char *name);
 Val		cqctmklist(uint64_t n);
 Val		cqctmkrange(Val b, Val l);

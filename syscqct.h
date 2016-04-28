@@ -1153,7 +1153,6 @@ int		ischarcval(Cval *cv);
 Range*		mapstab(VM *vm, Vec *map, Imm addr, Imm len);
 As*		mkastab(Tab *mtab, Str *name);
 Closure*	mkcfn(char *id, Cfn *cfn);
-Closure*	mkccl(char *id, Ccl *ccl, unsigned dlen, ...);
 Closure*	mkcl(Code *code, unsigned len);
 Cval*		mkcval(Dom *dom, Ctype *type, Imm val);
 Dom*		mkdom(Ns *ns, As *as, Str *name);
@@ -1237,6 +1236,8 @@ Val		xunop(VM *vm, ikind op, Val v);
 #define stkp(v)		(void*)(uptr)(v)
 #define REGFN(id)	{ registercfn(#id, (void *)id); }
 #define FN(id)		{ builtinfn(env, "%"#id, cqctmkcfn(#id, l1_##id)); REGFN(l1_##id); }
+
+#define mkccl cqctmkccl
 
 /* lib9's reliable, portable snprintf (x/lib9) */
 int		snprint(char *buf, int len, char *fmt, ...);
