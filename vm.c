@@ -309,7 +309,7 @@ eqvval(Val v1, Val v2)
 	case Qcont:
 		return eqptr(v1, v2);
 	case Qexpr:
-		return eqvstx(valexpr(v1), valexpr(v2));		
+		return eqvstx(valexpr(v1), valexpr(v2));
 	case Qctype:
 		return eqvctype(valctype(v1), valctype(v2));
 	case Qcval:
@@ -7262,11 +7262,11 @@ static NSroot cllp64le = {
 .xint8 = Vchar,
 .xint16 = Vshort,
 .xint32 = Vint,
-.xint64 = Vlong,
+.xint64 = Vvlong,
 .xuint8 = Vuchar,
 .xuint16 = Vushort,
 .xuint32 = Vuint,
-.xuint64 = Vulong,
+.xuint64 = Vuvlong,
 .name = "cllp64le",
 };
 
@@ -7294,11 +7294,11 @@ static NSroot cllp64be = {
 .xint8 = Vchar,
 .xint16 = Vshort,
 .xint32 = Vint,
-.xint64 = Vlong,
+.xint64 = Vvlong,
 .xuint8 = Vuchar,
 .xuint16 = Vushort,
 .xuint32 = Vuint,
-.xuint64 = Vulong,
+.xuint64 = Vuvlong,
 .name = "cllp64be",
 };
 
