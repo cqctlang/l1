@@ -209,7 +209,17 @@ uint64_t	cqctvaluint64(Val);
 Val		cqctvecref(Val l, uint64_t idx);
 Val		cqctvecset(Val l, uint64_t idx, Val v);
 Val*		cqctvecvals(Val v);
-void		cqctvmerr(VM *vm, char *fmt, ...);
+
+/**
+ * Raise an error in the VM.
+ *
+ * This method signals an error condition in the VM, transferring control
+ * to the error handler. It does not return.
+ *
+ * @param vm the vm
+ * @param message the error message
+ */
+void		cqctvmerr(VM *vm, Val message);
 
 /* mem.c */
 Env		restoreheap(const char *file);

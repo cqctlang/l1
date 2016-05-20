@@ -870,37 +870,36 @@ vmwarn(VM *vm, char *fmt, ...)
 }
 
 static void
-vvmerr(VM *vm, char *fmt, va_list args)
+vvmerr(VM *vm, Val message)
 {
-	static char buf[4096];
-	Val argv[1];
 	Val err;
-	vsnprint(buf, sizeof(buf), fmt, args);
-	argv[0] = mkvalstr(mkstr0(buf));
 	err = envlookup(vm->top, "errorhandler");
 	if(err == 0)
 		fatal("no default error handler");
-	ccall(vm, valcl(err), 1, argv);
+	ccall(vm, valcl(err), 1, &message);
 	fatal("return from default error handler");
 }
 
 void
 vmerr(VM *vm, char *fmt, ...)
 {
+	static char buf[4096];
+	Val message;
 	va_list args;
+
 	va_start(args, fmt);
-	vvmerr(vm, fmt, args);
+	vsnprintf(buf, sizeof(buf), fmt, args);
 	va_end(args);
+
+	message = mkvalstr(mkstr0(buf));
+	vvmerr(vm, message);  /* doesn't return */
 	abort();
 }
 
 void
-cqctvmerr(VM *vm, char *fmt, ...)
+cqctvmerr(VM *vm, Val message)
 {
-	va_list args;
-	va_start(args, fmt);
-	vvmerr(vm, fmt, args);
-	va_end(args);
+	vmerr(vm, message);  /* doesn't return */
 }
 
 static Val
