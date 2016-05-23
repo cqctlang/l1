@@ -899,7 +899,7 @@ vmerr(VM *vm, char *fmt, ...)
 void
 cqctvmerr(VM *vm, Val message)
 {
-	vmerr(vm, message);  /* doesn't return */
+	vvmerr(vm, message);  /* doesn't return */
 }
 
 static Val
