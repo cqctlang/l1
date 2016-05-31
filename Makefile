@@ -81,9 +81,9 @@ L1C =\
 	fns.$(CONF).c\
 	amd64.c
 
-L1DEPS += x/lib9/lib9.a udis/udis.o
-L1FUNS += fnfmt fnjson fndis
-L1C += fnfmt.c fnjson.c fndis.c
+L1DEPS += x/lib9/lib9.a udis/udis.o x/linenoise/liblinenoise.a
+L1FUNS += fnfmt fnjson fndis fnrepl
+L1C += fnfmt.c fnjson.c fndis.c fnrepl.c
 
 include conf/mk.$(CONF)
 
@@ -114,6 +114,9 @@ fns.$(CONF).c:
 FORCE:
 x/lib9/lib9.a: FORCE
 	$(V)$(MAKE) -s -C x/lib9
+
+x/linenoise/liblinenoise.a:
+	$(V)$(MAKE) -s -C x/linenoise
 
 udis/udis.o:
 	@echo + mk udis
@@ -203,6 +206,7 @@ install: $(TARG)
 clean: testclean
 	@$(MAKE) -s -C x/lib9 clean
 	@$(MAKE) -s -C x/libflate clean
+	@$(MAKE) -s -C x/linenoise clean
 	@$(MAKE) -s -C x/libsec clean
 	@$(MAKE) -s -C udis clean
 	@$(MAKE) -s -C demo clean
