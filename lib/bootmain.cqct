@@ -641,7 +641,7 @@ load("prelude.cqct");
 $repllevel = 0;
 @define repl()
 {
-	@local prompt, level;
+	@local prompt, level, history_initialized;
 
 	@defloc mkprompt()
 	{
@@ -666,6 +666,14 @@ $repllevel = 0;
 		return s + ';';
 	}
 
+	@defloc maybesethistory()
+	{
+		if (isnil(history_initialized)) {
+			_prompt_history_set_max_len(100);
+			history_initialized = 1;
+		}
+	}
+
 	@defloc $loop()
 	{
 		@local s, v;
@@ -677,6 +685,7 @@ $repllevel = 0;
 			currentreturn(nil);
 			error("unexpected return from return\n");
 		}
+		_prompt_history_add(s);
 		v = _eval(maybeaddsemi(chomp(s)), "(stdin)", 1);
 		if(v != nil)
 			printf("%a\n", v);
@@ -685,6 +694,7 @@ $repllevel = 0;
 
 	level = ++$repllevel;
 	mkprompt();
+	maybesethistory();
 	callcc(@lambda(done) {
 			@local oldret, olderr, oldint, oldreset, thisreset;
 
