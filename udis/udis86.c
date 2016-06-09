@@ -2,25 +2,25 @@
  *
  * Copyright (c) 2002-2009 Vivek Thampi
  * All rights reserved.
- * 
- * Redistribution and use in source and binary forms, with or without modification, 
+ *
+ * Redistribution and use in source and binary forms, with or without modification,
  * are permitted provided that the following conditions are met:
- * 
- *     * Redistributions of source code must retain the above copyright notice, 
+ *
+ *     * Redistributions of source code must retain the above copyright notice,
  *       this list of conditions and the following disclaimer.
- *     * Redistributions in binary form must reproduce the above copyright notice, 
- *       this list of conditions and the following disclaimer in the documentation 
+ *     * Redistributions in binary form must reproduce the above copyright notice,
+ *       this list of conditions and the following disclaimer in the documentation
  *       and/or other materials provided with the distribution.
- * 
- * THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS" AND 
- * ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE IMPLIED 
- * WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE ARE 
- * DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT OWNER OR CONTRIBUTORS BE LIABLE FOR 
- * ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES 
- * (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES; 
- * LOSS OF USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON 
- * ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT 
- * (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS 
+ *
+ * THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS" AND
+ * ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE IMPLIED
+ * WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE ARE
+ * DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT OWNER OR CONTRIBUTORS BE LIABLE FOR
+ * ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES
+ * (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES;
+ * LOSS OF USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON
+ * ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
+ * (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS
  * SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
@@ -36,7 +36,7 @@
  * ud_init() - Initializes ud_t object.
  * =============================================================================
  */
-extern void 
+extern void
 ud_init(struct ud* u)
 {
   memset((void*)u, 0, sizeof(struct ud));
@@ -49,7 +49,7 @@ ud_init(struct ud* u)
 }
 
 /* =============================================================================
- * ud_disassemble() - disassembles one instruction and returns the number of 
+ * ud_disassemble() - disassembles one instruction and returns the number of
  * bytes disassembled. A zero means end of disassembly.
  * =============================================================================
  */
@@ -59,10 +59,10 @@ ud_disassemble(struct ud* u)
   if (ud_input_end(u))
 	return 0;
 
- 
+
   u->insn_buffer[0] = u->insn_hexcode[0] = 0;
 
- 
+
   if (ud_decode(u) == 0)
 	return 0;
   if (u->translator)
@@ -74,7 +74,7 @@ ud_disassemble(struct ud* u)
  * ud_set_mode() - Set Disassemly Mode.
  * =============================================================================
  */
-extern void 
+extern void
 ud_set_mode(struct ud* u, uint8_t m)
 {
   switch(m) {
@@ -89,7 +89,7 @@ ud_set_mode(struct ud* u, uint8_t m)
  * ud_set_vendor() - Set vendor.
  * =============================================================================
  */
-extern void 
+extern void
 ud_set_vendor(struct ud* u, unsigned v)
 {
   switch(v) {
@@ -105,10 +105,10 @@ ud_set_vendor(struct ud* u, unsigned v)
 }
 
 /* =============================================================================
- * ud_set_pc() - Sets code origin. 
+ * ud_set_pc() - Sets code origin.
  * =============================================================================
  */
-extern void 
+extern void
 ud_set_pc(struct ud* u, uint64_t o)
 {
   u->pc = o;
@@ -118,7 +118,7 @@ ud_set_pc(struct ud* u, uint64_t o)
  * ud_set_syntax() - Sets the output syntax.
  * =============================================================================
  */
-extern void 
+extern void
 ud_set_syntax(struct ud* u, void (*t)(struct ud*))
 {
   u->translator = t;
@@ -128,8 +128,8 @@ ud_set_syntax(struct ud* u, void (*t)(struct ud*))
  * ud_insn() - returns the disassembled instruction
  * =============================================================================
  */
-extern char* 
-ud_insn_asm(struct ud* u) 
+extern char*
+ud_insn_asm(struct ud* u)
 {
   return u->insn_buffer;
 }
@@ -139,7 +139,7 @@ ud_insn_asm(struct ud* u)
  * =============================================================================
  */
 extern uint64_t
-ud_insn_off(struct ud* u) 
+ud_insn_off(struct ud* u)
 {
   return u->insn_offset;
 }
@@ -149,8 +149,8 @@ ud_insn_off(struct ud* u)
  * ud_insn_hex() - Returns hex form of disassembled instruction.
  * =============================================================================
  */
-extern char* 
-ud_insn_hex(struct ud* u) 
+extern char*
+ud_insn_hex(struct ud* u)
 {
   return u->insn_hexcode;
 }
@@ -159,8 +159,8 @@ ud_insn_hex(struct ud* u)
  * ud_insn_ptr() - Returns code disassembled.
  * =============================================================================
  */
-extern uint8_t* 
-ud_insn_ptr(struct ud* u) 
+extern uint8_t*
+ud_insn_ptr(struct ud* u)
 {
   return u->inp_sess;
 }
@@ -169,8 +169,8 @@ ud_insn_ptr(struct ud* u)
  * ud_insn_len() - Returns the count of bytes disassembled.
  * =============================================================================
  */
-extern unsigned int 
-ud_insn_len(struct ud* u) 
+extern unsigned int
+ud_insn_len(struct ud* u)
 {
   return u->inp_ctr;
 }

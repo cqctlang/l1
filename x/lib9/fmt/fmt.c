@@ -65,7 +65,7 @@ static Convfmt knownfmt[] = {
 	{ 'u',	__ifmt, },
 #endif
 	{ 'x',	__ifmt, },
-	{ 0,	nil, }, 
+	{ 0,	nil, },
 };
 
 

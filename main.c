@@ -31,7 +31,7 @@ usage()
 	fprintf(stderr, "\t-s suppress default load path\n");
 	fprintf(stderr, "\n\tYou are seeing this message from the boot loader because\n");
 	fprintf(stderr, "\tone of the above is incorrect.\n");
-	
+
 	exit(0);
 }
 

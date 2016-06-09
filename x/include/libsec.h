@@ -1,7 +1,7 @@
 #ifndef _LIBSEC_H_
 #define _LIBSEC_H_ 1
 #if defined(__cplusplus)
-extern "C" { 
+extern "C" {
 #endif
 /*
 AUTOLIB(sec)

@@ -1614,7 +1614,7 @@ l1_settypedeftype(VM *vm, Imm argc, Val *argv, Val *rv)
 		vmerr(vm, "wrong number of arguments to settypedeftype");
 	checkarg(vm, argv, 0, Qctype);
 	checkarg(vm, argv, 1, Qctype);
-	
+
 	t = valctype(argv[0]);
 	if(t->tkind != Ttypedef)
 		vmerr(vm, "attempt to settypedeftype on non-typedef");

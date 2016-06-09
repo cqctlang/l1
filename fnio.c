@@ -35,7 +35,7 @@ l1__recvfd(VM *vm, Imm argc, Val *argv, Val *rv)
 	   || cmsg->cmsg_len != CMSG_LEN(sizeof(rfd)))
 		vmerr(vm, "no file descriptor to be received");
 	memcpy(&rfd, CMSG_DATA(cmsg), sizeof(rfd));
-	*rv = mkvallitcval(Vint, rfd);	
+	*rv = mkvallitcval(Vint, rfd);
 }
 
 static void
@@ -82,7 +82,7 @@ l1__popen(VM *vm, Imm argc, Val *argv, Val *rv)
 		listappend(vm, ls, mkvallitcval(Vint, fds[1]));
 	if(flags&(PopenNoErr|PopenStderr|PopenStderrOnStdout))
 		return;
-	listappend(vm, ls, mkvallitcval(Vint, fds[2]));	
+	listappend(vm, ls, mkvallitcval(Vint, fds[2]));
 }
 
 void

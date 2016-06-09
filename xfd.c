@@ -14,7 +14,7 @@ xfdclose(Xfd *xfd)
 Imm
 xfdread(Xfd *xfd, char *buf, Imm len)
 {
-	return read(xfd->fd, buf, len);	
+	return read(xfd->fd, buf, len);
 }
 
 Imm

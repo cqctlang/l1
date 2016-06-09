@@ -1,6 +1,6 @@
 {
 	Elf_Ehdr hdr;
-	Elf_Shdr shdr[Nsect];	
+	Elf_Shdr shdr[Nsect];
 	Strtab shstrtab;
 	Strtab symstrtab;
 	Symtab symtab;
@@ -97,7 +97,7 @@
 	dataoff = shstrtaboff+strtablen(&shstrtab);
 	symstrtaboff = dataoff+len;
 	symtaboff = symstrtaboff+strtablen(&symstrtab);
-	
+
 	shdr[1].sh_offset = shstrtaboff;
 	shdr[1].sh_size = strtablen(&shstrtab);
 

@@ -466,7 +466,7 @@ Expr*
 docompileb(U *ctx, Expr *e)
 {
 	Xenv *lex;
-	
+
 	e = defloc(ctx, e, 0);
 	e = globals(ctx, e, ctx->top);
 
@@ -484,7 +484,7 @@ docompileb(U *ctx, Expr *e)
 		lex = 0;
 	sete2(e, toplevel(ctx, e->e2, ctx->top, lex));
 	/* FIXME: is the restriction to e->e2 really necessary for either? */
-	check(ctx, e->e2, 0, 0); 
+	check(ctx, e->e2, 0, 0);
 	sete2(e, resolve(ctx, e->e2, ctx->top, lex, 0, 0));
 	if(lex)
 		freexenv(lex);

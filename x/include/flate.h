@@ -1,7 +1,7 @@
 #ifndef _FLATE_H_
 #define _FLATE_H_ 1
 #if defined(__cplusplus)
-extern "C" { 
+extern "C" {
 #endif
 
 /*

@@ -47,7 +47,7 @@ typedef
 enum Y
 {
 	y0, y1, y2, y3,
-	y4 = 18446744073709551615ULL, 
+	y4 = 18446744073709551615ULL,
 } Y;
 
 struct Q

@@ -289,7 +289,7 @@ stupid(Expr *e)
 			sete1(e, stupid(e->e1));
 			sete2(e, stupid(e->e2));
 			return e;
-		} 
+		}
 	case Eelist:
 		p = e;
 		while(p->kind == Eelist){

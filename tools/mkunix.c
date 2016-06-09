@@ -44,26 +44,26 @@ main(int argc,char **argv) {
 	struct enum_entry oflags[]={
 		{ "O_RDONLY",	O_RDONLY },
 		{ "O_WRONLY",	O_WRONLY },
-		{ "O_RDWR", 	O_RDWR },	
-		{ "O_CREAT", 	O_CREAT },	
+		{ "O_RDWR", 	O_RDWR },
+		{ "O_CREAT", 	O_CREAT },
 		{ "O_NOCTTY",	O_NOCTTY },
-		{ "O_TRUNC", 	O_TRUNC },	
-		{ "O_APPEND", 	O_APPEND },	
-		{ "O_NONBLOCK", O_NONBLOCK },	
+		{ "O_TRUNC", 	O_TRUNC },
+		{ "O_APPEND", 	O_APPEND },
+		{ "O_NONBLOCK", O_NONBLOCK },
 #ifdef O_ASYNC
-		{ "O_ASYNC", 	O_ASYNC },	
+		{ "O_ASYNC", 	O_ASYNC },
 #endif
 #ifdef O_SYNC
-		{ "O_SYNC", 	O_SYNC },	
+		{ "O_SYNC", 	O_SYNC },
 #endif
 #ifdef O_EXCL
 		{ "O_EXCL",	O_EXCL },
 #endif
 #ifdef O_CLOEXEC // linux since 2.6.23
-		{ "O_CLOEXEC", 	O_CLOEXEC },	
+		{ "O_CLOEXEC", 	O_CLOEXEC },
 #endif
 #ifdef O_DIRECT // linux since 2.4.10
-		{ "O_DIRECT", 	O_DIRECT },	
+		{ "O_DIRECT", 	O_DIRECT },
 #endif
 		{ NULL },
 	};
@@ -78,7 +78,7 @@ main(int argc,char **argv) {
 
 	struct enum_entry seekflags[]={
 		{ "SEEK_SET",	SEEK_SET },
-		{ "SEEK_CUR",	SEEK_CUR },	
+		{ "SEEK_CUR",	SEEK_CUR },
 		{ "SEEK_END",	SEEK_END },
 		{ NULL },
 	};
@@ -690,7 +690,7 @@ main(int argc,char **argv) {
 		{ "lchown",		SYS_lchown },
 		{ "umask",		SYS_umask },
 		{ "gettimeofday",	SYS_gettimeofday },
-#ifdef SYS_getrlimit // some linux miss this 
+#ifdef SYS_getrlimit // some linux miss this
 		{ "getrlimit",		SYS_getrlimit },
 #endif
 		{ "getrusage",		SYS_getrusage },

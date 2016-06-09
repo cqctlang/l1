@@ -91,7 +91,7 @@ Zor(Expr *e1, Expr *e2)
 */
 
 static Expr *
-Zlabele(char *l, Expr *b) 
+Zlabele(char *l, Expr *b)
 {
 	if(!l)
 		return b;
@@ -258,11 +258,11 @@ match(U *ctx, Expr* exp, Expr* pat, Match *m, Cases *cs)
 		break;
 #ifdef FOO
         case Ecall:
-		m->check = Zand(Zand(m->check, Zcall(doid("isrec"), 1, 
+		m->check = Zand(Zand(m->check, Zcall(doid("isrec"), 1,
 						     copyexpr(exp))),
 				Zbinop(Eeq, Zid2sym(pat->e1),
-				       Zcall(doid("rdname"), 1, 
-					     Zcall(doid("rdof"), 1, 
+				       Zcall(doid("rdname"), 1,
+					     Zcall(doid("rdof"), 1,
 						   copyexpr(exp)))));
                 /* Two forms of pattern matching:
                    rec(f1=p1,...,fn=pn) where fi are a subset of
@@ -274,7 +274,7 @@ match(U *ctx, Expr* exp, Expr* pat, Match *m, Cases *cs)
                 l = elistlen(p);
 		f0 = 0;
                 if(l != 0 && p->e1->kind != Eeq){
-                        f0 = Zcall(doid("rdfields"), 1, 
+                        f0 = Zcall(doid("rdfields"), 1,
                                    Zcall(doid("rdof"), 1, copyexpr(exp)));
                         m->check = Zand(m->check,
                                         Zbinop(Eeq, /* pat. lists all fields */
@@ -292,20 +292,20 @@ match(U *ctx, Expr* exp, Expr* pat, Match *m, Cases *cs)
                                 p0 = p->e1->e2;
                                 if(p->e1->e1->kind != Eid)
                                         fatal("bad pattern");
-                                e0 = Zcall(Zcall(doid("tablook"), 2, 
-                                                 Zcall(doid("rdgettab"), 1, 
-                                                       Zcall(doid("rdof"), 1, 
+                                e0 = Zcall(Zcall(doid("tablook"), 2,
+                                                 Zcall(doid("rdgettab"), 1,
+                                                       Zcall(doid("rdof"), 1,
                                                              copyexpr(exp))),
                                                  Zid2sym(p->e1->e1)), 1,
                                            copyexpr(exp));
                         }
                         else{
                                 p0 = p->e1;
-                                e0 = Zcall(Zcall(doid("tablook"), 2, 
-                                                 Zcall(doid("rdgettab"), 1, 
-                                                       Zcall(doid("rdof"), 1, 
+                                e0 = Zcall(Zcall(doid("tablook"), 2,
+                                                 Zcall(doid("rdgettab"), 1,
+                                                       Zcall(doid("rdof"), 1,
                                                              copyexpr(exp))),
-                                                 Zcall(doid("head"), 1, 
+                                                 Zcall(doid("head"), 1,
                                                        copyexpr(f0))), 1,
                                            copyexpr(exp));
                                 f0 = Zcall(doid("tail"), 1, f0);
@@ -353,7 +353,7 @@ bindvars(Bind *binds, Expr **bvars, Expr **inits)
 		i = Zcons(Zset(binds->id, binds->exp), i);
 		binds = binds->next;
 	}
-	/* XXX check that bvars and j are the same variables 
+	/* XXX check that bvars and j are the same variables
 	  if bvars != nullelist */
 	*bvars = j;
 	*inits = i;
@@ -425,7 +425,7 @@ addmatch(U *ctx, Expr *c, Cases *cs)
 
 	while(1){
 		/* Make a copy of the body for each or-pattern clause */
-		b = Zcons(cases(ctx, copyexpr(c->e2), cs), 
+		b = Zcons(cases(ctx, copyexpr(c->e2), cs),
 			  nullelist());
 		/* Generate fender code */
 		nl = 0;
@@ -514,8 +514,8 @@ addmatch(U *ctx, Expr *c, Cases *cs)
 		efree(eml);
 	}
 	se = invert(se);
-	se = Zblock(nullelist(), 
-		    Zcall(doid("error"), 1, 
+	se = Zblock(nullelist(),
+		    Zcall(doid("error"), 1,
 			  Zstr("attempt to fall through to a @match")),
 		    se,
 		    NULL);
@@ -727,14 +727,14 @@ swtch(U *ctx, Expr *e, char *lb)
 			se = Zcons(Zlabele(optl,cs->cases[i].e ?
 					   Zif(swtch(ctx, cs->cases[i].e, lb),
 					       Zgoto(cs->cases[i].l)) :
-					   Zgoto(cs->cases[i].l)), 
+					   Zgoto(cs->cases[i].l)),
 				   se);
 			optl = cs->cases[i].nextl;
 		}
 		se = Zblock(Zcons(doid("$t"),nullelist()),
 			    Zset(doid("$t"), swtch(ctx, e->e1, lb)),
 			    invert(se),
-			    Zlabele(optl, 
+			    Zlabele(optl,
 				(cs && cs->dflt) ? Zgoto(cs->dflt) : Zgoto(nlb)),
 			    swtch(ctx, e->e2, nlb),
 			    Zlabel(nlb),

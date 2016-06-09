@@ -20,7 +20,7 @@ _mktab(u32 sz, Val def)
 	t->tg = mkguard();
 	t->priv = 0;
 	t->fmt = 0;
-	
+
 	return t;
 }
 
@@ -462,9 +462,9 @@ l1_mktabqv(VM *vm, Imm argc, Val *argv, Val *rv)
 	*rv = mkvaltab(t);
 }
 
-static void                                                                     
-l1_mktabpriv(VM *vm, Imm argc, Val *argv, Val *rv)                                
-{                                                                               
+static void
+l1_mktabpriv(VM *vm, Imm argc, Val *argv, Val *rv)
+{
 	Tab *t;
 	Str *s;
 
@@ -482,7 +482,7 @@ l1_mktabpriv(VM *vm, Imm argc, Val *argv, Val *rv)
 	gcwb(argv[0]);
 
 	*rv = argv[0];
-}                                                                               
+}
 
 static void
 l1_tabdelete(VM *vm, Imm argc, Val *argv, Val *rv)

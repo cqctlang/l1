@@ -1,7 +1,7 @@
 #ifndef _UTF_H_
 #define _UTF_H_ 1
 #if defined(__cplusplus)
-extern "C" { 
+extern "C" {
 #endif
 
 typedef unsigned short Rune;	/* 16 bits */

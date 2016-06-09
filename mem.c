@@ -1061,7 +1061,7 @@ allocbigseg(MT mt, Gen g, u64 sz)
 	H.na += sz;
 	H.bigsz += sz;
 	s = a2s(p);
-	
+
 	/* alloc pointer is bumped by caller in order to bound scan.
 	   it is never bumped again.
 	   end pointer points to end of concatenated segments. */
@@ -3477,7 +3477,7 @@ restoreheap(const char *file)
 	/* update scan pointers */
 	for(i = 0, sp = sptr; i < nsp; i++, sp++)
 		H.m[sp->mt][sp->gen].scan = resolveptr(sp->ptr, &ls);
-		
+
 	/* update roots */
 	syms = resolveptr(root[0], &ls);
 	typecache = resolveptr(root[1], &ls);

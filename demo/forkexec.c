@@ -14,7 +14,7 @@ main(int argc, char *argv[])
 		printf("usage: %s command [arguments]\n", argv[0]);
 		exit(1);
 	}
-	
+
 	switch(fork()){
 	case -1:
 		printf("fork: %s", strerror(errno));

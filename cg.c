@@ -1968,7 +1968,7 @@ mkraiseinterrupt(void)
 
 	finit(&f, 2, 1, 0);
 	fset(&f, Ocl);
-	
+
 	/* frame is:
 
 	   	ra
@@ -1990,7 +1990,7 @@ mkraiseinterrupt(void)
 	randframeloc(&i->dst, Oarg0+2);
 	fset(&f, Oarg0+2);
 	femit(&f, ode);
-	
+
 	/* set up call to handler (arg 1) */
 
 	i = nextinsn(ode, 0);
@@ -2020,7 +2020,7 @@ mkraiseinterrupt(void)
 	fclr(&f, nfp+Ocl);
 	fbumpfsz(&f, -Onfrhd);
 	femit(&f, ode);
-	
+
 	i = nextinsn(ode, 0);
 	i->kind = Iaddfp;
 	i->scnt = -nfp;

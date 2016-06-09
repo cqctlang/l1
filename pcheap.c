@@ -17,11 +17,11 @@ enum {
 #pragma weak heapimage
 #pragma weak endheapimage
 char heapimage[1] = { Noheap };
-char endheapimage[0];                                                           
+char endheapimage[0];
 
 void *findheapimage(u64 *len) {
-	if(heapimage[0] != Heapdefined)                         
-		return NULL;                                       
+	if(heapimage[0] != Heapdefined)
+		return NULL;
 	*len = endheapimage-heapimage;
 	return heapimage;
 }

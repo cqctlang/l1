@@ -36,7 +36,7 @@ l1_waitpid(VM *vm, Imm argc, Val *argv, Val *rv)
 	int pid, stat, opt, r;
 	Cval *cv;
 	List *l;
-	
+
 	if(argc != 2)
 		vmerr(vm, "wrong number of arguments to waitpid");
 	checkarg(vm, argv, 0, Qcval);
@@ -94,7 +94,7 @@ l1_execve(VM *vm, Imm argc, Val *argv, Val *rv)
 		ev = vallist(argv[2]);
 		xec = listlen(ev);
 		xenviron = emalloc((xec+1)*sizeof(char*)); /* null terminated */
-	
+
 		for(x = 0; x < xec ; x++) {
 			cv = listref(ev, x);
 			if(!Viskind(cv, Qstr)) {

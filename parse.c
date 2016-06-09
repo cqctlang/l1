@@ -51,7 +51,7 @@ parseerror(U *ctx, char *fmt, ...)
 	u32 len;
 
 	if(ctx == 0){
-		/* 
+		/*
 		 * we're here because of a bison limitation.
 		 * the caller is yyerror from one of our GLR merge
 		 * resolvers, which do not convey %parse-params.

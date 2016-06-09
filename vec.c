@@ -38,7 +38,7 @@ veccopy(Vec *old)
 	Vec *new;
 	new = mkvec(old->len);
 	memcpy(vecdata(new), vecdata(old), new->len*sizeof(Val));
-	
+
 	return new;
 }
 

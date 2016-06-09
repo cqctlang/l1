@@ -118,7 +118,7 @@ l1__tcpopen(VM *vm, Imm argc, Val *argv, Val *rv)
 		return;
 	}
 	nodelay(fd);
-	*rv = mkvallitcval(Vint, fd);	
+	*rv = mkvallitcval(Vint, fd);
 }
 
 static void
@@ -149,7 +149,7 @@ l1__tcplisten(VM *vm, Imm argc, Val *argv, Val *rv)
 		vmerr(vm, "tcplisten: %s", strerror(errno));
 	if(0 > listen(fd, 4096))
 		vmerr(vm, "tcplisten: %s", strerror(errno));
-	*rv = mkvallitcval(Vint, fd);	
+	*rv = mkvallitcval(Vint, fd);
 }
 
 static void
@@ -269,7 +269,7 @@ l1__unixopen(VM *vm, Imm argc, Val *argv, Val *rv)
 		setlasterrno(errno);
 		return;
 	}
-	*rv = mkvallitcval(Vint, fd);	
+	*rv = mkvallitcval(Vint, fd);
 }
 
 void

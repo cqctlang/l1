@@ -85,14 +85,14 @@ static void jsmn_init(jsmn_parser *parser);
  * Run JSON parser. It parses a JSON data string into and array of tokens, each describing
  * a single JSON object.
  */
-static jsmnerr_t jsmn_parse(jsmn_parser *parser, const char *js, 
+static jsmnerr_t jsmn_parse(jsmn_parser *parser, const char *js,
 		jsmntok_t *tokens, unsigned int num_tokens);
 
 
 /**
  * Allocates a fresh unused token from the token pull.
  */
-static jsmntok_t *jsmn_alloc_token(jsmn_parser *parser, 
+static jsmntok_t *jsmn_alloc_token(jsmn_parser *parser,
 		jsmntok_t *tokens, size_t num_tokens) {
 	unsigned int i;
 	for (i = parser->toknext; i < num_tokens; i++) {
@@ -107,7 +107,7 @@ static jsmntok_t *jsmn_alloc_token(jsmn_parser *parser,
 /**
  * Fills token type and boundaries.
  */
-static void jsmn_fill_token(jsmntok_t *token, jsmntype_t type, 
+static void jsmn_fill_token(jsmntok_t *token, jsmntype_t type,
                             int start, int end) {
 	token->type = type;
 	token->start = start;
@@ -129,7 +129,7 @@ static int jsmn_parse_primitive(jsmn_parser *parser, const char *js,
 		switch (js[parser->pos]) {
 #ifndef JSMN_STRICT
 			/* In strict mode primitive must be followed by "," or "}" or "]" */
-			case '\t' : case '\r' : case '\n' : case ' ' : case ':': 
+			case '\t' : case '\r' : case '\n' : case ' ' : case ':':
 #endif
 			case ','  : case ']'  : case '}' :
 				goto found;
@@ -215,7 +215,7 @@ static int jsmn_parse_string(jsmn_parser *parser, const char *js,
 /**
  * Parse JSON string and fill tokens.
  */
-static jsmnerr_t jsmn_parse(jsmn_parser *parser, const char *js, jsmntok_t *tokens, 
+static jsmnerr_t jsmn_parse(jsmn_parser *parser, const char *js, jsmntok_t *tokens,
 		unsigned int num_tokens) {
 	int r;
 	int i;
@@ -271,7 +271,7 @@ static jsmnerr_t jsmn_parse(jsmn_parser *parser, const char *js, jsmntok_t *toke
 				if (parser->toksuper != -1)
 					tokens[parser->toksuper].size++;
 				break;
-			case '\t' : case '\r' : case '\n' : case ':' : case ',': case ' ': 
+			case '\t' : case '\r' : case '\n' : case ':' : case ',': case ' ':
 				break;
 #ifdef JSMN_STRICT
 			/* In strict mode primitives are: numbers and booleans */
@@ -308,7 +308,7 @@ static jsmnerr_t jsmn_parse(jsmn_parser *parser, const char *js, jsmntok_t *toke
 }
 
 /**
- * Creates a new parser based over a given  buffer with an array of tokens 
+ * Creates a new parser based over a given  buffer with an array of tokens
  * available.
  */
 static void jsmn_init(jsmn_parser *parser) {
@@ -522,7 +522,7 @@ l1_json2val(VM *vm, Imm argc, Val *argv, Val *rv)
 	s = str2cstr(valstr(argv[0]));
 	if(strlen(s) == 0){
 		efree(s);
-		vmerr(vm, "no json input"); 
+		vmerr(vm, "no json input");
 	}
 	mtok = 1024;
 
