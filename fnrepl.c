@@ -21,7 +21,7 @@ l1__prompt(VM *vm, Imm argc, Val *argv, Val *rv)
 
     if (result) {
         *rv = mkvalstr(mkstr0(result));
-        linenoiseFree(result);
+        free(result);
     } else {
         if (errno == EAGAIN) {
             /* ctrl-c */
