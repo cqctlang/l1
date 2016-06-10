@@ -19,8 +19,6 @@ char *qname[Qnkind] = {
 	[Qpair]=	"pair",
 	[Qprecode]=	"precode",
 	[Qrange]=	"range",
-	//[Qrec]=		"record",
-	//[Qrd]=		"recorddescriptor",
 	[Qstr]=		"string",
 	[Qtab]=		"table",
 	[Qvec]=		"vector",
@@ -245,14 +243,12 @@ eqval(Val v1, Val v2)
 	case Qcl:
 	case Qdom:
 	case Qns:
-	//case Qrd:
 	case Qtab:
 	case Qexpr:
 	case Qctype:
 	case Qlist:
 	case Qpair:
 	case Qrange:
-	//case Qrec:
 	case Qstr:
 	case Qvec:
 	case Qprecode:
@@ -277,14 +273,12 @@ hashqval(Val v)
 	case Qcl:
 	case Qdom:
 	case Qns:
-	//case Qrd:
 	case Qtab:
 	case Qexpr:
 	case Qctype:
 	case Qlist:
 	case Qpair:
 	case Qrange:
-	//case Qrec:
 	case Qstr:
 	case Qvec:
 	case Qprecode:
@@ -311,7 +305,6 @@ eqvval(Val v1, Val v2)
 	case Qcl:
 	case Qdom:
 	case Qns:
-	//case Qrd:
 	case Qtab:
 	case Qprecode:
 	case Qcode:
@@ -329,8 +322,6 @@ eqvval(Val v1, Val v2)
 		return equalpair(valpair(v1), valpair(v2));
 	case Qrange:
 		return equalrange(valrange(v1), valrange(v2));
-	//case Qrec:
-	//	return equalrec(valrec(v1), valrec(v2));
 	case Qstr:
 		return equalstr(valstr(v1), valstr(v2));
 	case Qvec:
@@ -351,7 +342,6 @@ hashqvval(Val v)
 	case Qcl:
 	case Qdom:
 	case Qns:
-	//case Qrd:
 	case Qtab:
 	case Qprecode:
 	case Qcode:
@@ -369,10 +359,6 @@ hashqvval(Val v)
 		return hashpair(valpair(v));
 	case Qrange:
 		return hashrange(valrange(v));
-/*
-	case Qrec:
-		return hashrec(valrec(v));
-*/
 	case Qstr:
 		return hashstr(valstr(v));
 	case Qvec:
@@ -395,7 +381,6 @@ equalval(Val v1, Val v2)
 	case Qcl:
 	case Qdom:
 	case Qns:
-	//case Qrd:
 	case Qtab:
 	case Qprecode:
 	case Qcode:
@@ -413,8 +398,6 @@ equalval(Val v1, Val v2)
 		return equalpair(valpair(v1), valpair(v2));
 	case Qrange:
 		return equalrange(valrange(v1), valrange(v2));
-	//case Qrec:
-	//	return equalrec(valrec(v1), valrec(v2));
 	case Qstr:
 		return equalstr(valstr(v1), valstr(v2));
 	case Qvec:
@@ -435,7 +418,6 @@ hashval(Val v)
 	case Qcl:
 	case Qdom:
 	case Qns:
-	//case Qrd:
 	case Qtab:
 	case Qprecode:
 	case Qcode:
@@ -453,10 +435,6 @@ hashval(Val v)
 		return hashpair(valpair(v));
 	case Qrange:
 		return hashrange(valrange(v));
-/*
-	case Qrec:
-		return hashrec(valrec(v));
-*/
 	case Qstr:
 		return hashstr(valstr(v));
 	case Qvec:
@@ -6327,20 +6305,6 @@ l1_isrange(VM *vm, Imm argc, Val *argv, Val *rv)
 {
 	l1_isx(vm, argc, argv, rv, "isrange", Qrange);
 }
-
-/*
-static void
-l1_isrec(VM *vm, Imm argc, Val *argv, Val *rv)
-{
-	l1_isx(vm, argc, argv, rv, "isrec", Qrec);
-}
-
-static void
-l1_isrd(VM *vm, Imm argc, Val *argv, Val *rv)
-{
-	l1_isx(vm, argc, argv, rv, "isrd", Qrd);
-}
-*/
 
 static void
 l1_isstring(VM *vm, Imm argc, Val *argv, Val *rv)

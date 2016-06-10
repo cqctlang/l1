@@ -252,7 +252,6 @@ typedef struct Ns Ns;
 typedef struct Pair Pair;
 typedef struct Range Range;
 typedef struct Rd Rd;
-//typedef struct Rec Rec;
 typedef struct Str Str;
 typedef struct Tab Tab;
 typedef struct Vec Vec;
@@ -1183,7 +1182,6 @@ Val		xunop(VM *vm, ikind op, Val v);
 #define mkvalpair(x)	((Val)(x))
 #define mkvalrange(x)	((Val)(x))
 #define mkvalrd(x)	((Val)(x))
-#define mkvalrec(x)	((Val)(x))
 #define mkvalstr(x)	((Val)(x))
 #define mkvaltab(x)	((Val)(x))
 #define mkvalvec(x)	((Val)(x))
@@ -1204,7 +1202,6 @@ Val		xunop(VM *vm, ikind op, Val v);
 #define valpair(v)	((Pair*)(v))
 #define valrange(v)	((Range*)(v))
 #define valrd(v)	((Rd*)(v))
-#define valrec(v)	((Rec*)(v))
 #define valstr(v)	((Str*)(v))
 #define valtab(v)	((Tab*)(v))
 #define valvec(v)	((Vec*)(v))
@@ -1459,13 +1456,6 @@ void		fnpair(Env env);
 u32		hashpair(Pair *p);
 Pair*		mkpair(Val a, Val d);
 Pair*		mkweakpair(Val a, Val d);
-
-/* rec.c */
-//int		equalrec(Rec *a, Rec *b);
-//void		finirec();
-//u32		hashrec(Rec *r);
-//void		initrec();
-//void		fnrec(Env env);
 
 /* str.c */
 int		equalstr(Str *a, Str *b);
