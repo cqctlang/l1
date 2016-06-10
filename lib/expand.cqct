@@ -23,7 +23,7 @@ stxtab = mktab();
 	@defloc install(id, args, body, expander)
 	{
 		@local fn, l, pat, ad;
-		
+
 		if(args == nil){
 			args = Znull();
 			ad = cons('fixed, 0);
@@ -152,7 +152,7 @@ stxtab = mktab();
 			se = Zreverse(se);
 			return #block(#[ #id(mkcid("$t")) ], se);
 		default:
-			
+
 			return #call(#id('mkstx),
 					Zlist(mkstxval(stxkind(e)),
 					   e[0] ? quasi(e[0]) : Znil(),

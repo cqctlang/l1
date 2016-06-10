@@ -244,7 +244,7 @@ _dwcqct_reg_type = 3;
     }
     break;
   }
-    
+
   case dom`DW_OP_rot: {
     @local t1, t2, t3;
     if (length (_dwstack) < 3)
@@ -363,7 +363,7 @@ _dwcqct_reg_type = 3;
     _dw_push (val2 >> val1);
     break;
   }
- 
+
   case dom`DW_OP_shra: {
     @local val1, val2;
     val1 = _dw_pop ();

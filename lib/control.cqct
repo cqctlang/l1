@@ -11,15 +11,15 @@
 		if (length(arg)>1)
 			error("%s can only be applied to a single table",fnnm);
 
-	} else if (isstx(arg[0])) { 
-		if (stxkind(arg[0]) != 'elist && stxkind(arg[0]) != 'null) 
+	} else if (isstx(arg[0])) {
+		if (stxkind(arg[0]) != 'elist && stxkind(arg[0]) != 'null)
 			error("non-list stx passed with stx list to %s",fnnm);
 
 		for(i=1; i<length(arg); ++i) {
 			if(!isstx(arg[i]))
 				error("%s cannot combine other collections with syntax lists",
 					  fnnm);
-			if (stxkind(arg[i]) != 'elist && stxkind(arg[i]) != 'null) 
+			if (stxkind(arg[i]) != 'elist && stxkind(arg[i]) != 'null)
 				error("non-list stx passed with stx list to map",fnnm);
 		}
 
@@ -99,7 +99,7 @@
 		rv = Zcons( apply(fn,map(Zcar,arg)), rv);
 		arg = map(Zcdr,arg);
 	}
-	foreach(@lambda(v) { 
+	foreach(@lambda(v) {
 		if (v != #null)
 			error("syntax lists of unequal length provided to map");
 	},arg);
@@ -163,7 +163,7 @@
 		apply(fn,map(Zcar,arg));
 		arg = map(Zcdr,arg);
 	}
-	foreach(@lambda(v) { 
+	foreach(@lambda(v) {
 		if (v != #null)
 			error("syntax lists of unequal length provided to foreach");
 	},arg);
@@ -184,7 +184,7 @@
 
 	if(islist(arg[0]) || isvector(arg[0]) || isstring(arg[0])) {
 		rv = [];
-		if(length(arg) == 1) 
+		if(length(arg) == 1)
 			foreach(@lambda(val){ if(fn(val)) append(rv, val); },arg[0]);
 		else
 			apply(foreach,
@@ -195,7 +195,7 @@
 
 	if(istable(arg[0])) {
 		rv = [:];
-		if(length(arg) > 1) 
+		if(length(arg) > 1)
 			error("filter only accepts one table");
 		foreach(@lambda(k,v) { if(fn(k,v)) rv[k] = v; }, arg[0]);
 		return rv;
@@ -204,15 +204,15 @@
 	//stx
 	rv = Znull();
 	apply(foreach,
-			length(arg) == 1 ? 
+			length(arg) == 1 ?
 			  //use this lambda when there is only one arg
-			  @lambda(val){ 
-				  if(fn(val)) rv = Zcons(val,rv); 
+			  @lambda(val){
+				  if(fn(val)) rv = Zcons(val,rv);
 			  }
 			  :
 			  //use this lambda when there is more than one arg
-			  @lambda(vals...){ 
-				  if(apply(fn,vals)) rv = Zcons(apply(Zlist,vals),rv); 
+			  @lambda(vals...){
+				  if(apply(fn,vals)) rv = Zcons(apply(Zlist,vals),rv);
 			  },
 		  arg);
 	return rv;

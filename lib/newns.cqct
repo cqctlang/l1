@@ -7,7 +7,7 @@
 	@local ltresolve;
 
 	printf("all right.\n");
-		
+
 	@defloc resetltr()
 	{
 		ltresolve = mkresolve(type, undef,
@@ -80,7 +80,7 @@
 		s = mksym(t, symid(sym), symattr(sym));
 		return s;
 	}
-		
+
 	@define ls(this, name)
 	{
 		@local s;

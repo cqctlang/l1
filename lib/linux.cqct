@@ -15,7 +15,7 @@ linux = @names clp64le
 		@0x8	long int tv_nsec;
 		@0x10;
 	};
-	
+
 	struct itimerspec {
 		@0x0	struct timespec it_interval;
 		@0x10	struct timespec it_value;

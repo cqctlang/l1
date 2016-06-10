@@ -19,7 +19,7 @@
 @define ntype2str(elfdom, ntype)
 {
 	@local s;
-	
+
 	switch(ntype) {
 	case elfdom`NT_PRSTATUS:
 		s = "NT_PRSTATUS (prstatus structure)";
@@ -81,7 +81,7 @@
 	default:
 		s = sprintfa("UNKNOWN: 0x%x", ntype);
 	}
-	
+
 	return s;
 }
 
@@ -116,7 +116,7 @@ gzip_names = @names c32le {
 		FNAME		= 8,
 		FCOMMENT	= 16
 	};
-	
+
 	struct gzip_header {
 		@0 unsigned char ID1;
 		@1 unsigned char ID2;
@@ -148,7 +148,7 @@ gzip_names = @names c32le {
 		printf("usage: %s <ELF_corefile>\n",progname);
 		return 1;
 	}
-	
+
 	infile = listref(args, 0);
 
 	elfstr = mapfile(infile);
@@ -157,7 +157,7 @@ gzip_names = @names c32le {
 
 		gzd=mkdom(gzip_names,mksas(elfstr));
 		gz=&gzd`gzip;
-	
+
 		if( (gz->ID1 != 0x1f) || (gz->ID2 != 0x8b) ) {
 			fprintf(stderr,"core file %s is neither ELF nor gzipped ELF. Sorry.\n",infile);
 			return 1;
@@ -169,7 +169,7 @@ gzip_names = @names c32le {
 		}
 
 		c=(unsigned char *)(gz+1);
-		
+
 		if(gz->FLG & gzd`FEXTRA) {
 			fprintf(stderr,"gzip files with extra headers not yet supported\n");
 			return 1;
@@ -186,7 +186,7 @@ gzip_names = @names c32le {
 		if(gz->FLG & gzd`FHCRC) {
 			c+=2;
 		}
-		
+
 		r = inflate(c);
 		if(!r) {
 			fprintf(stderr,"could not decompress %s\n",infile);
@@ -208,7 +208,7 @@ gzip_names = @names c32le {
 	}
 	else {
 		ehdr = (elfdom`Elf64_Ehdr *){elfdom} 0;
-		pharray = (elfdom`Elf64_Phdr *) ehdr->e_phoff;		
+		pharray = (elfdom`Elf64_Phdr *) ehdr->e_phoff;
 		is32 = 0;
 	}
 
@@ -222,10 +222,10 @@ gzip_names = @names c32le {
 		if (p->p_type == elfdom`PT_NOTE) {
 			@local cur, cnt;
 
-			cur = p->p_offset; 
+			cur = p->p_offset;
 			cnt = 0;
 			while (cur  < p->p_offset +  p->p_filesz) {
-				@local nhdr; 
+				@local nhdr;
 
 				if (is32) {
 					nhdr = (elfdom`Elf32_Nhdr *) cur;
@@ -233,7 +233,7 @@ gzip_names = @names c32le {
 				else {
 					nhdr = (elfdom`Elf64_Nhdr *) cur;
 				}
-				
+
 				printf("Note %d (%s) is:  ", cnt, (char *){elfdom}(cur + sizeof(*nhdr)));
 				// cur is now data beginning
 				cur = cur + sizeof(*nhdr) + align(nhdr->n_namesz, 4);
@@ -255,7 +255,7 @@ gzip_names = @names c32le {
 						prpsinfo = (struct elfdom`compat_elf_prpsinfo *)cur;
 					}
 					if(isnil(prpsinfo)) {
-						printf("%s of unknown size %d.\n", ntype2str(elfdom, nhdr->n_type), 
+						printf("%s of unknown size %d.\n", ntype2str(elfdom, nhdr->n_type),
 						       nhdr->n_descsz);
 					}
 					else {
@@ -276,9 +276,9 @@ gzip_names = @names c32le {
 				}
 				else if (nhdr->n_type == elfdom`NT_PRSTATUS) {
 					@local prstatus;
-					
+
 					prstatus = nil;
-					
+
 					if (nhdr->n_descsz == sizeof(struct elfdom`elf_prstatus_32)) {
 						printf("32-bit PRSTATUS:\n");
 						prstatus = (struct elfdom`elf_prstatus_32 *)cur;
@@ -288,7 +288,7 @@ gzip_names = @names c32le {
 						prstatus = (struct elfdom`elf_prstatus_64 *)cur;
 					}
 					if (isnil(prstatus)) {
-						printf("%s of unknown size %d.\n", ntype2str(elfdom, nhdr->n_type), 
+						printf("%s of unknown size %d.\n", ntype2str(elfdom, nhdr->n_type),
 						       nhdr->n_descsz);
 					}
 					else {
@@ -306,14 +306,14 @@ gzip_names = @names c32le {
 					}
 				}
 				else {
-					printf("%s of unknown size %d.\n", ntype2str(elfdom, nhdr->n_type), 
+					printf("%s of unknown size %d.\n", ntype2str(elfdom, nhdr->n_type),
 					       nhdr->n_descsz);
 				}
 				// next section
 				cur = cur + align(nhdr->n_descsz, 4);
 				cnt++;
-			}			
-			
+			}
+
 			break;
 		}
 	}

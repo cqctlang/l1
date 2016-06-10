@@ -14,7 +14,7 @@ rds = [:];
 	@local this_record_key, isrecsym;
 
 	@global super_secret_record_key;
-	if(!super_secret_record_key)	
+	if(!super_secret_record_key)
 		super_secret_record_key = gensym();
 
 	@global rdsym;

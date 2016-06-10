@@ -133,7 +133,7 @@
 			id = *p++;
 			ctl = ctls[id];
 			if(ctl == nil)
-				log("received event for unknown ctl %d", id); 
+				log("received event for unknown ctl %d", id);
 			else
 				ctl.event(rep, dat);
 		}else{
@@ -190,7 +190,7 @@
 		putbytes(p, dat);
 		p += length(dat);
 		sendmsg(fd, m, (char*)p-m);
-		
+
 		taghandler[tag] = h;
 		return nil;
 	}
@@ -219,7 +219,7 @@
 		putbytes(p, dat);
 		p += length(dat);
 		sendmsg(fd, m, (char*)p-m);
-		
+
 		return runtiltag(fd, tag);
 	}
 

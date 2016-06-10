@@ -228,7 +228,7 @@
 			break;
 		}
 	}
-		
+
 	@defloc stmts(e)
 	{
 		@local p;

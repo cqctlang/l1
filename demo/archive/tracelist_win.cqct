@@ -1,14 +1,14 @@
 @include <ctlmux.cqct>
 @global address;
 
-ns = @names c32le { 
+ns = @names c32le {
 	struct Node{
 		@0x0 int v;
 		@0x4 struct Node *next;
 		@0x8;
 	};
-	@0x401000 void insert(int v); 
-	@0x40D978 struct Node *head; 
+	@0x401000 void insert(int v);
+	@0x40D978 struct Node *head;
 };
 
 @define printlist(dom)

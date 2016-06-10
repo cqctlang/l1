@@ -55,7 +55,7 @@ venti_host = "localhost";
 {
 	@local fd;
 	fd = popen("vacfs", "-d", "-h", venti_host, "-i", vac, 2);
-	session9p(fd);	
+	session9p(fd);
 	attach9p(fd, getenv("USER"));
 	stat9p(fd, 0);
 	clunk9p(fd, 0);

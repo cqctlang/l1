@@ -44,7 +44,7 @@
 		ptr=(unsigned short *)ptr; // hope for the best
 
 	retstr = mkstr(units);
-	
+
 	for(i=0;i<units;i++) {
 		v=*(ptr+i);
 		if( (  (v>=0x0000) && (v<=0xd7ff ) )
@@ -121,13 +121,13 @@
 				  -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1,
 				  -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1];
 
-	@defloc tobin(x) { 
-		@local y; 
-		y = binmapping[x]; 
-		if (y<0) 
-			error("bad hex digit"); 
-		return y; 
-	} 
+	@defloc tobin(x) {
+		@local y;
+		y = binmapping[x];
+		if (y<0)
+			error("bad hex digit");
+		return y;
+	}
 
 	@define hextobin(s)
 	{
@@ -141,7 +141,7 @@
 		return getbytes(m, n/2);
 	}
 
-		
+
 	@define bintohex(b)
 	{
 		@local i, n, m, t;

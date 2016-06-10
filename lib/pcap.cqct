@@ -29,7 +29,7 @@ pcap_names = @names c32le {
 	// from libpcap/savefile.c
 	// there are others possible
 	enum pcap_magic {
-		TCPDUMP_MAGIC		=   0xa1b2c3d4, 
+		TCPDUMP_MAGIC		=   0xa1b2c3d4,
 		KUZNETZOV_TCPDUMP_MAGIC	=   0xa1b2cd34,
 		FMESQUITA_TCPDUMP_MAGIC	=   0xa1b234cd,
 		NAVTEL_TCPDUMP_MAGIC	=   0xa12b3c4d,
@@ -46,7 +46,7 @@ pcap_names = @names c32le {
 		LINKTYPE_RAW		= 101, /* raw IP */
 	};
 
-	@0 struct pcap_hdr_s hdr;	
+	@0 struct pcap_hdr_s hdr;
 };
 
 eth_names = @names c32be {
@@ -56,7 +56,7 @@ eth_names = @names c32be {
 		@6  unsigned char   h_source[6];     /* source ether addr    */
 		@12 uint16          h_proto;         /* packet type ID field */
 		@14;
-	}; 
+	};
 
 	// not exhaustive...
 	enum proto_ids {
@@ -171,20 +171,20 @@ eth_names = @names c32be {
 
 	cur = sizeof(pdom`pcap_hdr_t);
 	cnt = 0;
-	while (cur < sz) {		
-		@local pkthdr; 
+	while (cur < sz) {
+		@local pkthdr;
 
 		pkthdr = (struct pdom`pcap_pkthdr *){pdom}cur;
 		fn(pkthdr, cnt);
 		cur = cur +  sizeof(struct pdom`pcap_pkthdr) + pkthdr->caplen;
 		cnt++;
-	}	
+	}
 }
 
 @define pcap_numpkts(pdom)
 {
 	@local cnt;
-	
+
 	cnt = 0;
 	pcap_iter(pdom, @lambda(hdr, i) { cnt++; });
 	return cnt;
@@ -194,34 +194,34 @@ eth_names = @names c32be {
 {
 	@local hdr;
 	@local fsz;
-	
+
 	fsz = pcap_domlen(pdom);
 
 	hdr = (pdom`pcap_hdr_t *){pdom}0;
 
-	printf("magic:           %e\n", 
+	printf("magic:           %e\n",
 	       (enum pdom`pcap_magic)hdr->magic_number);
 	printf("version_major:   0x%x\n", hdr->version_major);
 	printf("version_minor:   0x%x\n", hdr->version_minor);
 	printf("zone:            0x%x\n", hdr->thiszone);
 	printf("sigfigs:         0x%x\n", hdr->sigfigs);
 	printf("snaplen:         0x%x\n", hdr->snaplen);
-	printf("network:         %e\n", 
-	       (enum pdom`pcap_linktype)hdr->network);       
-	printf("File size:       %d bytes\n", fsz);     
+	printf("network:         %e\n",
+	       (enum pdom`pcap_linktype)hdr->network);
+	printf("File size:       %d bytes\n", fsz);
 	printf("Packets:         %d\n", pcap_numpkts(pdom));
 }
 
 @define ethaddr2str(addr)
 {
-	return sprintfa("%.2x:%.2x:%.2x:%.2x:%.2x:%.2x", 
-			addr[0], addr[1], addr[2], 
+	return sprintfa("%.2x:%.2x:%.2x:%.2x:%.2x:%.2x",
+			addr[0], addr[1], addr[2],
 			addr[3], addr[4], addr[5]);
 }
 
 @define ipv42str(a)
 {
-	return sprintfa("%d.%d.%d.%d", 
+	return sprintfa("%d.%d.%d.%d",
 			a >> 24, (a & 0xff0000)>>16, (a & 0xff00)>>8, (a & 0xff));
 }
 

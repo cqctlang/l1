@@ -4,7 +4,7 @@
 @include <debugutil.cqct>
 @include <json.cqct>
 
-@global 
+@global
 	/* intervals */
 	anycalls,
 	anycallsinout,
@@ -189,7 +189,7 @@ rdsetfmt(@record interval { beg, end, val },
 				part += s;
 			}
 		}
-		
+
 		@defloc w(s)
 		{
 			return write(fd, s);
@@ -201,7 +201,7 @@ rdsetfmt(@record interval { beg, end, val },
 	@defloc chconnect(db)
 	{
 		@local lb, fds;
-	
+
 		fds = popen(chquerypath, "--db", db, 2|8);
 		lb = mklinebuf(fds[0]);
 
@@ -316,7 +316,7 @@ rdsetfmt(@record interval { beg, end, val },
 			qsfd = qsfd[0];
 			qpath = fread(qsfd, 6);
 			printf("qpath is %B\n", qpath);
-		
+
 			bindq();
 
 			rs = chquery(lb, [ "cmd" : "info" ]);
@@ -336,7 +336,7 @@ rdsetfmt(@record interval { beg, end, val },
 			rs = chfilter(rs, @lambda(t) { @local v; v = t["filename"]; return v; });
 			rs = chfilter(rs, @lambda(t) { @local v; v = t["offset"]; v != nil && v == 0; });
 			rs = chfilter(rs, @lambda(t) { @local v; v = t["execute"]; v != nil && v; });
-	
+
 			nsfd = popen("sym", 2|4|8);
 			nsfd = nsfd[0];
 			sctlversion(nsfd);
@@ -557,7 +557,7 @@ rdsetfmt(@record interval { beg, end, val },
 					ts = chcollect(ts, "bytes");
 					return(hextobin(join(ts)));
 				}
-			
+
 				return hextobin(ts[0]);
 			}
 
@@ -629,7 +629,7 @@ rdsetfmt(@record interval { beg, end, val },
 			rv->thread = strton(rs["thread"], 16);
 			return rv;
 		}
-				
+
 		@defloc _ns(arg...)
 		{
 			@local idx;
@@ -721,7 +721,7 @@ rdsetfmt(@record interval { beg, end, val },
 		rs = chfilter(rs, @lambda(t) { @local v; v = t["filename"]; return v; });
 		rs = chfilter(rs, @lambda(t) { @local v; v = t["offset"]; v != nil && v == 0; });
 		rs = chfilter(rs, @lambda(t) { @local v; v = t["execute"]; v != nil && v; });
-	
+
 		nsmap = mknsmap(atnames);
 		foreach(@lambda(t){
 				@local f, abase, vbase;
@@ -935,7 +935,7 @@ rdsetfmt(@record interval { beg, end, val },
 					ts = chcollect(ts, "bytes");
 					return(hextobin(join(ts)));
 				}
-			
+
 				return hextobin(ts[0]);
 			}
 
@@ -1007,7 +1007,7 @@ rdsetfmt(@record interval { beg, end, val },
 			rv->thread = strton(rs["thread"], 16);
 			return rv;
 		}
-				
+
 		@defloc _ns(arg...)
 		{
 			@local idx;
@@ -1149,7 +1149,7 @@ rdsetfmt(@record interval { beg, end, val },
 	@define callrets(db, iv, fptr)
 	{
 		@local ct, rt, ps, n, ivs;
-		
+
 		ct = @typeof(fptr);
 		if(!isptr(ct) || !isfunc(subtype(ct)))
 			error("cannot determine function argument types");
@@ -1275,7 +1275,7 @@ rdsetfmt(@record interval { beg, end, val },
 	@define fmtldom(ctl, ctx, t)
 	{
 		@local s, ldom;
-		s = "";	
+		s = "";
 		ldom = ctl.ldom(t, ctx);
 		if(ldom == nil)
 			return s;
@@ -1304,7 +1304,7 @@ rdsetfmt(@record interval { beg, end, val },
 				@local ctx;
 				ctx = ctl.ctx(t);
 				append(pcht[ctx->pc], t);
-			}, ts);		
+			}, ts);
 
 		stkht = mktab(mklist);
 		foreach(@lambda(pc, ts){
@@ -1397,7 +1397,7 @@ rdsetfmt(@record interval { beg, end, val },
 		push(args, "--tool=chronicle");
 		push(args, chvalgrpath);
 		fds = apply(popen, args);
-	
+
 		while(buf = read(fds[2], 1024))
 //		if(chverbose)
 			printf("*** %s", buf);
@@ -1591,7 +1591,7 @@ rdsetfmt(@record interval { beg, end, val },
 						pop(bvs);
 						append(navs, pop(avs));
 						append(nbvs, interval(bb, ae, bv.val));
-						push(bvs, interval(ae, be, bv.val)); 
+						push(bvs, interval(ae, be, bv.val));
 						return loop(avs, bvs, navs, nbvs, cnt);
 					}else if(ab > bb && ae <= be){
 						pop(avs);
@@ -1682,7 +1682,7 @@ rdsetfmt(@record interval { beg, end, val },
 						error("bug");
 					pop(avs);
 					pop(bvs);
-					return loop(avs, bvs, rv);				
+					return loop(avs, bvs, rv);
 				}
 			}
 		}

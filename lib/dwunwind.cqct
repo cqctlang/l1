@@ -5,7 +5,7 @@
 	;
 
 {
-@local uwns;	
+@local uwns;
 
 uwns = @names c32le {
 	typedef
@@ -106,7 +106,7 @@ uwns = @names c32le {
 
 	/* copy ctx */
 	new = {@typeof(ctx)}getbytes(ctx);
-	
+
 	@defloc g(r)
 	{
 		switch(r){
@@ -145,7 +145,7 @@ uwns = @names c32le {
 	{
 		return *(uintptr*){dom}a;
 	}
-	
+
 	return [g, s, m, new, 4];
 }
 
@@ -155,7 +155,7 @@ uwns = @names c32le {
 
 	/* copy ctx */
 	new = {@typeof(ctx)}getbytes(ctx);
-	
+
 	@defloc g(r)
 	{
 		switch(r){
@@ -228,7 +228,7 @@ uwns = @names c32le {
 	{
 		return *(uintptr*){dom}a;
 	}
-	
+
 	return [g, s, m, new, 7];
 }
 
@@ -238,7 +238,7 @@ uwns = @names c32le {
 
 	/* copy ctx */
 	new = {@typeof(ctx)}getbytes(ctx);
-	
+
 	@defloc g(r)
 	{
 		switch(r){
@@ -291,7 +291,7 @@ uwns = @names c32le {
 	{
 		return *(uintptr*){dom}a;
 	}
-	
+
 	return [g, s, m, new, 13];
 }
 
@@ -329,7 +329,7 @@ uwns = @names c32le {
 	mkuwctx = pickmkuwctx(ns);
 	[g, s, m, new, spno] = mkuwctx(dom, ctx);
 	applyunwind(rs, g, s, m, spno);
-	return new; 
+	return new;
 guess:
 	if(ctx->fp == 0)
 		return nil;

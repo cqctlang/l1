@@ -73,7 +73,7 @@
 	dp=nil;
 	dpn=nil;
 	eps=[];
-	
+
 	do_udp=0;
 	do_l=0;
 
@@ -100,7 +100,7 @@
 					progname,args[c]);
 				return 1;
 			}
-		
+
 			f=mapfile(args[c+1]);
 			if(isnil(f)) {
 				fprintf(stderr,"%s: unable to open %s\n",
@@ -120,7 +120,7 @@
 				fprintf(stderr,"%s: unable to compile %s\n",
 					progname,args[c+1]);
 				return 1;
-			} 
+			}
 
 			cp();
 
@@ -136,7 +136,7 @@
 					progname,args[c]);
 				return 1;
 			}
-		
+
 			p=parse(args[c+1]+";");
 			if(isnil(p)) {
 				fprintf(stderr,"%s: unable to parse %s\n",
@@ -149,7 +149,7 @@
 				fprintf(stderr,"%s: unable to compile %s\n",
 					progname,args[c+1]);
 				return 1;
-			} 
+			}
 
 			append(eps,cp());
 
@@ -166,7 +166,7 @@
 					progname,args[c]);
 				return 1;
 			}
-	
+
 			f=args[c+1];
 			fs=mapfile(f);
 			if(isnil(fs)) {
@@ -209,7 +209,7 @@
 					progname,args[c]);
 				return 1;
 			}
-	
+
 			f=args[c+1];
 			ff=open(f,"w");
 			if(isnil(ff)) {
@@ -232,7 +232,7 @@
 			pc->network=pcd`LINKTYPE_RAW; // an imaginary type;
 
 			write(ff,pcs);
-		
+
 			append(eps,@lambda(args ...) {
 				if(do_udp) {
 					@local s,framestr,frameptr,t;
@@ -338,7 +338,7 @@
 	};
 
 	if(!isnil(dp)) {
-		dpn=strton(dp);	
+		dpn=strton(dp);
 		if(isnil(dpn)) {
 			fprintf(stderr,"%s: server port %s is not a number\n",
 				progname,dp);
@@ -346,7 +346,7 @@
 		}
 	}
 
-	
+
 	if(!isnil(dh)) {
 		dhn=gethostbyname(dh);
 		if(isnil(dhn)) {
@@ -383,11 +383,11 @@
 				}
 			});
 		}
-	} 
+	}
 
 	if(do_udp) {
 		@local dgram_buffer;
-		
+
 		if(do_replay) {
 			@local frameptr,ipptr,sal;
 			@local fake_sockaddr;
@@ -417,11 +417,11 @@
 					goto doneframe;
 
 				fake_sockaddr=mkdom(unix,mksas(mkstr(sal)));
-				fake_sockaddr=(struct sockaddr_in *){fake_sockaddr}0;	
-		
+				fake_sockaddr=(struct sockaddr_in *){fake_sockaddr}0;
+
 				fake_sockaddr->sin_addr.s_addr=ipptr->ip_src;
-				
-				ipptr++;	
+
+				ipptr++;
 				ipptr=(struct udphdr *)ipptr;
 
 				fake_sockaddr->sin_port=ipptr->source;
@@ -449,7 +449,7 @@
 				fprintf(stderr,"couldn't create socket");
 				return 1;
 			}
-	
+
 			r=bind_inet_socket(s,dhn,dpn);
 			if(r) {
 				fprintf(stderr,"%s: failed to bind server\n",progname);
@@ -466,21 +466,21 @@
 					return 1;
 				}
 			}
-	
+
 			while(1) {
 				@local safoo,safoos,l;
-	
+
 				dgram_buffer=(unsigned char *)malloc(4096);
-				
+
 				safoo=(struct unix`sockaddr_in *)malloc(
 						sizeof(struct unix`sockaddr_in));
 				safoos=(long *)malloc(sizeof(long));
 				*safoos=sizeof(struct unix`sockaddr_in);
-	
+
 				r=(int)syscall(unix`recvfrom,s,dgram_buffer,4096,0,safoo,safoos);
 				if(r < 0)
 					continue;
-	
+
 				l=*safoos;
 				foreach(@lambda(v) {
 					@local sac;
@@ -523,7 +523,7 @@
 
 		while(1) {
 			@local safoo,safoos;
-			
+
 			safoo=(struct unix`sockaddr_in *)malloc(
 					sizeof(struct unix`sockaddr_in));
 			safoos=(long *)malloc(sizeof(long));
@@ -555,7 +555,7 @@
 				r=read(stdin,4096);
 				if(!r)
 					break;
-				
+
 				write(s,r);
 			}
 		}

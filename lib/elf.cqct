@@ -39,7 +39,7 @@ elf_defined = 1;
 * Tests a string to see if it is ELF.
 * param: stroras - a string or an address space
 * returns:	1 -- the string may be valid ELF
-*		0 -- the string is certianly not ELF	
+*		0 -- the string is certianly not ELF
 */
 @define iself (stroras) {
 	@local sig;
@@ -54,7 +54,7 @@ elf_defined = 1;
 			return 1;
 
 	} else if(isstring(stroras)) {
-	
+
 		if ( 	( length(stroras) < 4 ) ||
 			( substr(stroras,0,length(sig)) != sig ) )
 
@@ -129,7 +129,7 @@ elf_defined = 1;
   else
     error ("unsupported ELF class: %d", elfheader[hdom`EI_CLASS]);
   rv.rootns = root;
-  elfnames = @names root { @include "elf.names" };  
+  elfnames = @names root { @include "elf.names" };
   rv.elf = mkdom (elfnames, elfas);
   return rv;
 }
@@ -424,7 +424,7 @@ elf_defined = 1;
   @local syml, sl, symind;
 
   syml = [];
-  
+
   if (sizeof (edom.ns.looktype(@typename(void *))) == 4) {
     e = (edom`Elf32_Ehdr *){edom} 0;
     shbase = (edom`Elf32_Shdr *) (e->e_shoff);
@@ -525,7 +525,7 @@ elf_defined = 1;
 }
 
 /**
-* return a byte string containing the data of an ELF section 
+* return a byte string containing the data of an ELF section
 * param: edom - the elf domain
 * name: the name of the section
 * returns: a byte string containing the data of an ELF section
@@ -562,7 +562,7 @@ elf_defined = 1;
   }
   return "";
 }
-  
+
 /**
 * Get the name of an elf section. This function does not check that there
 * actually is a section at that index.
@@ -588,8 +588,8 @@ elf_defined = 1;
   st = (unsigned char *) sarray[e->e_shstrndx].sh_offset;
   return stringof (st + sarray[ind].sh_name);
 }
-  
-/** return the header for an ELF segment 
+
+/** return the header for an ELF segment
 * param: edom - an elf domain
 * param: n - an index for the given header.
 * returns: an ElfXX_Phdr* pointer
@@ -622,7 +622,7 @@ elf_defined = 1;
 }
 
 /**
-* return a byte string containing the data of an ELF section 
+* return a byte string containing the data of an ELF section
 * param: edom - an elf domain
 * param: n - the index of the elf section
 * returns: a string containing the data in that section
@@ -639,7 +639,7 @@ elf_defined = 1;
     }
     /* get the base of the segment header table */
     pharray = (edom`Elf32_Phdr *) e->e_phoff;
-    
+
     ph = (edom`Elf32_Phdr *) (&pharray [cnt]);
     return getbytes ((char *)ph->p_paddr, ph->p_filesz);
   }
@@ -652,7 +652,7 @@ elf_defined = 1;
     }
     /* get the base of the segment header table */
     pharray = (edom`Elf64_Phdr *) e->e_phoff;
-    
+
     ph = (edom`Elf64_Phdr *) (&pharray [cnt]);
     return getbytes ((char *)ph->p_paddr, ph->p_filesz);
   }
@@ -675,7 +675,7 @@ elf_defined = 1;
 }
 
 /** Convert a raw ELF symbol from the binary into a Cinquecento list of
-*   the processed field values. 
+*   the processed field values.
 * param: edom - an elf domain
 * param: esym - an ElfXX_Sym*
 * param: name - the symbol's name
@@ -741,7 +741,7 @@ elf_defined = 1;
   vecset (result, 5, esym->st_info);
   vecset (result, 6, esym->st_other);
   vecset (result, 7, esym->st_shndx);
-  
+
   return result;
 }
 

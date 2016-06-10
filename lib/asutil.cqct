@@ -3,7 +3,7 @@
 
 //Utility functions for address spaces.
 
-//contents: 
+//contents:
 // asload: loads an as from a file
 // assave: writes an address space to a file
 // asload_str: loads an as from a string
@@ -11,7 +11,7 @@
 // ascopy: returns a copy of a given address space.
 //
 //NOTE: when saving an AS, any addresses returned by map()
-//that are not actually mapped will be mapped with a value 
+//that are not actually mapped will be mapped with a value
 //of 0 in the loaded version of the AS.
 
 if (asutil_defined == nil)
@@ -48,7 +48,7 @@ asfile_identifier="AS1";
 						p->num_ranges)];
 				}]      adr_range ranges[];
 			@0xc;
-			
+
 		};
 	};
 }
@@ -69,7 +69,7 @@ asfile_identifier="AS1";
 /**
 * for creating an address space out of the string representation of an address
 * space returned by assave_str.
-* param: as_str a string representation of an address space returned by 
+* param: as_str a string representation of an address space returned by
 *        assave_str
 * returns: an address space
 */
@@ -136,7 +136,7 @@ asfile_identifier="AS1";
 
 /**
 * Translates the given address space to a string.
-* Relies on as.map() to provide a list of mapped regions. 
+* Relies on as.map() to provide a list of mapped regions.
 * param: as is the address space to be converted
 * returns: a binary string representation of as
 */
@@ -146,7 +146,7 @@ asfile_identifier="AS1";
 	@local size, svdom, ns, tmpdom, p, q;
 	//general strategy: create a new address space
 	//backed by a string. Then write that string to
-	//disk. 
+	//disk.
 
 	//first calculate the necessary size for the as.
 	ranges = as.map();
@@ -158,7 +158,7 @@ asfile_identifier="AS1";
 	//now calculate the size of the meta data.
 	ns = svasns();
 	tmpdom = mkdom(ns,mkzas(sizeof(@typeof(struct ns`adr_range))*
-				length(ranges) + 
+				length(ranges) +
 				sizeof(@typeof(struct ns`adr_ranges))));
 	p = (struct tmpdom`adr_ranges*){tmpdom}0;
 	p->num_ranges = length(ranges);
@@ -186,7 +186,7 @@ asfile_identifier="AS1";
 				if (ismapped(r+j)) *(q+j) = *(r+j);
 				else printf("Error: 0x%x in source AS "
 					    "unmapped.\n",r+j);
-					    
+
 			}
 		}
 		q += len;
@@ -212,7 +212,7 @@ asfile_identifier="AS1";
 
 /**
 * Use this to load an address space from a file to which an address space was
-* previously saved via assave. Changes to the address space will NOT be 
+* previously saved via assave. Changes to the address space will NOT be
 * reflected in the file.
 * param: filename - the file to load from.
 * returns: a copy of the address space saved in the file.

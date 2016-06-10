@@ -28,7 +28,7 @@ of the type of p.
 if (dynamictypes_defined == nil)
 {
 @local unrollTypedef;
-@global REFINE_KEY, refine, dynamictypes_example; 
+@global REFINE_KEY, refine, dynamictypes_example;
 
 dynamictypes_defined = 1;
 
@@ -63,19 +63,19 @@ REFINE_KEY = "refine";
 		if (refiner == nil) {
 			@local t;
 			//maybe we should copy so that a change
-			//to the original struct doesn't change 
+			//to the original struct doesn't change
 			//the new type. But maybe we shouldn't...
-			new_flds[i] = flds[i]; 
+			new_flds[i] = flds[i];
 			t = symtype(new_flds[i]);
 			if (isarray(t) && arraynelm(t) == nil)
-				fld_sz = symoff(flds[i]); 
+				fld_sz = symoff(flds[i]);
 			else fld_sz = sizeof(symtype(new_flds[i]))+symoff(flds[i]);
 			if (fld_sz != nil && fld_sz > new_sz)
 				new_sz = fld_sz;
 		} else {
 			@local new_off, new_t;
 			[new_off,new_t] = refiner(p);
-			new_flds[i] = 
+			new_flds[i] =
 				mkfield(new_t,fieldid(flds[i]),new_off);
 			new_flds[i][2] = copy(flds[i][2]);
 			new_flds[i][2]["offset"] = new_off;
@@ -94,7 +94,7 @@ An example of how one might use dynamic types.
 @define dynamictypes_example() { @with_imports(memstr) {
 	@local ns,dom,q,i;
 	ns = @names c64le {
-		
+
 		struct Vector {
 			@0 int size;
 			@["offset" : 4,
@@ -120,7 +120,7 @@ An example of how one might use dynamic types.
 				dom = domof(p);
 				switch (p->type) {
 				case dom`T_INT: return [4,@typeof(dom`int*)];
-				case dom`T_VEC: 
+				case dom`T_VEC:
 					return [4,
 						subtype(
 					 @typeof(struct dom`Vector*))];
@@ -155,8 +155,8 @@ An example of how one might use dynamic types.
 	q = (struct dom`EnumPtr*)q;
 	q->type = dom`T_INT;
 	q = refine(q);
-	q->contents = &(dom`vector.data[3]); 
-		
+	q->contents = &(dom`vector.data[3]);
+
 
 	//traversing the data struct
 	q = &dom`vector;

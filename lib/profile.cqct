@@ -57,7 +57,7 @@
 	profiles[stxval(name)][3] = src;
 
 	elist = body[0][1];
-	
+
 	goto_goto_blocks=#[];
 
 	// todo:
@@ -68,7 +68,7 @@
 	accounting_block = #`{
 		{
 			@local t,l;
-	
+
 			t = profiles[#,(name)];
 			l = profentries[#,(ssym)];
 			t[0]++;
@@ -78,17 +78,17 @@
 				fprintf(stderr,"@profile: accounting disrupted by non-local entry\n");
 		}
 	};
-	
+
 	multi_rewriter = @lambda(v,isinner) {
 		if(stxkind(v) == 'ret) {
 			have_ret = 1;
 			#`{ #,(rsym) = #,(v[0]); goto #,(lsym); };
 		} else if( (stxkind(v) == 'break) && !isinner) {
 			have_break = 1;
-			#`{ goto #,(bsym); };	
+			#`{ goto #,(bsym); };
 		} else if( (stxkind(v) == 'continue) && !isinner) {
 			have_continue = 1;
-			#`{ goto #,(csym); };	
+			#`{ goto #,(csym); };
 		} else if(stxkind(v) == 'scope) {
 			#scope(multi_rewriter(v[0],isinner));
 		} else if(stxkind(v) == 'block) {
@@ -114,7 +114,7 @@
 				return v;
 			} else {
 				@local tsym;
-				
+
 				tsym=gensym();
 				have_goto = 1;
 				goto_goto_blocks=#[
@@ -143,9 +143,9 @@
 		} else if(stxkind(v) == 'if) {
 			if(v[2]) {
 				get_labels(v[1]);
-				get_labels(v[2]);	
+				get_labels(v[2]);
 			} else
-				get_labels(v[1]);	
+				get_labels(v[1]);
 		} else if(stxkind(v) == 'while) {
 			get_labels(v[1]);
 		} else if(stxkind(v) == 'for) {
@@ -175,7 +175,7 @@
 
 	if(have_break) {
 		goto_break_block=#`{
-			#,(bsym):	
+			#,(bsym):
 				#,(accounting_block);
 				break;
 		};
@@ -184,7 +184,7 @@
 
 	if(have_continue) {
 		goto_continue_block=#`{
-			#,(csym):	
+			#,(csym):
 				#,(accounting_block);
 				continue;
 		};

@@ -21,7 +21,7 @@
 @define ntype2str(elfdom, ntype)
 {
 	@local s;
-	
+
 	switch(ntype) {
 	case elfdom`NT_PRSTATUS:
 		s = "NT_PRSTATUS (prstatus structure)";
@@ -83,7 +83,7 @@
 	default:
 		s = sprintfa("UNKNOWN: 0x%x", ntype);
 	}
-	
+
 	return s;
 }
 
@@ -100,7 +100,7 @@
 		printf("usage: coreinfo.cqct <corefile>\n");
 		return -1;
 	}
-	
+
 	infile = listref(args, 0);
 
 	elfdom = mkelfrec(mapfile(infile)).elf;
@@ -112,7 +112,7 @@
 	}
 	else {
 		ehdr = (elfdom`Elf64_Ehdr *){elfdom} 0;
-		pharray = (elfdom`Elf64_Phdr *) ehdr->e_phoff;		
+		pharray = (elfdom`Elf64_Phdr *) ehdr->e_phoff;
 		is32 = 0;
 	}
 
@@ -126,10 +126,10 @@
 		if (p->p_type == elfdom`PT_NOTE) {
 			@local cur, cnt;
 
-			cur = p->p_offset; 
+			cur = p->p_offset;
 			cnt = 0;
 			while (cur  < p->p_offset +  p->p_filesz) {
-				@local nhdr; 
+				@local nhdr;
 
 				if (is32) {
 					nhdr = (elfdom`Elf32_Nhdr *) cur;
@@ -137,7 +137,7 @@
 				else {
 					nhdr = (elfdom`Elf64_Nhdr *) cur;
 				}
-				
+
 				printf("Note %d (%s) is:  ", cnt, (char *){elfdom}(cur + sizeof(*nhdr)));
 				// cur is now data beginning
 				cur = cur + sizeof(*nhdr) + align(nhdr->n_namesz, 4);
@@ -159,7 +159,7 @@
 						prpsinfo = (struct elfdom`compat_elf_prpsinfo *)cur;
 					}
 					if(isnil(prpsinfo)) {
-						printf("%s of unknown size %d.\n", ntype2str(elfdom, nhdr->n_type), 
+						printf("%s of unknown size %d.\n", ntype2str(elfdom, nhdr->n_type),
 						       nhdr->n_descsz);
 					}
 					else {
@@ -180,9 +180,9 @@
 				}
 				else if (nhdr->n_type == elfdom`NT_PRSTATUS) {
 					@local prstatus;
-					
+
 					prstatus = nil;
-					
+
 					if (nhdr->n_descsz == sizeof(struct elfdom`elf_prstatus_32)) {
 						printf("32-bit PRSTATUS:\n");
 						prstatus = (struct elfdom`elf_prstatus_32 *)cur;
@@ -192,7 +192,7 @@
 						prstatus = (struct elfdom`elf_prstatus_64 *)cur;
 					}
 					if (isnil(prstatus)) {
-						printf("%s of unknown size %d.\n", ntype2str(elfdom, nhdr->n_type), 
+						printf("%s of unknown size %d.\n", ntype2str(elfdom, nhdr->n_type),
 						       nhdr->n_descsz);
 					}
 					else {
@@ -209,14 +209,14 @@
 					}
 				}
 				else {
-					printf("%s of unknown size %d.\n", ntype2str(elfdom, nhdr->n_type), 
+					printf("%s of unknown size %d.\n", ntype2str(elfdom, nhdr->n_type),
 					       nhdr->n_descsz);
 				}
 				// next section
 				cur = cur + align(nhdr->n_descsz, 4);
 				cnt++;
-			}			
-			
+			}
+
 			break;
 		}
 	}

@@ -1,7 +1,7 @@
 @define fmtldom(ctl, ctx)
 {
 	@local s, ldom;
-	s = "";	
+	s = "";
 	ldom = ctl.ldom(ctx);
 	if(ldom == nil)
 		return s;
@@ -109,7 +109,7 @@
 				ctx = ctl.ctx();
 				dom = mkdom(ns, ctl.mem());
 				args = [ctl];
-				// first six args in rdi, rsi, rdx, rcx, r8, r9 
+				// first six args in rdi, rsi, rdx, rcx, r8, r9
 				// float args in xmm*
 				rs = [ {dom}ctx->rdi,
 				       {dom}ctx->rsi,

@@ -65,7 +65,7 @@
 		foreach(@lambda(r) { printf("\t%d\n", r.id); }, ids);
 		serialize();
 	}
-		       
+
 	mux = mkctlmux_local();
 	ctl = mux.launch(["./par1"], 0);
 	as = ctl.mem();

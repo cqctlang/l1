@@ -328,7 +328,7 @@ dom9p = mkdom(ns9p, mknas());
 		error("Rversion is too short");
 	p += 1;  // Rversion
 	tag = *(uint16*)p;
-	p += 2;	
+	p += 2;
 	msize = *(uint32*)p;
 	p += 4;
 	len = *(uint16*)p;
@@ -348,7 +348,7 @@ dom9p = mkdom(ns9p, mknas());
 		error("bad Rattach");
 	p += 1;  // Rattach
 	tag = *(uint16*)p;
-	p += 2;	
+	p += 2;
 	qid = (Qid*)p;
 	if(0)printf("Rattach: tag=%u qid=%s\n", tag, fmtqid(qid));
 	return [ qid ];
@@ -373,7 +373,7 @@ dom9p = mkdom(ns9p, mknas());
 	p += slen;
 	r += slen;
 	*r++ = 0;
-	
+
 	slen = *(uint16*)p;
 	p += 2;
 	q->uid = r;
@@ -418,7 +418,7 @@ dom9p = mkdom(ns9p, mknas());
 		error("Rstat is too short");
 	p += 1;  // Rstat
 	tag = *(uint16*)p;
-	p += 2;	
+	p += 2;
 	len = *(uint16*)p;
 	p += 2;
 	if(sz != 1+2+2+len)
@@ -950,7 +950,7 @@ dom9p = mkdom(ns9p, mknas());
 			error(rv);
 		return rv[0];
 	}
-			
+
 
 	@define xread(xfd, len)
 	{
@@ -1097,7 +1097,7 @@ dom9p = mkdom(ns9p, mknas());
 	open9p(fd, 1, dom9p`OREAD);
 	read9p(fd, 1, 0, 128);
 	clunk9p(fd, 1);
-	
+
 	walk9p(fd, 0, 2, "/etc");
 	stat9p(fd, 2);
 	open9p(fd, 2, dom9p`OREAD);
@@ -1131,7 +1131,7 @@ dom9p = mkdom(ns9p, mknas());
 	dumpstat(mnt.fstat(fd));
 
 	fd = mnt.open("/etc/bash_completion", dom9p`OREAD);
-	
+
 	as = mnt.mmap(fd);
 	p = (unsigned char*){mkdom(c32le, as)}0;
 	st = mnt.fstat(fd);

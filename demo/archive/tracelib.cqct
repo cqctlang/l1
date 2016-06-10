@@ -76,7 +76,7 @@ if(1){
 			 printf("setting trap at %p %y\n", &liba`a1, &liba`a1);
 			 ctl.trap('brk, &liba`a1, dumpcontext);
 			 printf("enter main\n");
-			 
+
 		 });
 
 

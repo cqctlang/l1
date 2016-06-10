@@ -19,7 +19,7 @@
   The API semantics for "groups" and "blanks" are
   taken from:
 
-  [2] Swierstra ,S. Doaitse, and Olaf Chitil. Linear, 
+  [2] Swierstra ,S. Doaitse, and Olaf Chitil. Linear,
 	  bounded, functional pretty-printing. Journal of
 	  Functional Programming 10.01 (2009); 1-16
 
@@ -36,14 +36,14 @@
 /*
   Make a pretty printer for some type of object
 
-  A pretty printer prints objects in such a way as to avoid 
-  surpassing a given line with if possible (but not adding 
-  in extra newlines if necessary). 
+  A pretty printer prints objects in such a way as to avoid
+  surpassing a given line with if possible (but not adding
+  in extra newlines if necessary).
 
   The parameters are:
   pr: output function, called as pr(s). Should "print" the string s.
-	  The function ppprint is a provided default such function that 
-	  prints to stdout. 
+	  The function ppprint is a provided default such function that
+	  prints to stdout.
   docify: creates the "document" to be printed (decribed below)
 		  called as docify(e,queue,ppobj).
   ppmargin: size of the margin
@@ -68,14 +68,14 @@
   represent the passed value v.
 
   The rules for printing are (derived from [2])
-  1) The symbols between a "left" symbol and a matching "right" symbol are a 
+  1) The symbols between a "left" symbol and a matching "right" symbol are a
 	 group. Groups can be recursive. There is an implicit topmost group.
   2) All "blank" symbols directly within a given group (i.e. within
-	 the group but not within any of the group's subgroups) are 
-	 formatted the same: as newlines or as whitespace. If the blank 
-	 symbols within a group are formatted as newlines, we say the group 
+	 the group but not within any of the group's subgroups) are
+	 formatted the same: as newlines or as whitespace. If the blank
+	 symbols within a group are formatted as newlines, we say the group
 	 is vertical, if formatted as spaces, we say the group is horizontal.
-  3) Excepting the topmost group, if a group is formatted horizontally, then 
+  3) Excepting the topmost group, if a group is formatted horizontally, then
 	 all subgroups of that group must also be formatted horizontally
   4) All newlines within a given group are given the same level of indentation.
 	 Where the indentation starts is determined by the group type. See group
@@ -83,20 +83,20 @@
   5) If a group cannot fit on a line within the available width,
 	 then it is converted to a vertical group.
 
-  Group types: 
-	All groups have a type and an indentation level. These define how 
+  Group types:
+	All groups have a type and an indentation level. These define how
 	indentation after a newline will be handled. The group type specifies
 	where the post-newline indentation will start from (i.e. with respect to
-	the leftmost column, with respect to the previous newline, etc). 
+	the leftmost column, with respect to the previous newline, etc).
 	There are three group types:
-	'nlleft: New line left groups indent their new lines starting at the 
-			 leftmost margin. 
-	'nlhere: New line here groups indent their new lines starting from the 
+	'nlleft: New line left groups indent their new lines starting at the
+			 leftmost margin.
+	'nlhere: New line here groups indent their new lines starting from the
 			 current column.
 	'nloff:  New line off groups indent their new lines starting from the
-			 column on which the last group started.  
+			 column on which the last group started.
 
-  The ppobj is an object that gives access to constructors for these kinds of 
+  The ppobj is an object that gives access to constructors for these kinds of
   objects. The fields of the ppobj are:
 	 mkgroup	: called as ppobj.mkgroup(type,indent,lst). The output
 				  is a properly specified group of the given type with the
@@ -109,9 +109,9 @@
 	 mkogroup	: called as ppobj.mkogroup(indent,lst). See mkgroup above,
 				  except that the group created is a "off" ('nloff) group.
 	 mkblank	: called as ppobj.mkblank(n). Creates a blank n spaces long.
-	 blank		: a blank one space long. 
-	 linebreak  : blank gauranteed to force a newline. 
-  
+	 blank		: a blank one space long.
+	 linebreak  : blank gauranteed to force a newline.
+
 */
 @define mkpp(pr,docify,ppmargin)
 {
@@ -338,7 +338,7 @@
 				buf[r] = x;
 				len[r] = (int)length(x);
 				rt += (int)length(x);
-				break;			
+				break;
 			}
 			loop();
 		}
@@ -385,7 +385,7 @@
 		'mkogroup	: mkogroup,
 	]);
 
-	
+
 	@defloc pp(e,args...) {
 		if(e == nil)
 			return;

@@ -66,14 +66,14 @@ debug = 0;
                 }
                 for(;idx<len;++idx) {
                     if (re[idx] == ']') break;
-                    if (re[idx] == '-' && last != nil && 
-                        idx+1<len && re[idx+1] != ']') 
+                    if (re[idx] == '-' && last != nil &&
+                        idx+1<len && re[idx+1] != ']')
                     {
                       @local x;
-                      if (re[idx+1] >= last) 
+                      if (re[idx+1] >= last)
                         for(x=last; x<=re[idx+1]; ++x)
                           sub[x] = 1;
-                      else 
+                      else
                         for(x=re[idx+1]; x<=last; ++x)
                           sub[x] = 1;
                       last = nil;
@@ -132,14 +132,14 @@ debug = 0;
                   --i; //only move back 1
                 }
                 break;
-            case 'star: 
+            case 'star:
                 if (lst[i-1][0] != 'star)
                     lst[i-1] = ['star,lst[i-1],nil];
                 listdel(lst,i);
                 --len;
                 --i; //only move back 1
                 break;
-            case 'maybe: 
+            case 'maybe:
                 if (lst[i-1][0] != 'maybe)
                     lst[i-1] = ['maybe,lst[i-1],nil];
                 listdel(lst,i);
@@ -226,11 +226,11 @@ max_depth = 4;
     if (debug) {
       printf("nxt_nodes with chr=%c and type=%s\n",
               chr == nil ? 0 : chr, node[0]);
-      printf("%s next: %s\n",node_str(node), 
+      printf("%s next: %s\n",node_str(node),
               node[0]=='chr ? node_str(node[2]) : "");
     }
     switch(node[0]) {
-    case 'any: 
+    case 'any:
         if (chr != nil) return [node[1]];
         else return [];
     case 'chr:
@@ -259,7 +259,7 @@ max_depth = 4;
         }
     case 'sub:
         return nxt_nodes(chr,node[1][0]);
-    case 'match: 
+    case 'match:
         if (chr == nil) return [node];
         else return [];
     default:
@@ -274,7 +274,7 @@ max_depth = 4;
     return dfa_match_helper(str,tab,0,1) >= 0;
 }
 
-//if entire_string is 1, only return true if the 
+//if entire_string is 1, only return true if the
 //entire string matches.
 @define dfa_match_helper(str,nodes,idx,entire_string) {
     @local len,i,ret,contains_match,idx2;
@@ -290,7 +290,7 @@ max_depth = 4;
         ret = tabkeys(ret);
         len = length(ret);
         for(i=0; i<len; ++i) {
-            if (ret[i][0] == 'match) 
+            if (ret[i][0] == 'match)
               return idx == 0 ? 0 : idx-1;
         }
         return -1;
@@ -341,7 +341,7 @@ max_depth = 4;
 
 //re_findend(re,str [, startidx])
 //attempts to match re against str starting at startidx (default 0)
-//returns -1 if no match, or the index of the end of the 
+//returns -1 if no match, or the index of the end of the
 //largest possible match if one exists
 @define re_findend(re,str,args...) {
   @local dfa,tab,start;

@@ -160,7 +160,7 @@
 			  regs = ctl.reg();
 			  dom = mkdom(dom.ns, ctl.mem());
 			  args = [ctl];
-			  // first six args in rdi, rsi, rdx, rcx, r8, r9 
+			  // first six args in rdi, rsi, rdx, rcx, r8, r9
 			  // float args in xmm*
 			  rs = [ {dom}regs->rdi,
 				 {dom}regs->rsi,

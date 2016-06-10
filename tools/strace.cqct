@@ -192,7 +192,7 @@ prototypes['write]=['fd,nil,'int];
 			} else {
 				for(x=0;x<sizeof(*buf);x++) {
 					c=*((unsigned char *)buf+x);
-					if(c) 
+					if(c)
 						rstr+=sprintfa("%c",c);
 					else
 						goto done;
@@ -206,7 +206,7 @@ prototypes['write]=['fd,nil,'int];
 	p=sys_fork();
 	if(p == -1) {
 		fprintf(stderr,"%s: fork failed\n",progname);
-		sys_exit(1);	
+		sys_exit(1);
 	}
 
 	if(!p) {
@@ -245,9 +245,9 @@ prototypes['write]=['fd,nil,'int];
 
 			if( (cp != ocp) ) {
 				if(states[ocp] == 'entry)
-					printf(" <interrupted>\n"); 
+					printf(" <interrupted>\n");
 				if(states[cp] == 'exit)
-					printf("<resumed> "); 
+					printf("<resumed> ");
 			}
 
 			if(states[cp] == 'entry) {

@@ -46,7 +46,7 @@
 
 	if(0 > sys_fstat(fdno, st)) {
 		error("couldn't stat fd %a", fd);
-	} 
+	}
 
 	if(S_ISBLK(st)) {
 		@local sb,r;
@@ -82,7 +82,7 @@
 	if(p == -1) {
 		// we can try with noreserve on a platform that supports it
 		if(looksym(unix,'MAP_NORESERVE)) {
-			p = sys_mmap(0, s, m, unix`MAP_NORESERVE|f, fdno, 0); 
+			p = sys_mmap(0, s, m, unix`MAP_NORESERVE|f, fdno, 0);
 		}
 	}
 
@@ -115,19 +115,19 @@
 	if(!isnil(strstr(mode, "w"))) {
 		oflags |= unix`O_CREAT|unix`O_TRUNC;
 		if(!isnil(strstr(mode, "+")))
-			flags |= 1;		
+			flags |= 1;
 	}
 	if((flags &1 ) && (flags & 2))
 		oflags |= unix`O_RDWR;
 	else if(flags & 1)
 		oflags |= unix`O_RDONLY;
-	else if(flags & 2)                                                   
-		oflags |= unix`O_WRONLY;                 
+	else if(flags & 2)
+		oflags |= unix`O_WRONLY;
 
 	fd=sys_open(file, oflags, perm);
 	if(0 > fd) {
 		return nil;
-	} 
+	}
 
 	return fd;
 }
@@ -140,7 +140,7 @@ unlink = sys_unlink;
 
 	sfd=iohash[cons(fd,nil)];
 	if(!isnil(sfd)) {
-		r=sys_lseek(sfd,pos,whence); 
+		r=sys_lseek(sfd,pos,whence);
 	} else {
 		error("seek: seeking a cinquecento fd with no unix fd");
 	}
@@ -158,7 +158,7 @@ if(looksym(unix,'socket)) {
 		if(rv == -1) {
 			error("socket: %s", errno()[1]);
 		}
-		
+
 		return rv;
 	}
 }

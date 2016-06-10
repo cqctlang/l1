@@ -220,7 +220,7 @@ dom = nil;
 	src = addr2line(code, pc);
 	if(src == 0)
 		return sprintfa("%20s\t(no source information)\n", cl->id);
-	
+
 	fn = src->filename;
 	if(fn == 0)
 		fn = "<stdin>";

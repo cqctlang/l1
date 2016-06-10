@@ -37,19 +37,19 @@
 
 	n=strton(s[0]);
 	if(isnil(n) || n<0 || n>255) return nil;
-	r|=n<<24; 
+	r|=n<<24;
 
 	n=strton(s[1]);
 	if(isnil(n) || n<0 || n>255) return nil;
-	r|=n<<16; 
+	r|=n<<16;
 
 	n=strton(s[2]);
 	if(isnil(n) || n<0 || n>255) return nil;
-	r|=n<<8; 
+	r|=n<<8;
 
 	n=strton(s[3]);
 	if(isnil(n) || n<0 || n>255) return nil;
-	r|=n<<0; 
+	r|=n<<0;
 
 	return r;
 }

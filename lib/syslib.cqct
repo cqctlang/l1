@@ -29,7 +29,7 @@ if(looksym(unix,'getdents)) {
 	@local count;
 	@local l;
 	@local start,end;
-	
+
 	readdir_size=512;
 
 	buf=malloc(readdir_size);
@@ -53,7 +53,7 @@ if(looksym(unix,'getdents)) {
 			append(l,getbytes(start->d_name,strlen(start->d_name)));
 			start=(struct linux_dirent *)(((unsigned char *)start)
 				+ start->d_reclen);
-		}	
+		}
 	}
 
 	return l;
@@ -69,9 +69,9 @@ if(looksym(unix,'getdents)) {
 	p=(struct dirent *){d}0;
 	for(x=0;x<length(l);x++) {
 		putbytes(p->d_name,l[x]);
-		p++;	
+		p++;
 	}
-	
+
 	return asof(d);
 }
 }
@@ -94,8 +94,8 @@ if(looksym(unix,'AF_INET)) {
 	}
 	sa->sin_family=unix`AF_INET;
 
-	sa->sin_port=ctons(port);	
-	sa->sin_addr.s_addr=ctonl(ip);	
+	sa->sin_port=ctons(port);
+	sa->sin_addr.s_addr=ctonl(ip);
 
 	r=sys_connect(s,sa,sizeof(*sa));
 	if(r) {
@@ -108,7 +108,7 @@ if(looksym(unix,'AF_INET)) {
 
 @define __tcpopen(addr) { // don't promote to _tcpopen until DNS works
 	@local host,port,arr;
-	
+
 	if(!isstring(addr))
 		error("addr must be a string");
 
@@ -141,8 +141,8 @@ if(looksym(unix,'AF_INET)) {
 
 	sa->sin_family=unix`AF_INET;
 
-	sa->sin_port=ctons(port);	
-	sa->sin_addr.s_addr=ctonl(ip);	
+	sa->sin_port=ctons(port);
+	sa->sin_addr.s_addr=ctonl(ip);
 
 	r=sys_connect(s,sa,sizeof(*sa));
 	if(r) { sys_close(s); return nil; }
@@ -160,8 +160,8 @@ if(looksym(unix,'AF_INET)) {
 	}
 	sa->sin_family=unix`AF_INET;
 
-	sa->sin_port=ctons(port);	
-	sa->sin_addr.s_addr=ctonl(ip);	
+	sa->sin_port=ctons(port);
+	sa->sin_addr.s_addr=ctonl(ip);
 
 	r=sys_bind(s,sa,sizeof(*sa));
 
@@ -195,7 +195,7 @@ if(looksym(unix,'AF_UNIX)) {
 }
 
 @define _unixopen(pathname) {
-	
+
 	if(!isstring(pathname))
 		error("pathname must be a string");
 
@@ -269,7 +269,7 @@ if(looksym(unix,'AF_UNIX)) {
 @define readsymlink(buf) {
 	@local b, sz, res;
 
-	sz = 0x80; 
+	sz = 0x80;
 
 	while(1) {
 		b = malloc(sz);

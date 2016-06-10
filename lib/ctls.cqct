@@ -132,7 +132,7 @@ idxev = [
 	{
 		@local p, m;
 		@local rep, dat;
-		
+
 		p = m = mkxs();
 		p = (uint64*)p;
 		*p++ = cs.ctlid;
@@ -152,7 +152,7 @@ idxev = [
 	{
 		@local p, m;
 		@local dat;
-		
+
 		p = m = mkxs();
 		p = (uint64*)p;
 		*p++ = cs.ctlid;
@@ -169,7 +169,7 @@ idxev = [
 	{
 		@local p, m;
 		@local rep, dat;
-		
+
 		p = m = mkxs();
 		p = (uint64*)p;
 		*p++ = cs.ctlid;
@@ -315,7 +315,7 @@ idxev = [
 		p = (uint64*)dat;
 		id = *p++;
 		[ctx, p] = cs.dlct.decodectx(p);
-		
+
 		snctl = clonectl(id, ctx, 'fork);
 		cs.mux.unbindctl(snctl);
 //	FIXME: figure out how to ensure that we can keep refs to
@@ -528,7 +528,7 @@ idxev = [
 				path = car(l);
 				base = cdr(l);
 				foreach(@lambda(t){ t.fn(this, path, base); },
-					hs);				
+					hs);
 			}, ls);
 		contasync();
 	}
@@ -618,7 +618,7 @@ idxev = [
 		[spwnctx, p] = cs.dlct.decodectx(p);
 		setctx(ctx);
 		spwn = clonectl(spwnid, spwnctx, ev);
-		foreach(@lambda(t) { t.fn(this, spwn); }, hs);		
+		foreach(@lambda(t) { t.fn(this, spwn); }, hs);
 		contasync();
 		spwn.contasync();
 	}

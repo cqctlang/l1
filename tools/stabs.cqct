@@ -73,7 +73,7 @@ main = @lambda(progname, args ...) {
 
 	@define dotypeinfo(sym, s) {
 		@local tid;
-	
+
 		if(istypenum(s)) {
 			tid = typenum(s);
 			s += strlen(tid);

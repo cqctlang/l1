@@ -309,7 +309,7 @@
 	[rd, _, _] = select([fd], [], [], [0, 500000]);
 	if(length(rd))
 		printf("mkgdbctl: stop-reply packet: %s\n", gdbrecvpkt(fd));
-	
+
 	return gdbctl(mem, reg, wait, stop, cont, step, Z, z);
 }
 

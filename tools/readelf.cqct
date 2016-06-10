@@ -70,13 +70,13 @@
 {
 	@local t;
 
-	t = ["None", "REL (Relocatable file)", "EXEC (Executable file)",  
+	t = ["None", "REL (Relocatable file)", "EXEC (Executable file)",
 	     "DYN (Shared object file)", "CORE (Core file)"];
 
-	if (etype > length(t) - 1) 
+	if (etype > length(t) - 1)
 		return "UNKNOWN";
 	return listref(t, etype);
-	
+
 }
 
 @define sectype2str(elfdom, stype)
@@ -196,7 +196,7 @@
 @define ptype2str(elfdom, p)
 {
 	@local s;
-	
+
 	s = "UNKNOWN";
 
 	switch(p) {
@@ -286,17 +286,17 @@
 {
 	@local s, cur;
 
-	s = mkstr(4);	
+	s = mkstr(4);
 	cur = 0;
 
 	if (shflags & elfdom`SHF_WRITE) {
 		strput(s, cur++, "W");
 	}
 	if (shflags & elfdom`SHF_ALLOC) {
-		strput(s, cur++, "A");		
+		strput(s, cur++, "A");
 	}
 	if (shflags & elfdom`SHF_EXECINSTR) {
-		strput(s, cur++, "X");		
+		strput(s, cur++, "X");
 	}
 
 	return s;
@@ -306,25 +306,25 @@
 {
 	@local s;
 
-	s = "   ";	
+	s = "   ";
 
 	if (pflags & elfdom`PF_X) {
 		strput(s, 2, "E");
 	}
 	if (pflags & elfdom`PF_W) {
-		strput(s, 1, "W");		
+		strput(s, 1, "W");
 	}
 	if (pflags & elfdom`PF_R) {
-		strput(s, 0, "R");		
+		strput(s, 0, "R");
 	}
 
-	return s;	
+	return s;
 }
 
 @define symtype2str(elfdom, v)
 {
 	@local s;
-	
+
 	s = "UNKNOWN";
 	switch(v) {
 	case elfdom`STT_NOTYPE:
@@ -364,7 +364,7 @@
 		s = "HIPROC";
 		break;
 	}
-	
+
 	return s;
 }
 
@@ -372,7 +372,7 @@
 {
 	@local l;
 	l = ["DEFAULT", "INTERNAL", "HIDDEN", "PROTECTED"];
-	
+
 	return listref(l, v);
 }
 
@@ -419,7 +419,7 @@
 /* 		s = "HIRESERVE"; */
 /* 		break; */
 	default:
-		s = sprintfa("%3d", v);		
+		s = sprintfa("%3d", v);
 	}
 
 	return s;
@@ -428,7 +428,7 @@
 @define symbind2str(elfdom, symbind)
 {
 	@local s;
-	
+
 	s = "UNKNOWN";
 
 	switch(symbind) {
@@ -463,7 +463,7 @@
 @define ntype2str(elfdom, ntype)
 {
 	@local s;
-	
+
 	switch(ntype) {
 	case elfdom`NT_PRSTATUS:
 		s = "NT_PRSTATUS (prstatus structure)";
@@ -525,7 +525,7 @@
 	default:
 		s = sprintfa("UNKNOWN: 0x%x", ntype);
 	}
-	
+
 	return s;
 }
 
@@ -537,7 +537,7 @@
 		elftype = "ELF32";
 	}
 	else {
-		e = (elfdom`Elf64_Ehdr *){elfdom} 0;	
+		e = (elfdom`Elf64_Ehdr *){elfdom} 0;
 		elftype = "ELF64";
 	}
 
@@ -548,14 +548,14 @@
 	}
 	printf("\n");
 	printf("  Class:                             %s\n", elftype);
-	printf("  Data:                              %s\n", 
-	       e->e_ident[e`EI_DATA] == e`ELFDATANONE ? "NONE" : 
-	       e->e_ident[e`EI_DATA] == e`ELFDATA2LSB ? 
+	printf("  Data:                              %s\n",
+	       e->e_ident[e`EI_DATA] == e`ELFDATANONE ? "NONE" :
+	       e->e_ident[e`EI_DATA] == e`ELFDATA2LSB ?
 	       "2's complement, little endian" :
 	       "2's complement, big endian");
 	printf("  Version:                           %d %s\n", e->e_ident[e`EI_VERSION],
 	       e->e_ident[e`EI_VERSION] == 1 ? "(current)" : "");
-	printf("  OS/ABI:                            %s\n", 
+	printf("  OS/ABI:                            %s\n",
 	       abi2str(e, e->e_ident[e`EI_OSABI]));
 	printf("  ABI Version:                       %d\n", e->e_ident[e`EI_ABIVERSION]);
 	printf("  Type:                              %s\n", type2str(e, e->e_type));
@@ -578,7 +578,7 @@
 	@local st, i;
 
 	st = (char *) sarray[e->e_shstrndx].sh_offset;
-	printf("There are %d section headers, starting at offset 0x%x:\n", e->e_shnum, 
+	printf("There are %d section headers, starting at offset 0x%x:\n", e->e_shnum,
 	       e->e_shoff);
 	printf("\n");
 	printf("Section Headers:\n");
@@ -586,12 +586,12 @@
 	for (i = 0; i < e->e_shnum; i++) {
 		@local s;
 		s = sarray + i;
-		printf("  [%2d] %-17s %-15s %.8x %.6x %.6x %.2x %3s %2d %3d %2d\n", i, 
-		       &st[s->sh_name], sectype2str(elfdom, s->sh_type), s->sh_addr, 
-		       s->sh_offset, s->sh_size, s->sh_entsize, 
+		printf("  [%2d] %-17s %-15s %.8x %.6x %.6x %.2x %3s %2d %3d %2d\n", i,
+		       &st[s->sh_name], sectype2str(elfdom, s->sh_type), s->sh_addr,
+		       s->sh_offset, s->sh_size, s->sh_entsize,
 		       flags2str(elfdom, s->sh_flags), s->sh_link, s->sh_info,
 		       s->sh_addralign);
-	}	
+	}
 }
 
 @define print_secheaders64(elfdom, e, sarray)
@@ -609,10 +609,10 @@
 		s = sarray + i;
 		printf("  [%2d]  %-16s %-16s %.16x  %.8x\n", i, &st[s->sh_name],
 		       sectype2str(elfdom, s->sh_type), s->sh_addr, s->sh_offset);
-		printf("        %.16x %.16x  %8s%1d%6d     %1d\n", s->sh_size,  
-		       s->sh_entsize, flags2str(elfdom, s->sh_flags), s->sh_link, 
+		printf("        %.16x %.16x  %8s%1d%6d     %1d\n", s->sh_size,
+		       s->sh_entsize, flags2str(elfdom, s->sh_flags), s->sh_link,
 		       s->sh_info, s->sh_addralign);
-	}	
+	}
 }
 
 @define print_secheaders(elfdom)
@@ -645,19 +645,19 @@
 	}
 	else {
 		e = (elfdom`Elf64_Ehdr *){elfdom} 0;
-		pharray = (elfdom`Elf64_Phdr *) e->e_phoff;		
+		pharray = (elfdom`Elf64_Phdr *) e->e_phoff;
 		is32 = 0;
-	}	
+	}
 
 	printf("\n");
 	printf("Program Headers:\n");
 	if (is32)
 		printf("  Type           Offset   VirtAddr   PhysAddr   FileSiz MemSiz  Flg Align\n");
 	else {
-		printf("  Type           Offset             VirtAddr           PhysAddr\n"); 
+		printf("  Type           Offset             VirtAddr           PhysAddr\n");
 		printf("                 FileSiz            MemSiz              Flags  Align\n");
 	}
-	
+
 	for (i = 0; i < e->e_phnum; i++) {
 		p = pharray + i;
 		if (is32) {
@@ -671,12 +671,12 @@
 			       ptype2str(elfdom, p->p_type), p->p_offset, p->p_vaddr, p->p_paddr);
 			printf("                 0x%.16x 0x%.16x  %-6s %x\n",
 			       p->p_filesz, p->p_memsz, pflags2str(elfdom, p->p_flags),
-			       p->p_align);			
+			       p->p_align);
 		}
 		if (p->p_type == elfdom`PT_INTERP) {
 			printf("      [Requesting program interpreter: %s]\n", (char *){elfdom}p->p_offset);
 		}
-	}	
+	}
 
 	printf("\n");
 	printf(" Section to Segment mapping: UNIMPLEMENTED\n");
@@ -700,8 +700,8 @@
 	st = (char *) shbase[e->e_shstrndx].sh_offset;
 	for (i = 0; i < e->e_shnum; i++) {
 		sec = &shbase[i];
-		if (sec->sh_type == elfdom`SHT_SYMTAB  
-		    || sec->sh_type == elfdom`SHT_DYNSYM) { 
+		if (sec->sh_type == elfdom`SHT_SYMTAB
+		    || sec->sh_type == elfdom`SHT_DYNSYM) {
 			@local symcount, strind, j;
 			if (is32) {
 				symbase = (elfdom`Elf32_Sym *)sec->sh_offset;
@@ -713,38 +713,38 @@
 			}
 			strind = sec->sh_link;
 			strbase = (unsigned char *) shbase[strind].sh_offset;
-			
+
 			printf("\n");
 			printf("Symbol table '%s' contains %d entries:\n", &st[sec->sh_name],
 				symcount);
-			if (is32) 
+			if (is32)
 				printf("   Num:    Value  Size Type    Bind   Vis      Ndx Name\n");
-			else 
+			else
 				printf("   Num:    Value          Size Type    Bind   Vis      Ndx Name\n");
 			for (j = 0; j < symcount; j++) {
 				if (is32) {
 					sym = (elfdom`Elf32_Sym *)(&symbase[j]);
 					printf("   %3d: %.8x %5d %-7s %-6s %-8s %3s %s\n",
-					       j, sym->st_value, sym->st_size, 
-					       symtype2str(elfdom, ELF64_ST_TYPE(sym->st_info)), 
-					       symbind2str(elfdom, ELF64_ST_BIND(sym->st_info)), 
-					       symvis2str(elfdom, ELF64_ST_VISIBILITY(sym->st_other)), 
+					       j, sym->st_value, sym->st_size,
+					       symtype2str(elfdom, ELF64_ST_TYPE(sym->st_info)),
+					       symbind2str(elfdom, ELF64_ST_BIND(sym->st_info)),
+					       symvis2str(elfdom, ELF64_ST_VISIBILITY(sym->st_other)),
 					       symidx2str(elfdom, sym->st_shndx),
 					       &strbase[sym->st_name]);
 				}
 				else {
 					sym = (elfdom`Elf64_Sym *)(&symbase[j]);
 					printf("   %3d: %.16x %5d %-7s %-6s %-8s %3s %s\n",
-					       j, sym->st_value, sym->st_size, 
-					       symtype2str(elfdom, ELF64_ST_TYPE(sym->st_info)), 
-					       symbind2str(elfdom, ELF64_ST_BIND(sym->st_info)), 
-					       symvis2str(elfdom, ELF64_ST_VISIBILITY(sym->st_other)), 
+					       j, sym->st_value, sym->st_size,
+					       symtype2str(elfdom, ELF64_ST_TYPE(sym->st_info)),
+					       symbind2str(elfdom, ELF64_ST_BIND(sym->st_info)),
+					       symvis2str(elfdom, ELF64_ST_VISIBILITY(sym->st_other)),
 					       symidx2str(elfdom, sym->st_shndx),
 					       &strbase[sym->st_name]);
 				}
 			}
 		}
-	}	
+	}
 }
 
 // prints first PT_NOTES section it finds
@@ -759,7 +759,7 @@
 	}
 	else {
 		e = (elfdom`Elf64_Ehdr *){elfdom} 0;
-		pharray = (elfdom`Elf64_Phdr *) e->e_phoff;		
+		pharray = (elfdom`Elf64_Phdr *) e->e_phoff;
 		is32 = 0;
 	}
 
@@ -771,9 +771,9 @@
 			printf("Notes at offset 0x%.8x with length 0x%.8x:\n",
 			       p->p_offset, p->p_filesz);
 			printf("  Owner		Data size	Description\n");
-			cur = p->p_offset; 
+			cur = p->p_offset;
 			while (cur  < p->p_offset +  p->p_filesz) {
-				@local nhdr; 
+				@local nhdr;
 
 				if (is32) {
 					nhdr = (elfdom`Elf32_Nhdr *) cur;
@@ -781,17 +781,17 @@
 				else {
 					nhdr = (elfdom`Elf64_Nhdr *) cur;
 				}
-				printf("  %s\t\t0x%.8x\t%s\n", 
+				printf("  %s\t\t0x%.8x\t%s\n",
 				       (char *)(cur + sizeof(*nhdr)),
 				       nhdr->n_descsz,
 				       ntype2str(elfdom, nhdr->n_type));
 /* 				printf("nhdr at 0x%x (0x%x, 0x%x, 0x%x), %s\n", cur,  */
 /* 				       nhdr->n_namesz, nhdr->n_descsz, nhdr->n_type, */
 /* 				       ); */
-				cur = cur + sizeof(*nhdr) + align(nhdr->n_namesz, 4) 
+				cur = cur + sizeof(*nhdr) + align(nhdr->n_namesz, 4)
 					+ align(nhdr->n_descsz, 4);
 			}
-			
+
 			break;
 		}
 	}
@@ -834,13 +834,13 @@
 	}
 
 	cur = 0;
-	
+
 	while (cur < length(args)) {
 		switch(listref(args, cur)) {
 		case "-e":
 			do_fileheader = 1;
 			do_secheaders = 1;
-			do_progheaders = 1;		
+			do_progheaders = 1;
 			break;
 
 		case "-h":
@@ -908,7 +908,7 @@
 	if (do_fileheader)
 		print_fileheader(elfdom);
 
-	if (do_secheaders) 
+	if (do_secheaders)
 		print_secheaders(elfdom);
 
 	if (do_progheaders) {
@@ -918,13 +918,13 @@
 				e = (elfdom`Elf32_Ehdr *){elfdom} 0;
 			}
 			else {
-				e = (elfdom`Elf64_Ehdr *){elfdom} 0;	
+				e = (elfdom`Elf64_Ehdr *){elfdom} 0;
 			}
 			printf("\nElf file type is %s\n", type2str(e, e->e_type));
 			printf("Entry point 0x%x\n", e->e_entry);
 			printf("There are %d program headers, starting at offset %d\n",
 			       e->e_phnum, e->e_phoff);
-			
+
 		}
 		print_progheaders(elfdom);
 	}
@@ -934,7 +934,7 @@
 
 	if (do_notes)
 		print_notes(elfdom);
-	
+
 
 	return 0;
 }

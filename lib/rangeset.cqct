@@ -61,7 +61,7 @@ debug = 0;
 
 @define rangeset_insert(set,r) {
     @local intersection,r2,abut;
-    //strategy: 
+    //strategy:
     // 1) find all regions overlapping r,
     //    - including those that are simply next to but not intersecting r
     // 2) compute the range that covers them all
@@ -115,7 +115,7 @@ debug = 0;
         x_up = rangebeg(x) + rangelen(x);
         if (x_lo < lower)
             rbtree_insert(set,x_lo,lower-x_lo);
-        if (x_up > upper) 
+        if (x_up > upper)
             rbtree_insert(set,upper,x_up-upper);
     },res);
 }

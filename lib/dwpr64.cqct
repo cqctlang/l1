@@ -130,7 +130,7 @@ _dw_map_setfun_to_regnum = [
     "setr14" : 14,
     "setr15" : 15,
     "setrip" : 16
-]; 
+];
 
 _dw_setfun = vector ("setrax", "setrdx", "setrcx", "setrbx", "setrsi",
 		     "setrdi", "setrbp", "setrsp", "setr8", "setr9",

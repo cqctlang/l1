@@ -23,7 +23,7 @@ main=@lambda(progname, eargs ...) {
 
 	apply(sub=@lambda(progname, eargs ...) {
 		// we have aliased progname and eargs to avoid
-		// confusion	
+		// confusion
 
 		@local x;
 		for(x=0;x<length(eargs);x++) {

@@ -27,7 +27,7 @@
 	}
 
 
-	json_escape_tab = 
+	json_escape_tab =
 	        [ "\v" : "\\v", "\n" : "\\n", "\f" : "\\f", "\r" : "\\r", "\t" : "\\t" ];
 	//make the keys into a string, which funcitons as a set in split
 	json_escape_chars = join(foldl(append,[],tabkeys(json_escape_tab)));
@@ -52,10 +52,10 @@
 		m = length(tab);
 		if (m == 0) return "{}";
 		keys = tabkeys(tab);
-		foreach(@lambda(x) { 
-			//object names must be strings. 
+		foreach(@lambda(x) {
+			//object names must be strings.
 			//see the grammar provided by http://www.json.org/
-			if (!isstring(x)) 
+			if (!isstring(x))
 				error("json non-string table key: %a\n",x);
 		},keys);
 		sort(keys,strcmp);
@@ -71,7 +71,7 @@
 			}
 		}
 		return [ "{", pp.mkogroup(4,ss), pp.linebreak, "}" ];
-					
+
 	}
 
 	@defloc pplist2json(l,pp)

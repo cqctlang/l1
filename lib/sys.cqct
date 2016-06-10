@@ -2,7 +2,7 @@
 // that offer semantics that closely
 // resemble the low-level semantics
 // available in C programs through
-// libc and friends. 
+// libc and friends.
 
 @global sys_defined;
 if(sys_defined == nil)
@@ -383,7 +383,7 @@ if (unix.looksym('lstat64) != nil)
 
 @global FD_FREE;
 @define FD_FREE(fd) {
-	_free(fd);	
+	_free(fd);
 }
 
 @global FD_ISSET;
@@ -927,8 +927,8 @@ if(looksym(unix,'wait4)) {
 		@local ret,i,len,strs;
 
 		len = sizeof(char *) * (length(ary)+1);
-		foreach(@lambda(v) { 
-			if (isstring(v)) len += length(v)+1; 
+		foreach(@lambda(v) {
+			if (isstring(v)) len += length(v)+1;
 			else len += sizeof(v);
 		},ary);
 		ret=(char **)___malloc(len);

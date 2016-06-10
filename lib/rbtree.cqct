@@ -56,21 +56,21 @@ rbtree = @lambda(compare, root) {
 
 
 //Will rotate the following tree:
-//              n1 
-//            /   \  
+//              n1
+//            /   \
 //           n2   ... (n2 is left or right)
-//          / \   
+//          / \
 //        n3   n4
 //            / \
 //          n5   n6
-// to 
-//              n1 
-//            /   \  
+// to
+//              n1
+//            /   \
 //           n4   ... (n4 is left or right)
-//          / \   
+//          / \
 //        n2   n6
-//       /  \    
-//      n3  n5   
+//       /  \
+//      n3  n5
 // node is n2
 @define rotate_left(node) {
     @local n1,n2,n4,n5;
@@ -93,21 +93,21 @@ rbtree = @lambda(compare, root) {
 }
 
 //Will rotate the following tree:
-//              n1 
-//            /   \  
+//              n1
+//            /   \
 //           n2   ... (n2 is left or right)
-//          / \   
+//          / \
 //         n4  n3
 //        / \
 //      n5   n6
-// to 
-//              n1 
-//            /   \  
+// to
+//              n1
+//            /   \
 //           n4   ... (n4 is left or right)
-//          / \   
+//          / \
 //        n5   n2
-//            /  \    
-//          n6   n3  
+//            /  \
+//          n6   n3
 // in all of these, node is n2
 @define rotate_right(node) {
     @local n1,n2,n4,n6;
@@ -210,13 +210,13 @@ rbtree = @lambda(compare, root) {
         return 0;
     }
     rbtree_insert_helper(tree.compare,tree.root.left,node);
-    if (debug) { 
+    if (debug) {
         printf("original tree:\n");
         rbtree_print(tree);
         printf("Running cases on %a %a\n",key,data);
     }
     insert_case1(node);
-    if (debug) { 
+    if (debug) {
         rbtree_print(tree);
         printf("++++++++++++++++++++++++++++++++\n");
     }
@@ -385,7 +385,7 @@ rbtree = @lambda(compare, root) {
     @local c;
     if (n == nil) return nil;
     c = compare(n.key,key);
-    if (c > 0) 
+    if (c > 0)
         return rbtree_getnode_internal(compare,n.left,key);
     else if (c < 0)
         return rbtree_getnode_internal(compare,n.right,key);
@@ -418,7 +418,7 @@ rbtree = @lambda(compare, root) {
         @local p,s,key,data;
         if (debug) printf("null child case\n");
         p = n.parent;
-        if (p.left == nil && p.right == nil) 
+        if (p.left == nil && p.right == nil)
             //we're fine, return
             return;
         //we're going to remove the parent from the tree entirely,
@@ -465,7 +465,7 @@ rbtree = @lambda(compare, root) {
     if (n == nil) return nil;
     comp = compare(n.key,key);
     if (comp > 0) return rbtree_query_helper(compare,n.left,key);
-    else if (comp < 0) return rbtree_query_helper(compare,n.right,key); 
+    else if (comp < 0) return rbtree_query_helper(compare,n.right,key);
     return n.data;
 }
 
@@ -483,9 +483,9 @@ rbtree = @lambda(compare, root) {
     //if key was smaller than u and larger than l, then include it
     if (c_u < 0 && c_l >= 0) append(results,[n.key,n.data]);
     //if the key is bigger than the lower bound, then recurse left
-    if (c_l >= 0) { 
+    if (c_l >= 0) {
         //use tail-recursion when possible
-        if (c_u > 0) 
+        if (c_u > 0)
             return rbtree_rangequery_helper(compare,n.left,l,u,results);
         else {
             //need to search both directions.
@@ -582,7 +582,7 @@ rbtree = @lambda(compare, root) {
     });
 }
 
-//returns the (max) number of black nodes in 
+//returns the (max) number of black nodes in
 //any path below (and including) this node.
 @define rbtree_checktree_countblack(node) {
     @local c,tmp;
@@ -609,7 +609,7 @@ rbtree = @lambda(compare, root) {
         lc = rbtree_checktree_countblack(n.left);
         rc = rbtree_checktree_countblack(n.right);
         if (lc != rc) ok = n;
-        if (n.red && ((n.left != nil && n.left.red) || 
+        if (n.red && ((n.left != nil && n.left.red) ||
                       (n.right != nil && n.right.red))) ok = n;
     });
     if (ok != 1) {

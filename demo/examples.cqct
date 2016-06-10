@@ -233,7 +233,7 @@
 	{
 		@local ctx;
 		ctx = ctl.ctx();
-		
+
 		if(enter)
 			printf("enter syscall %e\n",
 			       {ctl.dialect().Syscall}ctx->orig_rax);

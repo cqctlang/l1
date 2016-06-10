@@ -39,7 +39,7 @@ type_debug = 0;
 	}
 	else if (istypedef(t)) {
 		return hasstructptr(typedeftype(t));
-	}	
+	}
 	else if (isarray(t)) {
 		return hasstructptr(subtype(t));
 	}
@@ -54,7 +54,7 @@ type_debug = 0;
 
 	return 0;
 }
-		  
+
 @defloc types_with_ptrs(ns)
 {
         printf("The following types contain struct pointers:\n");
@@ -75,7 +75,7 @@ type_debug = 0;
 	else if (isstructptr(t))
 		return mkvec(1, canonical(subtype(t)));
 
-	else if (isarray(t)) 
+	else if (isarray(t))
 		return cachehelper(subtype(t), cache);
 
 	else if (istypedef(t))
@@ -103,7 +103,7 @@ type_debug = 0;
 	cachedval = tablook(cache, t);
 	if (!isnil(cachedval)) {
 		if (type_debug) {
-			printf(" - DONE %s. Found cache of len %d\n", 
+			printf(" - DONE %s. Found cache of len %d\n",
 			       suetag(t), length(cachedval));
 		}
 		return cachedval;
@@ -116,26 +116,26 @@ type_debug = 0;
 		plist = cachehelper(ft, cache);
 		for (j = 0; j < length(plist); j++) {
 			tabinsert(ptrtab, plist[j], 1);
-		}		
+		}
 	}
 
 	vals = tabkeys(ptrtab);
 
 	if (type_debug) {
-		printf(" - DONE %s. Built cache of len %d\n", 
+		printf(" - DONE %s. Built cache of len %d\n",
 		       suetag(t), length(vals));
 	}
 
 	tabinsert(cache, t, vals);
-	
+
 	return vals;
-}     
+}
 
 /*
-* a type graph is a representation of struct->struct 
-* points-to relationships encoded in C struct types. 
+* a type graph is a representation of struct->struct
+* points-to relationships encoded in C struct types.
 * param: ns - the namespace
-* returns: a table representing the graph of structures and union 
+* returns: a table representing the graph of structures and union
 *   relationships in the given namespace
 */
 @define gentypegraph(ns)
@@ -151,7 +151,7 @@ type_debug = 0;
 	return tg;
 }
 
-/** 
+/**
 * call fn(from_node, to_nodes) for all nodes in type graph
 * param: tg - the table representation of the type graph
 * param: fn - the function to run
@@ -159,7 +159,7 @@ type_debug = 0;
 */
 @define typegraph_node_iter(tg, fn)
 {
-	@local entries, numentries, i;	
+	@local entries, numentries, i;
 	entries = tabenum(tg);
 	numentries = length(entries) / 2;
 
@@ -177,14 +177,14 @@ type_debug = 0;
 @define typegraph_edge_iter(tg, fn)
 {
 	@local edgefn;
-	
+
 	edgefn = @lambda(from, tolist) {
 		@local j;
 		for (j = 0; j < length(tolist); j++) {
 			fn(from, tolist[j]);
-		}		
+		}
 	};
-	
+
 	typegraph_node_iter(tg, edgefn);
 }
 

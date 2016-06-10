@@ -433,7 +433,7 @@ if (library_defined == nil)
 			//put a temporary marker in the __library_exports
 			//so that we can fail compilation when unexported
 			//symbols are referenced
-			__library_exports[libnamecid].exports[stxid(en)] 
+			__library_exports[libnamecid].exports[stxid(en)]
 				= 'defined;
 
 			new_postbody = Zcons(s,new_postbody);

@@ -42,7 +42,7 @@ venti = @names clp64be {
 
 		VtTmax
 	} Op;
-	
+
 	/* no structs for VtThello or VtRhello:
 	   they have variable width fields */
 
@@ -210,7 +210,7 @@ venti = @names clp64be {
 		v += s;
 		if(s == "\n")
 			break;
-		
+
 	}
 	sp = split(v, "-");
 	if(length(sp) != 3)
@@ -269,7 +269,7 @@ venti = @names clp64be {
 	default:
 		error("venti sent unsupported operation: %e", op);
 	}
-	
+
 }
 
 @define vtrecvmsg(fd)

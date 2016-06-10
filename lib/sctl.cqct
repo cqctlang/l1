@@ -184,7 +184,7 @@ sctl = @names clp64le {
 		Rx192,
 		Rnrep,
 	} Rkind;
-	
+
 	typedef
 	enum Tkind
 	{
@@ -275,7 +275,7 @@ sctl = @names clp64le {
 	enum Unwind_type
 	{
 	        Dwarf_unwind = 1,
-	  
+
 	} Unwind_type;
 };
 }

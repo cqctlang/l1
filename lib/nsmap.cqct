@@ -87,7 +87,7 @@
 	{
 		return x.ns;
 	}
-	
+
 	@defloc setexe(base)
 	{
 		@local r;

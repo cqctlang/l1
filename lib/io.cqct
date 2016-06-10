@@ -150,7 +150,7 @@ mksysfd = @lambda(fd, flags, rest ...) {
 		error("open: argument 1 must be a string");
 
 	if(isnil(perm))
-		perm = 0777;	
+		perm = 0777;
 	else if(!iscvalue(perm))
 		error("open: argument 2 must be a cvalue");
 
@@ -396,7 +396,7 @@ fdname = @lambda(fd) {
 {
 	@local addr, len, rv, fd, mode, fmode;
 
-	if(length(arg) > 0) 
+	if(length(arg) > 0)
 		mode = arg[0];
 	else
 		mode = "rwp";
@@ -406,8 +406,8 @@ fdname = @lambda(fd) {
 			error("mapfile private and shared are exclusive");
 	} else {
 		if(strstr(mode,"s") == nil)
-			mode += "p";	
-	} 
+			mode += "p";
+	}
 
 	fmode = "";
 	if(strstr(mode,"r") != nil) {
@@ -447,7 +447,7 @@ fdname = @lambda(fd) {
 		else
 			rv = mkstrmro(addr, len);
 
-		finalize(rv, @lambda(x) { 
+		finalize(rv, @lambda(x) {
 			sys_munmap(addr, {litdom}ulen);
 		});
 	} else
@@ -548,7 +548,7 @@ fdname = @lambda(fd) {
 	} else {
 		return nil;
 	}
-	
+
 }
 
 }

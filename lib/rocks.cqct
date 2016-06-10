@@ -75,7 +75,7 @@ recons = [];
 	append(recons, reconnect);
 
 	rockfd = mkfd(r, w, c, "rock");
-	finalize(rockfd, @lambda(fd) { close(fd); });	
+	finalize(rockfd, @lambda(fd) { close(fd); });
 
 	return rockfd;
 }

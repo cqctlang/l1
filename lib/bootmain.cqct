@@ -207,7 +207,7 @@ load("prelude.cqct");
 	callcc(@lambda(ret) {
 			currentreset = ret;
 			return apply(fn, args);
-	       }); 
+	       });
 }
 
 @defloc replerror(msg)
@@ -341,10 +341,10 @@ load("prelude.cqct");
 
 					[id, kind, idx, box] = d;
 					if(kind == 'free)
-						append(l, [id, kind, idx, box, 
+						append(l, [id, kind, idx, box,
 							   box ? unbox(clref(cl, idx)) : clref(cl, idx) ]);
 					else
-						append(l, [id, kind, idx, box, 
+						append(l, [id, kind, idx, box,
 							   box ? unbox(live[idx]) : live[idx] ]);
 				}, rib);
 			collect(l, rlex);
@@ -621,7 +621,7 @@ load("prelude.cqct");
 		append(fr, ucnt++);
 		append(rv, fr);
 	}
-	
+
 	rv = [];
 	cnt = ucnt = 0;
 	foreach(f, stackframes(stack));
@@ -710,7 +710,7 @@ $repllevel = 0;
 					interrupthandler = replinterrupt;
 					currentreset = thisreset;
 				},
-				@lambda() { 
+				@lambda() {
 					callcc(@lambda(reset) {
 							currentreset = thisreset = reset;
 						});
@@ -765,7 +765,7 @@ $repllevel = 0;
 	fprintf(stderr, "  exit status will be non-zero. If exit() is not called, l1 will examine\n");
 	fprintf(stderr, "  the result of the last computation indicated by -l, -s, -r, or <script>.\n");
 	fprintf(stderr, "  If that result can be converted to an integer, that integer will be the\n");
-	fprintf(stderr, "  exit status. The exit status will be zero otherwise.\n"); 
+	fprintf(stderr, "  exit status. The exit status will be zero otherwise.\n");
 
 	exit(0);
 
@@ -902,7 +902,7 @@ $repllevel = 0;
 		return -1;
 	} else {
 		@local w;
-	
+
 		w = waitpid(-1, 0);
 		unlink(fname);
 		if( w[1] ) {
@@ -1000,7 +1000,7 @@ $repllevel = 0;
 					}
 					case 'nullloadpath:
 						setloadpath([]);
-						
+
 						break;
 					case 'repl:
 						if(flags['dump])
@@ -1080,7 +1080,7 @@ $repllevel = 0;
 					}
 				} else {
 					@local doentry;
-				
+
 					doentry = @lambda(argv) {
 						@local f;
 

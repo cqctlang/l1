@@ -270,7 +270,7 @@ current_compilation_unit = nil;
   }
   return lenlist;
 }
-  
+
 @define dw_get_dirs (dwdom, addr)
 {
   @local base, sptr, dbase, dlist, dir;
@@ -682,7 +682,7 @@ current_compilation_unit = nil;
     result = [ curstate, cptr, statestack ];
     return result;
   }
-    break; 
+    break;
   case fdom`DW_CFA_restore: {
     /* For this we have to get the initial rule set for the CIE; to do that,
        we call this function recursively with phony location, empty rule set,
@@ -855,7 +855,7 @@ current_compilation_unit = nil;
       reg = head (reg);
       /* define cfa rule to use new register and old offset*/
       r = listref (rules, fdom`DW_FRAME_CFA_COL);
-      
+
       if (isnil (r) || isnil (listref (r, 2))) {
 	printf ("Cannot find old offset for r %a and DW_CFA_def_cfa at 0x%x\n", r, instptr);
 	result = [ curstate, cptr, statestack ];
@@ -880,7 +880,7 @@ current_compilation_unit = nil;
       off = head (off);
       /* define cfa rule to use new offset and old register*/
       r = listref (rules, fdom`DW_FRAME_CFA_COL);
-      
+
       if (isnil (r) || isnil (listref (r, 1))) {
 	printf ("Cannot find old register for r %a and DW_CFA_def_cfa at 0x%x\n", r, instptr);
 	result = [ curstate, cptr, statestack ];
@@ -1909,7 +1909,7 @@ current_compilation_unit = nil;
       }
     }
     /* advance past 0 offset and length indicating end of this arange set.*/
-    artuple++; 
+    artuple++;
     arhdr = (struct arangehdr *)artuple;
     hdrcnt ++;
     if (inrange (arhdr)) {
@@ -2439,7 +2439,7 @@ lastlocfun = nil;
 	}
       }
     }
-    var = [ ptr, {indom}head (tag), name, type, 
+    var = [ ptr, {indom}head (tag), name, type,
 	    [[isempty (local_scope_stack) ? local_scope_stack
 	    : head (local_scope_stack),
 	    location]], toplevel];
@@ -2719,7 +2719,7 @@ lastlocfun = nil;
       if (abstorigin)
 	prog = [ ptr, {indom}head (tag),
 		 name, {indom}abstorigin, lopc, toplevel];
-      else	
+      else
 	prog = [ ptr, {indom}head (tag),
 		 name, {indom}(ptr - cubase), lopc, toplevel];
       tabinsert (symtab, {indom}((unsigned int)ptr - cubase),
@@ -3279,7 +3279,7 @@ lastlocfun = nil;
   di = dw_process_die (bdrec, indom, abtable, nil, nil, fblist, cptr, (unsigned int){indom}ptr, 1);
   return head (di);;
 }
-    
+
 @define get_cu_info (bdrec, ptr)
 {
   @local cptr, abtable, abptr, di, cu, end, ab, sibloc;
