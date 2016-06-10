@@ -155,3 +155,20 @@ isrec = @lambda(val) {
 
 	return 0;
 };
+
+/*
+ * Convert a record to a table.
+ *
+ * Does not attempt to protect you from cycles. Don't try to convert cyclic
+ * records to tables.
+ */
+@define rec2tab(rec) {
+  @local t;
+  t = [:];
+  foreach(@lambda (k, v) {
+    @local val;
+    val = v(rec);
+    t[k] = isrec(val) ? rec2tab(val) : val;
+  }, rdgettab(rdof(rec)));
+  return t;
+}
