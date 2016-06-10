@@ -78,18 +78,6 @@ Zand(Expr *e1, Expr *e2)
 	return Zifelse(e1, e2, Zint(0));
 }
 
-/*
-static Expr *
-Zor(Expr *e1, Expr *e2)
-{
-	if(!e1)
-		return e2;
-	if(!e2)
-		return e1;
-	return Zifelse(e1, Zint(1), Zifelse(e2, Zint(1), Zint(0)));
-}
-*/
-
 static Expr *
 Zlabele(char *l, Expr *b)
 {
