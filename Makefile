@@ -67,7 +67,6 @@ L1C =\
 	cval.c\
 	list.c\
 	pair.c\
-	rec.c\
 	str.c\
 	stx.c\
 	sym.c\

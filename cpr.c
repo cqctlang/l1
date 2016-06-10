@@ -29,57 +29,6 @@ newlocal(Expr *s, Expr *id)
 		sete1(b, putsrc(Zcons(id, b->e1), b->e1->src));
 }
 
-#ifdef FOO
-static Expr*
-expandrec(U *ctx, Expr *e, Expr *s)
-{
-	char *id, *is;
-	unsigned len;
-	Expr *p;
-	Xenv *xe;
-
-	xe = mkxenv(0);
-	p = e->e2;
-	while(p->kind == Eelist){
-		id = idsym(p->e1);
-		if(xenvlook(xe, id)){
-			freexenv(xe);
-			cerror(ctx, e,
-			       "record has multiple bindings for %s",
-			       id);
-		}
-		xenvbind(xe, id, id);
-		p = p->e2;
-	}
-	freexenv(xe);
-
-	id = idsym(e->e1);
-	len = 2+strlen(id)+1;
-	is = emalloc(len);
-	snprint(is, len, "is%s", id);
-	p = Zblock(Zlocals(1, "$rd"),
-		   Zset(doid("$rd"),
-			Zcall(G("mkrd"), 2,
-			      Zcid(id),
-			      Zids2syms(e->e2))),
-		   Zset(doid(id), Zcall(G("rdmk"),
-					1, doid("$rd"))),
-		   Zset(doid(is), Zcall(G("rdis"),
-					1, doid("$rd"))),
-		   doid(id), /* warning-suppressing reference */
-		   doid(is), /* warning-suppressing reference */
-		   doid("$rd"),
-		   NULL);
-	if(s){
-		newlocal(s, doid(id));
-		newlocal(s, doid(is));
-	}
-	efree(is);
-	putsrc(p, e->src);
-	return p;
-}
-
-#endif
 static Expr*
 record(U *ctx, Expr *e, Expr *s)
 {
@@ -92,10 +41,6 @@ record(U *ctx, Expr *e, Expr *s)
 	case Escope:
 		sete1(e, record(ctx, e->e1, e));
 		return e;
-#ifdef FOO
-	case Edefrec:
-		return expandrec(ctx, e, s);
-#endif
 	case Eelist:
 		p = e;
 		while(p->kind == Eelist){

@@ -52,7 +52,6 @@ enum{
 	Edefault,
 	Edefine,
 	Edefloc,
-	//Edefrec,
 	Edefstx,
 	Ederef,
 	Ediv,
@@ -453,29 +452,6 @@ struct Range {
 	Cval *beg;
 	Cval *len;
 };
-
-#ifdef FOO
-struct Rec {
-	Head hd;
-	u32 nf;
-	Rd *rd;
-};
-
-#define recdata(x) ((Val*)((Rec*)(x)+1))
-#define recsize(n) (sizeof(Rec)+(n)*sizeof(Val))
-
-struct Rd {
-	Head hd;
-	Cid *name;
-	Imm nf;
-	List *fname;
-	Closure *is;		/* predicate */
-	Closure *mk;		/* constructor */
-	Closure *fmt;		/* printer */
-	Tab *get;		/* field get */
-	Tab *set;		/* field set */
-};
-#endif
 
 typedef
 enum {

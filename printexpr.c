@@ -48,7 +48,6 @@ char* S[] = {
 	[Edefault] =	"default",
 	[Edefine] =	"define",
 	[Edefloc] =	"defloc",
-	//[Edefrec] =	"defrec",
 	[Edefstx] =	"defstx",
 	[Ederef] =	"deref",
 	[Ediv] =	"div",
@@ -403,15 +402,6 @@ printcqct0(Expr *e, unsigned ni)
 		}
 		printcqct0(e->e3, ni);
 		break;
-#ifdef FOO
-	case Edefrec:
-		xprintf("@record ");
-		printcqct0(e->e1, ni);
-		xprintf("{ ");
-		printargs(e->e2, ni);
-		xprintf(" }");
-		break;
-#endif
 	case Enil:
 		xprintf("nil");
 		break;

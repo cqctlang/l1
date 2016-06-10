@@ -256,7 +256,8 @@ match(U *ctx, Expr* exp, Expr* pat, Match *m, Cases *cs)
 			p = p->e2;
 		}
 		break;
-#ifdef FOO
+/* TODO(natr): restore record matching? */
+#if 0
         case Ecall:
 		m->check = Zand(Zand(m->check, Zcall(doid("isrec"), 1,
 						     copyexpr(exp))),

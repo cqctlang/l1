@@ -1,3 +1,4 @@
+
 #include "sys.h"
 #include "util.h"
 #include "syscqct.h"
@@ -615,15 +616,6 @@ fmtval(VM *vm, Fmt *f, Val val, List* seen)
 		if(fmtputB(vm, f, strdata(str), str->len))
 			return -1;
 		return fmtputs0(vm, f, "\"");
-#ifdef FOO
-	case Qrd:
-		rd = valrd(val);
-		if(fmtputs0(vm, f, "<rd "))
-			return -1;
-		if(fmtputs(vm, f, ciddata(rd->name), rd->name->len-1))
-			return -1;
-		return fmtputs0(vm, f, ">");
-#endif
 	case Qcode:
 		cd = valcode(val);
 		if(fmtputs0(vm, f, "<code "))
@@ -633,17 +625,6 @@ fmtval(VM *vm, Fmt *f, Val val, List* seen)
 		return fmtputs0(vm, f, ">");
 	case Qcont:
 		return fmtputs0(vm, f, "<stack>");
-/*
-	case Qrec:
-		rec = valrec(val);
-		rv = ccall(vm, rec->rd->fmt, 1, &val);
-		if(!Viskind(rv, Qstr))
-			vmerr(vm, "formatter for record type %s must "
-			      "return a string",
-			      ciddata(rec->rd->name));
-		str = valstr(rv);
-		return fmtputs(vm, f, strdata(str), str->len);
-*/
 	case Qexpr:
 		e = valexpr(val);
 		switch(e->kind){

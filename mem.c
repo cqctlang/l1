@@ -279,10 +279,6 @@ static u8	scanns(Head*);
 static u8	scanpair(Head*);
 static u8	scanprecode(Head*);
 static u8	scanrange(Head*);
-#ifdef FOO
-static u8	scanrd(Head*);
-static u8	scanrec(Head*);
-#endif
 static u8	scantab(Head*);
 static u8	scanvec(Head*);
 
@@ -300,10 +296,6 @@ static u8	loadsavens(Head*, LSctx *ls);
 static u8	loadsavepair(Head*, LSctx *ls);
 static u8	loadsaveprecode(Head*, LSctx *ls);
 static u8	loadsaverange(Head*, LSctx *ls);
-#ifdef FOO
-static u8	loadsaverd(Head*, LSctx *ls);
-static u8	loadsaverec(Head*, LSctx *ls);
-#endif
 static u8	loadsavetab(Head*, LSctx *ls);
 static u8	loadsavevec(Head*, LSctx *ls);
 
@@ -631,41 +623,6 @@ scanrange(Head *hd)
 	gcopy((Val*)&range->len, &min);
 	return min;
 }
-
-#ifdef FOO
-static u8
-scanrd(Head *hd)
-{
-	u8 min;
-	Rd *rd;
-
-	min = Clean;
-	rd = (Rd*)hd;
-	gcopy((Val*)&rd->name, &min);
-	gcopy((Val*)&rd->fname, &min);
-	gcopy((Val*)&rd->is, &min);
-	gcopy((Val*)&rd->mk, &min);
-	gcopy((Val*)&rd->fmt, &min);
-	gcopy((Val*)&rd->get, &min);
-	gcopy((Val*)&rd->set, &min);
-	return min;
-}
-
-static u8
-scanrec(Head *hd)
-{
-	u8 min;
-	u32 i;
-	Rec *r;
-
-	min = Clean;
-	r = (Rec*)hd;
-	gcopy((Val*)&r->rd, &min);
-	for(i = 0; i < r->nf; i++)
-		gcopy((Val*)&recdata(r)[i], &min);
-	return min;
-}
-#endif
 
 static u8
 scantab(Head *hd)
@@ -1354,9 +1311,6 @@ _qsz(Head *h)
 	Cid *id;
 	Closure *cl;
 	Code *c;
-#ifdef FOO
-	Rec *r;
-#endif
 	Str *s;
 	Ctype *t;
 	Vec *v;
@@ -2841,35 +2795,6 @@ loadsaverange(Head *hd, LSctx *ls)
 	loadsaveptr((Val*)&range->len, ls);
 	return 0;
 }
-
-#ifdef FOO
-static u8
-loadsaverd(Head *hd, LSctx *ls)
-{
-	Rd *rd;
-	rd = (Rd*)hd;
-	loadsaveptr((Val*)&rd->name, ls);
-	loadsaveptr((Val*)&rd->fname, ls);
-	loadsaveptr((Val*)&rd->is, ls);
-	loadsaveptr((Val*)&rd->mk, ls);
-	loadsaveptr((Val*)&rd->fmt, ls);
-	loadsaveptr((Val*)&rd->get, ls);
-	loadsaveptr((Val*)&rd->set, ls);
-	return 0;
-}
-
-static u8
-loadsaverec(Head *hd, LSctx *ls)
-{
-	u32 i;
-	Rec *r;
-	r = (Rec*)hd;
-	loadsaveptr((Val*)&r->rd, ls);
-	for(i = 0; i < r->nf; i++)
-		loadsaveptr((Val*)&recdata(r)[i], ls);
-	return 0;
-}
-#endif
 
 static u8
 loadsavetab(Head *hd, LSctx *ls)
