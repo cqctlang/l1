@@ -17,7 +17,7 @@ zlwrite(void *vzw, void *buf, int n)
 	ZWrite *zw;
 
 	zw = vzw;
-	zw->adler = adler32(zw->adler, buf, n);
+	zw->adler = xadler32(zw->adler, buf, n);
 	n = (*zw->w)(zw->wr, buf, n);
 	if(n <= 0)
 		return n;

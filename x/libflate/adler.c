@@ -8,7 +8,7 @@ enum
 };
 
 ulong
-adler32(ulong adler, void *vbuf, int n)
+xadler32(ulong adler, void *vbuf, int n)
 {
 	ulong s1, s2;
 	uchar *buf, *ebuf;

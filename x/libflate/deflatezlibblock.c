@@ -23,7 +23,7 @@ deflatezlibblock(uchar *dst, int dsize, uchar *src, int ssize, int level, int de
 	/* header check field */
 	dst[1] |= 31 - ((dst[0] << 8) | dst[1]) % 31;
 
-	adler = adler32(1, src, ssize);
+	adler = xadler32(1, src, ssize);
 	dst[n + 2] = adler >> 24;
 	dst[n + 3] = adler >> 16;
 	dst[n + 4] = adler >> 8;

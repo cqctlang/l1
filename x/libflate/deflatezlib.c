@@ -20,7 +20,7 @@ zlread(void *vzr, void *buf, int n)
 	n = (*zr->r)(zr->rr, buf, n);
 	if(n <= 0)
 		return n;
-	zr->adler = adler32(zr->adler, buf, n);
+	zr->adler = xadler32(zr->adler, buf, n);
 	return n;
 }
 
