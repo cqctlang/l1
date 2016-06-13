@@ -45,7 +45,7 @@ char	*flateerr(int err);
 ulong	*mkcrctab(ulong);
 ulong	blockcrc(ulong *tab, ulong crc, void *buf, int n);
 
-ulong	adler32(ulong adler, void *buf, int n);
+ulong	xadler32(ulong adler, void *buf, int n);
 #if defined(__cplusplus)
 }
 #endif
