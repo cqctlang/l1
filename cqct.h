@@ -1,3 +1,6 @@
+#ifndef CQCT_H_
+#define CQCT_H_
+
 extern char cqctflags[];
 
 typedef
@@ -229,3 +232,4 @@ VM*		cqctinit(const char *memfile, char **loadpath);
 VM*		cqctinitxfd(const char *memfile, char **loadpath, Xfd *in, Xfd *out, Xfd *err);
 void		cqctfini(VM *vm);
 
+#define /* CQCT_H_ */
