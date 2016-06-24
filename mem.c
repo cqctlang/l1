@@ -635,7 +635,7 @@ scantab(Head *hd)
 	gcopy((Val*)&t->ht, &min);
 	gcopy((Val*)&t->tg, &min);
 	gcopy((Val*)&t->def, &min);
-	if(&t->priv) {
+	if(t->priv) {
 		gcopy((Val*)&t->name, &min);
 		gcopy((Val*)&t->fmt, &min);
 	}
