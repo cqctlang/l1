@@ -126,7 +126,7 @@
 		else if(isnil(v))
 			return "null";
 		else
-			error("invalid value: %a", v);
+			return str2json(sprintfa("%a", v));
 	}
 
 	@defloc tab2json(tab)
