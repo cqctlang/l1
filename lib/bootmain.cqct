@@ -427,8 +427,7 @@ load("prelude.cqct");
 	{
 		@local s, tok, ufno, idx, form, rv;
 
-		printf("debug> ");
-		s = read(stdin, 1024);
+		s = _prompt("debug> ");
 		if(s == nil) {
 			printf("\n");
 			return;
@@ -515,6 +514,7 @@ load("prelude.cqct");
 			printf("unrecognized command\n");
 			break;
 		}
+		_prompt_history_add(s);
 		debugloop();
 	}
 
