@@ -1621,6 +1621,12 @@ cg(Expr *e, Precode *code, CGEnv *p, Location *loc, Ctlidx ctl, Ctlidx nxt,
 				femit(&nf, code);
 				cg(e->e3, code, p, loc, ctl,
 				   nxt, &nf, lex);
+
+				/* Account for locals in the else-block */
+				if (nf.maxfsz > f->maxfsz) {
+					f->maxfsz = nf.maxfsz;
+				}
+
 				ffini(&nf);
 			}
 		}else{
