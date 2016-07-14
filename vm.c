@@ -2379,7 +2379,14 @@ cvalcmp(VM *vm, Cval *op1, Cval *op2)
 	b1 = typecbase(t1);
 	if(isfloat[b1])
 		return cvalfpcmp(vm, op1, op2, t1, t2);
+
 	if(t1->tkind == Tptr || t2->tkind == Tptr || isunsigned[b1]) {
+		if (t1->tkind == Tptr && t2->tkind != Tptr) {
+			i2 = truncimm(i2, typerep(t1));
+		} else if (t2->tkind == Tptr && t1->tkind != Tptr) {
+			i1 = truncimm(i1, typerep(t2));
+		}
+
 		if(i1<i2)
 			return -1;
 		else if(i1>i2)
