@@ -4353,7 +4353,9 @@ inline struct Insn* record_insn(struct Insn* i) { return i; }
 #endif
 
 Val
+#ifndef __clang__
 __attribute__ ((noclone))
+#endif
 dovm(VM *vm)
 {
 	Insn *i;
