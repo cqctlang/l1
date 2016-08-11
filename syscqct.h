@@ -1092,7 +1092,6 @@ Cval*		callismapped(VM *vm, As *as, Imm off, Imm len);
 Vec*		callmap(VM *vm, As *as);
 void		callput(VM *vm, As *as, Imm off, Imm len, Str *s);
 Val		ccall(VM* vm, Closure *cl, Imm argc, Val *argv);
-Ctype*		chasetype(Ctype *t);
 void		checkarg(VM *vm, Val *argv, unsigned arg, Qkind qkind);
 Tab*		doinsncnt(void);
 Cval*		domcast(VM *vm, Dom *dom, Cval *cv);
@@ -1356,7 +1355,7 @@ Cid*		mkcid(char *s, Imm len);
 Cid*		mkcid0(char *s);
 
 /* ctype.c */
-Ctype*		chasetype(Ctype *t);
+
 int		equalctype(Ctype *a, Ctype *b);
 int		eqvctype(Ctype *a, Ctype *b);
 void		finitype();
@@ -1378,9 +1377,7 @@ Ctype*		mkctypevoid(void);
 Ctype*		safechasetype(Ctype *t);
 void		setsubtype(Ctype *t, Ctype *s);
 Ctype*		subtype(Ctype *t);
-Cbase		typecbase(Ctype *t);
 Ctype*		ctypename(Ctype *td);
-Rkind		typerep(Ctype *t);
 void		typesetrep(Ctype *t, Rkind rep);
 Imm		typesize(VM *vm, Ctype *t);
 Cid*		typetag(Ctype *t);
@@ -1536,5 +1533,49 @@ extern char	sysos[];
 void		initos();
 
 extern		void fns(Env);
+
+static inline Ctype* chasetype(Ctype *t) {
+    switch(t->tkind) {
+    case Ttypedef:
+    case Tenum:
+        return chasetype(subtype(t));
+    default:
+        return t;
+    }
+}
+
+static inline Rkind
+typerep(Ctype *t)
+{
+	Ctypebase *tb;
+	Ctypeptr *tp;
+
+	switch(t->tkind){
+	case Tbase:
+		tb = (Ctypebase*)t;
+		return tb->rep;
+	case Tptr:
+		tp = (Ctypeptr*)t;
+		return tp->rep;
+	default:
+		bug();
+	}
+}
+
+static inline Cbase
+typecbase(Ctype *t)
+{
+	Ctypebase *tb;
+
+	switch(t->tkind){
+	case Tbase:
+		tb = (Ctypebase*)t;
+		return tb->cbase;
+	case Tptr:
+		return Vptr;
+	default:
+		bug();
+	}
+}
 
 #endif /* _BISONFLAW_SYSCQCT_H_ */

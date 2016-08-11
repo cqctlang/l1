@@ -1360,7 +1360,7 @@ out:
 	*rv2 = op2;
 }
 
-static Cval*
+static inline Cval*
 intpromote(VM *vm, Cval *cv)
 {
 	Ctype *base;

@@ -273,18 +273,6 @@ setsubtype(Ctype *t, Ctype *s)
 }
 
 Ctype*
-chasetype(Ctype *t)
-{
-	switch(t->tkind){
-	case Ttypedef:
-	case Tenum:
-		return chasetype(subtype(t));
-	default:
-		return t;
-	}
-}
-
-Ctype*
 safechasetype(Ctype *t)
 {
 	if(t == 0)
@@ -329,40 +317,6 @@ typetag(Ctype *t)
 		bug();
 	}
 
-}
-
-Cbase
-typecbase(Ctype *t)
-{
-	Ctypebase *tb;
-
-	switch(t->tkind){
-	case Tbase:
-		tb = (Ctypebase*)t;
-		return tb->cbase;
-	case Tptr:
-		return Vptr;
-	default:
-		bug();
-	}
-}
-
-Rkind
-typerep(Ctype *t)
-{
-	Ctypebase *tb;
-	Ctypeptr *tp;
-
-	switch(t->tkind){
-	case Tbase:
-		tb = (Ctypebase*)t;
-		return tb->rep;
-	case Tptr:
-		tp = (Ctypeptr*)t;
-		return tp->rep;
-	default:
-		bug();
-	}
 }
 
 /* the existence of this function is unfortunate.
