@@ -35,7 +35,7 @@ mkcid(char *s, Imm len)
 }
 
 Cid*
-mkcid0(char *s)
+mkcid0(const char *s)
 {
 	Str *str;
 	str = mkstr0(s);

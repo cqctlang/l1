@@ -167,7 +167,7 @@ mkcl(Code *code, unsigned len)
 }
 
 Closure*
-mkcfn(char *id, Cfn *cfn)
+mkcfn(const char *id, Cfn *cfn)
 {
 	Code *code;
 	code = mkcode(Ccfn, trampsize);
@@ -178,13 +178,13 @@ mkcfn(char *id, Cfn *cfn)
 }
 
 Closure*
-cqctmkcfn(char *id, Cfn *cfn)
+cqctmkcfn(const char *id, Cfn *cfn)
 {
 	return mkcfn(id, cfn);
 }
 
 static Closure*
-mkcclx(char *id, Ccl *ccl, unsigned dlen, va_list args)
+mkcclx(const char *id, Ccl *ccl, unsigned dlen, va_list args)
 {
 	Code *code;
 	Closure *cl;
@@ -204,7 +204,7 @@ mkcclx(char *id, Ccl *ccl, unsigned dlen, va_list args)
 }
 
 Closure*
-cqctmkccl(char *id, Ccl *ccl, unsigned dlen, ...) {
+cqctmkccl(const char *id, Ccl *ccl, unsigned dlen, ...) {
 	Closure *cl;
 	va_list args;
 	va_start(args, dlen);
@@ -536,7 +536,7 @@ envput(Env env, Cid *id, Val v)
 }
 
 void
-envbind(Env env, char *id, Val val)
+envbind(Env env, const char *id, Val val)
 {
 	Cid *cid;
 	cid = mkcid0(id);
@@ -548,7 +548,7 @@ envbind(Env env, char *id, Val val)
 }
 
 void
-envdel(Env env, char *id)
+envdel(Env env, const char *id)
 {
 	tabdel(env, mkvalcid(mkcid0(id)));
 }
@@ -4270,7 +4270,7 @@ builtinfd(Env env, char *name, Fd *fd)
 }
 
 void
-builtinfn(Env env, char *name, Closure *cl)
+builtinfn(Env env, const char *name, Closure *cl)
 {
 	Val val;
 	val = mkvalcl(cl);
@@ -4280,7 +4280,7 @@ builtinfn(Env env, char *name, Closure *cl)
 }
 
 void
-cqctbuiltinfn(VM* vm, char *name, Closure *cl)
+cqctbuiltinfn(VM* vm, const char *name, Closure *cl)
 {
 	builtinfn(vm->top, name, cl);
 }

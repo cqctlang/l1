@@ -6,7 +6,7 @@ char **cqctloadpath;
 char cqctflags[256];
 
 int
-cqcteval(VM *vm, char *s, char *src, Val *rv)
+cqcteval(VM *vm, const char *s, const char *src, Val *rv)
 {
 	Val cl;
 	Val codeval = cqctcstrval(s);
@@ -75,13 +75,13 @@ cqctvalcstrlen(Val v)
 }
 
 Val
-cqctcstrval(char *s)
+cqctcstrval(const char *s)
 {
 	return mkvalstr(mkstr0(s));
 }
 
 Val
-cqctcstrnval(char *s, uint64_t len)
+cqctcstrnval(const char *s, uint64_t len)
 {
 	return mkvalstr(mkstr(s, len));
 }
@@ -105,19 +105,19 @@ cqctfreecstr(char *s)
 }
 
 void
-cqctenvbind(VM *vm, char *name, Val v)
+cqctenvbind(VM *vm, const char *name, Val v)
 {
 	envbind(vm->top, name, v);
 }
 
 void
-cqctenvdel(VM *vm, char *name)
+cqctenvdel(VM *vm, const char *name)
 {
 	envdel(vm->top, name);
 }
 
 Val
-cqctenvlook(VM *vm, char *name)
+cqctenvlook(VM *vm, const char *name)
 {
 	return envget(vm->top, mkcid0(name));
 }

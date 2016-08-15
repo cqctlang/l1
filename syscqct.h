@@ -1086,7 +1086,7 @@ void		xenvupdate(Xenv *xe, char *id, void *v);
 /* vm.c */
 Src		addr2line(Code *code, Insn *pc);
 void		builtinfd(Env env, char *name, Fd *fd);
-void		builtinfn(Env env, char *name, Closure *cl);
+void		builtinfn(Env env, const char *name, Closure *cl);
 Str*		callget(VM *vm, As *as, Imm off, Imm len);
 Cval*		callismapped(VM *vm, As *as, Imm off, Imm len);
 Vec*		callmap(VM *vm, As *as);
@@ -1097,8 +1097,8 @@ Tab*		doinsncnt(void);
 Cval*		domcast(VM *vm, Dom *dom, Cval *cv);
 void		dogc(VM *vm, u32 g, u32 tg);
 Val		dovm(VM* vm);
-void		envbind(Env env, char *id, Val v);
-void		envdel(Env env, char *id);
+void		envbind(Env env, const char *id, Val v);
+void		envdel(Env env, const char *id);
 int		envbinds(Env env, Cid *id);
 void		envdefine(Env env, Cid *id, Val v);
 Val		envget(Env env, Cid *id);
@@ -1126,7 +1126,7 @@ int		isstrcval(Cval *cv);
 int		ischarcval(Cval *cv);
 Range*		mapstab(VM *vm, Vec *map, Imm addr, Imm len);
 As*		mkastab(Tab *mtab, Str *name);
-Closure*	mkcfn(char *id, Cfn *cfn);
+Closure*	mkcfn(const char *id, Cfn *cfn);
 Closure*	mkcl(Code *code, unsigned len);
 Cval*		mkcval(Dom *dom, Ctype *type, Imm val);
 Dom*		mkdom(Ns *ns, As *as, Str *name);
@@ -1352,7 +1352,7 @@ void		finicid();
 void		fncid(Env env);
 void		initcid();
 Cid*		mkcid(char *s, Imm len);
-Cid*		mkcid0(char *s);
+Cid*		mkcid0(const char *s);
 
 /* ctype.c */
 
@@ -1460,8 +1460,8 @@ void		fnstr(Env env);
 u32		hashstr(Str *s);
 void		l1_strref(VM *vm, Imm argc, Val *argv, Val *rv);
 void		l1_strput(VM *vm, Imm argc, Val *argv, Val *rv);
-Str*		mkstr(char *s, Imm len);
-Str*		mkstr0(char *s);
+Str*		mkstr(const char *s, Imm len);
+Str*		mkstr0(const char *s);
 Str*		mkstrk(char *s, Imm len, Skind skind);
 Str*		mkstrn(Imm len);
 char*		str2cstr(Str *str);

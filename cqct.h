@@ -129,18 +129,18 @@ struct Xfd {
 
 #define CQCTFN(top,id)	cqctbuiltinfn(top, "%"#id, cqctmkcfn(#id, l1_##id))
 
-void		cqctbuiltinfn(VM *vm, char *name, Closure *cl);
+void		cqctbuiltinfn(VM *vm, const char *name, Closure *cl);
 int		cqctcallfn(VM *vm, Val cl, int argc, Val *argv, Val *rv);
 int		cqctcallthunk(VM *vm, Val cl, Val *rv);
 void		cqctcheckarg(VM *vm, Val *argv, unsigned arg, Qkind qkind);
-Val		cqctcstrnval(char *s, uint64_t len);
+Val		cqctcstrnval(const char *s, uint64_t len);
 Val		cqctcstrnvalshared(char *s, uint64_t len);
-Val		cqctcstrval(char *s);
+Val		cqctcstrval(const char *s);
 Val		cqctcstrvalshared(char *s);
-void		cqctenvbind(VM *vm, char *name, Val v);
-Val		cqctenvlook(VM *vm, char *name);
-void		cqctenvdel(VM *vm, char *name);
-int		cqcteval(VM *vm, char *s, char *src, Val *rv);
+void		cqctenvbind(VM *vm, const char *name, Val v);
+Val		cqctenvlook(VM *vm, const char *name);
+void		cqctenvdel(VM *vm, const char *name);
+int		cqcteval(VM *vm, const char *s, const char *src, Val *rv);
 void		cqctfreecstr(char *s);
 Val		cqctint8val(int8_t);
 Val		cqctint16val(int16_t);
@@ -152,8 +152,8 @@ Val		cqctlistappend(Val l, Val v);
 Val		cqctlistref(Val l, uint64_t idx);
 Val		cqctlistset(Val l, uint64_t idx, Val v);
 Val*		cqctlistvals(Val v);
-Val		cqctlooktop(VM *vm, char *name);
-Closure*	cqctmkcfn(char *id,
+Val		cqctlooktop(VM *vm, const char *name);
+Closure*	cqctmkcfn(const char *id,
 			  void (fn)(VM *vm, uint64_t argc, Val *argv, Val *rv));
 /**
  * Create a closure with a C function body.
@@ -182,10 +182,10 @@ Closure*	cqctmkcfn(char *id,
  * @param cl the C callback
  * @param dlen the number bound parameters
  */
-Closure*	cqctmkccl(char *id,
+Closure*	cqctmkccl(const char *id,
 			  void (cl)(VM *vm, uint64_t argc, Val *argv, Val *disp, Val *rv),
 			  unsigned dlen, ...);
-Val		cqctmkfd(Xfd *xfd, char *name);
+Val		cqctmkfd(Xfd *xfd, const char *name);
 Val		cqctmklist(uint64_t n);
 Val		cqctmkrange(Val b, Val l);
 Val		cqctmkvec(uint64_t n);

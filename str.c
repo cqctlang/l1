@@ -79,7 +79,7 @@ strconcat(Str *s1, Str *s2)
 }
 
 Str*
-mkstr(char *s, Imm len)
+mkstr(const char *s, Imm len)
 {
 	Str *str;
 	str = mkstrn(len);
@@ -88,7 +88,7 @@ mkstr(char *s, Imm len)
 }
 
 Str*
-mkstr0(char *s)
+mkstr0(const char *s)
 {
 	Str *str;
 	Imm len;
