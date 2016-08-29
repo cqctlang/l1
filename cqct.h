@@ -212,6 +212,7 @@ uint64_t	cqctvaluint64(Val);
 Val		cqctvecref(Val l, uint64_t idx);
 Val		cqctvecset(Val l, uint64_t idx, Val v);
 Val*		cqctvecvals(Val v);
+const char*     cqcttypename(Qkind kind);
 
 /**
  * Raise an error in the VM.

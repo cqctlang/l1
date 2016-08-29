@@ -7997,3 +7997,12 @@ cqctuint64val(uint64_t x)
 {
 	return mkvallitcval(clp64le.xuint64, x);
 }
+
+const char*
+cqcttypename(Qkind kind)
+{
+  if (kind < 0 || kind >= Qnkind) {
+    return "invalid_type";
+  }
+  return qname[kind];
+}
