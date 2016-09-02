@@ -121,11 +121,13 @@ udis/udis.o:
 	@echo + mk udis
 	$(V)$(MAKE) -s -C udis
 
-parser:
-	@echo + flex $<
-	$(V)flex -f -s c.l # -s drops fwrite dependency
+c.tab.c: c.y
 	@echo + bison $<
-	$(V)bison -d c.y
+	$(V)bison -d $<
+
+lex.yy.c: c.l
+	@echo + flex $<
+	$(V)flex -f -s $< # -s drops fwrite dependency
 
 %.o:%.c
 	@echo + cc $<
