@@ -43,11 +43,12 @@ static HT *filenames;
 
 extern int yylex_destroy(void);
 
+static const int k_errorbuf_size = 256;
+
 void
 parseerror(U *ctx, char *fmt, ...)
 {
 	va_list args;
-	static char buf[256];
 	u32 len;
 
 	if(ctx == 0){
@@ -64,26 +65,18 @@ parseerror(U *ctx, char *fmt, ...)
 		abort();
 	}
 
-	buf[0] = 0;
+
+	char *buf = emalloc(k_errorbuf_size);
 	if(ctx->inp)
-		snprintf(buf, sizeof(buf), "%s:%u:%u: ",
+		snprintf(buf, k_errorbuf_size, "%s:%u:%u: ",
 			 ctx->inp->src.filename,
 			 ctx->inp->src.line,
 			 ctx->inp->src.col);
 	len = strlen(buf);
 	va_start(args, fmt);
-	vsnprint(buf+len, sizeof(buf)-len, fmt, args);
+	vsnprint(buf+len, k_errorbuf_size-len, fmt, args);
 	va_end(args);
-	while(popyy(ctx))
-		;
-	yylex_destroy();
-	if(ctx->vm)
-		vmerr(ctx->vm, "%s", buf);
-	else{
-		cprintf(&l1stderr, "%s\n", buf);
-		longjmp(ctx->jmp, 1);
-	}
-	fatal("direct return from parseerror");
+	ctx->parse_error = buf;
 }
 
 Expr*
@@ -810,8 +803,23 @@ doparse(U *ctx, char *buf, u64 len, char *whence, u32 wlen, unsigned line)
 	pushyy(ctx, whence, wlen, line, buf, len, 0);
 	ctx->el = nullelistsrc(&ctx->inp->src);
 	yy = yyparse(ctx);
-	if(yy == 1)
-		return 0;
+	if(yy == 1) {
+		char buf[256];
+		buf[0] = '\0';
+		if (ctx->parse_error) {
+			strncpy(buf, ctx->parse_error, sizeof(buf));
+			efree(ctx->parse_error);
+		}
+		while (popyy(ctx)) { }
+		yylex_destroy();
+		if (ctx->vm) {
+			vmerr(ctx->vm, "%s", buf);
+		} else {
+			cprintf(&l1stderr, "%s\n", buf);
+			longjmp(ctx->jmp, 1);
+		}
+		fatal("unreachable return from parse error");
+	}
 	if(yy != 0)
 		fatal("parser failure");
 	rv = invert(ctx->el);

@@ -587,6 +587,7 @@ struct U {
 	Expr *el;		/* parser accumulator */
 	Xfd *out;
 	Env top;		/* toplevel (compiler) */
+	char *parse_error; /* set on parser failure */
 } U;
 
 typedef

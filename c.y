@@ -35,6 +35,7 @@ extern char *yytext;
 %token SYNTAXQUOTE SYNTAXQUASI SYNTAXUNQUOTE SYNTAXSPLICE SYNTAXLIST
 %token LPAIR RPAIR NOBIND_PRE MATCH
 %token ATFILE ATLINE
+%token PARSEERROR
 
 %type <expr> base base_list
 %type <expr> declaration typedef specifier_list constant_expression
@@ -189,8 +190,10 @@ src_expression
 	{
 		Lit lit;
 		char *err;
-		if(0 != parselit($2.p, $2.len, &lit, 0, &err))
+		if(0 != parselit($2.p, $2.len, &lit, 0, &err)) {
 			parseerror(ctx, err);
+			YYERROR;
+		}
 		/* FIXME: check type of literal */
 		ctx->inp->src.line = (unsigned)lit.v.u;
 		$$ = newexprsrc(&ctx->inp->src, Enil, 0, 0, 0, 0);
@@ -592,8 +595,6 @@ names_declaration
 	: declaration
 	| typedef
 	| splice_expr
-	| error ';'
-	{ $$ = 0; }
 	;
 
 names_expression
@@ -756,8 +757,6 @@ struct_declaration
 	{ $$ = newexprsrc(&ctx->inp->src, Ebitfield, $1, $2, 0, $4); }
 	/* accept (but discard) c++ labels such as "public:" */
 	| id ':'
-	{ $$ = 0; }
-	| error ';'
 	{ $$ = 0; }
 	;
 
@@ -1152,8 +1151,6 @@ expression_statement
 	{ $$ = newexprsrc(&ctx->inp->src, Enil, 0, 0, 0, 0); }
 	| expression ';'
 	{ $$ = $1; }
-	| error ';'
-	{ $$ = 0; }
 	;
 
 selection_statement
@@ -1252,7 +1249,11 @@ external_declaration
 static void
 yyerror(U *ctx, const char *s)
 {
-	parseerror(ctx, (char*)s);
+	/* Some scanner rules have already signaled an error and
+	   returned an error token to stop parsing. */
+	if (!ctx->parse_error) {
+		parseerror(ctx, (char*)s);
+	}
 }
 
 /* expression trees for ambiguous forms share identifier nodes;
