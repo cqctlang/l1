@@ -33,8 +33,8 @@ static int databracket(U *ctx, YYSTYPE *lvalp);
 %x SH_COMMENT
 
 %%
-@include[ \t]*\"[^\<\>\"]+\"[ \t]*   { count(ctx); tryinclude(ctx, yytext); }
-@include[ \t]*\<[^\<\>\"]+\>[ \t]*   { count(ctx); tryinclude(ctx, yytext); }
+@include[ \t]*\"[^\<\>\"]+\"[ \t]*   { count(ctx); if (!tryinclude(ctx, yytext)) { return PARSEERROR; } }
+@include[ \t]*\<[^\<\>\"]+\>[ \t]*   { count(ctx); if (!tryinclude(ctx, yytext)) { return PARSEERROR; } }
 <INITIAL><<EOF>>                 { if(maybepopyy(ctx) == 0) yyterminate(); }
 
 \/\/.*			{ /* comment */ ctx->inp->src.col = 0; }

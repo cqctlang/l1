@@ -525,8 +525,10 @@ doconst(U *ctx, char *s, unsigned long len)
 	Expr *e;
 	char *err;
 	lit.base = 0;
-	if(0 != parselit(s, len, &lit, 0, &err))
+	if(0 != parselit(s, len, &lit, 0, &err)) {
 		parseerror(ctx, err);
+		return 0;
+	}
 	e = Zval(mkvallitcvalenc(lit.base, lit.v));
 	e->src = mksrc(&ctx->inp->src);
 	return e;
@@ -740,7 +742,7 @@ maybepopyy(U *ctx)
 	return popyy(ctx);
 }
 
-void
+int
 tryinclude(U *ctx, char *raw)
 {
 	char *p, *q, *path, *buf, *full, **lp;
@@ -775,6 +777,7 @@ tryinclude(U *ctx, char *raw)
 			if(buf)
 				break;
 			efree(full);
+			full = 0;
 			lp++;
 		}
 	}else{
@@ -788,10 +791,13 @@ tryinclude(U *ctx, char *raw)
 			full = xstrdup(p);
 		buf = readfile(full);
 	}
-	if(buf == 0)
+	if(buf == 0) {
 		parseerror(ctx, "cannot @include %s: %s", p, strerror(errno));
-	pushyy(ctx, full, strlen(full), 1, buf, strlen(buf), 1);
+	} else {
+		pushyy(ctx, full, strlen(full), 1, buf, strlen(buf), 1);
+	}
 	efree(full);
+	return buf != 0;
 }
 
 Expr*

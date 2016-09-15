@@ -248,7 +248,7 @@ primary_expression
 	| SYMBOL
 	{ $$ = dosym($1.p, $1.len); }
 	| CONSTANT
-	{ $$ = doconst(ctx, $1.p, $1.len); }
+	{ $$ = doconst(ctx, $1.p, $1.len); if (!$$) { YYERROR; } }
 	| STRING_LITERAL
 	{ $$ = dostr($1.p, $1.len); }
 	| DATA

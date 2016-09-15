@@ -944,7 +944,7 @@ int		parselit(char *s, unsigned long len, Lit *lit,
 Expr*		ptrto(Expr*, Expr*);
 void		parseerror(U *ctx, char *fmt, ...);
 int		popyy(U *ctx);
-void		tryinclude(U *ctx, char *raw);
+int		tryinclude(U *ctx, char *raw);
 int		yyparse(U *ctx);
 
 /* printexpr.c */
