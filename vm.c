@@ -4262,14 +4262,6 @@ builtinnil(Env env, char *name)
 }
 
 void
-builtinfd(Env env, char *name, Fd *fd)
-{
-	Val val;
-	val = mkvalfd(fd);
-	envbind(env, name, val);
-}
-
-void
 builtinfn(Env env, const char *name, Closure *cl)
 {
 	Val val;

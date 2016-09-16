@@ -246,7 +246,6 @@ typedef struct Cid Cid;
 typedef struct Ctype Ctype;
 typedef struct Cval Cval;
 typedef struct Dom Dom;
-typedef struct Fd Fd;
 typedef struct List List;
 typedef struct Ns Ns;
 typedef struct Pair Pair;
@@ -419,25 +418,6 @@ struct Dom {
 	As *as;
 	Ns *ns;
 	Str *name;
-};
-
-struct Fd {
-	Head hd;
-	union {
-		Xfd fn;
-		struct {
-			Closure *read;
-			Closure *write;
-			Closure *close;
-		} cl;
-	} u;
-	Str *name;
-	enum Fflag {
-		Ffn =		1,
-		Fclosed =	Ffn<<1,
-		Fread =		Fclosed<<1,
-		Fwrite =	Fread<<1,
-	} flags;
 };
 
 struct Pair {
@@ -1086,7 +1066,6 @@ void		xenvupdate(Xenv *xe, char *id, void *v);
 
 /* vm.c */
 Src		addr2line(Code *code, Insn *pc);
-void		builtinfd(Env env, char *name, Fd *fd);
 void		builtinfn(Env env, const char *name, Closure *cl);
 Str*		callget(VM *vm, As *as, Imm off, Imm len);
 Cval*		callismapped(VM *vm, As *as, Imm off, Imm len);
@@ -1131,9 +1110,6 @@ Closure*	mkcfn(const char *id, Cfn *cfn);
 Closure*	mkcl(Code *code, unsigned len);
 Cval*		mkcval(Dom *dom, Ctype *type, Imm val);
 Dom*		mkdom(Ns *ns, As *as, Str *name);
-Fd*		mkfdfn(Str *name, int flags, Xfd *xfd);
-Fd*		mkfdcl(Str *name, int flags,
-		       Closure *read, Closure *write, Closure *close);
 Cval*		mklitcval(Cbase base, Imm val);
 Ns*		mknsraw(VM *vm, Ns *ons, Tab *rawtype,
 			Tab *rawsym, Str *name);
@@ -1162,9 +1138,6 @@ Imm		valimm(Val v);
 Str*		valstrorcval(VM *vm, char *fn, Val *argv, unsigned arg);
 void		vmerr(VM *vm, char *fmt, ...) NORETURN;
 char*		vmfnid(VM *vm);
-#ifdef NEVER
-Fd*		vmstdout(VM *vm);
-#endif
 void		vmwarn(VM *vm, char *fmt, ...);
 Cval*		xcvalalu(VM *vm, ikind op, Cval *op1, Cval *op2);
 Val		xunop(VM *vm, ikind op, Val v);
@@ -1176,7 +1149,6 @@ Val		xunop(VM *vm, ikind op, Val v);
 #define mkvalctype(x)	((Val)(x))
 #define mkvaldom(x)	((Val)(x))
 #define mkvalexpr(x)	((Val)(x))
-#define mkvalfd(x)	((Val)(x))
 #define mkvallist(x)	((Val)(x))
 #define mkvalns(x)	((Val)(x))
 #define mkvalpair(x)	((Val)(x))
@@ -1196,7 +1168,6 @@ Val		xunop(VM *vm, ikind op, Val v);
 #define valcval(v)	((Cval*)(v))
 #define valdom(v)	((Dom*)(v))
 #define valexpr(v)	((Expr*)(v))
-#define valfd(v)	((Fd*)(v))
 #define vallist(v)	((List*)(v))
 #define valns(v)	((Ns*)(v))
 #define valpair(v)	((Pair*)(v))
