@@ -7993,7 +7993,7 @@ cqctuint64val(uint64_t x)
 const char*
 cqcttypename(Qkind kind)
 {
-  if (kind < 0 || kind >= Qnkind) {
+  if (kind >= Qnkind) {
     return "invalid_type";
   }
   return qname[kind];
