@@ -229,6 +229,8 @@ struct Heap
 	Guard guard;		/* guard list */
 	unsigned disable;
 	u32 gctrip, gcsched[Ngen], ingc;
+	void* restored_heap;	/* start of restored heap mmap */
+	u64 restored_heap_sz;	/* length of restored heap mmap */
 } Heap;
 
 typedef
@@ -2268,14 +2270,17 @@ resetmem()
 	H.free = 0;
 	H.inuse = 0;
 	H.bigsz = 0;
+	unmapmem(H.restored_heap, H.restored_heap_sz);
+	H.restored_heap = 0;
+	H.restored_heap_sz = 0;
 }
 
 void
 finimem()
 {
 	_gc(Ngen-1, Ngen-1);
-	/* FIXME: free all segments */
 	/* FIXME: free static generation */
+	resetmem();
 }
 
 
@@ -3452,6 +3457,10 @@ restoreheap(const char *file)
 	/* reset crap we don't have a better way to reset */
 	tabput(toplevel, mkvalcid(mkcid0("$winders")), Xnil);
 	tabput(toplevel, mkvalcid(mkcid0("$repllevel")), mkvalcval2(cval0));
+
+	/* Save mapped range so that we can unmap later in resetmem. */
+	H.restored_heap = op;
+	H.restored_heap_sz = roundup(len, 4096);
 
 	efree(tseg);
 	efree(sptr);
