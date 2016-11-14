@@ -1505,8 +1505,13 @@ scan(M *m)
 			m->scan += qsz(h);
 			scan1(h);
 		}
-		if(s->link == 0)
+		if(s->link == 0) {
+			if (MTbig(s->mt)) {
+				/* Do not go off the end of big segments. */
+				m->scan = 0;
+			}
 			break;
+                }
 		m->scan = s->link;
 		s = a2s(s->link);
 	}
@@ -3097,10 +3102,19 @@ saveheapfd(Tab *toplevel, int fd)
 					strerror(errno));
 				goto fail;
 			}
-			if(-1 == saveroot(fd, (Val)m->scan)){
-				fprintf(stderr, "saveheapfd: write: %s\n",
-					strerror(errno));
-				goto fail;
+			if (m->scan) {
+				if(-1 == saveroot(fd, (Val)m->scan)){
+					fprintf(stderr, "saveheapfd: write: %s\n",
+						strerror(errno));
+					goto fail;
+				}
+			} else {
+				uptr zero = 0;
+				if (-1 == xwrite(fd, &zero, sizeof(uptr))){
+					fprintf(stderr, "saveheapfd: write: %s\n",
+						strerror(errno));
+					goto fail;
+				}
 			}
 		}
 	}
