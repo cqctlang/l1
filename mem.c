@@ -1250,7 +1250,18 @@ _malbig(MT mt, u64 sz)
 	Seg *s;
 	s = allocbigseg(mt, H.tg, sz);
 	minsert(&H.m[mt][H.tg], s);
-	s->a += sz;
+	/* The alloc field is used only to bound scan(). It is never used
+	   again for allocation, as big segments are single-object. We adjust
+	   the alloc pointer down by one in the edge condition that
+	   it aligns on a segment boundary; otherwise scan can inadvertently
+	   advance to the next segment (in system address space). This is not
+	   the case for normal segments because a uptr-sized buffer is retained
+	   at the end of the segment. */
+	if (sz & ~Segmask) {
+		s->a += sz;
+	} else {
+		s->a += sz - 1;
+	}
 	return s2a(s);
 }
 
@@ -1503,6 +1514,16 @@ scan(M *m)
 			h = m->scan;
 			if(dbg) printf("scanning %p (%s)\n", h, qs[Vkind(h)].id);
 			m->scan += qsz(h);
+			if (MTbig(s->mt) && m->scan > s->a) {
+				/* Discrepancy can only be a single byte. */
+				if (m->scan - s->a != 1) {
+					fatal("bug: big segment alloc %p, scan %p\n",
+						s->a, m->scan);
+				}
+				/* Clamp m->scan within the segment; see comment
+				   in _malbig for details. */
+				m->scan = s->a;
+			}
 			scan1(h);
 		}
 		if(s->link == 0)
