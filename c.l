@@ -42,8 +42,8 @@ static int databracket(U *ctx, YYSTYPE *lvalp);
 "/*"			{ BEGIN(C_COMMENT); }
 <C_COMMENT>"*/"		{ BEGIN(INITIAL); }
 <SH_COMMENT>"!#"	{ BEGIN(INITIAL); }
-<C_COMMENT,SH_COMMENT>.		{ }
-<C_COMMENT,SH_COMMENT>\n	{ }
+<C_COMMENT,SH_COMMENT>.		{ count(ctx); }
+<C_COMMENT,SH_COMMENT>\n	{ count(ctx); }
 <C_COMMENT,SH_COMMENT><<EOF>>	{ parseerror(ctx, "end of input inside comment"); return(PARSEERROR);  }
 #\'\{			{ count(ctx); return(SYNTAXQUOTE); }
 #`\{			{ count(ctx); return(SYNTAXQUASI); }
