@@ -1740,6 +1740,18 @@ gcdisable()
 }
 
 void
+cqctgcdisable()
+{
+	gcdisable();
+}
+
+void
+cqctgcenable()
+{
+	gcenable();
+}
+
+void
 gcpoll(VM *vm)
 {
 	static int ingc;

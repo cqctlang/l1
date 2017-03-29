@@ -192,7 +192,10 @@ Val		cqctmkvec(uint64_t n);
 Val		cqctrangebeg(Val o);
 Val		cqctrangelen(Val o);
 char*		cqctsprintval(VM *vm, Val v);
+Val		cqctmktab();
 Val		cqcttabget(Val l, Val k);
+int		cqcttabput(Val t, Val k, Val v);
+Val		cqcttabenum(Val t);
 Val		cqctuint8val(uint8_t);
 Val		cqctuint16val(uint16_t);
 Val		cqctuint32val(uint32_t);
@@ -213,6 +216,7 @@ Val		cqctvecref(Val l, uint64_t idx);
 Val		cqctvecset(Val l, uint64_t idx, Val v);
 Val*		cqctvecvals(Val v);
 const char*     cqcttypename(Qkind kind);
+Val		cqctnil();
 
 /**
  * Raise an error in the VM.

@@ -15,7 +15,7 @@
 		else if (iscid(v))
 			return str2json(cid2str(v));
 		else if(iscvalue(v))
-			return sprintfa("%u", v);
+			return sprintfa("%a", v);
 		else if(islist(v))
 			return pplist2json(v,pp);
 		else if(istable(v))
@@ -118,7 +118,7 @@
 		else if (iscid(v))
 			return str2json(cid2str(v));
 		else if(iscvalue(v))
-			return sprintfa("%u", v);
+			return sprintfa("%a", v);
 		else if(islist(v))
 			return list2json(v);
 		else if(istable(v))

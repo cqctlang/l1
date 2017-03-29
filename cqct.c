@@ -18,6 +18,19 @@ cqcteval(VM *vm, const char *s, const char *src, Val *rv)
 	return 0;
 }
 
+char*
+cqctval2json(VM *vm, Val val) {
+  Val argv[1], rv, cl;
+
+  cl = cqctenvlook(vm, (char *)"val2json");
+  if (!cl)
+    return 0;
+  argv[0] = val;
+  if (0 > cqctcallfn(vm, cl, 1, argv, &rv))
+    return 0;
+  return str2cstr(valstr(rv));
+}
+
 void
 cqctinterrupt(VM *vm)
 {
@@ -199,12 +212,37 @@ cqctlistappend(Val l, Val v)
 }
 
 Val
+cqctmktab() {
+	return mkvaltab(mktab());
+}
+
+int
+cqcttabput(Val t, Val k, Val v) {
+	Tab *tab;
+	if (Vkind(t) != Qtab)
+		return 0;
+	tab = valtab(t);
+	tabput(tab, k, v);
+	return 1;
+}
+
+Val
 cqcttabget(Val l, Val k) {
 	 Tab *tab;
 	 if (!Viskind(l, Qtab))
 		   return 0;
 	 tab = valtab(l);
 	 return tabget(tab, k);
+}
+
+Val
+cqcttabenum(Val t) {
+  Tab* tab;
+  if (Vkind(t) != Qtab) {
+    return 0;
+  }
+  tab = valtab(t);
+  return mkvalvec(tabenum(tab));
 }
 
 Val
@@ -274,4 +312,9 @@ cqctrangelen(Val o)
 		return 0;
 	r = valrange(o);
 	return mkvalcval2(r->len);
+}
+
+Val
+cqctnil() {
+  return Xnil;
 }
