@@ -540,16 +540,39 @@ dosym(char *s, unsigned long len)
 	return Zval(mkvalcid(mkcid(s+1, len-1)));
 }
 
-void
-expandstr(char *s, unsigned long len, unsigned long* nlen)
+static char* doexpandstr(char *s, unsigned long len, int wide,
+			 unsigned long* nlen)
 {
 	int c;
-	char *r, *w, *z;
+	const char *r, *z;
+	char *w, *ret;
 	unsigned noct;
 
 	r = s;
-	w = s;
 	z = s+len;
+
+	if (!wide) {
+		ret = w = s;
+	} else {
+		ret = w = malloc((len + 1) * (wide ? 2 : 1));
+	}
+
+#define WRITEB(src, dst)		\
+	do {				\
+		*dst++ = *src++;	\
+		if (wide) {		\
+			*dst++ = '\0';	\
+		}			\
+	} while (0)
+
+#define WRITEB_CONST(val, dst)		\
+	do {				\
+		*dst++ = val;		\
+		if (wide) {		\
+			*dst++ = '\0';	\
+		}			\
+	} while (0)
+
 	r++;			/* skip opening quote */
 	while(1){
 		if(r[0] == '\"'){
@@ -565,7 +588,7 @@ expandstr(char *s, unsigned long len, unsigned long* nlen)
 		}
 
 		if(r[0] != '\\'){
-			*w++ = *r++;
+			WRITEB(r, w);
 			continue;
 		}
 
@@ -641,19 +664,43 @@ expandstr(char *s, unsigned long len, unsigned long* nlen)
 			}
 			break;
 		}
-		*w++ = c;
+		WRITEB_CONST(c, w);
 	}
 
-	*w = '\0';
-	*nlen = w-s;
+	*nlen = w-ret;
+	WRITEB_CONST('\0', w);
+	return ret;
+
+#undef WRITEB
+#undef WRITEB_CONST
+}
+
+void
+expandstr(char *s, unsigned long len, unsigned long* nlen)
+{
+	(void) doexpandstr(s, len, /*wide=*/0, nlen);
 }
 
 Expr*
 dostr(char *s, unsigned long len)
 {
+	int wide;
+	char *expanded;
 	unsigned long nlen;
-	expandstr(s, len, &nlen);
-	return Zstrn(s, nlen);
+	Expr* ret;
+
+	if (*s == 'L') {
+		wide = 1;
+		++s;
+	} else {
+		wide = 0;
+	}
+	expanded = doexpandstr(s, len, wide, &nlen);
+	ret = Zstrn(expanded, nlen);
+	if (wide) {
+		free(expanded);
+	}
+	return ret;
 }
 
 Expr*
