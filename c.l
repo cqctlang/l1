@@ -29,6 +29,8 @@ static int databracket(U *ctx, YYSTYPE *lvalp);
 
 %}
 
+%option nounput
+
 %x C_COMMENT
 %x SH_COMMENT
 
