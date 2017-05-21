@@ -109,11 +109,8 @@ erealloc(void *p, size_t old, size_t new)
 	q = emalloc(new);
 	if(new > old) {
 		memcpy(q, p, old);
-		cqctmeminuse += new-old;
-		cqctmemtotal += new-old;
 	}else{
 		memcpy(q, p, new);
-		cqctmeminuse -= old-new;
 	}
 	efree(p);
 	return q;
