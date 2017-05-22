@@ -27,6 +27,20 @@ static int datalen(U *ctx, YYSTYPE *lvalp);
 static int datadelim(U *ctx, YYSTYPE *lvalp);
 static int databracket(U *ctx, YYSTYPE *lvalp);
 
+#if defined(__APPLE__)
+/* Apple has to be special. */
+#define IS_EOF 0
+#elif (YY_FLEX_MAJOR_VERSION > 2) \
+  || ((YY_FLEX_MAJOR_VERSION == 2) && (YY_FLEX_MINOR_VERSION > 6)) \
+  || ((YY_FLEX_MAJOR_VERSION == 2) && (YY_FLEX_MINOR_VERSION == 6) && (YY_FLEX_SUBMINOR_VERSION >= 1))
+/* Mainline change to Apple's convention,
+   https://github.com/westes/flex/commit/f863c9490e6912ffcaeb12965fb3a567a10745ff */
+#define IS_EOF 0
+#else
+/* Sensible people know that end of file means end of file. */
+#define IS_EOF EOF
+#endif
+
 %}
 
 %option nounput
@@ -258,9 +272,9 @@ static int datalen(U *ctx, YYSTYPE *lvalp) {
 
 	err = "";
 
-	while ( (c = input()) != EOF && isspace(c) )
+	while ( (c = input()) != IS_EOF && isspace(c) )
 		updateln(ctx, (char)c);
-	if (EOF == c) {
+	if (IS_EOF == c) {
 		err = "unexpected EOF";
 		goto error;
 	}
@@ -271,11 +285,11 @@ static int datalen(U *ctx, YYSTYPE *lvalp) {
 	}
 
 	len = c-'0';
-	while ( (c = input()) != EOF && isdigit(c)) {
+	while ( (c = input()) != IS_EOF && isdigit(c)) {
 		updateln(ctx, (char)c);
 		len = len*10 + (c-'0');
 	}
-	if (EOF == c) {
+	if (IS_EOF == c) {
 		err = "unexpected EOF";
 		goto error;
 	}
@@ -295,7 +309,7 @@ static int datalen(U *ctx, YYSTYPE *lvalp) {
 
 	for(i=1; i<len; ++i) {
 		c = input();
-		if (c == EOF) {
+		if (c == IS_EOF) {
 			err = "unexpected EOF";
 			goto error;
 		}
@@ -333,9 +347,9 @@ datadelim(U *ctx, YYSTYPE *lvalp) {
 	char *s = NULL, *d = NULL;
 	int c, k, dsz, dlen, ssz, slen;
 
-	while ( (c = input()) != EOF && isspace(c) )
+	while ( (c = input()) != IS_EOF && isspace(c) )
 		updateln(ctx, (char)c);
-	if (EOF == c) {
+	if (IS_EOF == c) {
 		parseerror(ctx, "unexpected EOF");
 		goto error;
 	}
@@ -347,11 +361,11 @@ datadelim(U *ctx, YYSTYPE *lvalp) {
 	addtostr(&d, &dsz, dlen++, '\n');
 	addtostr(&d, &dsz, dlen++, (char)c);
 
-	while ( ( c = input() ) != EOF && !isspace(c) ) {
+	while ( ( c = input() ) != IS_EOF && !isspace(c) ) {
 		updateln(ctx, (char)c);
 		addtostr(&d, &dsz, dlen++, (char)c);
 	}
-	if (EOF == c) {
+	if (IS_EOF == c) {
 		parseerror(ctx, "unexpected EOF");
 		goto error;
 	}
@@ -362,7 +376,7 @@ datadelim(U *ctx, YYSTYPE *lvalp) {
 
 	k = 0;
 
-	while ( ( c = input() ) != EOF ) {
+	while ( ( c = input() ) != IS_EOF ) {
 		updateln(ctx, (char)c);
 		if (d[k] == c) {
 			if (++k == dlen) break;
@@ -373,7 +387,7 @@ datadelim(U *ctx, YYSTYPE *lvalp) {
 	efree(d);
 	d = NULL;
 
-	if (EOF == c) {
+	if (IS_EOF == c) {
 		parseerror(ctx, "unexpected EOF");
 		goto error;
 	}
@@ -410,9 +424,9 @@ databracket(U *ctx, YYSTYPE *lvalp) {
 		0,0,0,0,0,0,0,0,0,0,0,0,0
 	};
 
-	while( (c = input()) != EOF && isspace(c) )
+	while( (c = input()) != IS_EOF && isspace(c) )
 		updateln(ctx, (char)c);
-	if(EOF == c) {
+	if(IS_EOF == c) {
 		parseerror(ctx, "unexpected EOF");
 		goto error;
 	}
@@ -426,12 +440,12 @@ databracket(U *ctx, YYSTYPE *lvalp) {
 
 		addtostr(&d, &dsz, dlen++, (char)c);
 
-		while ( ( c = input() ) != EOF && !matching_bracket[c] ) {
+		while ( ( c = input() ) != IS_EOF && !matching_bracket[c] ) {
 			updateln(ctx, (char)c);
 			addtostr(&d, &dsz, dlen++, (char)c);
 		}
 
-		if (EOF == c) {
+		if (IS_EOF == c) {
 			parseerror(ctx, "unexpected EOF");
 			goto error;
 		}
@@ -448,7 +462,7 @@ databracket(U *ctx, YYSTYPE *lvalp) {
 	s = emalloc(ssz);
 	slen = 0;
 
-	while ( ( c = input() ) != EOF ) {
+	while ( ( c = input() ) != IS_EOF ) {
 		updateln(ctx, (char)c);
 
 		tmp = matched;
@@ -470,7 +484,7 @@ databracket(U *ctx, YYSTYPE *lvalp) {
 	efree(matched);
 	d = lmatched = matched = NULL;
 
-	if (EOF == c) {
+	if (IS_EOF == c) {
 		parseerror(ctx, "could not find close of @db");
 		goto error;
 	}
