@@ -160,7 +160,7 @@ l1_mkdlfcnns(VM *vm, Imm argc, Val *argv, Val *rv)
 	r=myrootns(vm->top);
 	rns=valns(r);
 
-	for(x=0;modes[x].name;x++);
+	for(x=0;modes[x].name;x++) {}
         if(x) {
 	        outside=mkvec(x);
 		for(x=0;modes[x].name;x++) {
@@ -175,7 +175,7 @@ l1_mkdlfcnns(VM *vm, Imm argc, Val *argv, Val *rv)
 
 	em = mkctypeenum(mkcid0("dlfcn_modes"),rns->base[Vuint],outside);
 
-	for(x=0;handles[x].name;x++);
+	for(x=0;handles[x].name;x++) {}
         if(x) {
 		outside=mkvec(x);
 		for(x=0;handles[x].name;x++) {
