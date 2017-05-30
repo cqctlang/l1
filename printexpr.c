@@ -147,35 +147,6 @@ char* S[] = {
 	[E_attr] =	"_attr",
 };
 
-#if 0
-static void
-abbrevlits(char *buf, unsigned len, Lits *lits)
-{
-	char *p, *e, ch;
-	unsigned m;
-	p = buf;
-	e = buf+len-1;
-	m = 0;
-	if(lits->len >= len)
-		e -= 3;
-	while(p < e){
-		if(m >= lits->len)
-			break;
-		ch = lits->s[m];
-		if(ch == '\n')
-			break;
-		if(ch == '"')
-			break;
-		*p++ = ch;
-		m++;
-	}
-	if(lits->len >= len)
-		for(m = 0; m < 3; m++)
-			*p++ = '.';
-	*p = 0;
-}
-#endif
-
 void
 printexpr(Expr *e)
 {
