@@ -8,12 +8,37 @@
 #include "util.h"
 #include "syscqct.h"
 
-#if defined(__GNUC__)
+#if defined(__GNUC__) && 0
 static int
 logfloor(u32 n)
 {
 	return n == 0 ? -1 : 31 - __builtin_clz(n);
 }
+#else
+/* http://graphics.stanford.edu/~seander/bithacks.html#IntegerLogLookup */
+static const char LogTable256[256] =
+{
+#define LT(n) n, n, n, n, n, n, n, n, n, n, n, n, n, n, n, n
+    -1, 0, 1, 1, 2, 2, 2, 2, 3, 3, 3, 3, 3, 3, 3, 3,
+    LT(4), LT(5), LT(5), LT(6), LT(6), LT(6), LT(6),
+    LT(7), LT(7), LT(7), LT(7), LT(7), LT(7), LT(7), LT(7)
+#undef LT
+};
+
+static int
+logfloor(u32 n)
+{
+	u32 r;     // r will be lg(n)
+	u32 t, tt; // temporaries
+
+	if ((tt = n >> 16)) {
+		r = (t = tt >> 8) ? 24 + LogTable256[t] : 16 + LogTable256[tt];
+	} else {
+		r = (t = n >> 8) ? 8 + LogTable256[t] : LogTable256[n];
+	}
+	return r;
+}
+#endif  /* __GNUC__ */
 
 static int
 logceil(u32 n)
@@ -25,27 +50,6 @@ logceil(u32 n)
 		return floor + 1;
 	}
 }
-#else
-static int
-logceil(u32 n)
-{
-	int i, j, logfloor = 0;
-	int bitcount = 0;
-	for(i = 0; i < 8*sizeof(int); i++) {
-		j = n>>i;
-		if(j&1) {
-			bitcount++;
-			logfloor = i;
-		}
-		if(j == 0)
-			break;
-	}
-	if(bitcount > 1)
-		return logfloor+1;
-	else
-		return logfloor;
-}
-#endif  /* __GNUC__ */
 
 enum {
 	MAX_ADDRESSABLE_UNIT=8,
