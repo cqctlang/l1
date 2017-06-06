@@ -1,5 +1,4 @@
 /* this needs to be revised:
- * - can logceil be done without iteration?
  * - separate BP into address in (bytes) and offset in (bits)
  *   to avoid overflow
  * - make documentation intelligible
@@ -9,8 +8,26 @@
 #include "util.h"
 #include "syscqct.h"
 
+#if defined(__GNUC__)
 static int
-logceil(int n)
+logfloor(u32 n)
+{
+	return n == 0 ? -1 : 31 - __builtin_clz(n);
+}
+
+static int
+logceil(u32 n)
+{
+	int floor = logfloor(n);
+	if ((n & (n - 1)) == 0) {
+		return floor;
+	} else {
+		return floor + 1;
+	}
+}
+#else
+static int
+logceil(u32 n)
 {
 	int i, j, logfloor = 0;
 	int bitcount = 0;
@@ -28,6 +45,7 @@ logceil(int n)
 	else
 		return logfloor;
 }
+#endif  /* __GNUC__ */
 
 enum {
 	MAX_ADDRESSABLE_UNIT=8,
