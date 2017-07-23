@@ -7653,6 +7653,11 @@ procincr(Env env) {
 	}
 }
 
+VM* cqctinitwithopt(const struct vm_options* options) {
+    /* TODO: this method will become the concrete implementation. */
+    return cqctinit(options->memfile, options->loadpath);
+}
+
 VM*
 cqctinitxfd(const char *memfile, char **loadpath, Xfd *in, Xfd *out, Xfd *err)
 {

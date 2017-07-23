@@ -1605,4 +1605,9 @@ typecbase(Ctype *t)
 	}
 }
 
+struct vm_options {
+    char *memfile;
+    char **loadpath;
+};
+
 #endif /* _BISONFLAW_SYSCQCT_H_ */

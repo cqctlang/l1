@@ -67,6 +67,7 @@ L1C =\
 	ctype.c\
 	cval.c\
 	list.c\
+	options.c\
 	pair.c\
 	str.c\
 	stx.c\
