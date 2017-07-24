@@ -263,6 +263,31 @@ enum {
 	AllocBatch = 128,
 };
 
+/*
+         7 6 5 4 3 2 1 0
+        |0|D|K K K K K|F|
+ */
+
+#define	Vfwdoff       0
+#define	Vfwdbits      1
+#define	Vfwdmask      ((1<<Vfwdbits)-1)
+#define	Vkindoff      (Vfwdoff+Vfwdbits)
+#define	Vkindbits     5
+#define	Vkindmask     ((1<<Vkindbits)-1)
+
+#define Vfwd(p)		  ((((p)->bits)>>Vfwdoff)&Vfwdmask)
+#define Vsetfwd(p, a)     ((p)->bits = a|(Vfwdmask<<Vfwdoff))
+#define Vfwdaddr(p)	  ((void*)((p)->bits & ~(Vfwdmask<<Vfwdoff)))
+
+#define Vkind(p)          ((((p)->bits)>>Vkindoff)&Vkindmask)
+#define Viskind(p, k)     ((((p)->bits)&(Vkindmask<<Vkindoff))==((k)<<Vkindoff))
+#define Vsetkind(p, v)	  ((p)->bits = ((p)->bits&~(Vkindmask<<Vkindoff))|(((v)&Vkindmask)<<Vkindoff))
+
+struct Head
+{
+	uintptr_t bits; // must be able to store a forwarding pointing
+};
+
 typedef struct Ctl Ctl;
 typedef struct Code Code;
 typedef struct Cont Cont;

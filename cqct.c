@@ -318,3 +318,8 @@ Val
 cqctnil() {
   return Xnil;
 }
+
+Qkind
+cqctkind(Val val) {
+  return (Qkind) Vkind(val);
+}
