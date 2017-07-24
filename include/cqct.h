@@ -29,7 +29,6 @@ enum {
 	Qnkind
 } Qkind;
 
-
 /* base C types */
 typedef
 enum Cbase {
@@ -57,36 +56,6 @@ enum Cbase {
 	Vvoid,
 	Vnallbase,
 } Cbase;
-
-/* type representations */
-typedef
-enum Rkind {
-	Rundef,
-	Ru08le,
-	Ru16le,
-	Ru32le,
-	Ru64le,
-	Rs08le,
-	Rs16le,
-	Rs32le,
-	Rs64le,
-	Ru08be,
-	Ru16be,
-	Ru32be,
-	Ru64be,
-	Rs08be,
-	Rs16be,
-	Rs32be,
-	Rs64be,
-	Rf32,
-	Rf64,
-	Rf96,
-	Rf128,
-	Rx64,
-	Rx128,
-	Rx192,
-	Rnrep,
-} Rkind;
 
 typedef struct Closure Closure;
 typedef struct VM VM;
