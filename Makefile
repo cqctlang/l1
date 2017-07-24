@@ -1,6 +1,7 @@
 CC         = gcc
 LD         = ld
-CFLAGS    += -Wall -g -O3
+INC        = -Iinclude
+CFLAGS    += -Wall -g -O3 $(INC)
 CPPFLAGS  +=
 LDFLAGS    = -r
 ARCH	  := $(shell uname -m | sed 's/x86_64/amd64/')
