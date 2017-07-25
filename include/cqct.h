@@ -21,8 +21,6 @@ enum {
 	Qpair,
 	Qprecode,
 	Qrange,
-	//Qrd,
-	//Qrec,
 	Qstr,
 	Qtab,
 	Qvec,
