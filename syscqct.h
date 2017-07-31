@@ -11,6 +11,36 @@
 #define	Vvlongmax	9223372036854775807ULL
 #define	Vuvlongmax	18446744073709551615ULL
 
+/* type representations */
+typedef
+enum Rkind {
+	Rundef,
+	Ru08le,
+	Ru16le,
+	Ru32le,
+	Ru64le,
+	Rs08le,
+	Rs16le,
+	Rs32le,
+	Rs64le,
+	Ru08be,
+	Ru16be,
+	Ru32be,
+	Ru64be,
+	Rs08be,
+	Rs16be,
+	Rs32be,
+	Rs64be,
+	Rf32,
+	Rf64,
+	Rf96,
+	Rf128,
+	Rx64,
+	Rx128,
+	Rx192,
+	Rnrep,
+} Rkind;
+
 typedef
 enum{
 	Ebool=0,
@@ -231,6 +261,31 @@ enum {
 	Maxlit		= 70,	/* longest literal (binary) plus null */
 	InsnAlloc = 10,
 	AllocBatch = 128,
+};
+
+/*
+         7 6 5 4 3 2 1 0
+        |0|D|K K K K K|F|
+ */
+
+#define	Vfwdoff       0
+#define	Vfwdbits      1
+#define	Vfwdmask      ((1<<Vfwdbits)-1)
+#define	Vkindoff      (Vfwdoff+Vfwdbits)
+#define	Vkindbits     5
+#define	Vkindmask     ((1<<Vkindbits)-1)
+
+#define Vfwd(p)		  ((((p)->bits)>>Vfwdoff)&Vfwdmask)
+#define Vsetfwd(p, a)     ((p)->bits = a|(Vfwdmask<<Vfwdoff))
+#define Vfwdaddr(p)	  ((void*)((p)->bits & ~(Vfwdmask<<Vfwdoff)))
+
+#define Vkind(p)          ((((p)->bits)>>Vkindoff)&Vkindmask)
+#define Viskind(p, k)     ((((p)->bits)&(Vkindmask<<Vkindoff))==((k)<<Vkindoff))
+#define Vsetkind(p, v)	  ((p)->bits = ((p)->bits&~(Vkindmask<<Vkindoff))|(((v)&Vkindmask)<<Vkindoff))
+
+struct Head
+{
+	uintptr_t bits; // must be able to store a forwarding pointing
 };
 
 typedef struct Ctl Ctl;
