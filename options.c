@@ -5,6 +5,7 @@
 #include "sys.h"
 #include "util.h"
 #include "syscqct.h"
+#include "vm-options.h"
 
 static void free_loadpath(struct vm_options* options) {
     char* entry;
