@@ -81,7 +81,7 @@ finiio()
 }
 
 void
-initio(Xfd *in, Xfd *out, Xfd *err)
+initio(const Xfd *in, const Xfd *out, const Xfd *err)
 {
 	if(!in || !out || !err)
 		bug();

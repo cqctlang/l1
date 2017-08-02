@@ -1254,7 +1254,7 @@ void		disx86(unsigned char *s, unsigned char *e, unsigned inc);
 void		cprintf(Xfd *xfd, char *fmt, ...);
 void		cvprintf(Xfd *xfd, char *fmt, va_list args);
 void		finiio();
-void		initio(Xfd *in, Xfd *out, Xfd *err);
+void		initio(const Xfd *in, const Xfd *out, const Xfd *err);
 void		xfdclose(Xfd *xfd);
 Imm		xfdread(Xfd *xfd, char *buf, Imm len);
 Imm		xfdwrite(Xfd *xfd, char *buf, Imm len);
@@ -1604,5 +1604,18 @@ typecbase(Ctype *t)
 		bug();
 	}
 }
+
+struct vm_options {
+    char *memfile;
+    char **loadpath;
+    struct {
+        char has_in;
+        char has_out;
+        char has_err;
+        Xfd in;
+        Xfd out;
+        Xfd err;
+    } io;
+};
 
 #endif /* _BISONFLAW_SYSCQCT_H_ */

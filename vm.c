@@ -1,6 +1,7 @@
 #include "sys.h"
 #include "util.h"
 #include "syscqct.h"
+#include "vm-options.h"
 
 char *qname[Qnkind] = {
 	[Qnil]=		"nil",
@@ -7653,34 +7654,42 @@ procincr(Env env) {
 	}
 }
 
-VM*
-cqctinitxfd(const char *memfile, char **loadpath, Xfd *in, Xfd *out, Xfd *err)
-{
+static void init_default_io(Xfd xfd[3]) {
+	memset(xfd, 0, 3 * sizeof(*xfd));
+	xfd[0].read = xfdread;
+	xfd[0].fd = 0;
+	xfd[1].write = xfdwrite;
+	xfd[1].fd = 1;
+	xfd[2].write = xfdwrite;
+	xfd[2].fd = 2;
+}
+
+VM* cqctinitwithopt(const struct vm_options* options) {
 	Env top, tmp;
 	VM *vm;
 	struct sigaction sa;
 	Xfd xfd[3];
+	const Xfd *in, *out, *err;
 
 	/* users cannot disable warnings */
 	cqctflags['w'] = 1;
 
-	if(in == 0) {
+	init_default_io(xfd);
+
+	if(options->io.has_in) {
+		in = &options->io.in;
+	} else {
 		in = &xfd[0];
-		memset(in, 0, sizeof(Xfd));
-		in->read = xfdread;
-		in->fd = 0;
 	}
-	if(out == 0) {
+	if(options->io.has_out) {
+		out = &options->io.out;
+	} else {
 		out = &xfd[1];
-		memset(out, 0, sizeof(Xfd));
-		out->write = xfdwrite;
-		out->fd = 1;
 	}
-	if(err == 0) {
+	if(options->io.has_err) {
+		err = &options->io.err;
+	} else {
 		err = &xfd[2];
-		memset(err, 0, sizeof(Xfd));
-		err->write = xfdwrite;
-		err->fd = 2;
 	}
 
 	initos();
@@ -7702,19 +7711,19 @@ cqctinitxfd(const char *memfile, char **loadpath, Xfd *in, Xfd *out, Xfd *err)
 	tmp = mktoplevel();
 
 	vm = 0;
-	if(memfile) {
-		top = restoreheap(memfile);
+	if(options->memfile) {
+		top = restoreheap(options->memfile);
 		if(top == 0)
 			return 0;
-		cqctloadpath = copystrv(loadpath);
+		cqctloadpath = copystrv(options->loadpath);
 		vm = mkvm(top);
 		procincr(top);
 	}else if((top = restoreheap(0))) {
-		cqctloadpath = copystrv(loadpath);
+		cqctloadpath = copystrv(options->loadpath);
 		vm = mkvm(top);
 		procincr(top);
 	}else{
-		cqctloadpath = copystrv(loadpath);
+		cqctloadpath = copystrv(options->loadpath);
 		vm = mkvm(tmp);
 		bootvm(vm);
 	}
@@ -7728,10 +7737,30 @@ cqctinitxfd(const char *memfile, char **loadpath, Xfd *in, Xfd *out, Xfd *err)
 }
 
 VM*
-cqctinit(const char *memfile, char **loadpath)
+cqctinitxfd(const char *memfile, const char **loadpath,
+			Xfd *in, Xfd *out, Xfd *err)
+{
+	VM* vm;
+	struct vm_options options;
+
+	cqct_options_init(&options);
+	cqct_options_set_memfile(&options, memfile);
+	cqct_options_set_loadpath(&options, loadpath);
+	cqct_options_set_io(&options, in, out, err);
+
+	vm = cqctinitwithopt(&options);
+
+	cqct_options_release(&options);
+
+	return vm;
+}
+
+VM*
+cqctinit(const char *memfile, const char **loadpath)
 {
 	return cqctinitxfd(memfile, loadpath, 0, 0, 0);
 }
+
 void
 cqctfini(VM *vm)
 {

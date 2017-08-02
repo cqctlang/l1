@@ -1,5 +1,5 @@
-#ifndef CQCT_H_
-#define CQCT_H_
+#ifndef CQCT_CQCT_H_
+#define CQCT_CQCT_H_
 
 extern char cqctflags[];
 
@@ -178,8 +178,15 @@ void		cqctvmerr(VM *vm, Val message);
 Env		restoreheap(const char *file);
 
 /* vm.c */
-VM*		cqctinit(const char *memfile, char **loadpath);
-VM*		cqctinitxfd(const char *memfile, char **loadpath, Xfd *in, Xfd *out, Xfd *err);
+VM*		cqctinit(const char *memfile, const char **loadpath);
+VM*		cqctinitxfd(const char *memfile, const char **loadpath, Xfd *in, Xfd *out, Xfd *err);
 void		cqctfini(VM *vm);
 
-#endif /* CQCT_H_ */
+struct vm_options;
+
+/**
+ * Create and initialize the VM with the provided options.
+ */
+VM* cqctinitwithopt(const struct vm_options* options);
+
+#endif /* CQCT_CQCT_H_ */
