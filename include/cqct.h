@@ -178,8 +178,8 @@ void		cqctvmerr(VM *vm, Val message);
 Env		restoreheap(const char *file);
 
 /* vm.c */
-VM*		cqctinit(const char *memfile, char **loadpath);
-VM*		cqctinitxfd(const char *memfile, char **loadpath, Xfd *in, Xfd *out, Xfd *err);
+VM*		cqctinit(const char *memfile, const char **loadpath);
+VM*		cqctinitxfd(const char *memfile, const char **loadpath, Xfd *in, Xfd *out, Xfd *err);
 void		cqctfini(VM *vm);
 
 struct vm_options;

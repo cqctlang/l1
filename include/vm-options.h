@@ -22,6 +22,10 @@ void cqct_options_set_memfile(struct vm_options* options,
 void cqct_options_set_loadpath(struct vm_options* options,
                                const char **loadpath);
 
+struct Xfd;
+void cqct_options_set_io(struct vm_options* options,
+                         const Xfd* in, const Xfd* out, const Xfd* err);
+
 /** Releases any storage associated with the options. */
 void cqct_options_release(struct vm_options* options);
 
