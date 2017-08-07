@@ -16,19 +16,6 @@ Zcontains(Expr *id, Expr *l)
 	return Zcontains(id, l->e2);
 }
 
-static void
-newlocal(Expr *s, Expr *id)
-{
-	Expr *b;
-	if(s->kind != Escope)
-		bug();
-	b = s->e1;
-	if(b->kind != Eblock)
-		bug();
-	if(!Zcontains(id, b->e1))
-		sete1(b, putsrc(Zcons(id, b->e1), b->e1->src));
-}
-
 static Expr*
 record(U *ctx, Expr *e, Expr *s)
 {
