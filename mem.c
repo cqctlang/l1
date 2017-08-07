@@ -322,8 +322,6 @@ static Qtype qs[Qnkind] = {
 	[Qpair]	 	= { "pair", sizeof(Pair), 0, scanpair, loadsavepair },
 	[Qprecode]	= { "precode", sizeof(Precode), 1, scanprecode, loadsaveprecode },
 	[Qrange] 	= { "range", sizeof(Range), 0, scanrange, loadsaverange },
-	//[Qrd]    	= { "rd", sizeof(Rd), 0, scanrd, loadsaverd },
-	//[Qrec]	 	= { "record", sizeof(Rec), 0, scanrec, loadsaverec },
 	[Qstr]	 	= { "string", sizeof(Str), 1, 0 },
 	[Qtab]	 	= { "table",  sizeof(Tab), 1, scantab, loadsavetab },
 	[Qvec]	 	= { "vector", sizeof(Vec), 0, scanvec, loadsavevec },
@@ -1350,11 +1348,6 @@ _qsz(Head *h)
 	case Qvec:
 		v = (Vec*)h;
 		return vecsize(v->len);
-/*
-	case Qrec:
-		r = (Rec*)h;
-		return recsize(r->nf);
-*/
 	case Qctype:
 		t = (Ctype*)h;
 		switch(t->tkind){
@@ -1457,7 +1450,6 @@ copy(Val *v)
 	case Qctype:
 	case Qstr:
 	case Qvec:
-	//case Qrec:
 	default:
 		nh = _mal(Vkind(h), sz);
 		Vsetkind(nh, Vkind(h));
