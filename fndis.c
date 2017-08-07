@@ -67,7 +67,7 @@ l1_disx86(VM *vm, Imm argc, Val *argv, Val *rv)
 	if(argc == 1) {
 		checkarg(vm, argv, 0, Qstr);
 		s = valstr(argv[0]);
-	}else if(argc == 2) {
+	} else {
 		checkarg(vm, argv, 0, Qcval);
 		checkarg(vm, argv, 1, Qcval);
 		p = valcval(argv[0]);
