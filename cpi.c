@@ -89,7 +89,7 @@ Zlabele(char *l, Expr *b)
 static int
 match(U *ctx, Expr* exp, Expr* pat, Match *m, Cases *cs)
 {
-	Expr *p, *e0, *f0, *k, *v;
+	Expr *p, *e0, *k, *v;
 	Match m0;
 	int rv, isvarg, l, i;
 	char *id;
