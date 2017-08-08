@@ -1053,10 +1053,6 @@ Expr*		docompilei(U *ctx, Expr *e);
 void		resetcpilabel();
 void		l1_cpi(VM *vm, Imm argc, Val *argv, Val *rv);
 
-/* cpr.c */
-Expr*		docompiler(U *ctx, Expr *e);
-void		l1_cpr(VM *vm, Imm argc, Val *argv, Val *rv);
-
 /* cp1.c */
 Expr*		docompile1(U *ctx, Expr *e);
 void		l1_cp1(VM *vm, Imm argc, Val *argv, Val *rv);
