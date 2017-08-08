@@ -101,7 +101,6 @@ static Pass all[] = {
 	CP(k),
 	CP(l),
 	CP(i),
-	CP(r),
 	CP(1),
 	CP(b),
 };
@@ -125,7 +124,6 @@ l1_bootcompilerpasses(VM *vm, Imm argc, Val *argv, Val *rv)
 	_listappend(l, MKCP(cpk));
 	_listappend(l, MKCP(cpl));
 	_listappend(l, MKCP(cpi));
-	_listappend(l, MKCP(cpr));
 	_listappend(l, MKCP(cp1));
 	_listappend(l, MKCP(cpb));
 	_listappend(l, MKCP(codegen));
@@ -185,7 +183,6 @@ initqc()
 	REGFN(l1_cpk);
 	REGFN(l1_cpl);
 	REGFN(l1_cpi);
-	REGFN(l1_cpr);
 	REGFN(l1_cp1);
 	REGFN(l1_cpb);
 	REGFN(l1_codegen);
