@@ -328,14 +328,6 @@ main(int argc, char *argv[])
 			argc -= 2;
 		} else
 			break;
-		//} else if(strcmp("--", argv[i]) == 0 || argv[i][0] != '-')
-			//break;
-		//else {
-			///* pass through legacy flags referenced by run time */
-			//if(argv[i][0] == '-' && strlen(argv[i]) == 2)
-				//cqctflags[(int)argv[i][1]] = 1;
-			//i++;
-		//}
 	}
 
 	nlp = finishloadpath(lp, nlp);
