@@ -339,7 +339,7 @@ main(int argc, char *argv[])
 	}
 
 	nlp = finishloadpath(lp, nlp);
-	vm = cqctinit(memfile, lp);
+	vm = cqctinit(memfile, (const char**)lp);
 	for(i = 0; i < nlp; i++)
 		free(lp[i]);
 	if(vm == 0)
