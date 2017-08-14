@@ -34,6 +34,7 @@ new function: mkstrm
 the definition of not is expanded to all values:
   not(0)   -> 1
   not(nil) -> 1
+  not("")  -> 1
   else     -> 0
 
 symbols beginning with @ can be constructed like other symbols:

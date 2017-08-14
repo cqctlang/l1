@@ -1982,6 +1982,8 @@ xunop(VM *vm, ikind op, Val v)
 			goto cval;
 		else if(Viskind(v, Qnil))
 			cvr = cval1;
+                else if(Viskind(v, Qstr))
+                        cvr = valstr(v)->len ? cval0 : cval1;
 		else
 			cvr = cval0;
 		goto out;

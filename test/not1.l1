@@ -4,5 +4,5 @@ printf("%a\n", !nil);
 printf("%a\n", !"string");
 printf("%a\n", !printf);
 printf("%a\n", !litdom);
-
+printf("%a\n", !"");
 
