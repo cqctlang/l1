@@ -323,3 +323,24 @@ Qkind
 cqctkind(Val val) {
   return (Qkind) Vkind(val);
 }
+
+Val
+cqctvalcar(Val val) {
+  if (Vkind(val) != Qpair) {
+    return 0;
+  }
+  return car(val);
+}
+
+Val
+cqctvalcdr(Val val) {
+  if (Vkind(val) != Qpair) {
+    return 0;
+  }
+  return cdr(val);
+}
+
+Val
+cqctmkpair(Val a, Val b) {
+  return mkvalpair(mkpair(a, b));
+}

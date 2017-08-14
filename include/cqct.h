@@ -159,6 +159,9 @@ Val		cqctvecset(Val l, uint64_t idx, Val v);
 Val*		cqctvecvals(Val v);
 const char*     cqcttypename(Qkind kind);
 Val		cqctnil();
+Val		cqctvalcar(Val);
+Val		cqctvalcdr(Val);
+Val		cqctmkpair(Val a, Val b);
 
 /** Returns the type of a val. */
 Qkind cqctkind(Val);
