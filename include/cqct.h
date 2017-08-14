@@ -1,6 +1,8 @@
 #ifndef CQCT_CQCT_H_
 #define CQCT_CQCT_H_
 
+#include <inttypes.h>
+
 extern char cqctflags[];
 
 typedef
