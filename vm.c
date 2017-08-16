@@ -4997,36 +4997,35 @@ mapstab(VM *vm, Vec *map, Imm addr, Imm len)
 }
 
 /* assume CV has been vetted by isstrcval */
-/* An alternative implementation could use the address space's map method
- * to look valid ranges, eliminating the redundant ismapped queries. Indeed,
- * a previous implementation did just that, but there were three problems:
- *
- *  - unreliable map implementations for some deployments made a redundant
- *    page-stride ismapped check necessary
- *  - restriction for reads across mapping bounaries artificially limited
- *    the interface
- *  - retrieving and stabbing the entire map for large address spaces
- *    imposed significant performance penalty.
- *
- * Extension of the address space map() method to allow subspace queries
- * could address all but the unreliability of maps. It is this programmer's
- * opinion that the reliability is up to the developer and that we shouldn't
- * go out of our way to protect them from.
- */
+/* FIXME: we don't trust map, so we stride
+   the reads by PAGESZ and verify each page
+   with ismapped.
+   we should not be doing this.
+   we should have reliable maps.
+   but we don't. */
 Str*
 stringof(VM *vm, Cval *cv)
 {
 	Str *s;
 	char *buf, *q;
-	Imm l, n, o, oo;
+	Vec *v;
+	Range *r;
+	Imm l, m, n, o, oo;
+
+	/* effectively a call to unit */
+	v = callmap(vm, cv->dom->as);
+	r = mapstab(vm, v, cvalu(cv), 0);	/* FIXME: type sanity */
+	if(r == 0)
+		vmerr(vm, "address space access out of bounds");
 
 	l = 0;
+	m = cvalu(r->beg)+cvalu(r->len)-cvalu(cv);
 	oo = o = cvalu(cv);
 	buf = 0;
-	n = PAGESZ-o%PAGESZ;
+	n = MIN(m, PAGESZ-o%PAGESZ);
 	if(!ismapped(vm, cv->dom->as, o, 1))
 		vmerr(vm, "address space access out of bounds");
-	while(1) {
+	while(m > 0) {
 		s = callget(vm, cv->dom->as, o, n);
 		buf = strdata(s);
 		q = strnchr(buf, '\0', s->len);
@@ -5036,7 +5035,8 @@ stringof(VM *vm, Cval *cv)
 		}
 		l += s->len;
 		o += s->len;
-		n = PAGESZ;
+		m -= s->len;
+		n = MIN(m, PAGESZ);
 		if(!ismapped(vm, cv->dom->as, o, 1))
 			break;
 	}
