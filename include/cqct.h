@@ -198,6 +198,11 @@ struct vm_options;
  */
 VM* cqctinitwithopt(const struct vm_options* options);
 
+/**
+ * Sets or clears a runtime flag.
+ */
+void cqctsetflag(unsigned char flag, int value);
+
 #ifdef __cplusplus
 }  // extern "C"
 #endif

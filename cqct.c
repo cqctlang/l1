@@ -347,3 +347,8 @@ Val
 cqctmkpair(Val a, Val b) {
   return mkvalpair(mkpair(a, b));
 }
+
+void
+cqctsetflag(unsigned char flag, int value) {
+  cqctflags[flag] = !!value;
+}
