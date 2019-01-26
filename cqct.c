@@ -80,11 +80,14 @@ cqctvalcstrshared(Val v)
 uint64_t
 cqctvalcstrlen(Val v)
 {
-	Str *s;
-	if(!Viskind(v, Qstr))
+	if(Vkind(v) == Qstr) {
+		return (uint64_t)valstr(v)->len;
+	} else if (Vkind(v) == Qcid) {
+		/* cid len includes null terminator */
+		return (uint64_t)valcid(v)->len - 1;
+	} else {
 		return 0;
-	s = valstr(v);
-	return (uint64_t)s->len;
+	}
 }
 
 Val
