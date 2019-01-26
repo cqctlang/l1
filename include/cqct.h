@@ -3,6 +3,10 @@
 
 #include <inttypes.h>
 
+#ifdef __cplusplus
+extern "C" {
+#endif
+
 extern char cqctflags[];
 
 typedef
@@ -181,6 +185,8 @@ void		cqctvmerr(VM *vm, Val message);
 
 /* mem.c */
 Env		restoreheap(const char *file);
+void	cqctgcdisable();
+void	cqctgcenable();
 
 /* vm.c */
 VM*		cqctinit(const char *memfile, const char **loadpath);
@@ -193,5 +199,14 @@ struct vm_options;
  * Create and initialize the VM with the provided options.
  */
 VM* cqctinitwithopt(const struct vm_options* options);
+
+/**
+ * Sets or clears a runtime flag.
+ */
+void cqctsetflag(unsigned char flag, int value);
+
+#ifdef __cplusplus
+}  // extern "C"
+#endif
 
 #endif /* CQCT_CQCT_H_ */
