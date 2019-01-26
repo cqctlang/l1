@@ -3,6 +3,10 @@
 
 #include <inttypes.h>
 
+#ifdef __cplusplus
+extern "C" {
+#endif
+
 extern char cqctflags[];
 
 typedef
@@ -193,5 +197,9 @@ struct vm_options;
  * Create and initialize the VM with the provided options.
  */
 VM* cqctinitwithopt(const struct vm_options* options);
+
+#ifdef __cplusplus
+}  // extern "C"
+#endif
 
 #endif /* CQCT_CQCT_H_ */

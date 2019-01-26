@@ -1,6 +1,10 @@
 #ifndef CQCT_VM_OPTIONS_H_
 #define CQCT_VM_OPTIONS_H_
 
+#ifdef __cplusplus
+extern "C" {
+#endif
+
 struct vm_options;
 
 /**
@@ -28,5 +32,9 @@ void cqct_options_set_io(struct vm_options* options,
 
 /** Releases any storage associated with the options. */
 void cqct_options_release(struct vm_options* options);
+
+#ifdef __cplusplus
+}  // extern "C"
+#endif
 
 #endif /* CQCT_VM_OPTIONS_H_ */
