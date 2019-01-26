@@ -238,11 +238,17 @@ resolve2(U *ctx, Expr *e, Env top, Xenv *lex, Expr *scope, Xenv *slex)
 		id = idsym(e);
 		if(xenvlook(lex, id))
 			return e;
-		if(cqctflags['w']
+		if((cqctflags['w'] || cqctflags['m'])
 		   && !envbinds(top, idcid(e))
-		   && strcmp(id, "_") != 0)
-			cwarn(ctx, e,
-			      "reference to unbound variable: %s", id);
+		   && strcmp(id, "_") != 0) {
+			if (cqctflags['m']) {
+				cerror(ctx, e,
+					   "reference to unbound variable: %s", id);
+			} else {
+				cwarn(ctx, e,
+					  "reference to unbound variable: %s", id);
+			}
+		}
 		se = Ztid(id);
 		putsrc(se, e->src);
 		return se;
