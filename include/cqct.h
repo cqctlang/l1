@@ -185,6 +185,8 @@ void		cqctvmerr(VM *vm, Val message);
 
 /* mem.c */
 Env		restoreheap(const char *file);
+void	cqctgcdisable();
+void	cqctgcenable();
 
 /* vm.c */
 VM*		cqctinit(const char *memfile, const char **loadpath);
