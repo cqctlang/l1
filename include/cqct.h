@@ -133,7 +133,6 @@ Closure*	cqctmkcfn(const char *id,
 Closure*	cqctmkccl(const char *id,
 			  void (cl)(VM *vm, uint64_t argc, Val *argv, Val *disp, Val *rv),
 			  unsigned dlen, ...);
-Val		cqctmkfd(Xfd *xfd, const char *name);
 Val		cqctmklist(uint64_t n);
 Val		cqctmkrange(Val b, Val l);
 Val		cqctmkvec(uint64_t n);
