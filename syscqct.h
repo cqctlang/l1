@@ -3,6 +3,10 @@
 
 #include "cqct.h"
 
+#ifdef __cplusplus
+extern "C" {
+#endif
+
 /* #define since these are not all int-sized */
 #define	Vintmax		2147483647ULL
 #define	Vuintmax	4294967295ULL
@@ -1613,5 +1617,9 @@ struct vm_options {
         Xfd err;
     } io;
 };
+
+#ifdef __cplusplus
+}  // extern "C"
+#endif
 
 #endif /* _BISONFLAW_SYSCQCT_H_ */

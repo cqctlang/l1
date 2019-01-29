@@ -1,5 +1,10 @@
 #ifndef _BISONFLAW_UTIL_H_
 #define _BISONFLAW_UTIL_H_
+
+#ifdef __cplusplus
+extern "C" {
+#endif
+
 typedef struct HT HT;
 void		freeht(HT *ht);
 HT*		mkhtp(void);
@@ -87,5 +92,9 @@ Imm		usec(void);
 
 extern u64 cqctmeminuse;
 extern u64 cqctmemtotal;
+
+#ifdef __cplusplus
+}  // extern "C"
+#endif
 
 #endif /* _BISONFLAW_UTIL_H_ */

@@ -38,6 +38,10 @@
 
 //#include <valgrind/memcheck.h>
 
+#ifdef __cplusplus
+extern "C" {
+#endif
+
 typedef int8_t		s8;
 typedef int16_t		s16;
 typedef int32_t		s32;
@@ -67,6 +71,10 @@ extern int gInsnProfiling[];
 #define LABEL
 
 #endif /* _BISONFLAW_SYS_H_ */
+
+#ifdef __cplusplus
+}  // extern "C"
+#endif
 
 #else /* PLAN 9 */
 
