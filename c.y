@@ -1229,6 +1229,8 @@ define_statement
 	{ $$ = putsrc(newexpr($1, $2, invert($4), $6, 0), $2->src); }
 	| define id '('  ')' compound_statement
 	{ $$ = putsrc(newexpr($1, $2, nullelist(), $5, 0), $2->src); }
+	| define id '(' mcall_expression ')' compound_statement
+	{ $$ = putsrc(newexpr($1, $2, $4, $6, 0), $2->src); }
 	;
 
 translation_unit_seq
