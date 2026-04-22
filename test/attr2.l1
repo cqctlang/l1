@@ -1,0 +1,14 @@
+ns = @names c32le {
+  void function1(@["foo": "bar"] int param0);
+  void function2(int baz);
+};
+
+fct = ns.looksym('function1);
+fct_type = symtype(fct);
+param0 = params(fct_type)[0];
+
+fct = ns.looksym('function2);
+fct_type = symtype(fct);
+baz = params(fct_type)[0];
+
+printf("%s, %a\n", paramattr(param0)["foo"], paramattr(baz));

@@ -3815,9 +3815,12 @@ resolvetypename(VM *vm, Ctype *t, NSctx *ctx)
 			vec = valvec(vecref(tf->param, i));
 			tmp = paramtype(vec);
 			tmp = resolvetypename(vm, tmp, ctx);
-			pv = mkvec(2);
+			pv = mkvec(vec->len);
 			_vecset(pv, Typepos, mkvalctype(tmp));
 			_vecset(pv, Idpos, vecref(vec, Idpos));
+			if (vec->len == 3) {
+				_vecset(pv, Attrpos, vecref(vec, Attrpos));
+			}
 			_vecset(np, i, mkvalvec(pv));
 		}
 		return mkctypefunc(resolvetypename(vm, subtype(t), ctx), np);
