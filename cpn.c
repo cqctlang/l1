@@ -936,9 +936,10 @@ mkctypename(U *ctx, Expr *e, Seen *s)
 		while(!isnull(p)){
 			a = p->e1;
 			p = p->e2;
-			se = Zcons(Zcall(G("vector"), 2,
+			se = Zcons(Zcall(G("vector"), 3,
 					 mkctype(ctx, a->e1, s),
-					 a->e2 ? Zid2sym(a->e2) : Znil()),
+					 a->e2 ? Zid2sym(a->e2) : Znil(),
+					 a->e3 ? mkctype(ctx, a->e3, s) : Znil()),
 				   se);
 			putsrc(se, a->src);
 		}
